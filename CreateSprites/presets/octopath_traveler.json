@@ -1,0 +1,50 @@
+{
+    "body": {
+        "file": "body_base.png",
+        "color": "#EBB68C"
+    },
+    "face_shape": {
+        "file": "face_square_jaw.png",
+        "color": "#EBB68C"
+    },
+    "face_detail": {
+        "file": "detail_scar.png",
+        "color": "#FF7777"
+    },
+    "mouth": {
+        "file": "mouth_smirk.png",
+        "color": "#C44242"
+    },
+    "nose": {
+        "file": "nose_pointed.png",
+        "color": "#EBB68C"
+    },
+    "eyes": {
+        "file": "eyes_adventurer_serious.png",
+        "color": "#2563EB"
+    },
+    "eyebrows": {
+        "file": "brows_serious.png",
+        "color": "#6A452D"
+    },
+    "hair": {
+        "file": "hair_adventurer_spiky.png",
+        "color": "#6A452D"
+    },
+    "bottoms": {
+        "file": "bottom_adventurer_pants.png",
+        "color": "#334155"
+    },
+    "shoes": {
+        "file": "shoes_adventurer_boots.png",
+        "color": "#78350F"
+    },
+    "tops": {
+        "file": "top_adventurer_coat.png",
+        "color": "#78350F"
+    },
+    "accessories": {
+        "file": "acc_satchel_bag.png",
+        "color": "#78350F"
+    }
+}

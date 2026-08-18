@@ -1,0 +1,46 @@
+{
+    "body": {
+        "file": "body_male.png",
+        "color": "#FCD5B5"
+    },
+    "face_detail": {
+        "file": "detail_scar.png",
+        "color": "#FF7777"
+    },
+    "mouth": {
+        "file": "mouth_smirk.png",
+        "color": "#C44242"
+    },
+    "nose": {
+        "file": "nose_pointed.png",
+        "color": "#FCD5B5"
+    },
+    "eyes": {
+        "file": "eyes_serious_narrow.png",
+        "color": "#2563EB"
+    },
+    "eyebrows": {
+        "file": "brows_serious.png",
+        "color": "#B82C38"
+    },
+    "hair": {
+        "file": "hair_short_spiky.png",
+        "color": "#B82C38"
+    },
+    "bottoms": {
+        "file": "bottom_cargo.png",
+        "color": "#1E293B"
+    },
+    "shoes": {
+        "file": "shoes_boots.png",
+        "color": "#78350F"
+    },
+    "tops": {
+        "file": "top_leather_jacket.png",
+        "color": "#1E293B"
+    },
+    "accessories": {
+        "file": "acc_sunglasses_cool.png",
+        "color": "#1E293B"
+    }
+}

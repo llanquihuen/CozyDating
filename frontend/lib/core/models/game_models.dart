@@ -1,0 +1,155 @@
+import 'dart:convert';
+import 'package:equatable/equatable.dart';
+
+class PlayerProfileMini extends Equatable {
+  final String userId;
+  final String username;
+  final String commune;
+  final int age;
+
+  const PlayerProfileMini({
+    required this.userId,
+    required this.username,
+    required this.commune,
+    required this.age,
+  });
+
+  factory PlayerProfileMini.fromJson(Map<String, dynamic> json) {
+    return PlayerProfileMini(
+      userId: json['userId'] as String? ?? '',
+      username: json['username'] as String? ?? '',
+      commune: json['commune'] as String? ?? '',
+      age: json['age'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'username': username,
+      'commune': commune,
+      'age': age,
+    };
+  }
+
+  @override
+  List<Object?> get props => [userId, username, commune, age];
+}
+
+class GameMessage extends Equatable {
+  final String type;
+  final Map<String, dynamic> payload;
+
+  const GameMessage({
+    required this.type,
+    required this.payload,
+  });
+
+  factory GameMessage.fromJson(Map<String, dynamic> json) {
+    final type = json['type'] as String? ?? '';
+    final payload = Map<String, dynamic>.from(json)..remove('type');
+    return GameMessage(type: type, payload: payload);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      ...payload,
+    };
+  }
+
+  String toJsonString() => jsonEncode(toJson());
+
+  @override
+  List<Object?> get props => [type, payload];
+}
+
+class SessionInitPayload extends Equatable {
+  final String roomId;
+  final String role;
+  final String mode;
+  final String? livekitToken;
+  final String partnerId;
+  final int act;
+
+  const SessionInitPayload({
+    required this.roomId,
+    required this.role,
+    required this.mode,
+    this.livekitToken,
+    required this.partnerId,
+    this.act = 1,
+  });
+
+  factory SessionInitPayload.fromJson(Map<String, dynamic> json) {
+    return SessionInitPayload(
+      roomId: json['roomId'] as String? ?? '',
+      role: json['role'] as String? ?? '',
+      mode: json['mode'] as String? ?? '',
+      livekitToken: json['livekitToken'] as String?,
+      partnerId: json['partnerId'] as String? ?? '',
+      act: (json['act'] as num?)?.toInt() ?? 1,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'roomId': roomId,
+      'role': role,
+      'mode': mode,
+      'livekitToken': livekitToken,
+      'partnerId': partnerId,
+      'act': act,
+    };
+  }
+
+  @override
+  List<Object?> get props => [roomId, role, mode, livekitToken, partnerId, act];
+}
+
+class DungeonStatePayload extends Equatable {
+  final double playerX;
+  final double playerY;
+  final double? chaserX;
+  final double? chaserY;
+  final String role;
+  final Map<String, dynamic> activeTraps;
+  final Map<String, dynamic> blockPositions;
+
+  const DungeonStatePayload({
+    required this.playerX,
+    required this.playerY,
+    this.chaserX,
+    this.chaserY,
+    required this.role,
+    required this.activeTraps,
+    required this.blockPositions,
+  });
+
+  factory DungeonStatePayload.fromJson(Map<String, dynamic> json) {
+    return DungeonStatePayload(
+      playerX: (json['playerX'] as num?)?.toDouble() ?? 0.0,
+      playerY: (json['playerY'] as num?)?.toDouble() ?? 0.0,
+      chaserX: (json['chaserX'] as num?)?.toDouble(),
+      chaserY: (json['chaserY'] as num?)?.toDouble(),
+      role: json['role'] as String? ?? 'EXPLORER',
+      activeTraps: json['activeTraps'] as Map<String, dynamic>? ?? const {},
+      blockPositions: json['blockPositions'] as Map<String, dynamic>? ?? const {},
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'playerX': playerX,
+      'playerY': playerY,
+      'chaserX': chaserX,
+      'chaserY': chaserY,
+      'role': role,
+      'activeTraps': activeTraps,
+      'blockPositions': blockPositions,
+    };
+  }
+
+  @override
+  List<Object?> get props => [playerX, playerY, chaserX, chaserY, role, activeTraps, blockPositions];
+}

@@ -1,0 +1,46 @@
+{
+    "body": {
+        "file": "body_female.png",
+        "color": "#FFF0E6"
+    },
+    "face_detail": {
+        "file": "detail_blush.png",
+        "color": "#FF7777"
+    },
+    "mouth": {
+        "file": "mouth_lipstick.png",
+        "color": "#F472B6"
+    },
+    "nose": {
+        "file": "nose_subtle.png",
+        "color": "#FFF0E6"
+    },
+    "eyes": {
+        "file": "eyes_cute_large.png",
+        "color": "#36D1DC"
+    },
+    "eyebrows": {
+        "file": "brows_arched.png",
+        "color": "#F587B8"
+    },
+    "hair": {
+        "file": "hair_twintails.png",
+        "color": "#F587B8"
+    },
+    "bottoms": {
+        "file": "bottom_skirt_pleated.png",
+        "color": "#9333EA"
+    },
+    "shoes": {
+        "file": "shoes_sneakers.png",
+        "color": "#38BDF8"
+    },
+    "tops": {
+        "file": "top_crop_top.png",
+        "color": "#38BDF8"
+    },
+    "accessories": {
+        "file": "acc_headphones.png",
+        "color": "#F5CE62"
+    }
+}

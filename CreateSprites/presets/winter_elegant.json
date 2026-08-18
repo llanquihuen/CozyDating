@@ -1,0 +1,46 @@
+{
+    "body": {
+        "file": "body_female.png",
+        "color": "#FDE8D8"
+    },
+    "face_detail": {
+        "file": "detail_blush.png",
+        "color": "#FF7777"
+    },
+    "mouth": {
+        "file": "mouth_smile.png",
+        "color": "#C44242"
+    },
+    "nose": {
+        "file": "nose_subtle.png",
+        "color": "#FDE8D8"
+    },
+    "eyes": {
+        "file": "eyes_anime_normal.png",
+        "color": "#7C3AED"
+    },
+    "eyebrows": {
+        "file": "brows_arched.png",
+        "color": "#26232E"
+    },
+    "hair": {
+        "file": "hair_bob_bangs.png",
+        "color": "#26232E"
+    },
+    "bottoms": {
+        "file": "bottom_skirt_long.png",
+        "color": "#1E293B"
+    },
+    "shoes": {
+        "file": "shoes_formal.png",
+        "color": "#1E293B"
+    },
+    "tops": {
+        "file": "top_winter_coat.png",
+        "color": "#B82C38"
+    },
+    "accessories": {
+        "file": "acc_beret.png",
+        "color": "#1E293B"
+    }
+}

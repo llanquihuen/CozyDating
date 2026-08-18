@@ -1,0 +1,50 @@
+{
+    "body": {
+        "file": "body_base.png",
+        "color": "#FCD5B5"
+    },
+    "face_shape": {
+        "file": "face_oval.png",
+        "color": "#FCD5B5"
+    },
+    "face_detail": {
+        "file": "detail_blush.png",
+        "color": "#FF7777"
+    },
+    "mouth": {
+        "file": "mouth_smile.png",
+        "color": "#C44242"
+    },
+    "nose": {
+        "file": "nose_subtle.png",
+        "color": "#FCD5B5"
+    },
+    "eyes": {
+        "file": "eyes_stardew_cute.png",
+        "color": "#059669"
+    },
+    "eyebrows": {
+        "file": "brows_normal.png",
+        "color": "#C85A2A"
+    },
+    "hair": {
+        "file": "hair_farm_braids.png",
+        "color": "#C85A2A"
+    },
+    "bottoms": {
+        "file": "bottom_farmer_overalls.png",
+        "color": "#2563EB"
+    },
+    "shoes": {
+        "file": "shoes_farmer_boots.png",
+        "color": "#78350F"
+    },
+    "tops": {
+        "file": "top_flannel_shirt.png",
+        "color": "#DC2626"
+    },
+    "accessories": {
+        "file": "acc_straw_hat.png",
+        "color": "#EAB308"
+    }
+}
