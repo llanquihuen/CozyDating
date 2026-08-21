@@ -10,6 +10,10 @@ class PlacedFurnitureConfig extends Equatable {
   final int gridHeight;
   final int rotation;
   final String? assetPath;
+  final String? parentId;
+  final String wallHeightLevel; // 'mid' or 'high'
+  final double nudgeX;
+  final double nudgeY;
 
   const PlacedFurnitureConfig({
     required this.id,
@@ -20,6 +24,10 @@ class PlacedFurnitureConfig extends Equatable {
     this.gridHeight = 1,
     this.rotation = 0,
     this.assetPath,
+    this.parentId,
+    this.wallHeightLevel = 'high',
+    this.nudgeX = 0.0,
+    this.nudgeY = 0.0,
   });
 
   PlacedFurnitureConfig copyWith({
@@ -31,6 +39,11 @@ class PlacedFurnitureConfig extends Equatable {
     int? gridHeight,
     int? rotation,
     String? assetPath,
+    String? parentId,
+    bool clearParent = false,
+    String? wallHeightLevel,
+    double? nudgeX,
+    double? nudgeY,
   }) {
     return PlacedFurnitureConfig(
       id: id ?? this.id,
@@ -41,6 +54,10 @@ class PlacedFurnitureConfig extends Equatable {
       gridHeight: gridHeight ?? this.gridHeight,
       rotation: rotation ?? this.rotation,
       assetPath: assetPath ?? this.assetPath,
+      parentId: clearParent ? null : (parentId ?? this.parentId),
+      wallHeightLevel: wallHeightLevel ?? this.wallHeightLevel,
+      nudgeX: nudgeX ?? this.nudgeX,
+      nudgeY: nudgeY ?? this.nudgeY,
     );
   }
 
@@ -53,7 +70,11 @@ class PlacedFurnitureConfig extends Equatable {
       'gridWidth': gridWidth,
       'gridHeight': gridHeight,
       'rotation': rotation,
-      'assetPath': assetPath,
+      if (assetPath != null) 'assetPath': assetPath,
+      if (parentId != null) 'parentId': parentId,
+      if (wallHeightLevel != 'high') 'wallHeightLevel': wallHeightLevel,
+      if (nudgeX != 0.0) 'nudgeX': nudgeX,
+      if (nudgeY != 0.0) 'nudgeY': nudgeY,
     };
   }
 
@@ -67,57 +88,94 @@ class PlacedFurnitureConfig extends Equatable {
       gridHeight: map['gridHeight'] ?? 1,
       rotation: map['rotation'] ?? 0,
       assetPath: map['assetPath'],
+      parentId: map['parentId'] ?? map['parent_id'],
+      wallHeightLevel: map['wallHeightLevel'] ?? map['wall_height_level'] ?? 'high',
+      nudgeX: (map['nudgeX'] ?? map['nudge_x'] as num?)?.toDouble() ?? 0.0,
+      nudgeY: (map['nudgeY'] ?? map['nudge_y'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
   @override
-  List<Object?> get props => [id, typeName, gridX, gridY, gridWidth, gridHeight, rotation, assetPath];
+  List<Object?> get props => [id, typeName, gridX, gridY, gridWidth, gridHeight, rotation, assetPath, parentId, wallHeightLevel, nudgeX, nudgeY];
 }
 
 class RoomConfig extends Equatable {
   final String wallpaper;
   final String floor;
+  final String resolution; // '64x128' or '32x64'
   final List<PlacedFurnitureConfig> furniture;
 
   const RoomConfig({
     this.wallpaper = 'rustic_wood',
     this.floor = 'oak_parquet',
+    this.resolution = '64x128',
     this.furniture = const [
       PlacedFurnitureConfig(
-        id: 'wardrobe_default',
-        typeName: 'wardrobe',
+        id: 'window_yellow_n',
+        typeName: 'window_yellow_n',
+        gridX: 3,
+        gridY: 0,
+        gridWidth: 1,
+        gridHeight: 1,
+        wallHeightLevel: 'high',
+      ),
+      PlacedFurnitureConfig(
+        id: 'art_painting_w',
+        typeName: 'art_painting_w',
+        gridX: 0,
+        gridY: 2,
+        gridWidth: 1,
+        gridHeight: 1,
+        wallHeightLevel: 'high',
+      ),
+      PlacedFurnitureConfig(
+        id: 'tall_bookshelf',
+        typeName: 'tall_bookshelf',
         gridX: 1,
         gridY: 0,
         gridWidth: 1,
         gridHeight: 1,
-        assetPath: 'furniture/wardrobe_mirror.png',
       ),
       PlacedFurnitureConfig(
-        id: 'bed_default',
-        typeName: 'bed',
-        gridX: 0,
-        gridY: 5,
-        gridWidth: 1,
-        gridHeight: 2,
-        assetPath: 'furniture/bed_single_rustic.png',
-      ),
-      PlacedFurnitureConfig(
-        id: 'plant_default',
-        typeName: 'plant',
+        id: 'bookshelf',
+        typeName: 'bookshelf',
         gridX: 6,
         gridY: 0,
         gridWidth: 1,
         gridHeight: 1,
-        assetPath: 'furniture/plant_monstera.png',
       ),
       PlacedFurnitureConfig(
-        id: 'table_default',
+        id: 'single_bed',
+        typeName: 'single_bed',
+        gridX: 0,
+        gridY: 4,
+        gridWidth: 1,
+        gridHeight: 2,
+      ),
+      PlacedFurnitureConfig(
+        id: 'closet',
+        typeName: 'closet',
+        gridX: 0,
+        gridY: 6,
+        gridWidth: 1,
+        gridHeight: 1,
+      ),
+      PlacedFurnitureConfig(
+        id: 'table',
         typeName: 'table',
         gridX: 3,
         gridY: 3,
         gridWidth: 1,
         gridHeight: 1,
-        assetPath: 'furniture/table_tea.png',
+      ),
+      PlacedFurnitureConfig(
+        id: 'coffee_mug',
+        typeName: 'coffee_mug',
+        gridX: 3,
+        gridY: 3,
+        gridWidth: 1,
+        gridHeight: 1,
+        parentId: 'table',
       ),
     ],
   });
@@ -125,11 +183,13 @@ class RoomConfig extends Equatable {
   RoomConfig copyWith({
     String? wallpaper,
     String? floor,
+    String? resolution,
     List<PlacedFurnitureConfig>? furniture,
   }) {
     return RoomConfig(
       wallpaper: wallpaper ?? this.wallpaper,
       floor: floor ?? this.floor,
+      resolution: resolution ?? this.resolution,
       furniture: furniture ?? this.furniture,
     );
   }
@@ -138,6 +198,7 @@ class RoomConfig extends Equatable {
     return {
       'wallpaper': wallpaper,
       'floor': floor,
+      'resolution': resolution,
       'furniture': furniture.map((f) => f.toMap()).toList(),
     };
   }
@@ -146,45 +207,76 @@ class RoomConfig extends Equatable {
     return RoomConfig(
       wallpaper: map['wallpaper'] ?? 'rustic_wood',
       floor: map['floor'] ?? 'oak_parquet',
+      resolution: map['resolution'] ?? '64x128',
       furniture: map['furniture'] != null
           ? List<PlacedFurnitureConfig>.from(
               (map['furniture'] as List).map((x) => PlacedFurnitureConfig.fromMap(x)))
           : const [
               PlacedFurnitureConfig(
-                id: 'wardrobe_default',
-                typeName: 'wardrobe',
+                id: 'window_yellow_n',
+                typeName: 'window_yellow_n',
+                gridX: 3,
+                gridY: 0,
+                gridWidth: 1,
+                gridHeight: 1,
+                wallHeightLevel: 'high',
+              ),
+              PlacedFurnitureConfig(
+                id: 'art_painting_w',
+                typeName: 'art_painting_w',
+                gridX: 0,
+                gridY: 2,
+                gridWidth: 1,
+                gridHeight: 1,
+              ),
+              PlacedFurnitureConfig(
+                id: 'tall_bookshelf',
+                typeName: 'tall_bookshelf',
                 gridX: 1,
                 gridY: 0,
                 gridWidth: 1,
                 gridHeight: 1,
-                assetPath: 'furniture/wardrobe_mirror.png',
               ),
               PlacedFurnitureConfig(
-                id: 'bed_default',
-                typeName: 'bed',
-                gridX: 0,
-                gridY: 5,
-                gridWidth: 1,
-                gridHeight: 2,
-                assetPath: 'furniture/bed_single_rustic.png',
-              ),
-              PlacedFurnitureConfig(
-                id: 'plant_default',
-                typeName: 'plant',
+                id: 'bookshelf',
+                typeName: 'bookshelf',
                 gridX: 6,
                 gridY: 0,
                 gridWidth: 1,
                 gridHeight: 1,
-                assetPath: 'furniture/plant_monstera.png',
               ),
               PlacedFurnitureConfig(
-                id: 'table_default',
+                id: 'single_bed',
+                typeName: 'single_bed',
+                gridX: 0,
+                gridY: 4,
+                gridWidth: 1,
+                gridHeight: 2,
+              ),
+              PlacedFurnitureConfig(
+                id: 'closet',
+                typeName: 'closet',
+                gridX: 0,
+                gridY: 6,
+                gridWidth: 1,
+                gridHeight: 1,
+              ),
+              PlacedFurnitureConfig(
+                id: 'table',
                 typeName: 'table',
                 gridX: 3,
                 gridY: 3,
                 gridWidth: 1,
                 gridHeight: 1,
-                assetPath: 'furniture/table_tea.png',
+              ),
+              PlacedFurnitureConfig(
+                id: 'coffee_mug',
+                typeName: 'coffee_mug',
+                gridX: 3,
+                gridY: 3,
+                gridWidth: 1,
+                gridHeight: 1,
+                parentId: 'table',
               ),
             ],
     );
@@ -195,7 +287,7 @@ class RoomConfig extends Equatable {
   factory RoomConfig.fromJson(String source) => RoomConfig.fromMap(json.decode(source));
 
   @override
-  List<Object?> get props => [wallpaper, floor, furniture];
+  List<Object?> get props => [wallpaper, floor, resolution, furniture];
 }
 
 class WallpaperOption {

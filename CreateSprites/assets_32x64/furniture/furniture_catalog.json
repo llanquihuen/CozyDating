@@ -1,0 +1,3394 @@
+{
+    "table": {
+        "id": "table",
+        "name": "Mesa Rústica",
+        "zone": "living",
+        "footprint": "1x1",
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "table",
+                "name": "Mesa Rústica",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 18,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "table",
+                "name": "Mesa Rústica",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 18,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "table",
+                "name": "Mesa Rústica",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 18,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "table",
+                "name": "Mesa Rústica",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 18,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "bookshelf": {
+        "id": "bookshelf",
+        "name": "Estantería de Libros",
+        "zone": "living",
+        "footprint": "1x1",
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "bookshelf",
+                "name": "Estantería de Libros",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "bookshelf",
+                "name": "Estantería de Libros",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "bookshelf",
+                "name": "Estantería de Libros",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "bookshelf",
+                "name": "Estantería de Libros",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "tall_bookshelf": {
+        "id": "tall_bookshelf",
+        "name": "Estantería Alta",
+        "zone": "living",
+        "footprint": "1x1",
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -73
+        ],
+        "canvas_size": [
+            64,
+            96
+        ],
+        "rotations": {
+            "0": {
+                "id": "tall_bookshelf",
+                "name": "Estantería Alta",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -73
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "tall_bookshelf",
+                "name": "Estantería Alta",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -73
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "tall_bookshelf",
+                "name": "Estantería Alta",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -73
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "tall_bookshelf",
+                "name": "Estantería Alta",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -73
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "single_bed": {
+        "id": "single_bed",
+        "name": "Cama Individual (1x2)",
+        "zone": "bedroom",
+        "footprint": "1x2",
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -64,
+            -36
+        ],
+        "canvas_size": [
+            96,
+            72
+        ],
+        "rotations": {
+            "0": {
+                "id": "single_bed",
+                "name": "Cama Individual (1x2)",
+                "zone": "bedroom",
+                "footprint": "1x2",
+                "rot": 0,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -64,
+                    -36
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "single_bed",
+                "name": "Cama Individual (1x2)",
+                "zone": "bedroom",
+                "footprint": "2x1",
+                "rot": 1,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -32,
+                    -36
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "single_bed",
+                "name": "Cama Individual (1x2)",
+                "zone": "bedroom",
+                "footprint": "1x2",
+                "rot": 2,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -64,
+                    -36
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "single_bed",
+                "name": "Cama Individual (1x2)",
+                "zone": "bedroom",
+                "footprint": "2x1",
+                "rot": 3,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -32,
+                    -36
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "closet": {
+        "id": "closet",
+        "name": "Armario Ropero Alto",
+        "zone": "bedroom",
+        "footprint": "1x1",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -73
+        ],
+        "canvas_size": [
+            64,
+            96
+        ],
+        "rotations": {
+            "0": {
+                "id": "closet",
+                "name": "Armario Ropero Alto",
+                "zone": "bedroom",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -73
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "closet",
+                "name": "Armario Ropero Alto",
+                "zone": "bedroom",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -73
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "closet",
+                "name": "Armario Ropero Alto",
+                "zone": "bedroom",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -73
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "closet",
+                "name": "Armario Ropero Alto",
+                "zone": "bedroom",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -73
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "cube_1x1": {
+        "id": "cube_1x1",
+        "name": "Paralelepípedo 1x1",
+        "zone": "guide",
+        "footprint": "1x1",
+        "surface_height": 24,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "cube_1x1",
+                "name": "Paralelepípedo 1x1",
+                "zone": "guide",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 24,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "cube_1x1",
+                "name": "Paralelepípedo 1x1",
+                "zone": "guide",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 24,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "cube_1x1",
+                "name": "Paralelepípedo 1x1",
+                "zone": "guide",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 24,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "cube_1x1",
+                "name": "Paralelepípedo 1x1",
+                "zone": "guide",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 24,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "cube_1x2": {
+        "id": "cube_1x2",
+        "name": "Paralelepípedo 1x2",
+        "zone": "guide",
+        "footprint": "1x2",
+        "surface_height": 20,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -64,
+            -36
+        ],
+        "canvas_size": [
+            96,
+            72
+        ],
+        "rotations": {
+            "0": {
+                "id": "cube_1x2",
+                "name": "Paralelepípedo 1x2",
+                "zone": "guide",
+                "footprint": "1x2",
+                "rot": 0,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -64,
+                    -36
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "cube_1x2",
+                "name": "Paralelepípedo 1x2",
+                "zone": "guide",
+                "footprint": "2x1",
+                "rot": 1,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -32,
+                    -36
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "cube_1x2",
+                "name": "Paralelepípedo 1x2",
+                "zone": "guide",
+                "footprint": "1x2",
+                "rot": 2,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -64,
+                    -36
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "cube_1x2",
+                "name": "Paralelepípedo 1x2",
+                "zone": "guide",
+                "footprint": "2x1",
+                "rot": 3,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -32,
+                    -36
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "cube_2x1": {
+        "id": "cube_2x1",
+        "name": "Paralelepípedo 2x1",
+        "zone": "guide",
+        "footprint": "2x1",
+        "surface_height": 20,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -36
+        ],
+        "canvas_size": [
+            96,
+            72
+        ],
+        "rotations": {
+            "0": {
+                "id": "cube_2x1",
+                "name": "Paralelepípedo 2x1",
+                "zone": "guide",
+                "footprint": "2x1",
+                "rot": 0,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -32,
+                    -36
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "cube_2x1",
+                "name": "Paralelepípedo 2x1",
+                "zone": "guide",
+                "footprint": "1x2",
+                "rot": 1,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -64,
+                    -36
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "cube_2x1",
+                "name": "Paralelepípedo 2x1",
+                "zone": "guide",
+                "footprint": "2x1",
+                "rot": 2,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -32,
+                    -36
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "cube_2x1",
+                "name": "Paralelepípedo 2x1",
+                "zone": "guide",
+                "footprint": "1x2",
+                "rot": 3,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -64,
+                    -36
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "cube_2x2": {
+        "id": "cube_2x2",
+        "name": "Paralelepípedo 2x2",
+        "zone": "guide",
+        "footprint": "2x2",
+        "surface_height": 28,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -64,
+            -44
+        ],
+        "canvas_size": [
+            128,
+            88
+        ],
+        "rotations": {
+            "0": {
+                "id": "cube_2x2",
+                "name": "Paralelepípedo 2x2",
+                "zone": "guide",
+                "footprint": "2x2",
+                "rot": 0,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 28,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "cube_2x2",
+                "name": "Paralelepípedo 2x2",
+                "zone": "guide",
+                "footprint": "2x2",
+                "rot": 1,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 28,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "cube_2x2",
+                "name": "Paralelepípedo 2x2",
+                "zone": "guide",
+                "footprint": "2x2",
+                "rot": 2,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 28,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "cube_2x2",
+                "name": "Paralelepípedo 2x2",
+                "zone": "guide",
+                "footprint": "2x2",
+                "rot": 3,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 28,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "cube_wall": {
+        "id": "cube_wall",
+        "name": "Guía de Pared",
+        "zone": "guide",
+        "footprint": "wall_n",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "cube_wall",
+                "name": "Guía de Pared",
+                "zone": "guide",
+                "footprint": "wall_n",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "cube_wall",
+                "name": "Guía de Pared",
+                "zone": "guide",
+                "footprint": "wall_n",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "cube_wall",
+                "name": "Guía de Pared",
+                "zone": "guide",
+                "footprint": "wall_n",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "cube_wall",
+                "name": "Guía de Pared",
+                "zone": "guide",
+                "footprint": "wall_n",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "table_lamp": {
+        "id": "table_lamp",
+        "name": "Lámpara de Noche",
+        "zone": "decor",
+        "footprint": "surface",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "table_lamp",
+                "name": "Lámpara de Noche",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "table_lamp",
+                "name": "Lámpara de Noche",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "table_lamp",
+                "name": "Lámpara de Noche",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "table_lamp",
+                "name": "Lámpara de Noche",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "coffee_mug": {
+        "id": "coffee_mug",
+        "name": "Taza de Café Caliente",
+        "zone": "decor",
+        "footprint": "surface",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "coffee_mug",
+                "name": "Taza de Café Caliente",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "coffee_mug",
+                "name": "Taza de Café Caliente",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "coffee_mug",
+                "name": "Taza de Café Caliente",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "coffee_mug",
+                "name": "Taza de Café Caliente",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "open_book": {
+        "id": "open_book",
+        "name": "Libro Abierto",
+        "zone": "decor",
+        "footprint": "surface",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "open_book",
+                "name": "Libro Abierto",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "open_book",
+                "name": "Libro Abierto",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "open_book",
+                "name": "Libro Abierto",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "open_book",
+                "name": "Libro Abierto",
+                "zone": "decor",
+                "footprint": "surface",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "dining_table_2x2": {
+        "id": "dining_table_2x2",
+        "name": "Mesa de Comedor Roble (2x2)",
+        "zone": "living",
+        "footprint": "2x2",
+        "surface_height": 22,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -64,
+            -44
+        ],
+        "canvas_size": [
+            128,
+            88
+        ],
+        "rotations": {
+            "0": {
+                "id": "dining_table_2x2",
+                "name": "Mesa de Comedor Roble (2x2)",
+                "zone": "living",
+                "footprint": "2x2",
+                "rot": 0,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 22,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "dining_table_2x2",
+                "name": "Mesa de Comedor Roble (2x2)",
+                "zone": "living",
+                "footprint": "2x2",
+                "rot": 1,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 22,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "dining_table_2x2",
+                "name": "Mesa de Comedor Roble (2x2)",
+                "zone": "living",
+                "footprint": "2x2",
+                "rot": 2,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 22,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "dining_table_2x2",
+                "name": "Mesa de Comedor Roble (2x2)",
+                "zone": "living",
+                "footprint": "2x2",
+                "rot": 3,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 22,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "side_table": {
+        "id": "side_table",
+        "name": "Mesa de Noche / Velador",
+        "zone": "living",
+        "footprint": "1x1",
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "side_table",
+                "name": "Mesa de Noche / Velador",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 18,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "side_table",
+                "name": "Mesa de Noche / Velador",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 18,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "side_table",
+                "name": "Mesa de Noche / Velador",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 18,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "side_table",
+                "name": "Mesa de Noche / Velador",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 18,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "wooden_chair": {
+        "id": "wooden_chair",
+        "name": "Silla de Madera",
+        "zone": "living",
+        "footprint": "1x1",
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "wooden_chair",
+                "name": "Silla de Madera",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "wooden_chair",
+                "name": "Silla de Madera",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "wooden_chair",
+                "name": "Silla de Madera",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "wooden_chair",
+                "name": "Silla de Madera",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 14,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "plush_armchair": {
+        "id": "plush_armchair",
+        "name": "Sillón Acolchado",
+        "zone": "living",
+        "footprint": "1x1",
+        "surface_height": 16,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "plush_armchair",
+                "name": "Sillón Acolchado",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "plush_armchair",
+                "name": "Sillón Acolchado",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "plush_armchair",
+                "name": "Sillón Acolchado",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "plush_armchair",
+                "name": "Sillón Acolchado",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "potted_plant": {
+        "id": "potted_plant",
+        "name": "Planta en Maceta",
+        "zone": "living",
+        "footprint": "1x1",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "potted_plant",
+                "name": "Planta en Maceta",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "potted_plant",
+                "name": "Planta en Maceta",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "potted_plant",
+                "name": "Planta en Maceta",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "potted_plant",
+                "name": "Planta en Maceta",
+                "zone": "living",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "king_bed": {
+        "id": "king_bed",
+        "name": "Cama King Size (2x2)",
+        "zone": "bedroom",
+        "footprint": "2x2",
+        "surface_height": 16,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -64,
+            -44
+        ],
+        "canvas_size": [
+            128,
+            88
+        ],
+        "rotations": {
+            "0": {
+                "id": "king_bed",
+                "name": "Cama King Size (2x2)",
+                "zone": "bedroom",
+                "footprint": "2x2",
+                "rot": 0,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "king_bed",
+                "name": "Cama King Size (2x2)",
+                "zone": "bedroom",
+                "footprint": "2x2",
+                "rot": 1,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "king_bed",
+                "name": "Cama King Size (2x2)",
+                "zone": "bedroom",
+                "footprint": "2x2",
+                "rot": 2,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "king_bed",
+                "name": "Cama King Size (2x2)",
+                "zone": "bedroom",
+                "footprint": "2x2",
+                "rot": 3,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "kitchen_counter": {
+        "id": "kitchen_counter",
+        "name": "Encimera de Cocina",
+        "zone": "kitchen",
+        "footprint": "1x1",
+        "surface_height": 20,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "kitchen_counter",
+                "name": "Encimera de Cocina",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "kitchen_counter",
+                "name": "Encimera de Cocina",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "kitchen_counter",
+                "name": "Encimera de Cocina",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "kitchen_counter",
+                "name": "Encimera de Cocina",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "kitchen_stove": {
+        "id": "kitchen_stove",
+        "name": "Cocina con Fogones",
+        "zone": "kitchen",
+        "footprint": "1x1",
+        "surface_height": 22,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "kitchen_stove",
+                "name": "Cocina con Fogones",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 22,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "kitchen_stove",
+                "name": "Cocina con Fogones",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 22,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "kitchen_stove",
+                "name": "Cocina con Fogones",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 22,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "kitchen_stove",
+                "name": "Cocina con Fogones",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 22,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "kitchen_sink": {
+        "id": "kitchen_sink",
+        "name": "Fregadero Inox",
+        "zone": "kitchen",
+        "footprint": "1x1",
+        "surface_height": 20,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "kitchen_sink",
+                "name": "Fregadero Inox",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "kitchen_sink",
+                "name": "Fregadero Inox",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "kitchen_sink",
+                "name": "Fregadero Inox",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "kitchen_sink",
+                "name": "Fregadero Inox",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 20,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "kitchen_fridge": {
+        "id": "kitchen_fridge",
+        "name": "Refrigerador Inox",
+        "zone": "kitchen",
+        "footprint": "1x1",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -64
+        ],
+        "canvas_size": [
+            64,
+            96
+        ],
+        "rotations": {
+            "0": {
+                "id": "kitchen_fridge",
+                "name": "Refrigerador Inox",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -64
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "kitchen_fridge",
+                "name": "Refrigerador Inox",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -64
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "kitchen_fridge",
+                "name": "Refrigerador Inox",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -64
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "kitchen_fridge",
+                "name": "Refrigerador Inox",
+                "zone": "kitchen",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    96
+                ],
+                "sprite_offset": [
+                    -32,
+                    -64
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "bathtub_1x2": {
+        "id": "bathtub_1x2",
+        "name": "Bañera Clásica (1x2)",
+        "zone": "bathroom",
+        "footprint": "1x2",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -64,
+            -36
+        ],
+        "canvas_size": [
+            96,
+            72
+        ],
+        "rotations": {
+            "0": {
+                "id": "bathtub_1x2",
+                "name": "Bañera Clásica (1x2)",
+                "zone": "bathroom",
+                "footprint": "1x2",
+                "rot": 0,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -64,
+                    -36
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "bathtub_1x2",
+                "name": "Bañera Clásica (1x2)",
+                "zone": "bathroom",
+                "footprint": "2x1",
+                "rot": 1,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -32,
+                    -36
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "bathtub_1x2",
+                "name": "Bañera Clásica (1x2)",
+                "zone": "bathroom",
+                "footprint": "1x2",
+                "rot": 2,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -64,
+                    -36
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "bathtub_1x2",
+                "name": "Bañera Clásica (1x2)",
+                "zone": "bathroom",
+                "footprint": "2x1",
+                "rot": 3,
+                "canvas_size": [
+                    96,
+                    72
+                ],
+                "sprite_offset": [
+                    -32,
+                    -36
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "bathroom_toilet": {
+        "id": "bathroom_toilet",
+        "name": "Inodoro Cerámica",
+        "zone": "bathroom",
+        "footprint": "1x1",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "bathroom_toilet",
+                "name": "Inodoro Cerámica",
+                "zone": "bathroom",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "bathroom_toilet",
+                "name": "Inodoro Cerámica",
+                "zone": "bathroom",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "bathroom_toilet",
+                "name": "Inodoro Cerámica",
+                "zone": "bathroom",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "bathroom_toilet",
+                "name": "Inodoro Cerámica",
+                "zone": "bathroom",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "art_painting": {
+        "id": "art_painting",
+        "name": "Cuadro de Paisaje",
+        "zone": "decor",
+        "footprint": "wall_n",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "art_painting",
+                "name": "Cuadro de Paisaje",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "art_painting",
+                "name": "Cuadro de Paisaje",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "art_painting",
+                "name": "Cuadro de Paisaje",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "art_painting",
+                "name": "Cuadro de Paisaje",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "hanging_shelf_wall": {
+        "id": "hanging_shelf_wall",
+        "name": "Repisa Colgante",
+        "zone": "decor",
+        "footprint": "wall_n",
+        "surface_height": 12,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "hanging_shelf_wall",
+                "name": "Repisa Colgante",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 12,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "hanging_shelf_wall",
+                "name": "Repisa Colgante",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 12,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "hanging_shelf_wall",
+                "name": "Repisa Colgante",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 12,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "hanging_shelf_wall",
+                "name": "Repisa Colgante",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 12,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "wall_clock": {
+        "id": "wall_clock",
+        "name": "Reloj de Pared",
+        "zone": "decor",
+        "footprint": "wall_n",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "wall_clock",
+                "name": "Reloj de Pared",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "wall_clock",
+                "name": "Reloj de Pared",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "wall_clock",
+                "name": "Reloj de Pared",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "wall_clock",
+                "name": "Reloj de Pared",
+                "zone": "decor",
+                "footprint": "wall_n",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "pan_rack_wall": {
+        "id": "pan_rack_wall",
+        "name": "Colgador de Sartenes",
+        "zone": "kitchen",
+        "footprint": "wall_n",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "pan_rack_wall",
+                "name": "Colgador de Sartenes",
+                "zone": "kitchen",
+                "footprint": "wall_n",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "pan_rack_wall",
+                "name": "Colgador de Sartenes",
+                "zone": "kitchen",
+                "footprint": "wall_n",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "pan_rack_wall",
+                "name": "Colgador de Sartenes",
+                "zone": "kitchen",
+                "footprint": "wall_n",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "pan_rack_wall",
+                "name": "Colgador de Sartenes",
+                "zone": "kitchen",
+                "footprint": "wall_n",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "towel_rack_wall": {
+        "id": "towel_rack_wall",
+        "name": "Toallero",
+        "zone": "bathroom",
+        "footprint": "wall_n",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "towel_rack_wall",
+                "name": "Toallero",
+                "zone": "bathroom",
+                "footprint": "wall_n",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "towel_rack_wall",
+                "name": "Toallero",
+                "zone": "bathroom",
+                "footprint": "wall_n",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "towel_rack_wall",
+                "name": "Toallero",
+                "zone": "bathroom",
+                "footprint": "wall_n",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "towel_rack_wall",
+                "name": "Toallero",
+                "zone": "bathroom",
+                "footprint": "wall_n",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "stone_fountain": {
+        "id": "stone_fountain",
+        "name": "Fuente de Piedra (2x2)",
+        "zone": "patio",
+        "footprint": "2x2",
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -64,
+            -44
+        ],
+        "canvas_size": [
+            128,
+            88
+        ],
+        "rotations": {
+            "0": {
+                "id": "stone_fountain",
+                "name": "Fuente de Piedra (2x2)",
+                "zone": "patio",
+                "footprint": "2x2",
+                "rot": 0,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "stone_fountain",
+                "name": "Fuente de Piedra (2x2)",
+                "zone": "patio",
+                "footprint": "2x2",
+                "rot": 1,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "stone_fountain",
+                "name": "Fuente de Piedra (2x2)",
+                "zone": "patio",
+                "footprint": "2x2",
+                "rot": 2,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "stone_fountain",
+                "name": "Fuente de Piedra (2x2)",
+                "zone": "patio",
+                "footprint": "2x2",
+                "rot": 3,
+                "canvas_size": [
+                    128,
+                    88
+                ],
+                "sprite_offset": [
+                    -64,
+                    -44
+                ],
+                "surface_height": 0,
+                "supports_surface": false,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    },
+    "bbq_grill": {
+        "id": "bbq_grill",
+        "name": "Parrilla Asador",
+        "zone": "patio",
+        "footprint": "1x1",
+        "surface_height": 16,
+        "supports_surface": true,
+        "surface_offset": [
+            0,
+            0
+        ],
+        "sprite_offset": [
+            -32,
+            -48
+        ],
+        "canvas_size": [
+            64,
+            64
+        ],
+        "rotations": {
+            "0": {
+                "id": "bbq_grill",
+                "name": "Parrilla Asador",
+                "zone": "patio",
+                "footprint": "1x1",
+                "rot": 0,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "1": {
+                "id": "bbq_grill",
+                "name": "Parrilla Asador",
+                "zone": "patio",
+                "footprint": "1x1",
+                "rot": 1,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "2": {
+                "id": "bbq_grill",
+                "name": "Parrilla Asador",
+                "zone": "patio",
+                "footprint": "1x1",
+                "rot": 2,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            },
+            "3": {
+                "id": "bbq_grill",
+                "name": "Parrilla Asador",
+                "zone": "patio",
+                "footprint": "1x1",
+                "rot": 3,
+                "canvas_size": [
+                    64,
+                    64
+                ],
+                "sprite_offset": [
+                    -32,
+                    -48
+                ],
+                "surface_height": 16,
+                "supports_surface": true,
+                "surface_offset": [
+                    0,
+                    0
+                ]
+            }
+        }
+    }
+}

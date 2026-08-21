@@ -14,6 +14,8 @@ from PIL import Image, ImageTk, ImageDraw
 
 import color_engine
 from color_engine import RETRO_PALETTES, hex_to_rgb, rgb_to_hex
+import furniture_engine
+import furniture_generator
 
 PRESETS_DIR = "presets"
 EXPORTS_DIR = "exports"
@@ -56,12 +58,23 @@ class AvatarCreatorApp:
         self.resolution = "64x128"
         self.sync_brows_with_hair = tk.BooleanVar(value=True)
 
+        # Estado de Muebles y Decoración Isométrica
+        self.room_items = furniture_engine.get_default_cozy_room_items()
+        self.avatar_grid_pos = [3, 2]
+        self.selected_room_item_idx = 0
+        self.room_preview_tk_img = None
+
         self.preview_tk_img = None
 
         self._init_styles()
         self._build_ui()
         self.update_avatar_preview()
+        self.update_room_preview()
         self._start_animation_loop()
+
+        # Atajos de teclado para la habitación
+        self.root.bind("<Key-r>", self._rotate_selected_room_item)
+        self.root.bind("<Key-R>", self._rotate_selected_room_item)
 
     def _init_styles(self):
         self.style = ttk.Style()
@@ -97,14 +110,14 @@ class AvatarCreatorApp:
         title_lbl = tk.Label(header, text="🚶 Sprite Studio", font=("Segoe UI", 12, "bold"), bg="#181924", fg="#38BDF8")
         title_lbl.pack(side=tk.LEFT)
 
-        # Selector de Resolución (64x128 / 32x64)
+        # Selector de Resolución Emparejada
         res_bar = tk.Frame(header, bg="#181924")
         res_bar.pack(side=tk.RIGHT)
 
-        self.btn_res_64 = tk.Button(res_bar, text="64x128", font=("Segoe UI", 8, "bold"), bg="#2563EB", fg="#FFFFFF", bd=0, padx=6, pady=2, cursor="hand2", command=lambda: self._set_resolution("64x128"))
+        self.btn_res_64 = tk.Button(res_bar, text="64x128 (Muebles HD)", font=("Segoe UI", 8, "bold"), bg="#2563EB", fg="#FFFFFF", bd=0, padx=8, pady=2, cursor="hand2", command=lambda: self._set_resolution("64x128"))
         self.btn_res_64.pack(side=tk.LEFT, padx=1)
 
-        self.btn_res_32 = tk.Button(res_bar, text="32x64 (Mini)", font=("Segoe UI", 8, "bold"), bg="#2D3250", fg="#94A3B8", bd=0, padx=6, pady=2, cursor="hand2", command=lambda: self._set_resolution("32x64"))
+        self.btn_res_32 = tk.Button(res_bar, text="32x64 (Muebles Std)", font=("Segoe UI", 8, "bold"), bg="#2D3250", fg="#94A3B8", bd=0, padx=8, pady=2, cursor="hand2", command=lambda: self._set_resolution("32x64"))
         self.btn_res_32.pack(side=tk.LEFT, padx=1)
 
         zoom_bar = tk.Frame(left_frame, bg="#181924")
@@ -203,6 +216,7 @@ class AvatarCreatorApp:
         self._create_tab_bottoms()
         self._create_tab_shoes()
         self._create_tab_accessories()
+        self._create_tab_furniture()
 
     # -------------------------------------------------------------
     # BUCLE DE ANIMACIÓN
@@ -532,6 +546,334 @@ class AvatarCreatorApp:
             )
             s_btn.grid(row=r, column=c, padx=3, pady=3)
 
+    def _create_tab_furniture(self):
+        tab = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(tab, text="🛋️ Muebles & Habitación")
+
+        paned = tk.PanedWindow(tab, orient=tk.HORIZONTAL, bg="#181924", bd=0, sashwidth=4)
+        paned.pack(fill=tk.BOTH, expand=True)
+
+        # -------------------------------------------------------------
+        # IZQUIERDA: CANVAS INTERACTIVO DE LA HABITACIÓN
+        # -------------------------------------------------------------
+        room_left = tk.Frame(paned, bg="#181924")
+        paned.add(room_left, minsize=420)
+
+        r_hdr = tk.Frame(room_left, bg="#181924")
+        r_hdr.pack(fill=tk.X, pady=(0, 4))
+        tk.Label(r_hdr, text="🏠 Habitación Isométrica Interactiva", font=("Segoe UI", 10, "bold"), bg="#181924", fg="#38BDF8").pack(side=tk.LEFT)
+
+        canvas_cont = tk.Frame(room_left, bg="#0F1017", bd=2, relief="sunken")
+        canvas_cont.pack(fill=tk.BOTH, expand=True, pady=4)
+
+        self.room_canvas = tk.Canvas(canvas_cont, bg="#0F1017", highlightthickness=0)
+        self.room_canvas.pack(fill=tk.BOTH, expand=True)
+        self.room_canvas.bind("<Button-1>", self._on_room_canvas_click)
+
+        # Panel de Manipulación del Elemento Seleccionado
+        move_box = ttk.LabelFrame(room_left, text=" 🕹️ Mover & Rotar Elemento Seleccionado ", padding=6)
+        move_box.pack(fill=tk.X, pady=4)
+
+        m_top = tk.Frame(move_box, bg="#181924")
+        m_top.pack(fill=tk.X)
+
+        self.selected_item_lbl = tk.Label(m_top, text="Selección: Cama King Matrimonial (gx=0, gy=2, 0°)", font=("Segoe UI", 9, "bold"), bg="#181924", fg="#38BDF8")
+        self.selected_item_lbl.pack(side=tk.LEFT)
+
+        rot_btn = tk.Button(m_top, text="🔄 Rotar 90° (R)", font=("Segoe UI", 9, "bold"), bg="#0284C7", fg="#FFF", bd=0, padx=8, pady=2, cursor="hand2", command=self._rotate_selected_room_item)
+        rot_btn.pack(side=tk.RIGHT)
+
+        m_ctrls = tk.Frame(move_box, bg="#181924")
+        m_ctrls.pack(fill=tk.X, pady=4)
+
+        tk.Label(m_ctrls, text="Baldosa:", font=("Segoe UI", 8), bg="#181924", fg="#94A3B8").pack(side=tk.LEFT, padx=2)
+        tk.Button(m_ctrls, text="⬅️ X-", font=("Segoe UI", 8), bg="#334155", fg="#FFF", bd=0, padx=5, pady=2, command=lambda: self._nudge_selected_tile(-1, 0)).pack(side=tk.LEFT, padx=1)
+        tk.Button(m_ctrls, text="➡️ X+", font=("Segoe UI", 8), bg="#334155", fg="#FFF", bd=0, padx=5, pady=2, command=lambda: self._nudge_selected_tile(1, 0)).pack(side=tk.LEFT, padx=1)
+        tk.Button(m_ctrls, text="⬆️ Y-", font=("Segoe UI", 8), bg="#334155", fg="#FFF", bd=0, padx=5, pady=2, command=lambda: self._nudge_selected_tile(0, -1)).pack(side=tk.LEFT, padx=1)
+        tk.Button(m_ctrls, text="⬇️ Y+", font=("Segoe UI", 8), bg="#334155", fg="#FFF", bd=0, padx=5, pady=2, command=lambda: self._nudge_selected_tile(0, 1)).pack(side=tk.LEFT, padx=1)
+
+        tk.Label(m_ctrls, text="Ajuste fino (px):", font=("Segoe UI", 8), bg="#181924", fg="#94A3B8").pack(side=tk.LEFT, padx=(8, 2))
+        tk.Button(m_ctrls, text="◀ -2x", font=("Segoe UI", 8), bg="#2D3250", fg="#FFF", bd=0, padx=4, pady=2, command=lambda: self._nudge_selected_pixel(-2, 0)).pack(side=tk.LEFT, padx=1)
+        tk.Button(m_ctrls, text="▶ +2x", font=("Segoe UI", 8), bg="#2D3250", fg="#FFF", bd=0, padx=4, pady=2, command=lambda: self._nudge_selected_pixel(2, 0)).pack(side=tk.LEFT, padx=1)
+        tk.Button(m_ctrls, text="▲ -2y", font=("Segoe UI", 8), bg="#2D3250", fg="#FFF", bd=0, padx=4, pady=2, command=lambda: self._nudge_selected_pixel(0, -2)).pack(side=tk.LEFT, padx=1)
+        tk.Button(m_ctrls, text="▼ +2y", font=("Segoe UI", 8), bg="#2D3250", fg="#FFF", bd=0, padx=4, pady=2, command=lambda: self._nudge_selected_pixel(0, 2)).pack(side=tk.LEFT, padx=1)
+
+        tk.Button(m_ctrls, text="🗑️ Borrar", font=("Segoe UI", 8, "bold"), bg="#DC2626", fg="#FFF", bd=0, padx=6, pady=2, command=self._delete_selected_room_item).pack(side=tk.RIGHT, padx=2)
+
+        # -------------------------------------------------------------
+        # DERECHA: CATÁLOGO TEMÁTICO (COCINA, DORMITORIO, BAÑO, PATIO)
+        # -------------------------------------------------------------
+        room_right = tk.Frame(paned, bg="#181924", padx=6)
+        paned.add(room_right, minsize=350)
+
+        # Filtros de Categoría / Zona
+        filter_bar = tk.Frame(room_right, bg="#181924")
+        filter_bar.pack(fill=tk.X, pady=(0, 4))
+
+        self.zone_filter_var = tk.StringVar(value="all")
+        zones = [("🌟 Todos", "all"), ("📦 Guías", "guide"), ("🍳 Cocina", "kitchen"), ("🛏️ Dorm.", "bedroom"), ("🚿 Baño", "bathroom"), ("🌳 Patio", "patio"), ("🖼️ Pared", "wall"), ("🍵 Mesa", "surface")]
+        for text, z_val in zones:
+            btn = tk.Button(
+                filter_bar, text=text, font=("Segoe UI", 8),
+                bg="#2563EB" if z_val == "all" else "#222436",
+                fg="#FFFFFF", bd=0, padx=5, pady=2, cursor="hand2",
+                command=lambda zv=z_val: self._set_zone_filter(zv)
+            )
+            btn.pack(side=tk.LEFT, padx=1)
+
+        cat_sec = ttk.LabelFrame(room_right, text=" Catálogo de Muebles ", padding=6)
+        cat_sec.pack(fill=tk.BOTH, expand=True, pady=(0, 4))
+
+        self.furniture_catalog = furniture_engine.load_furniture_catalog(self.resolution)
+        self.selected_furniture_id = tk.StringVar(value="wooden_chair")
+
+        self.furn_canvas = tk.Canvas(cat_sec, bg="#181924", highlightthickness=0)
+        self.furn_scroll = ttk.Scrollbar(cat_sec, orient="vertical", command=self.furn_canvas.yview)
+        self.furn_frame = ttk.Frame(self.furn_canvas)
+        self.furn_frame.bind("<Configure>", lambda e: self.furn_canvas.configure(scrollregion=self.furn_canvas.bbox("all")))
+        self.furn_canvas.create_window((0, 0), window=self.furn_frame, anchor="nw")
+        self.furn_canvas.configure(yscrollcommand=self.furn_scroll.set)
+        self.furn_canvas.pack(side="left", fill="both", expand=True)
+        self.furn_scroll.pack(side="right", fill="y")
+
+        self._populate_furniture_list()
+
+        # Ficha técnica
+        self.meta_card = ttk.LabelFrame(room_right, text=" Ficha Técnica ", padding=6)
+        self.meta_card.pack(fill=tk.X, pady=2)
+
+        self.meta_lbl = tk.Label(self.meta_card, text="", justify=tk.LEFT, font=("Segoe UI", 8), bg="#181924", fg="#94A3B8")
+        self.meta_lbl.pack(anchor=tk.W)
+        self._on_furniture_selected()
+
+        # Controles de colocación
+        place_box = ttk.LabelFrame(room_right, text=" Añadir Mueble a la Habitación ", padding=6)
+        place_box.pack(fill=tk.X, pady=2)
+
+        p_grid = tk.Frame(place_box, bg="#181924")
+        p_grid.pack(fill=tk.X, pady=1)
+
+        tk.Label(p_grid, text="Baldosa (gx, gy):", font=("Segoe UI", 8), bg="#181924", fg="#F1F5F9").pack(side=tk.LEFT)
+        self.place_gx_spin = tk.Spinbox(p_grid, from_=0, to=5, width=3, font=("Segoe UI", 9))
+        self.place_gx_spin.delete(0, "end"); self.place_gx_spin.insert(0, "2")
+        self.place_gx_spin.pack(side=tk.LEFT, padx=2)
+
+        self.place_gy_spin = tk.Spinbox(p_grid, from_=0, to=5, width=3, font=("Segoe UI", 9))
+        self.place_gy_spin.delete(0, "end"); self.place_gy_spin.insert(0, "2")
+        self.place_gy_spin.pack(side=tk.LEFT, padx=2)
+
+        tk.Label(p_grid, text="Rotación:", font=("Segoe UI", 8), bg="#181924", fg="#F1F5F9").pack(side=tk.LEFT, padx=(6, 2))
+        self.place_rot_combo = ttk.Combobox(p_grid, values=["0° (SE)", "90° (SW)", "180° (NW)", "270° (NE)"], state="readonly", width=9)
+        self.place_rot_combo.current(0)
+        self.place_rot_combo.pack(side=tk.LEFT, padx=2)
+
+        add_btn = tk.Button(place_box, text="➕ Colocar Mueble", font=("Segoe UI", 9, "bold"), bg="#16A34A", fg="#FFFFFF", bd=0, padx=6, pady=3, cursor="hand2", command=self._add_furniture_to_room)
+        add_btn.pack(fill=tk.X, pady=2)
+
+        btn_row = tk.Frame(place_box, bg="#181924")
+        btn_row.pack(fill=tk.X, pady=1)
+
+        tk.Button(btn_row, text="🔄 Habitación Modelo", font=("Segoe UI", 8), bg="#2563EB", fg="#FFFFFF", bd=0, padx=4, pady=2, cursor="hand2", command=self._reset_room_to_default).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
+        tk.Button(btn_row, text="🧹 Vaciar Todo", font=("Segoe UI", 8), bg="#475569", fg="#FFFFFF", bd=0, padx=4, pady=2, cursor="hand2", command=self._clear_all_furniture).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
+
+        exp_room_btn = tk.Button(room_right, text="🖼️ Exportar Habitación Completa (PNG)", font=("Segoe UI", 9, "bold"), bg="#8B5CF6", fg="#FFFFFF", bd=0, pady=5, cursor="hand2", command=self._export_room_image)
+        exp_room_btn.pack(fill=tk.X, pady=(4, 2))
+
+    def _set_zone_filter(self, zone_val):
+        self.zone_filter_var.set(zone_val)
+        self._populate_furniture_list()
+
+    def _populate_furniture_list(self):
+        for widget in self.furn_frame.winfo_children():
+            widget.destroy()
+
+        zone = self.zone_filter_var.get()
+        for f_id in furniture_generator.FURNITURE_LIST:
+            meta = self.furniture_catalog.get(f_id, {})
+            f_zone = meta.get("zone", "living")
+            foot = meta.get("footprint", "1x1")
+
+            if zone != "all":
+                if zone == "wall" and ("wall" not in foot and f_zone != "wall"):
+                    continue
+                elif zone == "surface" and (foot != "surface" and f_zone != "surface"):
+                    continue
+                elif zone == "guide" and f_zone != "guide":
+                    continue
+                elif zone not in ("wall", "surface", "guide") and f_zone != zone:
+                    continue
+
+            name = meta.get("name", f_id)
+            rb = tk.Radiobutton(
+                self.furn_frame, text=f"[{foot}] {name}", value=f_id, variable=self.selected_furniture_id,
+                bg="#181924", fg="#E2E8F0", selectcolor="#2D3250", activebackground="#181924",
+                activeforeground="#38BDF8", font=("Segoe UI", 9), command=self._on_furniture_selected
+            )
+            rb.pack(anchor=tk.W, pady=1)
+
+    def _on_furniture_selected(self):
+        f_id = self.selected_furniture_id.get()
+        meta = self.furniture_catalog.get(f_id, {})
+        txt = (
+            f"Mueble: {meta.get('name', f_id)}\n"
+            f"Zona: {meta.get('zone', 'living').capitalize()} | Huella: {meta.get('footprint', '1x1')}\n"
+            f"Canvas: {meta.get('canvas_size', [64, 64])} px\n"
+            f"spriteOffset: Vector2{tuple(meta.get('sprite_offset', [0, 0]))}\n"
+            f"Altura Superficie: {meta.get('surface_height', 0)} px"
+        )
+        if hasattr(self, "meta_lbl"):
+            self.meta_lbl.config(text=txt)
+
+    def _on_room_canvas_click(self, event):
+        # Click en la habitación para seleccionar el mueble más cercano
+        cw = self.room_canvas.winfo_width() or 400
+        ch = self.room_canvas.winfo_height() or 400
+        origin_x = cw // 2
+        origin_y = int(120 * (1.0 if self.resolution == "64x128" else 0.5))
+        gx, gy = furniture_engine.screen_to_grid(event.x, event.y, origin_x, origin_y, resolution=self.resolution)
+
+        # Buscar si hay un elemento en esa baldosa
+        found_idx = None
+        for idx in reversed(range(len(self.room_items))):
+            it = self.room_items[idx]
+            if it.get("gx") == gx and it.get("gy") == gy:
+                found_idx = idx
+                break
+
+        if found_idx is not None:
+            self.selected_room_item_idx = found_idx
+            it = self.room_items[found_idx]
+            base_meta = self.furniture_catalog.get(it.get("id"), {})
+            rot_meta = base_meta.get("rotations", {}).get(str(it.get("rot", 0)), base_meta)
+            name = rot_meta.get("name", it.get("id"))
+            rot_deg = it.get("rot", 0) * 90
+            self.selected_item_lbl.config(text=f"Selección: {name} (gx={it.get('gx')}, gy={it.get('gy')}, {rot_deg}°)")
+        else:
+            self.avatar_grid_pos = [max(0, min(5, gx)), max(0, min(5, gy))]
+            self.selected_item_lbl.config(text=f"Avatar movido a: (gx={self.avatar_grid_pos[0]}, gy={self.avatar_grid_pos[1]})")
+
+        self.update_room_preview()
+
+    def _rotate_selected_room_item(self, event=None):
+        if self.selected_room_item_idx is not None and 0 <= self.selected_room_item_idx < len(self.room_items):
+            it = self.room_items[self.selected_room_item_idx]
+            it["rot"] = (it.get("rot", 0) + 1) % 4
+            base_meta = self.furniture_catalog.get(it.get("id"), {})
+            rot_meta = base_meta.get("rotations", {}).get(str(it["rot"]), base_meta)
+            name = rot_meta.get("name", it.get("id"))
+            rot_deg = it["rot"] * 90
+            self.selected_item_lbl.config(text=f"Selección: {name} (gx={it.get('gx')}, gy={it.get('gy')}, {rot_deg}°)")
+            self.update_room_preview()
+
+    def _nudge_selected_tile(self, dx, dy):
+        if self.selected_room_item_idx is not None and 0 <= self.selected_room_item_idx < len(self.room_items):
+            it = self.room_items[self.selected_room_item_idx]
+            it["gx"] = max(0, min(5, it.get("gx", 0) + dx))
+            it["gy"] = max(0, min(5, it.get("gy", 0) + dy))
+            base_meta = self.furniture_catalog.get(it.get("id"), {})
+            rot_meta = base_meta.get("rotations", {}).get(str(it.get("rot", 0)), base_meta)
+            name = rot_meta.get("name", it.get("id"))
+            rot_deg = it.get("rot", 0) * 90
+            self.selected_item_lbl.config(text=f"Selección: {name} (gx={it.get('gx')}, gy={it.get('gy')}, {rot_deg}°)")
+            self.update_room_preview()
+
+    def _nudge_selected_pixel(self, px, py):
+        if self.selected_room_item_idx is not None and 0 <= self.selected_room_item_idx < len(self.room_items):
+            it = self.room_items[self.selected_room_item_idx]
+            it["nudge_x"] = it.get("nudge_x", 0) + px
+            it["nudge_y"] = it.get("nudge_y", 0) + py
+            self.update_room_preview()
+
+    def _delete_selected_room_item(self):
+        if self.selected_room_item_idx is not None and 0 <= self.selected_room_item_idx < len(self.room_items):
+            self.room_items.pop(self.selected_room_item_idx)
+            self.selected_room_item_idx = None
+            self.selected_item_lbl.config(text="Selección: Ninguna")
+            self.update_room_preview()
+
+    def _clear_all_furniture(self):
+        self.room_items.clear()
+        self.selected_room_item_idx = None
+        self.selected_item_lbl.config(text="Selección: Ninguna")
+        self.update_room_preview()
+
+    def _add_furniture_to_room(self):
+        try:
+            gx = int(self.place_gx_spin.get())
+            gy = int(self.place_gy_spin.get())
+            rot_val = self.place_rot_combo.current() if hasattr(self, "place_rot_combo") else 0
+            if rot_val < 0: rot_val = 0
+
+            f_id = self.selected_furniture_id.get()
+            meta = self.furniture_catalog.get(f_id, {})
+            footprint = meta.get("footprint", "1x1")
+
+            new_item = {"id": f_id, "gx": gx, "gy": gy, "rot": rot_val, "nudge_x": 0, "nudge_y": 0}
+            if footprint == "surface":
+                for it in reversed(self.room_items):
+                    if it.get("gx") == gx and it.get("gy") == gy and it.get("id") != f_id:
+                        new_item["parent_id"] = it.get("id")
+                        break
+
+            self.room_items.append(new_item)
+            self.selected_room_item_idx = len(self.room_items) - 1
+            name = meta.get("name", f_id)
+            rot_deg = rot_val * 90
+            self.selected_item_lbl.config(text=f"Selección: {name} (gx={gx}, gy={gy}, {rot_deg}°)")
+            self.update_room_preview()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo colocar el mueble: {e}")
+
+    def _reset_room_to_default(self):
+        self.room_items = furniture_engine.get_default_cozy_room_items()
+        self.avatar_grid_pos = [3, 2]
+        self.selected_room_item_idx = 0
+        self.selected_item_lbl.config(text="Selección: Habitación Modelo")
+        self.update_room_preview()
+
+    def _export_room_image(self):
+        file_path = filedialog.asksaveasfilename(
+            initialdir=EXPORTS_DIR,
+            title="Guardar Habitación Isométrica (.png)",
+            defaultextension=".png",
+            filetypes=[("Imagen PNG", "*.png")]
+        )
+        if not file_path: return
+        room_img = furniture_engine.render_isometric_room(
+            self.room_items,
+            avatar_config=self.current_config,
+            avatar_pos=tuple(self.avatar_grid_pos),
+            avatar_dir=self.current_direction if self.current_direction != "all_4" else "down",
+            resolution=self.resolution,
+            selected_index=None
+        )
+        room_img.save(file_path, "PNG")
+        messagebox.showinfo("Exportación Exitosa", f"¡Habitación Isométrica exportada con éxito!\n\nGuardada en: {file_path}")
+
+    def update_room_preview(self):
+        if not hasattr(self, "room_canvas"):
+            return
+        try:
+            room_img = furniture_engine.render_isometric_room(
+                self.room_items,
+                avatar_config=self.current_config,
+                avatar_pos=tuple(self.avatar_grid_pos),
+                avatar_dir=self.current_direction if self.current_direction != "all_4" else "down",
+                resolution=self.resolution,
+                selected_index=self.selected_room_item_idx
+            )
+            # Escalar según resolución
+            cw = self.room_canvas.winfo_width() or 420
+            ch = self.room_canvas.winfo_height() or 420
+            if self.resolution == "32x64":
+                room_img = room_img.resize((room_img.width * 2, room_img.height * 2), Image.NEAREST)
+
+            self.room_preview_tk_img = ImageTk.PhotoImage(room_img)
+            self.room_canvas.delete("all")
+            self.room_canvas.create_image(cw // 2, ch // 2, image=self.room_preview_tk_img)
+        except Exception as e:
+            print(f"Error al renderizar habitación: {e}")
+
     # -------------------------------------------------------------
     # CONTROLADORES DE EVENTOS
     # -------------------------------------------------------------
@@ -567,13 +909,18 @@ class AvatarCreatorApp:
             self.zoom_combo["values"] = ["2x (64x128)", "4x (128x256)", "6x (192x384)", "8x (256x512)"]
             self.zoom_var.set("6x (192x384)")
             self.zoom_level = 6
-        else:
+        else: # 64x128
             self.btn_res_64.config(bg="#2563EB", fg="#FFFFFF")
             self.btn_res_32.config(bg="#2D3250", fg="#94A3B8")
             self.zoom_combo["values"] = ["1x (64x128)", "2x (128x256)", "3x (192x384)", "4x (256x512)"]
             self.zoom_var.set("3x (192x384)")
             self.zoom_level = 3
+
+        self.furniture_catalog = furniture_engine.load_furniture_catalog(self.resolution)
+        self._populate_furniture_list()
+        self._on_furniture_selected()
         self.update_avatar_preview()
+        self.update_room_preview()
 
     def _on_zoom_changed(self, event=None):
         val_str = self.zoom_var.get()

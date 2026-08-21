@@ -23,8 +23,20 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/furniture/new_added/walls/
+    - assets/images/furniture/new_added/surface/
+    - assets/images/furniture/new_added/2x1/
+    - assets/images/furniture/new_added/1x1/tall/
+    - assets/images/furniture/new_added/1x1/normal/
+    - assets/images/furniture/new_added/2x2/
+    - assets/images/furniture/new_added/1x2/
+    - assets/images/furniture/new_added/1x1/
+    - assets/images/furniture/new_added/
     - assets/images/
     - assets/images/furniture/
+    - assets/images/furniture/128x256/
+    - assets/images/furniture/64x128/
+    - assets/images/furniture/32x64/
     - assets/images/wallpaper/
     - assets/images/floors/
     - assets/images/avatar/body/

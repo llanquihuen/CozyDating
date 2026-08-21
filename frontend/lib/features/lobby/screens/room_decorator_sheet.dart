@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import '../../../core/models/furniture_item.dart';
 import '../../../core/models/room_config.dart';
-import '../components/isometric_furniture_component.dart';
+import '../../../core/services/furniture_catalog_service.dart';
 
 class RoomDecoratorSheet extends StatefulWidget {
   final RoomConfig initialConfig;
+  final String initialCategory;
   final ValueChanged<RoomConfig> onConfigChanged;
   final ValueChanged<RoomConfig> onSave;
-  final Function(FurnitureType type, int gw, int gh, String? assetPath)? onAddFurniture;
+  final Function(FurnitureCatalogItem catalogItem)? onAddFurniture;
 
   const RoomDecoratorSheet({
     super.key,
     required this.initialConfig,
+    this.initialCategory = 'living',
     required this.onConfigChanged,
     required this.onSave,
     this.onAddFurniture,
@@ -19,9 +22,10 @@ class RoomDecoratorSheet extends StatefulWidget {
   static Future<void> show(
     BuildContext context, {
     required RoomConfig initialConfig,
+    String initialCategory = 'living',
     required ValueChanged<RoomConfig> onConfigChanged,
     required ValueChanged<RoomConfig> onSave,
-    Function(FurnitureType type, int gw, int gh, String? assetPath)? onAddFurniture,
+    Function(FurnitureCatalogItem catalogItem)? onAddFurniture,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -29,6 +33,7 @@ class RoomDecoratorSheet extends StatefulWidget {
       isScrollControlled: true,
       builder: (context) => RoomDecoratorSheet(
         initialConfig: initialConfig,
+        initialCategory: initialCategory,
         onConfigChanged: onConfigChanged,
         onSave: onSave,
         onAddFurniture: onAddFurniture,
@@ -40,58 +45,78 @@ class RoomDecoratorSheet extends StatefulWidget {
   State<RoomDecoratorSheet> createState() => _RoomDecoratorSheetState();
 }
 
-class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
   late RoomConfig _currentConfig;
+  late String _selectedCategory;
+
+  final List<Map<String, String>> _categories = const [
+    {'id': 'living', 'name': '🛋️ Salón y Mesas'},
+    {'id': 'bedroom', 'name': '🛏️ Dormitorio'},
+    {'id': 'kitchen_bath', 'name': '🍳 Cocina y Baño'},
+    {'id': 'patio', 'name': '🪴 Patio y Jardín'},
+    {'id': 'guide', 'name': '📦 Cubos Guías'},
+    {'id': 'surface', 'name': '🕯️ Sobremesa'},
+    {'id': 'walls', 'name': '🖼️ Paredes'},
+  ];
 
   @override
   void initState() {
     super.initState();
     _currentConfig = widget.initialConfig;
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _selectWallpaper(String wallpaperId) {
-    setState(() {
-      _currentConfig = _currentConfig.copyWith(wallpaper: wallpaperId);
-    });
-    widget.onConfigChanged(_currentConfig);
-  }
-
-  void _selectFloor(String floorId) {
-    setState(() {
-      _currentConfig = _currentConfig.copyWith(floor: floorId);
-    });
-    widget.onConfigChanged(_currentConfig);
+    _selectedCategory = widget.initialCategory;
   }
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final mediaQuery = MediaQuery.of(context);
+    final bottomPadding = mediaQuery.padding.bottom;
+    final isWide = mediaQuery.size.width > 550;
+    // Exactly <= 50% screen height as requested
+    final sheetHeight = (mediaQuery.size.height * 0.46).clamp(270.0, 390.0);
+
+    final allItems = FurnitureCatalogService.items.values.toList();
+    final filteredItems = allItems.where((item) {
+      if (_selectedCategory == 'living') {
+        return (item.zone == 'living' || item.id == 'table' || item.id == 'bookshelf' || item.id == 'tall_bookshelf' || item.id == 'dining_table_2x2' || item.id == 'side_table' || item.id == 'plush_armchair' || item.id == 'wooden_chair' || item.id == 'potted_plant') && !item.isSurfaceItem && !item.isWallItem;
+      }
+      if (_selectedCategory == 'bedroom') {
+        return (item.zone == 'bedroom' || item.id == 'single_bed' || item.id == 'closet' || item.id == 'king_bed') && !item.isSurfaceItem && !item.isWallItem;
+      }
+      if (_selectedCategory == 'kitchen_bath') {
+        return (item.zone == 'kitchen' || item.zone == 'bathroom' || item.id == 'kitchen_fridge' || item.id == 'kitchen_stove' || item.id == 'kitchen_sink' || item.id == 'kitchen_counter' || item.id == 'bathtub_1x2' || item.id == 'bathroom_toilet') && !item.isSurfaceItem && !item.isWallItem;
+      }
+      if (_selectedCategory == 'patio') {
+        return (item.zone == 'patio' || item.id == 'bbq_grill' || item.id == 'stone_fountain') && !item.isSurfaceItem && !item.isWallItem;
+      }
+      if (_selectedCategory == 'guide') {
+        return (item.zone == 'guide' || item.id.startsWith('cube_')) && !item.isSurfaceItem && !item.isWallItem;
+      }
+      if (_selectedCategory == 'surface') {
+        return item.isSurfaceItem;
+      }
+      if (_selectedCategory == 'walls') {
+        return item.isWallItem;
+      }
+      return true;
+    }).toList();
 
     return Container(
-      height: 440 + bottomPadding,
+      height: sheetHeight + bottomPadding,
       decoration: const BoxDecoration(
         color: Color(0xFF1E1C27),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(top: BorderSide(color: Color(0xFF453F58), width: 2)),
         boxShadow: [
-          BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, -4)),
+          BoxShadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, -4)),
         ],
       ),
       child: Column(
         children: [
           // Drag Handle
           Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 10, bottom: 8),
+            width: 36,
+            height: 3.5,
+            margin: const EdgeInsets.only(top: 8, bottom: 6),
             decoration: BoxDecoration(
               color: Colors.white24,
               borderRadius: BorderRadius.circular(2),
@@ -100,349 +125,251 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> with SingleTick
 
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Text('🎨', style: TextStyle(fontSize: 20)),
-                    SizedBox(width: 8),
-                    Text(
-                      'Decorar Habitación',
+                    const Text('🛋️', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Catálogo de Muebles',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    // Resolution Pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _currentConfig.resolution == '32x64' ? const Color(0xFF8B5CF6).withOpacity(0.3) : const Color(0xFF2563EB).withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: _currentConfig.resolution == '32x64' ? const Color(0xFF8B5CF6) : const Color(0xFF2563EB),
+                        ),
+                      ),
+                      child: Text(
+                        _currentConfig.resolution == '32x64' ? '32x64 Retro' : '64x128 HD',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: _currentConfig.resolution == '32x64' ? const Color(0xFFA78BFA) : const Color(0xFF60A5FA),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6D00),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  ),
-                  onPressed: () {
-                    widget.onSave(_currentConfig);
-                    Navigator.pop(context);
-                  },
-                  icon: const Icon(Icons.check, size: 16),
-                  label: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                  tooltip: 'Cerrar',
                 ),
               ],
             ),
           ),
 
-          // Tabs (Papel Tapiz / Pisos / Muebles)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF282531),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                color: const Color(0xFFFFD54F),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: Colors.black,
-              unselectedLabelColor: Colors.white70,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              tabs: const [
-                Tab(text: '🧱 Papel Tapiz (PNG)'),
-                Tab(text: '🪵 Pisos (PNG)'),
-                Tab(text: '🛋️ Muebles'),
-              ],
+          const SizedBox(height: 3),
+
+          // Horizontal Category Chips Bar
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+            child: Row(
+              children: _categories.map((cat) {
+                final isSelected = _selectedCategory == cat['id'];
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedCategory = cat['id']!),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFFFFD54F) : const Color(0xFF282531),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFFFFD54F) : const Color(0xFF453F58),
+                      ),
+                    ),
+                    child: Text(
+                      cat['name']!,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.black : Colors.white70,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
 
-          // Tab Views
+          const SizedBox(height: 4),
+
+          // Slim 3-column / 4-column GridView showing at least 3 rows
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildWallpaperList(),
-                _buildFloorList(),
-                _buildFurnitureCatalogList(),
-              ],
-            ),
+            child: filteredItems.isEmpty
+                ? const Center(
+                    child: Text('No hay muebles en esta categoría.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: isWide ? 4 : 3,
+                      crossAxisSpacing: 6,
+                      mainAxisSpacing: 6,
+                      childAspectRatio: 0.80,
+                    ),
+                    itemCount: filteredItems.length,
+                    itemBuilder: (context, index) {
+                      return _buildFurnitureItemCard(filteredItems[index]);
+                    },
+                  ),
           ),
-          SizedBox(height: bottomPadding),
+          SizedBox(height: bottomPadding + 4),
         ],
       ),
     );
   }
 
-  Widget _buildWallpaperList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      scrollDirection: Axis.horizontal,
-      itemCount: RoomThemes.wallpapers.length,
-      itemBuilder: (context, index) {
-        final item = RoomThemes.wallpapers[index];
-        final isSelected = _currentConfig.wallpaper == item.id;
-        final previewAsset = 'assets/images/wallpaper/wallpaper_${item.id}.png';
-
-        return _buildCard(
-          emoji: item.emoji,
-          name: item.name,
-          description: item.description,
-          previewAsset: previewAsset,
-          isSelected: isSelected,
-          onTap: () => _selectWallpaper(item.id),
-        );
-      },
-    );
-  }
-
-  Widget _buildFloorList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      scrollDirection: Axis.horizontal,
-      itemCount: RoomThemes.floors.length,
-      itemBuilder: (context, index) {
-        final item = RoomThemes.floors[index];
-        final isSelected = _currentConfig.floor == item.id;
-        final floorFilename = (item.id == 'terracotta_tiles')
-            ? 'floor_terracotta.png'
-            : ((item.id == 'tatami_mat') ? 'floor_tatami.png' : 'floor_${item.id}.png');
-        final previewAsset = 'assets/images/floors/$floorFilename';
-
-        return _buildCard(
-          emoji: item.emoji,
-          name: item.name,
-          description: item.description,
-          previewAsset: previewAsset,
-          isSelected: isSelected,
-          onTap: () => _selectFloor(item.id),
-        );
-      },
-    );
-  }
-
-  Widget _buildFurnitureCatalogList() {
-    final furnitureItems = [
-      {
-        'name': 'Cama Rústica',
-        'emoji': '🛏️',
-        'desc': '1x2 Roble cálido',
-        'asset': 'furniture/bed_single_rustic.png',
-        'gw': 1,
-        'gh': 2,
-        'type': FurnitureType.bed,
-      },
-      {
-        'name': 'Cama Nórdica',
-        'emoji': '🛏️',
-        'desc': '1x2 Verde salvia',
-        'asset': 'furniture/bed_single_modern.png',
-        'gw': 1,
-        'gh': 2,
-        'type': FurnitureType.bed,
-      },
-      {
-        'name': 'Cama King Size',
-        'emoji': '👑',
-        'desc': '2x2 Caoba noble',
-        'asset': 'furniture/bed_double_king.png',
-        'gw': 2,
-        'gh': 2,
-        'type': FurnitureType.bed,
-      },
-      {
-        'name': 'Sofá Acogedor',
-        'emoji': '🛋️',
-        'desc': '2x1 Terciopelo rojo',
-        'asset': 'furniture/sofa_cozy.png',
-        'gw': 2,
-        'gh': 1,
-        'type': FurnitureType.table,
-      },
-      {
-        'name': 'Estantería',
-        'emoji': '📚',
-        'desc': '1x1 Con libros',
-        'asset': 'furniture/bookshelf_wooden.png',
-        'gw': 1,
-        'gh': 1,
-        'type': FurnitureType.wardrobe,
-      },
-      {
-        'name': 'Planta Monstera',
-        'emoji': '🪴',
-        'desc': '1x1 Cerámica viva',
-        'asset': 'furniture/plant_monstera.png',
-        'gw': 1,
-        'gh': 1,
-        'type': FurnitureType.plant,
-      },
-      {
-        'name': 'Mesa de Té',
-        'emoji': '☕',
-        'desc': '1x1 Con vela y té',
-        'asset': 'furniture/table_tea.png',
-        'gw': 1,
-        'gh': 1,
-        'type': FurnitureType.table,
-      },
-    ];
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      scrollDirection: Axis.horizontal,
-      itemCount: furnitureItems.length,
-      itemBuilder: (context, index) {
-        final item = furnitureItems[index];
-
-        return GestureDetector(
-          onTap: () {
-            widget.onAddFurniture?.call(
-              item['type'] as FurnitureType,
-              item['gw'] as int,
-              item['gh'] as int,
-              item['asset'] as String?,
-            );
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('¡${item['name']} agregado! Mantén clic para moverlo a su lugar.'),
-                backgroundColor: const Color(0xFF282531),
-                duration: const Duration(seconds: 3),
-              ),
+  Widget _buildPreviewImage(FurnitureCatalogItem item) {
+    final assetName = item.isWallItem ? (item.id.endsWith('_n') || item.id.endsWith('_w') ? item.id : '${item.id}_n') : item.id;
+    return Image.asset(
+      'assets/images/furniture/64x128/$assetName.png',
+      cacheWidth: 80,
+      cacheHeight: 80,
+      filterQuality: FilterQuality.medium,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return Image.asset(
+          'assets/images/furniture/128x256/$assetName.png',
+          cacheWidth: 80,
+          cacheHeight: 80,
+          filterQuality: FilterQuality.medium,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Image.asset(
+              'assets/images/furniture/$assetName.png',
+              cacheWidth: 80,
+              cacheHeight: 80,
+              filterQuality: FilterQuality.medium,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  item.isSurfaceItem ? Icons.local_cafe : (item.isWallItem ? Icons.wallpaper : Icons.chair),
+                  color: Colors.white24,
+                  size: 22,
+                );
+              },
             );
           },
-          child: Container(
-            width: 140,
-            margin: const EdgeInsets.only(right: 12, bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF282531),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.5)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(item['emoji'] as String, style: const TextStyle(fontSize: 20)),
-                    ),
-                    const Icon(Icons.add_circle, color: Color(0xFF00E5FF), size: 22),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  item['name'] as String,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Color(0xFF00E5FF),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item['desc'] as String,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: Colors.white60,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
   }
 
-  Widget _buildCard({
-    required String emoji,
-    required String name,
-    required String description,
-    required String previewAsset,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildFurnitureItemCard(FurnitureCatalogItem item) {
+    String tagLabel = '1x1';
+    Color tagColor = const Color(0xFF00E5FF);
+
+    if (item.isSurfaceItem) {
+      tagLabel = '✨ Mesa';
+      tagColor = const Color(0xFFFFD54F);
+    } else if (item.isWallItem) {
+      tagLabel = '🧱 Pared';
+      tagColor = const Color(0xFFA78BFA);
+    } else if (item.isSurfaceSupporting) {
+      tagLabel = '${item.footprint} (+M)';
+      tagColor = const Color(0xFF10B981);
+    } else {
+      tagLabel = '${item.footprint}';
+    }
+
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 140,
-        margin: const EdgeInsets.only(right: 12, bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? const Color(0xFFFFD54F) : const Color(0xFF453F58),
-            width: isSelected ? 2.0 : 1.0,
+      onTap: () {
+        widget.onAddFurniture?.call(item);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              item.isSurfaceItem
+                  ? '¡${item.name} agregado! Arrástralo sobre una mesa o mueble.'
+                  : (item.isWallItem
+                      ? '¡${item.name} agregado! Arrástralo a la pared.'
+                      : '¡${item.name} agregado! Mantén presionado para ubicarlo.'),
+            ),
+            backgroundColor: const Color(0xFF282531),
+            duration: const Duration(seconds: 2),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFFFD54F).withOpacity(0.2),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : null,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: const Color(0xFF282531),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: tagColor.withOpacity(0.4), width: 1.0),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Top Badge & Add Icon
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                    shape: BoxShape.circle,
+                    color: tagColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                  child: Text(
+                    tagLabel,
+                    style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: tagColor),
+                  ),
                 ),
-                if (isSelected)
-                  const Icon(Icons.check_circle, color: Color(0xFFFFD54F), size: 20)
-                else
-                  const SizedBox(width: 20, height: 20),
+                Icon(Icons.add_circle, color: tagColor, size: 13),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 2),
+            // Centered Sprite Preview
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1C27),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                padding: const EdgeInsets.all(2),
+                child: _buildPreviewImage(item),
+              ),
+            ),
+            const SizedBox(height: 2),
+            // Item Name
             Text(
-              name,
-              style: TextStyle(
+              item.name,
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: isSelected ? const Color(0xFFFFD54F) : Colors.white,
+                fontSize: 9.5,
+                color: Colors.white,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            // Extra info
             Text(
-              description,
+              item.isSurfaceSupporting ? 'Superficie (+${item.effectiveSurfaceHeight}px)' : (item.isSurfaceItem ? 'Sobre muebles' : 'Decoración'),
               style: const TextStyle(
-                fontSize: 10,
-                color: Colors.white60,
-                height: 1.2,
+                fontSize: 7.5,
+                color: Colors.white54,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],

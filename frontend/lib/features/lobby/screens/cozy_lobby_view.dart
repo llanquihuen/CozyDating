@@ -5,6 +5,7 @@ import 'package:flame/game.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/room_config.dart';
 import '../../../core/services/avatar_storage_service.dart';
+import '../../../core/services/furniture_catalog_service.dart';
 import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
 import '../components/isometric_furniture_component.dart';
@@ -409,28 +410,87 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
   }
 
   Widget _buildDecorateTopBar() {
+    final currentRes = _roomGame.roomConfig.resolution;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // Active Decorate Mode Indicator Badge
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: const Color(0xFFFF6D00).withOpacity(0.25),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFFF6D00), width: 1.5),
           ),
           child: const Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text('🎨', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 8),
+              Text('🎨', style: TextStyle(fontSize: 14)),
+              SizedBox(width: 6),
               Text(
-                'MODO DECORAR',
+                'DECORAR',
                 style: TextStyle(
                   color: Color(0xFFFFD54F),
                   fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  letterSpacing: 1.1,
+                  fontSize: 11,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Resolution Switcher (64x128 HD / 32x64 Retro Pixel)
+        Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1C27),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF453F58)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  _roomGame.updateResolution('64x128');
+                  setState(() {});
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: currentRes == '64x128' ? const Color(0xFF2563EB) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '64x128 HD',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: currentRes == '64x128' ? Colors.white : Colors.white60,
+                    ),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  _roomGame.updateResolution('32x64');
+                  setState(() {});
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: currentRes == '32x64' ? const Color(0xFF8B5CF6) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '32x64 Retro',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: currentRes == '32x64' ? Colors.white : Colors.white60,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -439,26 +499,29 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
 
         // Save & Exit / Cancel
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             TextButton(
               style: TextButton.styleFrom(
                 foregroundColor: Colors.white70,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                visualDensity: VisualDensity.compact,
               ),
               onPressed: _cancelDecorateMode,
-              child: const Text('Cancelar', style: TextStyle(fontSize: 12)),
+              child: const Text('Cancelar', style: TextStyle(fontSize: 11)),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00E676),
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                visualDensity: VisualDensity.compact,
               ),
               onPressed: _saveAndExitDecorateMode,
-              icon: const Icon(Icons.check, size: 16, color: Colors.black),
-              label: const Text('Listo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              icon: const Icon(Icons.check, size: 14, color: Colors.black),
+              label: const Text('Listo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ],
         ),
@@ -467,12 +530,30 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
   }
 
   Widget _buildSelectedFurnitureToolbar() {
+    if (_selectedFurniture == null) return const SizedBox.shrink();
+    final f = _selectedFurniture!;
+    final meta = FurnitureCatalogService.getItem(f.id);
+    final itemName = meta?.name ?? f.id;
+
+    String tag = 'Suelo (${f.gridWidth}x${f.gridHeight})';
+    Color tagColor = const Color(0xFF00E5FF);
+    if (f.isSurfaceItem) {
+      tag = '✨ Sobremesa';
+      tagColor = const Color(0xFFFFD54F);
+    } else if (f.isWallNorth) {
+      tag = '🧱 Pared N';
+      tagColor = const Color(0xFFA78BFA);
+    } else if (f.isWallWest) {
+      tag = '🧱 Pared O';
+      tagColor = const Color(0xFFA78BFA);
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1C27).withOpacity(0.95),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF00E5FF), width: 1.5),
+        border: Border.all(color: tagColor, width: 1.5),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10),
         ],
@@ -480,12 +561,52 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                itemName,
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
+              ),
+              Text(
+                tag,
+                style: TextStyle(fontSize: 10, color: tagColor, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          if (f.isWallItem) ...[
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFA78BFA).withOpacity(0.2),
+                foregroundColor: const Color(0xFFA78BFA),
+                side: const BorderSide(color: Color(0xFFA78BFA), width: 1.2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                visualDensity: VisualDensity.compact,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                _roomGame.toggleSelectedWallHeight();
+                setState(() {});
+              },
+              icon: Icon(
+                f.wallHeightLevel == 'high' ? Icons.vertical_align_top : Icons.vertical_align_center,
+                size: 15,
+              ),
+              label: Text(
+                f.wallHeightLevel == 'high' ? 'Alta' : 'Media',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00E5FF).withOpacity(0.2),
               foregroundColor: const Color(0xFF00E5FF),
               side: const BorderSide(color: Color(0xFF00E5FF), width: 1.2),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               visualDensity: VisualDensity.compact,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -493,15 +614,15 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
               _roomGame.rotateSelectedFurniture();
               setState(() {});
             },
-            icon: const Icon(Icons.rotate_right_rounded, size: 16),
-            label: const Text('Girar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            icon: const Icon(Icons.rotate_right_rounded, size: 15),
+            label: const Text('Girar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               visualDensity: VisualDensity.compact,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -511,8 +632,8 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
                 _selectedFurniture = null;
               });
             },
-            icon: const Icon(Icons.delete_outline, size: 16),
-            label: const Text('Eliminar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            icon: const Icon(Icons.delete_outline, size: 15),
+            label: const Text('Borrar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -539,9 +660,9 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
               unselectedLabelColor: Colors.white60,
               labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               tabs: [
-                Tab(text: '🧱 Paredes (PNG)'),
-                Tab(text: '🪵 Pisos (PNG)'),
-                Tab(text: '🛋️ Agregar Muebles'),
+                Tab(text: '🛋️ Muebles'),
+                Tab(text: '🧱 Paredes'),
+                Tab(text: '🪵 Pisos'),
               ],
             ),
             const SizedBox(height: 8),
@@ -549,15 +670,129 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
               height: 120,
               child: TabBarView(
                 children: [
+                  _buildFurnitureCategoriesSelector(),
                   _buildWallpaperSelector(),
                   _buildFloorSelector(),
-                  _buildFurnitureCatalog(),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFurnitureCategoriesSelector() {
+    final categories = const [
+      {
+        'id': 'living',
+        'emoji': '🛋️',
+        'name': 'Salón y Mesas',
+        'desc': 'Mesas, sillas, estantes',
+      },
+      {
+        'id': 'bedroom',
+        'emoji': '🛏️',
+        'name': 'Dormitorio',
+        'desc': 'Camas, armarios, velador',
+      },
+      {
+        'id': 'kitchen_bath',
+        'emoji': '🍳',
+        'name': 'Cocina y Baño',
+        'desc': 'Nevera, cocina, bañera',
+      },
+      {
+        'id': 'patio',
+        'emoji': '🪴',
+        'name': 'Patio y Jardín',
+        'desc': 'Bancos, fuentes, flores',
+      },
+      {
+        'id': 'guide',
+        'emoji': '📦',
+        'name': 'Cubos Guías',
+        'desc': 'Paralelepípedos guía',
+      },
+      {
+        'id': 'surface',
+        'emoji': '🕯️',
+        'name': 'Sobremesa',
+        'desc': 'Tazas, lámparas, libros',
+      },
+      {
+        'id': 'walls',
+        'emoji': '🖼️',
+        'name': 'Paredes',
+        'desc': 'Ventanas y cuadros',
+      },
+    ];
+
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: categories.length,
+      itemBuilder: (context, index) {
+        final cat = categories[index];
+        return GestureDetector(
+          onTap: () {
+            RoomDecoratorSheet.show(
+              context,
+              initialConfig: _roomGame.roomConfig,
+              initialCategory: cat['id']!,
+              onConfigChanged: (cfg) {
+                _roomGame.updateRoomConfig(cfg);
+                setState(() {});
+              },
+              onSave: (cfg) {
+                _roomGame.updateRoomConfig(cfg);
+                setState(() {});
+              },
+              onAddFurniture: (item) {
+                _roomGame.addFurnitureFromCatalog(item);
+              },
+            );
+          },
+          child: Container(
+            width: 130,
+            margin: const EdgeInsets.only(right: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF282531),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF453F58), width: 1.2),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(cat['emoji']!, style: const TextStyle(fontSize: 24)),
+                const SizedBox(height: 4),
+                Text(
+                  cat['name']!,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  cat['desc']!,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    color: Colors.white60,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -650,70 +885,6 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFurnitureCatalog() {
-    final catalog = [
-      {'name': 'Cama Rústica', 'emoji': '🛏️', 'asset': 'furniture/bed_single_rustic.png', 'gw': 1, 'gh': 2, 'type': FurnitureType.bed},
-      {'name': 'Cama Nórdica', 'emoji': '🛏️', 'asset': 'furniture/bed_single_modern.png', 'gw': 1, 'gh': 2, 'type': FurnitureType.bed},
-      {'name': 'Cama King', 'emoji': '👑', 'asset': 'furniture/bed_double_king.png', 'gw': 2, 'gh': 2, 'type': FurnitureType.bed},
-      {'name': 'Sofá Cozy', 'emoji': '🛋️', 'asset': 'furniture/sofa_cozy.png', 'gw': 2, 'gh': 1, 'type': FurnitureType.table},
-      {'name': 'Estantería', 'emoji': '📚', 'asset': 'furniture/bookshelf_wooden.png', 'gw': 1, 'gh': 1, 'type': FurnitureType.wardrobe},
-      {'name': 'Planta', 'emoji': '🪴', 'asset': 'furniture/plant_monstera.png', 'gw': 1, 'gh': 1, 'type': FurnitureType.plant},
-      {'name': 'Mesa de Té', 'emoji': '☕', 'asset': 'furniture/table_tea.png', 'gw': 1, 'gh': 1, 'type': FurnitureType.table},
-      {'name': 'Armario', 'emoji': '🪞', 'asset': 'furniture/wardrobe_mirror.png', 'gw': 1, 'gh': 1, 'type': FurnitureType.wardrobe},
-    ];
-
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: catalog.length,
-      itemBuilder: (context, index) {
-        final item = catalog[index];
-        return GestureDetector(
-          onTap: () {
-            _roomGame.addDynamicFurniture(
-              item['type'] as FurnitureType,
-              item['gw'] as int,
-              item['gh'] as int,
-              item['asset'] as String?,
-            );
-          },
-          child: Container(
-            width: 100,
-            margin: const EdgeInsets.only(right: 10),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF282531),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.4)),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(item['emoji'] as String, style: const TextStyle(fontSize: 22)),
-                const SizedBox(height: 4),
-                Text(
-                  item['name'] as String,
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF00E5FF)),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_circle, color: Color(0xFF00E5FF), size: 12),
-                    SizedBox(width: 2),
-                    Text('Agregar', style: TextStyle(color: Colors.white70, fontSize: 9)),
-                  ],
                 ),
               ],
             ),

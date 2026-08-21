@@ -5,7 +5,9 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as vmath;
 import '../../../core/models/avatar_config.dart';
+import '../../../core/models/furniture_item.dart';
 import '../../../core/models/room_config.dart';
+import '../../../core/services/furniture_catalog_service.dart';
 import '../components/isometric_avatar_component.dart';
 import '../components/isometric_furniture_component.dart';
 import '../utils/isometric_coords.dart';
@@ -28,7 +30,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
   // Drag-and-Drop state for furniture
   IsometricFurnitureComponent? _draggedFurniture;
+  List<IsometricFurnitureComponent> _attachedSurfaceItems = [];
   Point<int>? _originalGridPos;
+  String? _originalParentId;
+  double _originalSurfaceHeight = 0.0;
+  String _originalWallId = '';
   Point<int>? _currentHoverGrid;
   bool _isValidDropLocation = true;
   Vector2? _dragStartWorldPos;
@@ -53,6 +59,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    await FurnitureCatalogService.initialize(forceReload: true);
 
     // 1. Add Isometric Room Floor & Walls inside world (priority: -100)
     _backgroundComponent = _IsometricRoomBackgroundComponent(
@@ -71,10 +78,12 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     // 4. Adventure Portal (Fixed interactive portal)
     world.add(IsometricFurnitureComponent(
+      id: 'portal',
       gridX: 6,
       gridY: 6,
       type: FurnitureType.portal,
       onInteract: onOpenMatchmaking,
+      resolution: roomConfig.resolution,
     ));
 
     // 5. Register Initial Obstacles for all solid furniture
@@ -84,7 +93,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     avatar = IsometricAvatarComponent(
       gridX: 4.0,
       gridY: 4.0,
-      config: avatarConfig,
+      config: avatarConfig.copyWith(spriteResolution: roomConfig.resolution),
       onReachedDestination: _handleDestinationReached,
     );
     if (isDecorateMode) {
@@ -96,16 +105,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void setDecorateMode(bool enabled) {
     isDecorateMode = enabled;
     if (enabled) {
-      // Hide avatar during decoration
       avatar.isVisible = false;
       selectFurniture(null);
     } else {
-      // Find a safe free walkable tile to respawn avatar
       _recalculateObstacles();
       Point<int> spawnTile = const Point(4, 4);
       bool found = false;
 
-      // Prefer center tiles
       const searchOrder = [
         Point(4, 4), Point(3, 4), Point(4, 3), Point(3, 3),
         Point(5, 4), Point(4, 5), Point(2, 4), Point(4, 2),
@@ -144,116 +150,319 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       f.removeFromParent();
     }
 
+    // First pass: instantiate all base floor and wall furniture
+    final created = <PlacedFurnitureConfig, IsometricFurnitureComponent>{};
     for (final item in config.furniture) {
-      final rotSprites = await _loadRotationSprites(item.assetPath);
+      final catalogItem = FurnitureCatalogService.getItem(item.typeName) ?? FurnitureCatalogService.getItem(item.id);
+      final isWall = catalogItem?.isWallItem == true || item.typeName.contains('wall') || item.typeName.endsWith('_n') || item.typeName.endsWith('_w') || item.id.endsWith('_n') || item.id.endsWith('_w');
 
-      FurnitureType type;
-      switch (item.typeName) {
-        case 'wardrobe':
-          type = FurnitureType.wardrobe;
-          break;
-        case 'bed':
-          type = FurnitureType.bed;
-          break;
-        case 'plant':
-          type = FurnitureType.plant;
-          break;
-        case 'table':
-          type = FurnitureType.table;
-          break;
-        default:
-          type = FurnitureType.table;
-          break;
+      String targetTypeName = item.typeName;
+      String footprint = catalogItem?.footprint ?? (item.gridWidth == 2 && item.gridHeight == 2 ? '2x2' : (item.gridWidth == 1 && item.gridHeight == 2 ? '1x2' : '1x1'));
+
+      if (isWall) {
+        final bool isNorth = item.typeName.endsWith('_n') || item.id.endsWith('_n') || (item.gridY == 0 && item.gridX > 0) || (!item.typeName.endsWith('_w') && !item.id.endsWith('_w') && item.gridX >= item.gridY);
+        targetTypeName = FurnitureCatalogItem.getWallVariantFor(item.typeName, isNorth);
+        footprint = isNorth ? 'wall_n' : 'wall_w';
       }
 
+      final rotSprites = await _loadRotationSprites(targetTypeName);
+
       final comp = IsometricFurnitureComponent(
+        id: item.id.isNotEmpty ? item.id : '${targetTypeName}_${created.length}',
+        typeName: targetTypeName,
         gridX: item.gridX,
         gridY: item.gridY,
         gridWidth: item.gridWidth,
         gridHeight: item.gridHeight,
         rotation: item.rotation,
-        type: type,
-        baseAssetPath: item.assetPath,
+        footprint: footprint,
+        parentId: item.parentId,
+        wallHeightLevel: item.wallHeightLevel.isNotEmpty ? item.wallHeightLevel : 'high',
+        resolution: config.resolution,
+        type: targetTypeName.contains('wardrobe') ? FurnitureType.wardrobe : (targetTypeName.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
         sprite: rotSprites[item.rotation] ?? rotSprites[0],
         rotationSprites: rotSprites,
-        onInteract: (type == FurnitureType.wardrobe) ? onOpenWardrobe : null,
+        onInteract: targetTypeName.contains('wardrobe') ? onOpenWardrobe : null,
       );
+      created[item] = comp;
       world.add(comp);
+    }
+
+    // Second pass: Link parent surface heights and furthest depth priority for surface items
+    _recalculateSurfacePriorities();
+  }
+
+  void _recalculateSurfacePriorities() {
+    final allComps = world.children.whereType<IsometricFurnitureComponent>().toList();
+    for (final comp in allComps) {
+      if (comp.isSurfaceItem) {
+        final parent = _findSurfaceParentAt(comp.gridX, comp.gridY, exclude: comp);
+        if (parent != null) {
+          final pMeta = FurnitureCatalogService.getItem(parent.typeName) ?? FurnitureCatalogService.getItem(parent.id);
+          final sH = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
+          comp.updateGridPosition(
+            comp.gridX,
+            comp.gridY,
+            parentId: parent.id,
+            parentSurfaceHeight: sH,
+            parentFurthestX: parent.gridX + parent.gridWidth - 1,
+            parentFurthestY: parent.gridY + parent.gridHeight - 1,
+          );
+        } else {
+          comp.updateGridPosition(comp.gridX, comp.gridY);
+        }
+      }
     }
   }
 
-  Future<Map<int, Sprite>> _loadRotationSprites(String? baseAssetPath) async {
-    final Map<int, Sprite> map = {};
-    if (baseAssetPath == null) return map;
+  IsometricFurnitureComponent? _findSurfaceParentAt(int gx, int gy, {IsometricFurnitureComponent? exclude}) {
+    final candidates = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != exclude && f.type != FurnitureType.portal && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
+    for (final f in candidates) {
+      if (gx >= f.gridX && gx < f.gridX + f.gridWidth && gy >= f.gridY && gy < f.gridY + f.gridHeight) {
+        final meta = FurnitureCatalogService.getItem(f.typeName) ?? FurnitureCatalogService.getItem(f.id);
+        if (meta != null && meta.isSurfaceSupporting) {
+          return f;
+        }
+        // Fallback for known surface items
+        if (f.id.contains('table') || f.id.contains('counter') || f.id.contains('stove') || f.id.contains('sink') || f.id.contains('bed') || f.id.contains('nightstand') || f.id.contains('drawer') || f.id.contains('cube') || f.typeName.contains('table') || f.typeName.contains('counter') || f.typeName.contains('bed') || f.typeName.contains('cube')) {
+          return f;
+        }
+      }
+    }
+    return null;
+  }
 
-    final cleanPath = baseAssetPath.replaceAll('.png', '');
+  Future<Map<int, Sprite>> _loadRotationSprites(String id) async {
+    final Map<int, Sprite> map = {};
+    final isHD = (roomConfig.resolution == '64x128');
+
+    final candidateIds = [
+      id,
+      if (!id.endsWith('_n') && !id.endsWith('_w')) '${id}_n',
+    ];
+
     for (int rot = 0; rot < 4; rot++) {
-      try {
-        final spr = await loadSprite('${cleanPath}_$rot.png');
-        map[rot] = spr;
-      } catch (_) {
+      for (final cid in candidateIds) {
+        if (map.containsKey(rot)) break;
+        if (isHD) {
+          // HD Mode: Use 128x256 detailed furniture
+          try {
+            map[rot] = await loadSprite('furniture/128x256/${cid}_rot$rot.png');
+            break;
+          } catch (_) {}
+          try {
+            map[rot] = await loadSprite('furniture/128x256/$cid.png');
+            break;
+          } catch (_) {}
+          try {
+            map[rot] = await loadSprite('furniture/64x128/${cid}_rot$rot.png');
+            break;
+          } catch (_) {}
+          try {
+            map[rot] = await loadSprite('furniture/64x128/$cid.png');
+            break;
+          } catch (_) {}
+        } else {
+          // Retro Mode: Use 64x128 furniture (rendered with 2x scale)
+          try {
+            map[rot] = await loadSprite('furniture/64x128/${cid}_rot$rot.png');
+            break;
+          } catch (_) {}
+          try {
+            map[rot] = await loadSprite('furniture/64x128/$cid.png');
+            break;
+          } catch (_) {}
+          try {
+            map[rot] = await loadSprite('furniture/32x64/${cid}_rot$rot.png');
+            break;
+          } catch (_) {}
+          try {
+            map[rot] = await loadSprite('furniture/32x64/$cid.png');
+            break;
+          } catch (_) {}
+        }
+
+        // Root fallbacks
         try {
-          final sprBase = await loadSprite('$cleanPath.png');
-          map[rot] = sprBase;
+          map[rot] = await loadSprite('furniture/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/$cid.png');
+          break;
         } catch (_) {}
       }
     }
     return map;
   }
 
-  Future<void> addDynamicFurniture(FurnitureType type, int gw, int gh, String? assetPath) async {
-    final rotSprites = await _loadRotationSprites(assetPath);
+  Future<void> _switchWallVariant(IsometricFurnitureComponent comp, bool isNorth) async {
+    final targetTypeName = FurnitureCatalogItem.getWallVariantFor(comp.typeName, isNorth);
+    if (comp.typeName == targetTypeName && comp.footprint == (isNorth ? 'wall_n' : 'wall_w')) return;
 
-    Point<int> spawnPos = const Point(4, 4);
-    for (int r = 0; r <= gridSize - gw; r++) {
-      for (int c = 0; c <= gridSize - gh; c++) {
-        final p = Point(r, c);
-        final temp = IsometricFurnitureComponent(gridX: r, gridY: c, gridWidth: gw, gridHeight: gh, type: type);
+    comp.typeName = targetTypeName;
+    comp.footprint = isNorth ? 'wall_n' : 'wall_w';
+
+    final rotSprites = await _loadRotationSprites(targetTypeName);
+    comp.rotationSprites.clear();
+    comp.rotationSprites.addAll(rotSprites);
+    comp.sprite = rotSprites[0];
+    comp.updateGridPosition(comp.gridX, comp.gridY);
+  }
+
+  Future<void> addFurnitureFromCatalog(FurnitureCatalogItem catalogItem) async {
+    final isWall = catalogItem.isWallItem;
+    final initialWallIsNorth = !catalogItem.isWallWest;
+    final initialTypeName = isWall ? FurnitureCatalogItem.getWallVariantFor(catalogItem.id, initialWallIsNorth) : catalogItem.id;
+    final rotSprites = await _loadRotationSprites(initialTypeName);
+    final gw = catalogItem.gridWidth;
+    final gh = catalogItem.gridHeight;
+
+    Point<int> spawnPos = const Point(3, 3);
+    String? parentId;
+    double surfaceH = 0.0;
+
+    final centerX = (gridSize - gw) / 2.0;
+    final centerY = (gridSize - gh) / 2.0;
+
+    if (catalogItem.isWallNorth || (catalogItem.isWallItem && !catalogItem.isWallWest)) {
+      final candidates = <Point<int>>[];
+      for (int x = 0; x <= gridSize - gw; x++) {
+        final p = Point(x, 0);
+        final temp = IsometricFurnitureComponent(
+          id: catalogItem.id,
+          gridX: x,
+          gridY: 0,
+          gridWidth: gw,
+          gridHeight: gh,
+          footprint: 'wall_n',
+        );
         if (_checkIsValidLocation(temp, p)) {
-          spawnPos = p;
-          break;
+          candidates.add(p);
         }
+      }
+      if (candidates.isNotEmpty) {
+        candidates.sort((a, b) => ((a.x - centerX).abs()).compareTo((b.x - centerX).abs()));
+        spawnPos = candidates.first;
+      }
+    } else if (catalogItem.isWallWest) {
+      final candidates = <Point<int>>[];
+      for (int y = 0; y <= gridSize - gh; y++) {
+        final p = Point(0, y);
+        final temp = IsometricFurnitureComponent(
+          id: catalogItem.id,
+          gridX: 0,
+          gridY: y,
+          gridWidth: gw,
+          gridHeight: gh,
+          footprint: 'wall_w',
+        );
+        if (_checkIsValidLocation(temp, p)) {
+          candidates.add(p);
+        }
+      }
+      if (candidates.isNotEmpty) {
+        candidates.sort((a, b) => ((a.y - centerY).abs()).compareTo((b.y - centerY).abs()));
+        spawnPos = candidates.first;
+      }
+    } else if (catalogItem.isSurfaceItem) {
+      // Find surface-supporting furniture closest to room center
+      final parents = world.children.whereType<IsometricFurnitureComponent>().where((f) {
+        final m = FurnitureCatalogService.getItem(f.id) ?? FurnitureCatalogService.getItem(f.typeName);
+        return m != null && m.isSurfaceSupporting;
+      }).toList();
+
+      if (parents.isNotEmpty) {
+        parents.sort((a, b) {
+          final distA = (a.gridX - centerX) * (a.gridX - centerX) + (a.gridY - centerY) * (a.gridY - centerY);
+          final distB = (b.gridX - centerX) * (b.gridX - centerX) + (b.gridY - centerY) * (b.gridY - centerY);
+          return distA.compareTo(distB);
+        });
+        final parent = parents.first;
+        spawnPos = Point(parent.gridX, parent.gridY);
+        parentId = parent.id;
+        final pMeta = FurnitureCatalogService.getItem(parent.id) ?? FurnitureCatalogService.getItem(parent.typeName);
+        surfaceH = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
+      }
+    } else {
+      // Normal floor item: find free valid location closest to the center of the room
+      final candidates = <Point<int>>[];
+      for (int r = 0; r <= gridSize - gw; r++) {
+        for (int c = 0; c <= gridSize - gh; c++) {
+          final p = Point(r, c);
+          final temp = IsometricFurnitureComponent(
+            id: catalogItem.id,
+            gridX: r,
+            gridY: c,
+            gridWidth: gw,
+            gridHeight: gh,
+            footprint: catalogItem.footprint,
+          );
+          if (_checkIsValidLocation(temp, p)) {
+            candidates.add(p);
+          }
+        }
+      }
+      if (candidates.isNotEmpty) {
+        candidates.sort((a, b) {
+          final distA = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
+          final distB = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
+          return distA.compareTo(distB);
+        });
+        spawnPos = candidates.first;
       }
     }
 
+    final uniqueId = '${catalogItem.id}_${DateTime.now().microsecondsSinceEpoch}';
     final comp = IsometricFurnitureComponent(
+      id: uniqueId,
+      typeName: initialTypeName,
       gridX: spawnPos.x,
       gridY: spawnPos.y,
       gridWidth: gw,
       gridHeight: gh,
       rotation: 0,
-      type: type,
-      baseAssetPath: assetPath,
+      footprint: isWall ? (initialWallIsNorth ? 'wall_n' : 'wall_w') : catalogItem.footprint,
+      parentId: parentId,
+      parentSurfaceHeight: surfaceH,
+      wallHeightLevel: 'high',
+      resolution: roomConfig.resolution,
+      type: catalogItem.id.contains('wardrobe') ? FurnitureType.wardrobe : (catalogItem.id.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
       sprite: rotSprites[0],
       rotationSprites: rotSprites,
-      onInteract: (type == FurnitureType.wardrobe) ? onOpenWardrobe : null,
+      onInteract: catalogItem.id.contains('wardrobe') ? onOpenWardrobe : null,
     );
     world.add(comp);
     selectFurniture(comp);
     _recalculateObstacles();
   }
 
+  void toggleSelectedWallHeight() {
+    if (selectedFurniture != null && selectedFurniture!.isWallItem) {
+      selectedFurniture!.toggleWallHeightLevel();
+    }
+  }
+
   void rotateSelectedFurniture() {
-    if (selectedFurniture == null || selectedFurniture!.type == FurnitureType.portal) return;
+    if (selectedFurniture == null || selectedFurniture!.isPortal) return;
 
     final comp = selectedFurniture!;
+    if (comp.isSurfaceItem || comp.isWallNorth || comp.isWallWest) {
+      comp.rotateClockwise();
+      return;
+    }
+
     final nextW = comp.gridHeight;
     final nextH = comp.gridWidth;
 
-    // Check if new footprint fits inside grid
     int targetX = comp.gridX;
     int targetY = comp.gridY;
 
-    if (targetX + nextW > gridSize) {
-      targetX = gridSize - nextW;
-    }
-    if (targetY + nextH > gridSize) {
-      targetY = gridSize - nextH;
-    }
+    if (targetX + nextW > gridSize) targetX = gridSize - nextW;
+    if (targetY + nextH > gridSize) targetY = gridSize - nextH;
 
-    // Check collision with other furniture
     bool fits = true;
-    final others = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != comp && f.type != FurnitureType.carpet);
+    final others = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != comp && f.type != FurnitureType.carpet && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
     for (final f in others) {
       for (int fx = 0; fx < f.gridWidth; fx++) {
         for (int fy = 0; fy < f.gridHeight; fy++) {
@@ -279,7 +488,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   }
 
   void deleteFurniture(IsometricFurnitureComponent comp) {
-    if (comp.type == FurnitureType.portal) return;
+    if (comp.isPortal) return;
     comp.removeFromParent();
     if (selectedFurniture == comp) {
       selectFurniture(null);
@@ -308,23 +517,48 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     obstacles.clear();
     final allFurniture = world.children.whereType<IsometricFurnitureComponent>();
     for (final f in allFurniture) {
-      if (f.type == FurnitureType.carpet) continue;
+      if (f.type == FurnitureType.carpet || f.isSurfaceItem || f.isWallNorth || f.isWallWest) continue;
       for (int x = 0; x < f.gridWidth; x++) {
         for (int y = 0; y < f.gridHeight; y++) {
           obstacles.add(Point(f.gridX + x, f.gridY + y));
         }
       }
     }
+    _recalculateSurfacePriorities();
   }
 
   bool _checkIsValidLocation(IsometricFurnitureComponent item, Point<int> target) {
+    // 1. Surface Item: Must be placed on a furniture with surface_height > 0
+    if (item.isSurfaceItem) {
+      if (target.x < 0 || target.x >= gridSize || target.y < 0 || target.y >= gridSize) {
+        return false;
+      }
+      final parent = _findSurfaceParentAt(target.x, target.y, exclude: item);
+      return parent != null;
+    }
+
+    // 2. Wall North Item: Must be at North Wall (gy == 0)
+    if (item.isWallNorth) {
+      if (target.y != 0 || target.x < 0 || target.x >= gridSize) return false;
+      final existingWalls = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != item && f.isWallNorth);
+      return !existingWalls.any((f) => f.gridX == target.x && f.gridY == 0);
+    }
+
+    // 3. Wall West Item: Must be at West Wall (gx == 0)
+    if (item.isWallWest) {
+      if (target.x != 0 || target.y < 0 || target.y >= gridSize) return false;
+      final existingWalls = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != item && f.isWallWest);
+      return !existingWalls.any((f) => f.gridX == 0 && f.gridY == target.y);
+    }
+
+    // 4. Standard Floor Item: Bounds check
     if (target.x < 0 || target.x + item.gridWidth > gridSize || target.y < 0 || target.y + item.gridHeight > gridSize) {
       return false;
     }
 
-    final allFurniture = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != item);
+    // Collision check against other solid floor items
+    final allFurniture = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != item && f.type != FurnitureType.carpet && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
     for (final f in allFurniture) {
-      if (f.type == FurnitureType.carpet) continue;
       for (int fx = 0; fx < f.gridWidth; fx++) {
         for (int fy = 0; fy < f.gridHeight; fy++) {
           final fPoint = Point(f.gridX + fx, f.gridY + fy);
@@ -345,14 +579,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void _handleDestinationReached(Point<int> dest) {
     if (isDecorateMode) return;
 
-    final wardrobe = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.type == FurnitureType.wardrobe).firstOrNull;
+    final wardrobe = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.isWardrobe).firstOrNull;
     if (wardrobe != null) {
       if ((dest.x - wardrobe.gridX).abs() <= 1 && (dest.y - wardrobe.gridY).abs() <= 1) {
         onOpenWardrobe?.call();
       }
     }
 
-    final portal = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.type == FurnitureType.portal).firstOrNull;
+    final portal = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.isPortal).firstOrNull;
     if (portal != null) {
       if ((dest.x - portal.gridX).abs() <= 1 && (dest.y - portal.gridY).abs() <= 1) {
         onOpenMatchmaking?.call();
@@ -365,6 +599,22 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     avatar.updateConfig(newConfig);
   }
 
+  Future<void> updateResolution(String newResolution) async {
+    roomConfig = roomConfig.copyWith(resolution: newResolution);
+    avatarConfig = avatarConfig.copyWith(spriteResolution: newResolution);
+    avatar.updateConfig(avatarConfig);
+
+    // Reload all furniture sprites
+    final allFurniture = world.children.whereType<IsometricFurnitureComponent>().where((f) => !f.isPortal).toList();
+    for (final f in allFurniture) {
+      f.resolution = newResolution;
+      final rotSprites = await _loadRotationSprites(f.typeName);
+      f.rotationSprites.clear();
+      f.rotationSprites.addAll(rotSprites);
+      f.sprite = rotSprites[f.rotation] ?? rotSprites[0];
+    }
+  }
+
   void updateRoomConfig(RoomConfig newConfig) {
     roomConfig = newConfig;
     _backgroundComponent.roomConfig = newConfig;
@@ -372,24 +622,21 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
   RoomConfig exportCurrentRoomConfig() {
     final list = <PlacedFurnitureConfig>[];
-    final allFurniture = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.type != FurnitureType.portal);
+    final allFurniture = world.children.whereType<IsometricFurnitureComponent>().where((f) => !f.isPortal);
 
-    int idx = 0;
     for (final f in allFurniture) {
-      String typeName = 'table';
-      if (f.type == FurnitureType.wardrobe) typeName = 'wardrobe';
-      if (f.type == FurnitureType.bed) typeName = 'bed';
-      if (f.type == FurnitureType.plant) typeName = 'plant';
-      if (f.type == FurnitureType.table) typeName = 'table';
-
       list.add(PlacedFurnitureConfig(
-        id: 'item_${idx++}',
-        typeName: typeName,
+        // typeName must stay the catalog id so the reload can resolve footprint + sprites;
+        // id must stay the runtime id so parentId links from surface items survive the round-trip.
+        id: f.id,
+        typeName: f.typeName,
         gridX: f.gridX,
         gridY: f.gridY,
         gridWidth: f.gridWidth,
         gridHeight: f.gridHeight,
         rotation: f.rotation,
+        parentId: f.parentId,
+        wallHeightLevel: f.wallHeightLevel,
         assetPath: f.baseAssetPath,
       ));
     }
@@ -430,7 +677,6 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       camera.viewfinder.position = roomCenterScreen;
       camera.viewfinder.anchor = Anchor.center;
 
-      // Higher initial zoom for an immersive, close-up lobby view
       final zoomFit = min(size.x / 450.0, size.y / 380.0);
       camera.viewfinder.zoom = zoomFit.clamp(1.20, 1.85);
       _hasInitializedCamera = true;
@@ -454,50 +700,97 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     const edgeMargin = 70.0;
     const topMargin = 90.0;
     const bottomMargin = 160.0;
-    const maxScrollSpeed = 280.0; // Screen pixels per second
+    const maxScrollSpeed = 280.0;
 
     double panX = 0.0;
     double panY = 0.0;
 
-    // Left Edge
     if (pos.x < edgeMargin) {
       final intensity = ((edgeMargin - pos.x) / edgeMargin).clamp(0.0, 1.0);
       panX = maxScrollSpeed * intensity * dt;
-    }
-    // Right Edge
-    else if (pos.x > size.x - edgeMargin) {
+    } else if (pos.x > size.x - edgeMargin) {
       final intensity = ((pos.x - (size.x - edgeMargin)) / edgeMargin).clamp(0.0, 1.0);
       panX = -maxScrollSpeed * intensity * dt;
     }
 
-    // Top Edge
     if (pos.y < topMargin) {
       final intensity = ((topMargin - pos.y) / topMargin).clamp(0.0, 1.0);
       panY = maxScrollSpeed * intensity * dt;
-    }
-    // Bottom Edge
-    else if (pos.y > size.y - bottomMargin) {
+    } else if (pos.y > size.y - bottomMargin) {
       final intensity = ((pos.y - (size.y - bottomMargin)) / bottomMargin).clamp(0.0, 1.0);
       panY = -maxScrollSpeed * intensity * dt;
     }
 
     if (panX != 0.0 || panY != 0.0) {
       panCamera(Vector2(panX, panY));
+      _updateDragHoverPosition(_currentDragScreenPos!);
+    }
+  }
 
-      // Recalculate furniture hover location after camera moved
-      final currentWorldPos = camera.viewfinder.transform.globalToLocal(pos);
+  void _updateDragHoverPosition(Vector2 screenPos) {
+    if (_draggedFurniture == null) return;
+
+    final currentWorldPos = camera.viewfinder.transform.globalToLocal(screenPos);
+
+    Point<int> clampedGrid;
+    if (_draggedFurniture!.isWallItem) {
+      // Wall items exist along the vertical planes of North Wall (sx >= 0) or West Wall (sx < 0).
+      // Each isometric wall panel occupies exactly (tileWidth / 2 = 32px) horizontally:
+      // North tile gx spans sx [32*gx, 32*gx+32); West tile gy spans sx (-32*gy-32, -32*gy].
+      // Moving vertically UP/DOWN (delta sx = 0) stays rock-solid on the same panel.
+      // Moving diagonally along the wall advances exactly one panel per 32px, 1:1.
+      final panelWidth = IsometricCoords.tileWidth / 2.0;
+      final anchorSx = currentWorldPos.x;
+      final bool isNorth = (anchorSx >= 0);
+
+      if (isNorth) {
+        final rawX = (anchorSx / panelWidth).floor();
+        final gx = rawX.clamp(0, gridSize - _draggedFurniture!.gridWidth);
+        clampedGrid = Point(gx, 0);
+        _switchWallVariant(_draggedFurniture!, true);
+      } else {
+        final rawY = ((-anchorSx) / panelWidth).floor();
+        final gy = rawY.clamp(0, gridSize - _draggedFurniture!.gridHeight);
+        clampedGrid = Point(0, gy);
+        _switchWallVariant(_draggedFurniture!, false);
+      }
+    } else {
       final rawGrid = IsometricCoords.screenToGrid(currentWorldPos.x, currentWorldPos.y);
-
       final clX = rawGrid.x.clamp(0, gridSize - _draggedFurniture!.gridWidth);
       final clY = rawGrid.y.clamp(0, gridSize - _draggedFurniture!.gridHeight);
-      final clampedGrid = Point(clX, clY);
+      clampedGrid = Point(clX, clY);
+    }
 
-      _currentHoverGrid = clampedGrid;
-      _isValidDropLocation = _checkIsValidLocation(_draggedFurniture!, clampedGrid);
+    _currentHoverGrid = clampedGrid;
+    _isValidDropLocation = _checkIsValidLocation(_draggedFurniture!, clampedGrid);
 
-      final targetScreenPos = IsometricCoords.gridToScreen(clampedGrid.x.toDouble(), clampedGrid.y.toDouble());
-      final currentScreenPos = IsometricCoords.gridToScreen(_draggedFurniture!.gridX.toDouble(), _draggedFurniture!.gridY.toDouble());
-      _draggedFurniture!.dragVisualOffset = targetScreenPos - currentScreenPos;
+    // If surface item, update dynamic elevation and parent linkage for magnetic preview
+    if (_draggedFurniture!.isSurfaceItem) {
+      final parent = _findSurfaceParentAt(clampedGrid.x, clampedGrid.y, exclude: _draggedFurniture);
+      if (parent != null) {
+        _draggedFurniture!.parentId = parent.id;
+        final pMeta = FurnitureCatalogService.getItem(parent.typeName) ?? FurnitureCatalogService.getItem(parent.id);
+        final parentRotMeta = pMeta?.rotations[parent.rotation];
+        if (parentRotMeta != null && parentRotMeta.surfaceHeight > 0) {
+          _draggedFurniture!.parentSurfaceHeight = parentRotMeta.surfaceHeight.toDouble();
+        } else {
+          _draggedFurniture!.parentSurfaceHeight = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
+        }
+      } else {
+        _draggedFurniture!.parentId = null;
+        _draggedFurniture!.parentSurfaceHeight = 0.0;
+      }
+    }
+
+    final targetScreenPos = IsometricCoords.gridToScreen(clampedGrid.x.toDouble(), clampedGrid.y.toDouble());
+    final currentScreenPos = IsometricCoords.gridToScreen(_draggedFurniture!.gridX.toDouble(), _draggedFurniture!.gridY.toDouble());
+    final delta = targetScreenPos - currentScreenPos;
+    _draggedFurniture!.dragVisualOffset = delta;
+
+    // Also update visual offset for attached surface items
+    for (final child in _attachedSurfaceItems) {
+      child.dragVisualOffset = delta;
+      child.isBeingDragged = true;
     }
   }
 
@@ -508,42 +801,81 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     _currentDragScreenPos = event.localPosition;
 
     final worldPos = camera.viewfinder.transform.globalToLocal(event.localPosition);
-    final gridPos = IsometricCoords.screenToGrid(worldPos.x, worldPos.y);
 
     if (isDecorateMode) {
-      // Check if user grabbed a furniture item
       final allFurniture = world.children.whereType<IsometricFurnitureComponent>().toList();
       allFurniture.sort((a, b) => b.priority.compareTo(a.priority));
 
-      bool grabbedFurniture = false;
+      IsometricFurnitureComponent? hit;
+
+      // Pass 1: Surface items strictly prioritized (e.g. coffee mug, lamp on top of dining table)
       for (final f in allFurniture) {
-        if (f.type == FurnitureType.portal) continue;
-        final occupies = gridPos.x >= f.gridX &&
-            gridPos.x < f.gridX + f.gridWidth &&
-            gridPos.y >= f.gridY &&
-            gridPos.y < f.gridY + f.gridHeight;
-
-        if (occupies) {
-          selectFurniture(f);
-          _draggedFurniture = f;
-          _originalGridPos = Point(f.gridX, f.gridY);
-          _currentHoverGrid = Point(f.gridX, f.gridY);
-          _dragStartWorldPos = worldPos;
-          _isValidDropLocation = true;
-
-          f.isBeingDragged = true;
-          f.priority = 9999;
-          grabbedFurniture = true;
+        if (f.isPortal || !f.isSurfaceItem) continue;
+        if (f.hitTestWorld(worldPos)) {
+          hit = f;
           break;
         }
       }
 
-      if (!grabbedFurniture) {
-        // Dragging empty space in Decorate Mode pans the camera
+      // Pass 2: Wall items
+      if (hit == null) {
+        for (final f in allFurniture) {
+          if (f.isPortal || !f.isWallItem) continue;
+          if (f.hitTestWorld(worldPos)) {
+            hit = f;
+            break;
+          }
+        }
+      }
+
+      // Pass 3: Floor items
+      if (hit == null) {
+        for (final f in allFurniture) {
+          if (f.isPortal || f.isSurfaceItem || f.isWallItem) continue;
+          if (f.hitTestWorld(worldPos)) {
+            hit = f;
+            break;
+          }
+        }
+      }
+
+      if (hit != null) {
+        selectFurniture(hit);
+        _draggedFurniture = hit;
+        _originalGridPos = Point(hit.gridX, hit.gridY);
+        _originalParentId = hit.parentId;
+        _originalSurfaceHeight = hit.parentSurfaceHeight;
+        _originalWallId = hit.typeName;
+        _currentHoverGrid = Point(hit.gridX, hit.gridY);
+        _dragStartWorldPos = worldPos;
+        _isValidDropLocation = true;
+
+        hit.isBeingDragged = true;
+        hit.isDirectlyDragged = true;
+        hit.priority = 9999;
+
+        // If dragging a surface-supporting furniture, find all attached surface children strictly on top of THIS table's tiles
+        _attachedSurfaceItems.clear();
+        if (!hit.isSurfaceItem && !hit.isWallItem) {
+          _attachedSurfaceItems = world.children
+              .whereType<IsometricFurnitureComponent>()
+              .where((c) =>
+                  c.isSurfaceItem &&
+                  c.gridX >= hit!.gridX &&
+                  c.gridX < hit!.gridX + hit!.gridWidth &&
+                  c.gridY >= hit!.gridY &&
+                  c.gridY < hit!.gridY + hit!.gridHeight)
+              .toList();
+          for (final child in _attachedSurfaceItems) {
+            child.isBeingDragged = true;
+            child.isDirectlyDragged = false;
+            child.priority = 10001; // Render strictly on top of parent table during drag
+          }
+        }
+      } else {
         _isPanningCamera = true;
       }
     } else {
-      // In Normal Mode: Dragging on screen pans the camera
       _isPanningCamera = true;
     }
   }
@@ -559,19 +891,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
 
     if (isDecorateMode && _draggedFurniture != null && _dragStartWorldPos != null) {
-      final currentWorldPos = camera.viewfinder.transform.globalToLocal(event.localEndPosition);
-      final rawGrid = IsometricCoords.screenToGrid(currentWorldPos.x, currentWorldPos.y);
-
-      final clX = rawGrid.x.clamp(0, gridSize - _draggedFurniture!.gridWidth);
-      final clY = rawGrid.y.clamp(0, gridSize - _draggedFurniture!.gridHeight);
-      final clampedGrid = Point(clX, clY);
-
-      _currentHoverGrid = clampedGrid;
-      _isValidDropLocation = _checkIsValidLocation(_draggedFurniture!, clampedGrid);
-
-      final targetScreenPos = IsometricCoords.gridToScreen(clampedGrid.x.toDouble(), clampedGrid.y.toDouble());
-      final currentScreenPos = IsometricCoords.gridToScreen(_draggedFurniture!.gridX.toDouble(), _draggedFurniture!.gridY.toDouble());
-      _draggedFurniture!.dragVisualOffset = targetScreenPos - currentScreenPos;
+      _updateDragHoverPosition(event.localEndPosition);
     }
   }
 
@@ -600,28 +920,107 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void _finishDrag() {
     if (_draggedFurniture != null) {
       if (_isValidDropLocation && _currentHoverGrid != null) {
-        _draggedFurniture!.updateGridPosition(_currentHoverGrid!.x, _currentHoverGrid!.y);
+        final deltaX = _currentHoverGrid!.x - _originalGridPos!.x;
+        final deltaY = _currentHoverGrid!.y - _originalGridPos!.y;
+
+        String? newParentId;
+        double newSurfaceH = 0.0;
+        if (_draggedFurniture!.isSurfaceItem) {
+          final parent = _findSurfaceParentAt(_currentHoverGrid!.x, _currentHoverGrid!.y, exclude: _draggedFurniture);
+          if (parent != null) {
+            newParentId = parent.id;
+            final pMeta = FurnitureCatalogService.getItem(parent.typeName) ?? FurnitureCatalogService.getItem(parent.id);
+            final parentRotMeta = pMeta?.rotations[parent.rotation];
+            if (parentRotMeta != null && parentRotMeta.surfaceHeight > 0) {
+              newSurfaceH = parentRotMeta.surfaceHeight.toDouble();
+            } else {
+              newSurfaceH = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
+            }
+          }
+        }
+
+        _draggedFurniture!.updateGridPosition(
+          _currentHoverGrid!.x,
+          _currentHoverGrid!.y,
+          parentId: newParentId,
+          parentSurfaceHeight: newSurfaceH,
+        );
+
+        // Move all attached surface items together with parent furniture
+        for (final child in _attachedSurfaceItems) {
+          child.updateGridPosition(
+            child.gridX + deltaX,
+            child.gridY + deltaY,
+            parentId: _draggedFurniture!.id,
+          );
+          child.dragVisualOffset = Vector2.zero();
+          child.isBeingDragged = false;
+          child.isDirectlyDragged = false;
+        }
+
         _recalculateObstacles();
+        _recalculateSurfacePriorities();
         world.add(_TapWaveComponent(grid: _currentHoverGrid!, isSnap: true));
       } else if (_originalGridPos != null) {
-        _draggedFurniture!.updateGridPosition(_originalGridPos!.x, _originalGridPos!.y);
+        if (_draggedFurniture!.isWallItem && _draggedFurniture!.typeName != _originalWallId) {
+          _switchWallVariant(_draggedFurniture!, _originalWallId.endsWith('_n'));
+        }
+        _draggedFurniture!.updateGridPosition(
+          _originalGridPos!.x,
+          _originalGridPos!.y,
+          parentId: _originalParentId,
+          parentSurfaceHeight: _originalSurfaceHeight,
+        );
+
+        for (final child in _attachedSurfaceItems) {
+          child.dragVisualOffset = Vector2.zero();
+          child.isBeingDragged = false;
+          child.isDirectlyDragged = false;
+        }
+        _recalculateSurfacePriorities();
       }
 
       _draggedFurniture!.dragVisualOffset = Vector2.zero();
       _draggedFurniture!.isBeingDragged = false;
+      _draggedFurniture!.isDirectlyDragged = false;
       _draggedFurniture = null;
+      _attachedSurfaceItems.clear();
       _originalGridPos = null;
+      _originalParentId = null;
+      _originalSurfaceHeight = 0.0;
+      _originalWallId = '';
       _currentHoverGrid = null;
     }
   }
 
   void _cancelDrag() {
     if (_draggedFurniture != null && _originalGridPos != null) {
-      _draggedFurniture!.updateGridPosition(_originalGridPos!.x, _originalGridPos!.y);
+      if (_draggedFurniture!.isWallItem && _draggedFurniture!.typeName != _originalWallId) {
+        _switchWallVariant(_draggedFurniture!, _originalWallId.endsWith('_n'));
+      }
+      _draggedFurniture!.updateGridPosition(
+        _originalGridPos!.x,
+        _originalGridPos!.y,
+        parentId: _originalParentId,
+        parentSurfaceHeight: _originalSurfaceHeight,
+      );
       _draggedFurniture!.dragVisualOffset = Vector2.zero();
       _draggedFurniture!.isBeingDragged = false;
+      _draggedFurniture!.isDirectlyDragged = false;
+
+      for (final child in _attachedSurfaceItems) {
+        child.dragVisualOffset = Vector2.zero();
+        child.isBeingDragged = false;
+        child.isDirectlyDragged = false;
+      }
+      _recalculateSurfacePriorities();
+
       _draggedFurniture = null;
+      _attachedSurfaceItems.clear();
       _originalGridPos = null;
+      _originalParentId = null;
+      _originalSurfaceHeight = 0.0;
+      _originalWallId = '';
       _currentHoverGrid = null;
     }
   }
@@ -635,16 +1034,38 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       allFurniture.sort((a, b) => b.priority.compareTo(a.priority));
 
       IsometricFurnitureComponent? hit;
+
+      // Pass 1: Surface items strictly prioritized
       for (final f in allFurniture) {
-        if (f.type == FurnitureType.portal) continue;
-        if (gridPos.x >= f.gridX &&
-            gridPos.x < f.gridX + f.gridWidth &&
-            gridPos.y >= f.gridY &&
-            gridPos.y < f.gridY + f.gridHeight) {
+        if (f.isPortal || !f.isSurfaceItem) continue;
+        if (f.hitTestWorld(worldPos)) {
           hit = f;
           break;
         }
       }
+
+      // Pass 2: Wall items
+      if (hit == null) {
+        for (final f in allFurniture) {
+          if (f.isPortal || !f.isWallItem) continue;
+          if (f.hitTestWorld(worldPos)) {
+            hit = f;
+            break;
+          }
+        }
+      }
+
+      // Pass 3: Floor items
+      if (hit == null) {
+        for (final f in allFurniture) {
+          if (f.isPortal || f.isSurfaceItem || f.isWallItem) continue;
+          if (f.hitTestWorld(worldPos)) {
+            hit = f;
+            break;
+          }
+        }
+      }
+
       selectFurniture(hit);
       return;
     }
@@ -674,7 +1095,7 @@ class _DragHighlightLayer extends Component {
   final CozyRoomGame game;
 
   _DragHighlightLayer({required this.game}) {
-    priority = 50;
+    priority = 10000;
   }
 
   @override
@@ -684,90 +1105,242 @@ class _DragHighlightLayer extends Component {
     if (game.isDecorateMode && game._draggedFurniture != null) {
       final item = game._draggedFurniture!;
 
-      // 1. Render Previous / Original Position (Warm Golden Amber)
+      // 1. Render Origin Marker (Showing where the item originated from)
       if (game._originalGridPos != null) {
         final orig = game._originalGridPos!;
-        final origStrokePaint = Paint()
-          ..color = const Color(0xFFFFB300)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
+        final origScreen = IsometricCoords.gridToScreen(orig.x.toDouble(), orig.y.toDouble());
 
-        final origFillPaint = Paint()..color = const Color(0x35FFB300);
+        if (item.isSurfaceItem) {
+          final origH = game._originalSurfaceHeight > 0 ? game._originalSurfaceHeight : 14.0;
+          double pDx = 0.0;
+          double pDy = 0.0;
+          if (game._originalParentId != null) {
+            final origParent = game.world.children.whereType<IsometricFurnitureComponent>().where((f) => f.id == game._originalParentId).firstOrNull;
+            if (origParent != null) {
+              final pMeta = FurnitureCatalogService.getItem(origParent.typeName) ?? FurnitureCatalogService.getItem(origParent.id);
+              final pRot = pMeta?.rotations[origParent.rotation];
+              if (pRot != null && pRot.surfaceOffset.length >= 2) {
+                pDx = pRot.surfaceOffset[0].toDouble();
+                pDy = pRot.surfaceOffset[1].toDouble();
+              }
+            }
+          }
 
-        for (int x = 0; x < item.gridWidth; x++) {
-          for (int y = 0; y < item.gridHeight; y++) {
-            final gx = orig.x + x;
-            final gy = orig.y + y;
-            final pos = IsometricCoords.gridToScreen(gx.toDouble(), gy.toDouble());
+          // Item micro-adjustments
+          double itemDx = 0.0;
+          double itemDy = 0.0;
+          final itemMeta = FurnitureCatalogService.getItem(item.typeName) ?? FurnitureCatalogService.getItem(item.id);
+          final itemRot = itemMeta?.rotations[item.rotation];
+          final offList = itemRot?.spriteOffset ?? itemMeta?.spriteOffset ?? const [-32, -48];
+          if (offList.length >= 2) {
+            itemDx = (offList[0] + 32.0);
+            itemDy = (offList[1] + 48.0);
+          }
+          if (itemRot != null && itemRot.surfaceHeight != 0) {
+            itemDy -= itemRot.surfaceHeight.toDouble();
+          } else if (itemMeta != null && itemMeta.surfaceHeight != 0) {
+            itemDy -= itemMeta.surfaceHeight.toDouble();
+          }
 
-            final path = Path()
-              ..moveTo(pos.x, pos.y - (IsometricCoords.tileHeight / 2))
-              ..lineTo(pos.x + (IsometricCoords.tileWidth / 2), pos.y)
-              ..lineTo(pos.x, pos.y + (IsometricCoords.tileHeight / 2))
-              ..lineTo(pos.x - (IsometricCoords.tileWidth / 2), pos.y)
-              ..close();
+          final originRect = Rect.fromCenter(
+            center: Offset(origScreen.x + pDx + itemDx, origScreen.y - origH + pDy + itemDy),
+            width: 22,
+            height: 12,
+          );
+          final origFill = Paint()..color = const Color(0x25FFD54F);
+          final origStroke = Paint()
+            ..color = const Color(0x80FFD54F)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5;
+          canvas.drawOval(originRect, origFill);
+          canvas.drawOval(originRect, origStroke);
+        } else if (item.isWallItem) {
+          final wallYOffset = (item.wallHeightLevel == 'high') ? -48.0 : -32.0;
+          // The item's footprint may already have flipped to the wall it is being dragged onto,
+          // so the origin marker's orientation comes from the variant captured at drag start.
+          // orig.y == 0 cannot be used: the corner tile (0,0) belongs to both walls.
+          final isOrigNorth = !game._originalWallId.endsWith('_w');
+          final cx = origScreen.x + (isOrigNorth ? 16.0 : -16.0);
+          final cy = origScreen.y + wallYOffset;
+          const w = 30.0;
+          const h = 28.0;
+          final slope = isOrigNorth ? 0.5 : -0.5;
 
-            canvas.drawPath(path, origFillPaint);
-            canvas.drawPath(path, origStrokePaint);
+          final wallPath = Path()
+            ..moveTo(cx - w / 2.0, cy - h / 2.0 - (w / 2.0) * slope)
+            ..lineTo(cx + w / 2.0, cy - h / 2.0 + (w / 2.0) * slope)
+            ..lineTo(cx + w / 2.0, cy + h / 2.0 + (w / 2.0) * slope)
+            ..lineTo(cx - w / 2.0, cy + h / 2.0 - (w / 2.0) * slope)
+            ..close();
+
+          final origStroke = Paint()
+            ..color = const Color(0x80A78BFA)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5;
+          canvas.drawPath(wallPath, origStroke);
+        } else {
+          for (int x = 0; x < item.gridWidth; x++) {
+            for (int y = 0; y < item.gridHeight; y++) {
+              final pos = IsometricCoords.gridToScreen((orig.x + x).toDouble(), (orig.y + y).toDouble());
+              final path = Path()
+                ..moveTo(pos.x, pos.y - (IsometricCoords.tileHeight / 2))
+                ..lineTo(pos.x + (IsometricCoords.tileWidth / 2), pos.y)
+                ..lineTo(pos.x, pos.y + (IsometricCoords.tileHeight / 2))
+                ..lineTo(pos.x - (IsometricCoords.tileWidth / 2), pos.y)
+                ..close();
+              final origStroke = Paint()
+                ..color = const Color(0x8000E5FF)
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 1.5;
+              canvas.drawPath(path, origStroke);
+            }
           }
         }
       }
 
-      // 2. Render Target / Hover Position (Neon Cyan if valid, Crimson Red if invalid)
+      // 2. Render Target / Destination Magnet Preview Marker
       if (game._currentHoverGrid != null) {
         final target = game._currentHoverGrid!;
         final isValid = game._isValidDropLocation;
 
-        final highlightColor = isValid ? const Color(0xFF00E5FF) : const Color(0xFFFF1744);
-        final fillColor = isValid ? const Color(0x4000E5FF) : const Color(0x40FF1744);
+        final highlightColor = isValid
+            ? (item.isSurfaceItem ? const Color(0xFFFFD54F) : (item.isWallItem ? const Color(0xFFA78BFA) : const Color(0xFF00E5FF)))
+            : const Color(0xFFFF1744);
+        final fillColor = isValid
+            ? (item.isSurfaceItem ? const Color(0x35FFD54F) : (item.isWallItem ? const Color(0x40A78BFA) : const Color(0x4000E5FF)))
+            : const Color(0x35FF1744);
 
         final strokePaint = Paint()
           ..color = highlightColor
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.5
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+          ..strokeWidth = 2.0
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8);
 
         final fillPaint = Paint()..color = fillColor;
 
-        for (int x = 0; x < item.gridWidth; x++) {
-          for (int y = 0; y < item.gridHeight; y++) {
-            final gx = target.x + x;
-            final gy = target.y + y;
-            final pos = IsometricCoords.gridToScreen(gx.toDouble(), gy.toDouble());
+        if (item.isWallItem && isValid) {
+          final isNorth = item.isWallNorth;
+          final pos = IsometricCoords.gridToScreen(target.x.toDouble(), target.y.toDouble());
+          final wallYOffset = (item.wallHeightLevel == 'high') ? -48.0 : -32.0;
+          final cx = pos.x + (isNorth ? 16.0 : -16.0);
+          final cy = pos.y + wallYOffset;
+          const w = 34.0;
+          const h = 32.0;
+          final slope = isNorth ? 0.5 : -0.5;
 
+          final wallPath = Path()
+            ..moveTo(cx - w / 2.0, cy - h / 2.0 - (w / 2.0) * slope)
+            ..lineTo(cx + w / 2.0, cy - h / 2.0 + (w / 2.0) * slope)
+            ..lineTo(cx + w / 2.0, cy + h / 2.0 + (w / 2.0) * slope)
+            ..lineTo(cx - w / 2.0, cy + h / 2.0 - (w / 2.0) * slope)
+            ..close();
+
+          canvas.drawPath(wallPath, fillPaint);
+          canvas.drawPath(wallPath, strokePaint);
+
+          // Subtle base outline on corresponding floor tile
+          final floorPath = Path()
+            ..moveTo(pos.x, pos.y - (IsometricCoords.tileHeight / 2))
+            ..lineTo(pos.x + (IsometricCoords.tileWidth / 2), pos.y)
+            ..lineTo(pos.x, pos.y + (IsometricCoords.tileHeight / 2))
+            ..lineTo(pos.x - (IsometricCoords.tileWidth / 2), pos.y)
+            ..close();
+          final floorStroke = Paint()
+            ..color = const Color(0x60A78BFA)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2;
+          canvas.drawPath(floorPath, floorStroke);
+        } else if (item.isSurfaceItem) {
+          final pos = IsometricCoords.gridToScreen(target.x.toDouble(), target.y.toDouble());
+
+          if (isValid) {
+            // Magnetic landing pad firmly resting on the tabletop surface
+            final targetParent = game._findSurfaceParentAt(target.x, target.y, exclude: item);
+            double pDx = 0.0;
+            double pDy = 0.0;
+            double targetSurfaceH = item.parentSurfaceHeight > 0 ? item.parentSurfaceHeight : 18.0;
+
+            if (targetParent != null) {
+              final pMeta = FurnitureCatalogService.getItem(targetParent.typeName) ?? FurnitureCatalogService.getItem(targetParent.id);
+              final pRot = pMeta?.rotations[targetParent.rotation];
+              if (pRot != null) {
+                if (pRot.surfaceHeight > 0) targetSurfaceH = pRot.surfaceHeight.toDouble();
+                if (pRot.surfaceOffset.length >= 2) {
+                  pDx = pRot.surfaceOffset[0].toDouble();
+                  pDy = pRot.surfaceOffset[1].toDouble();
+                }
+              } else if (pMeta != null) {
+                if (pMeta.effectiveSurfaceHeight > 0) targetSurfaceH = pMeta.effectiveSurfaceHeight.toDouble();
+                if (pMeta.surfaceOffset.length >= 2) {
+                  pDx = pMeta.surfaceOffset[0].toDouble();
+                  pDy = pMeta.surfaceOffset[1].toDouble();
+                }
+              }
+            }
+
+            // Item micro-adjustments
+            double itemDx = 0.0;
+            double itemDy = 0.0;
+            final itemMeta = FurnitureCatalogService.getItem(item.typeName) ?? FurnitureCatalogService.getItem(item.id);
+            final itemRot = itemMeta?.rotations[item.rotation];
+            final offList = itemRot?.spriteOffset ?? itemMeta?.spriteOffset ?? const [-32, -48];
+            if (offList.length >= 2) {
+              itemDx = (offList[0] + 32.0);
+              itemDy = (offList[1] + 48.0);
+            }
+            if (itemRot != null && itemRot.surfaceHeight != 0) {
+              itemDy -= itemRot.surfaceHeight.toDouble();
+            } else if (itemMeta != null && itemMeta.surfaceHeight != 0) {
+              itemDy -= itemMeta.surfaceHeight.toDouble();
+            }
+
+            final landingCenter = Offset(pos.x + pDx + itemDx, pos.y - targetSurfaceH + pDy + itemDy);
+            final targetOval = Rect.fromCenter(
+              center: landingCenter,
+              width: 22,
+              height: 12,
+            );
+            canvas.drawOval(targetOval, fillPaint);
+            canvas.drawOval(targetOval, strokePaint);
+          } else {
+            // Invalid drop (bare ground): draw red ground tile warning
             final path = Path()
               ..moveTo(pos.x, pos.y - (IsometricCoords.tileHeight / 2))
               ..lineTo(pos.x + (IsometricCoords.tileWidth / 2), pos.y)
               ..lineTo(pos.x, pos.y + (IsometricCoords.tileHeight / 2))
               ..lineTo(pos.x - (IsometricCoords.tileWidth / 2), pos.y)
               ..close();
-
             canvas.drawPath(path, fillPaint);
             canvas.drawPath(path, strokePaint);
           }
-        }
+        } else {
+          for (int x = 0; x < item.gridWidth; x++) {
+            for (int y = 0; y < item.gridHeight; y++) {
+              final gx = target.x + x;
+              final gy = target.y + y;
+              final pos = IsometricCoords.gridToScreen(gx.toDouble(), gy.toDouble());
 
-        final basePos = IsometricCoords.gridToScreen(
-          target.x + (item.gridWidth - 1) / 2.0,
-          target.y + (item.gridHeight - 1) / 2.0,
-        );
-        final shadowWidth = (item.gridWidth + item.gridHeight) * 32.0;
-        final shadowHeight = (item.gridWidth + item.gridHeight) * 16.0;
-        canvas.drawOval(
-          Rect.fromCenter(center: Offset(basePos.x, basePos.y), width: shadowWidth * 0.8, height: shadowHeight * 0.8),
-          Paint()..color = Colors.black.withOpacity(0.35)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-        );
+              final path = Path()
+                ..moveTo(pos.x, pos.y - (IsometricCoords.tileHeight / 2))
+                ..lineTo(pos.x + (IsometricCoords.tileWidth / 2), pos.y)
+                ..lineTo(pos.x, pos.y + (IsometricCoords.tileHeight / 2))
+                ..lineTo(pos.x - (IsometricCoords.tileWidth / 2), pos.y)
+                ..close();
+
+              canvas.drawPath(path, fillPaint);
+              canvas.drawPath(path, strokePaint);
+            }
+          }
+        }
       }
     }
   }
 }
 
-/// Renders the isometric floor tiles and wallpaper walls in world space using continuous projection
 class _IsometricRoomBackgroundComponent extends Component {
   final int gridSize;
-  final CozyRoomGame game;
   RoomConfig roomConfig;
+  final CozyRoomGame game;
 
   final Map<String, Sprite> _floorSprites = {};
   final Map<String, Sprite> _wallpaperSprites = {};
@@ -789,11 +1362,10 @@ class _IsometricRoomBackgroundComponent extends Component {
       'tatami_mat',
     ];
     for (final key in floorKeys) {
-      final filename = (key == 'terracotta_tiles') ? 'floor_terracotta.png' : ((key == 'tatami_mat') ? 'floor_tatami.png' : 'floor_$key.png');
       try {
-        _floorSprites[key] = await game.loadSprite('floors/$filename');
+        _floorSprites[key] = await game.loadSprite('floors/floor_$key.png');
       } catch (e) {
-        print('Error loading floor sprite floors/$filename: $e');
+        print('Error loading floor sprite floors/floor_$key.png: $e');
       }
     }
 
