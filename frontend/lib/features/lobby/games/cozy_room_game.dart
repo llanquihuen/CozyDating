@@ -926,9 +926,22 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   }
 
   void _updateWallDragHoverPosition(Vector2 screenPos) {
-    if (_draggedInteriorWall == null) return;
+    if (_draggedInteriorWall == null || _dragStartWorldPos == null || _originalWallGridPos == null) return;
     final currentWorldPos = camera.viewfinder.transform.globalToLocal(screenPos);
-    final rawGrid = IsometricCoords.screenToGrid(currentWorldPos.x, currentWorldPos.y);
+
+    // Move the wall by how far the finger has actually travelled since touch-down, instead
+    // of snapping it to whatever tile sits directly under the finger. A tall wall panel is
+    // grabbed anywhere along its height (e.g. near the top), and re-projecting that exact
+    // point onto the floor plane lands on a different tile than the wall's own — which used
+    // to make it jump the instant you touched it, before the finger moved at all.
+    final worldDelta = currentWorldPos - _dragStartWorldPos!;
+    final originalScreenPos = IsometricCoords.gridToScreen(
+      _originalWallGridPos!.x.toDouble(),
+      _originalWallGridPos!.y.toDouble(),
+    );
+    final adjustedWorldPos = originalScreenPos + worldDelta;
+
+    final rawGrid = IsometricCoords.screenToGrid(adjustedWorldPos.x, adjustedWorldPos.y);
     final clX = rawGrid.x.clamp(0, gridSize - 1);
     final clY = rawGrid.y.clamp(0, gridSize - 1);
     final targetGrid = Point(clX, clY);
