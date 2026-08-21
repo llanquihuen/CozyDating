@@ -9,6 +9,7 @@ class RoomDecoratorSheet extends StatefulWidget {
   final ValueChanged<RoomConfig> onConfigChanged;
   final ValueChanged<RoomConfig> onSave;
   final Function(FurnitureCatalogItem catalogItem)? onAddFurniture;
+  final Function(InteriorWallStyleOption styleOption)? onAddInteriorWall;
 
   const RoomDecoratorSheet({
     super.key,
@@ -17,6 +18,7 @@ class RoomDecoratorSheet extends StatefulWidget {
     required this.onConfigChanged,
     required this.onSave,
     this.onAddFurniture,
+    this.onAddInteriorWall,
   });
 
   static Future<void> show(
@@ -26,6 +28,7 @@ class RoomDecoratorSheet extends StatefulWidget {
     required ValueChanged<RoomConfig> onConfigChanged,
     required ValueChanged<RoomConfig> onSave,
     Function(FurnitureCatalogItem catalogItem)? onAddFurniture,
+    Function(InteriorWallStyleOption styleOption)? onAddInteriorWall,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -37,6 +40,7 @@ class RoomDecoratorSheet extends StatefulWidget {
         onConfigChanged: onConfigChanged,
         onSave: onSave,
         onAddFurniture: onAddFurniture,
+        onAddInteriorWall: onAddInteriorWall,
       ),
     );
   }
@@ -49,6 +53,14 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
   late RoomConfig _currentConfig;
   late String _selectedCategory;
 
+  // Drag handle also resizes the sheet now: drag up for more screen, drag down to
+  // shrink it back or — past the close threshold — dismiss the sheet entirely.
+  static const double _defaultHeightFraction = 0.46;
+  static const double _minHeightFraction = 0.30;
+  static const double _maxHeightFraction = 0.88;
+  static const double _closeHeightFraction = 0.26;
+  double _heightFraction = _defaultHeightFraction;
+
   final List<Map<String, String>> _categories = const [
     {'id': 'living', 'name': '🛋️ Salón y Mesas'},
     {'id': 'bedroom', 'name': '🛏️ Dormitorio'},
@@ -57,6 +69,7 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
     {'id': 'guide', 'name': '📦 Cubos Guías'},
     {'id': 'surface', 'name': '🕯️ Sobremesa'},
     {'id': 'walls', 'name': '🖼️ Paredes'},
+    {'id': 'dividers', 'name': '🧱 Tabiques y Muros'},
   ];
 
   @override
@@ -70,9 +83,10 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final bottomPadding = mediaQuery.padding.bottom;
-    final isWide = mediaQuery.size.width > 550;
-    // Exactly <= 50% screen height as requested
-    final sheetHeight = (mediaQuery.size.height * 0.46).clamp(270.0, 390.0);
+    final screenHeight = mediaQuery.size.height;
+    // Starts at ~46% of the screen; the drag handle can grow it up to _maxHeightFraction
+    // or shrink/close it — see _handleDragUpdate / _handleDragEnd below.
+    final sheetHeight = (screenHeight * _heightFraction).clamp(220.0, screenHeight * _maxHeightFraction);
 
     final allItems = FurnitureCatalogService.items.values.toList();
     final filteredItems = allItems.where((item) {
@@ -112,14 +126,36 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
       ),
       child: Column(
         children: [
-          // Drag Handle
-          Container(
-            width: 36,
-            height: 3.5,
-            margin: const EdgeInsets.only(top: 8, bottom: 6),
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(2),
+          // Drag Handle — drag up to grow the sheet and see more of the catalog, drag
+          // down to shrink it back, or drag it down further to close (same as before).
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragUpdate: (details) {
+              setState(() {
+                _heightFraction = (_heightFraction - details.delta.dy / screenHeight).clamp(0.12, _maxHeightFraction);
+              });
+            },
+            onVerticalDragEnd: (details) {
+              if (_heightFraction < _closeHeightFraction) {
+                Navigator.of(context).maybePop();
+                return;
+              }
+              setState(() {
+                _heightFraction = _heightFraction.clamp(_minHeightFraction, _maxHeightFraction);
+              });
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              alignment: Alignment.center,
+              child: Container(
+                width: 36,
+                height: 3.5,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
           ),
 
@@ -211,25 +247,39 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
 
           const SizedBox(height: 4),
 
-          // Slim 3-column / 4-column GridView showing at least 3 rows
+          // Slim 4-column GridView (mobile and tablet alike) showing at least 3 rows
           Expanded(
-            child: filteredItems.isEmpty
-                ? const Center(
-                    child: Text('No hay muebles en esta categoría.', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                  )
-                : GridView.builder(
+            child: _selectedCategory == 'dividers'
+                ? GridView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: isWide ? 4 : 3,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
                       crossAxisSpacing: 6,
                       mainAxisSpacing: 6,
                       childAspectRatio: 0.80,
                     ),
-                    itemCount: filteredItems.length,
+                    itemCount: InteriorWallStyles.all.length,
                     itemBuilder: (context, index) {
-                      return _buildFurnitureItemCard(filteredItems[index]);
+                      return _buildInteriorWallCard(InteriorWallStyles.all[index]);
                     },
-                  ),
+                  )
+                : filteredItems.isEmpty
+                    ? const Center(
+                        child: Text('No hay muebles en esta categoría.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 6,
+                          mainAxisSpacing: 6,
+                          childAspectRatio: 0.80,
+                        ),
+                        itemCount: filteredItems.length,
+                        itemBuilder: (context, index) {
+                          return _buildFurnitureItemCard(filteredItems[index]);
+                        },
+                      ),
           ),
           SizedBox(height: bottomPadding + 4),
         ],
@@ -365,6 +415,94 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
             // Extra info
             Text(
               item.isSurfaceSupporting ? 'Superficie (+${item.effectiveSurfaceHeight}px)' : (item.isSurfaceItem ? 'Sobre muebles' : 'Decoración'),
+              style: const TextStyle(
+                fontSize: 7.5,
+                color: Colors.white54,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInteriorWallCard(InteriorWallStyleOption option) {
+    const tagColor = Color(0xFFA78BFA);
+    return GestureDetector(
+      onTap: () {
+        widget.onAddInteriorWall?.call(option);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('¡${option.name} agregado! Arrástralo a cualquier borde entre baldosas.'),
+            backgroundColor: const Color(0xFF282531),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: const Color(0xFF282531),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: tagColor.withOpacity(0.4), width: 1.0),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Badge & Add Icon
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: tagColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    option.isDoorway ? '🚪 Paso Libre' : '🧱 Arista',
+                    style: const TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: tagColor),
+                  ),
+                ),
+                const Icon(Icons.add_circle, color: tagColor, size: 13),
+              ],
+            ),
+            const SizedBox(height: 2),
+            // Centered Emoji Preview
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: option.color != null ? option.color!.withOpacity(0.25) : const Color(0xFF1E1C27),
+                  borderRadius: BorderRadius.circular(6),
+                  border: option.color != null ? Border.all(color: option.color!.withOpacity(0.6), width: 1.2) : null,
+                ),
+                padding: const EdgeInsets.all(2),
+                child: Text(
+                  option.emoji,
+                  style: const TextStyle(fontSize: 30),
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            // Item Name
+            Text(
+              option.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 9.5,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            // Extra info
+            Text(
+              option.description,
               style: const TextStyle(
                 fontSize: 7.5,
                 color: Colors.white54,

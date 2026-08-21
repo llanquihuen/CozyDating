@@ -1,14 +1,15 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flame/game.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/room_config.dart';
 import '../../../core/services/avatar_storage_service.dart';
-import '../../../core/services/furniture_catalog_service.dart';
 import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
 import '../components/isometric_furniture_component.dart';
+import '../components/isometric_interior_wall_component.dart';
 import '../games/cozy_room_game.dart';
 import 'room_decorator_sheet.dart';
 
@@ -42,6 +43,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
 
   bool _isDecorating = false;
   IsometricFurnitureComponent? _selectedFurniture;
+  IsometricInteriorWallComponent? _selectedInteriorWall;
   final Map<int, Offset> _pointerPositions = {};
   double? _initialPinchDistance;
   double? _initialPinchZoom;
@@ -64,6 +66,13 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
       onFurnitureSelected: (comp) {
         setState(() {
           _selectedFurniture = comp;
+          if (comp != null) _selectedInteriorWall = null;
+        });
+      },
+      onInteriorWallSelected: (wall) {
+        setState(() {
+          _selectedInteriorWall = wall;
+          if (wall != null) _selectedFurniture = null;
         });
       },
     );
@@ -104,6 +113,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
       _isDecorating = true;
       _roomGame.setDecorateMode(true);
       _selectedFurniture = null;
+      _selectedInteriorWall = null;
     });
   }
 
@@ -115,6 +125,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
       _isDecorating = false;
       _roomGame.setDecorateMode(false);
       _selectedFurniture = null;
+      _selectedInteriorWall = null;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -132,6 +143,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
       _isDecorating = false;
       _roomGame.setDecorateMode(false);
       _selectedFurniture = null;
+      _selectedInteriorWall = null;
     });
   }
 
@@ -301,14 +313,21 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
                 ),
               ),
 
-              // 3. Floating Selected Furniture Action Toolbar (Only in Decorate Mode)
+              // 3. Floating Selected Furniture Action Toolbar — hovers right above the
+              // selected object in the isometric world (Only in Decorate Mode)
               if (_isDecorating && _selectedFurniture != null && _selectedFurniture!.type != FurnitureType.portal)
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 70,
-                  left: 20,
+                _FollowingOverlay(
+                  anchor: () => _roomGame.getSelectedFurnitureAnchor(),
                   child: _buildSelectedFurnitureToolbar(),
                 ),
 
+              // 4. Floating Selected Interior Wall Action Toolbar — hovers right above
+              // the selected wall (Only in Decorate Mode)
+              if (_isDecorating && _selectedInteriorWall != null)
+                _FollowingOverlay(
+                  anchor: () => _roomGame.getSelectedInteriorWallAnchor(),
+                  child: _buildSelectedInteriorWallToolbar(),
+                ),
 
               // 5. Bottom Docked Overlay (Normal Mode or Decorator Toolbar)
               Positioned(
@@ -411,9 +430,14 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
 
   Widget _buildDecorateTopBar() {
     final currentRes = _roomGame.roomConfig.resolution;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
+    // Scrolls horizontally instead of overflowing on narrow phones — the three groups
+    // below (badge, resolution switcher, save/cancel) don't always fit a mobile width.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const ClampingScrollPhysics(),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
         // Active Decorate Mode Indicator Badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -439,6 +463,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
             ],
           ),
         ),
+        const SizedBox(width: 10),
 
         // Resolution Switcher (64x128 HD / 32x64 Retro Pixel)
         Container(
@@ -496,6 +521,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
             ],
           ),
         ),
+        const SizedBox(width: 10),
 
         // Save & Exit / Cancel
         Row(
@@ -525,35 +551,46 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
             ),
           ],
         ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  /// Small circular icon-only action button used by the floating selection toolbars —
+  /// compact enough to hover right above the selected object without covering it.
+  Widget _floatingIconButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: color.withOpacity(0.2),
+        shape: CircleBorder(side: BorderSide(color: color, width: 1.3)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.all(7),
+            child: Icon(icon, color: color, size: 16),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildSelectedFurnitureToolbar() {
     if (_selectedFurniture == null) return const SizedBox.shrink();
     final f = _selectedFurniture!;
-    final meta = FurnitureCatalogService.getItem(f.id);
-    final itemName = meta?.name ?? f.id;
-
-    String tag = 'Suelo (${f.gridWidth}x${f.gridHeight})';
-    Color tagColor = const Color(0xFF00E5FF);
-    if (f.isSurfaceItem) {
-      tag = '✨ Sobremesa';
-      tagColor = const Color(0xFFFFD54F);
-    } else if (f.isWallNorth) {
-      tag = '🧱 Pared N';
-      tagColor = const Color(0xFFA78BFA);
-    } else if (f.isWallWest) {
-      tag = '🧱 Pared O';
-      tagColor = const Color(0xFFA78BFA);
-    }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1C27).withOpacity(0.95),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tagColor, width: 1.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24, width: 1.2),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10),
         ],
@@ -561,79 +598,108 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                itemName,
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
-              ),
-              Text(
-                tag,
-                style: TextStyle(fontSize: 10, color: tagColor, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
           if (f.isWallItem) ...[
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFA78BFA).withOpacity(0.2),
-                foregroundColor: const Color(0xFFA78BFA),
-                side: const BorderSide(color: Color(0xFFA78BFA), width: 1.2),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                visualDensity: VisualDensity.compact,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
+            _floatingIconButton(
+              icon: f.wallHeightLevel == 'high' ? Icons.vertical_align_top : Icons.vertical_align_center,
+              color: const Color(0xFFA78BFA),
+              tooltip: f.wallHeightLevel == 'high' ? 'Altura alta' : 'Altura media',
               onPressed: () {
                 _roomGame.toggleSelectedWallHeight();
                 setState(() {});
               },
-              icon: Icon(
-                f.wallHeightLevel == 'high' ? Icons.vertical_align_top : Icons.vertical_align_center,
-                size: 15,
-              ),
-              label: Text(
-                f.wallHeightLevel == 'high' ? 'Alta' : 'Media',
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-              ),
             ),
             const SizedBox(width: 6),
           ],
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00E5FF).withOpacity(0.2),
-              foregroundColor: const Color(0xFF00E5FF),
-              side: const BorderSide(color: Color(0xFF00E5FF), width: 1.2),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
+          _floatingIconButton(
+            icon: Icons.rotate_right_rounded,
+            color: const Color(0xFF00E5FF),
+            tooltip: 'Girar',
             onPressed: () {
               _roomGame.rotateSelectedFurniture();
               setState(() {});
             },
-            icon: const Icon(Icons.rotate_right_rounded, size: 15),
-            label: const Text('Girar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 6),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD32F2F),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
+          _floatingIconButton(
+            icon: Icons.delete_outline,
+            color: const Color(0xFFEF5350),
+            tooltip: 'Borrar',
             onPressed: () {
               _roomGame.deleteSelectedFurniture();
               setState(() {
                 _selectedFurniture = null;
               });
             },
-            icon: const Icon(Icons.delete_outline, size: 15),
-            label: const Text('Borrar', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedInteriorWallToolbar() {
+    if (_selectedInteriorWall == null) return const SizedBox.shrink();
+    final w = _selectedInteriorWall!;
+    final isNorth = (w.orientation == 'north');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1C27).withOpacity(0.95),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24, width: 1.2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _floatingIconButton(
+            icon: Icons.swap_horiz_rounded,
+            color: const Color(0xFF00E5FF),
+            tooltip: isNorth ? 'Arista Norte (tocar para girar)' : 'Arista Oeste (tocar para girar)',
+            onPressed: () {
+              _roomGame.rotateSelectedInteriorWall();
+              setState(() {});
+            },
+          ),
+          const SizedBox(width: 6),
+          _floatingIconButton(
+            icon: w.hasDoorway ? Icons.door_front_door_outlined : Icons.lock_outline,
+            color: w.hasDoorway ? const Color(0xFF10B981) : const Color(0xFF8B5CF6),
+            tooltip: w.hasDoorway ? 'Paso Libre' : 'Muro Sólido',
+            onPressed: () {
+              _roomGame.toggleSelectedInteriorWallDoorway();
+              setState(() {});
+            },
+          ),
+          const SizedBox(width: 6),
+          _floatingIconButton(
+            icon: Icons.add_circle_outline,
+            color: const Color(0xFFFFD54F),
+            tooltip: 'Agregar otro igual',
+            onPressed: () {
+              // Adds another wall with the same style as the one currently selected —
+              // placing several walls of a kind is common, so this saves a trip back to the catalog.
+              final styleOpt = InteriorWallStyles.all.firstWhere(
+                (s) => s.id == w.style,
+                orElse: () => InteriorWallStyles.all.first,
+              );
+              _roomGame.addInteriorWallFromStyle(styleOpt);
+              setState(() {});
+            },
+          ),
+          const SizedBox(width: 6),
+          _floatingIconButton(
+            icon: Icons.delete_outline,
+            color: const Color(0xFFEF5350),
+            tooltip: 'Borrar',
+            onPressed: () {
+              _roomGame.deleteSelectedInteriorWall();
+              setState(() {
+                _selectedInteriorWall = null;
+              });
+            },
           ),
         ],
       ),
@@ -749,6 +815,9 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
               },
               onAddFurniture: (item) {
                 _roomGame.addFurnitureFromCatalog(item);
+              },
+              onAddInteriorWall: (styleOption) {
+                _roomGame.addInteriorWallFromStyle(styleOption);
               },
             );
           },
@@ -995,6 +1064,62 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
             child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Floats [child] directly over a point supplied by [anchor] — recomputed every frame so
+/// it tracks the selected object as it's dragged or the camera zooms/pans. [anchor] returns
+/// a point in the GameWidget's own coordinate space (which lines up 1:1 with this Stack).
+/// The point marks where the *bottom-center* of [child] should sit, so the toolbar always
+/// hovers just above whatever it's attached to.
+class _FollowingOverlay extends StatefulWidget {
+  final Vector2? Function() anchor;
+  final Widget child;
+
+  const _FollowingOverlay({required this.anchor, required this.child});
+
+  @override
+  State<_FollowingOverlay> createState() => _FollowingOverlayState();
+}
+
+class _FollowingOverlayState extends State<_FollowingOverlay> with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker((_) {
+      if (mounted) setState(() {});
+    })
+      ..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final anchor = widget.anchor();
+    if (anchor == null) return const SizedBox.shrink();
+
+    final screenSize = MediaQuery.of(context).size;
+    final topPadding = MediaQuery.of(context).padding.top;
+    // Keep the toolbar on-screen: below the header gradient, above the bottom decorator
+    // dock, and away from the left/right edges regardless of where the object drifts to.
+    final clampedX = anchor.x.clamp(90.0, screenSize.width - 90.0);
+    final clampedY = anchor.y.clamp(topPadding + 110.0, screenSize.height - 210.0);
+
+    return Positioned(
+      left: clampedX,
+      top: clampedY - 10,
+      child: FractionalTranslation(
+        translation: const Offset(-0.5, -1.0),
+        child: widget.child,
       ),
     );
   }

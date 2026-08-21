@@ -105,7 +105,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           children: [
             Text('🚶 ', style: TextStyle(fontSize: 20)),
             Text(
-              'Avatar Studio 16-Bit',
+              'Armario',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,

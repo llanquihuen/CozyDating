@@ -129,12 +129,62 @@ class AvatarStorageService {
     ),
   };
 
-  // In-memory multi-user room wallpaper and floor configurations
+  // In-memory multi-user room wallpaper and floor configurations.
+  // Each dummy room ships with a fully enclosed 3x3 bedroom in the northeast corner
+  // (gridX 5-7, gridY 0-2) — the north side is free (it's the room's own perimeter
+  // wall), so it only needs a west wall (gx=5, gy=0..2, with a door at gy=1 to walk in)
+  // and a south wall (gy=3, gx=5..7) to close it off. The default `single_bed` furniture
+  // position (see room_config.dart) sits at gridX=7, gridY=0 — the far corner from the
+  // door. Styled to match that user's wallpaper/floor theme.
   static final Map<String, RoomConfig> _userRoomConfigs = {
-    'alice': const RoomConfig(wallpaper: 'rustic_wood', floor: 'oak_parquet'),
-    'bob': const RoomConfig(wallpaper: 'cozy_stripes', floor: 'dark_walnut'),
-    'charlie': const RoomConfig(wallpaper: 'brick_stone', floor: 'terracotta_tiles'),
-    'david': const RoomConfig(wallpaper: 'starry_night', floor: 'checker_marble'),
+    'alice': const RoomConfig(
+      wallpaper: 'solid_white_plaster',
+      floor: 'solid_blush_pink',
+      interiorWalls: [
+        InteriorWallConfig(id: 'alice_bedroom_w0', gridX: 5, gridY: 0, orientation: 'west', style: 'solid_white_plaster'),
+        InteriorWallConfig(id: 'alice_bedroom_w1', gridX: 5, gridY: 1, orientation: 'west', style: 'solid_white_plaster', hasDoorway: true),
+        InteriorWallConfig(id: 'alice_bedroom_w2', gridX: 5, gridY: 2, orientation: 'west', style: 'solid_white_plaster'),
+        InteriorWallConfig(id: 'alice_bedroom_s0', gridX: 5, gridY: 3, orientation: 'north', style: 'solid_white_plaster'),
+        InteriorWallConfig(id: 'alice_bedroom_s1', gridX: 6, gridY: 3, orientation: 'north', style: 'solid_white_plaster'),
+        InteriorWallConfig(id: 'alice_bedroom_s2', gridX: 7, gridY: 3, orientation: 'north', style: 'solid_white_plaster'),
+      ],
+    ),
+    'bob': const RoomConfig(
+      wallpaper: 'cozy_stripes',
+      floor: 'dark_walnut',
+      interiorWalls: [
+        InteriorWallConfig(id: 'bob_bedroom_w0', gridX: 5, gridY: 0, orientation: 'west', style: 'wood_slats'),
+        InteriorWallConfig(id: 'bob_bedroom_w1', gridX: 5, gridY: 1, orientation: 'west', style: 'wood_slats', hasDoorway: true),
+        InteriorWallConfig(id: 'bob_bedroom_w2', gridX: 5, gridY: 2, orientation: 'west', style: 'wood_slats'),
+        InteriorWallConfig(id: 'bob_bedroom_s0', gridX: 5, gridY: 3, orientation: 'north', style: 'wood_slats'),
+        InteriorWallConfig(id: 'bob_bedroom_s1', gridX: 6, gridY: 3, orientation: 'north', style: 'wood_slats'),
+        InteriorWallConfig(id: 'bob_bedroom_s2', gridX: 7, gridY: 3, orientation: 'north', style: 'wood_slats'),
+      ],
+    ),
+    'charlie': const RoomConfig(
+      wallpaper: 'brick_stone',
+      floor: 'terracotta_tiles',
+      interiorWalls: [
+        InteriorWallConfig(id: 'charlie_bedroom_w0', gridX: 5, gridY: 0, orientation: 'west', style: 'rustic_brick'),
+        InteriorWallConfig(id: 'charlie_bedroom_w1', gridX: 5, gridY: 1, orientation: 'west', style: 'rustic_brick', hasDoorway: true),
+        InteriorWallConfig(id: 'charlie_bedroom_w2', gridX: 5, gridY: 2, orientation: 'west', style: 'rustic_brick'),
+        InteriorWallConfig(id: 'charlie_bedroom_s0', gridX: 5, gridY: 3, orientation: 'north', style: 'rustic_brick'),
+        InteriorWallConfig(id: 'charlie_bedroom_s1', gridX: 6, gridY: 3, orientation: 'north', style: 'rustic_brick'),
+        InteriorWallConfig(id: 'charlie_bedroom_s2', gridX: 7, gridY: 3, orientation: 'north', style: 'rustic_brick'),
+      ],
+    ),
+    'david': const RoomConfig(
+      wallpaper: 'starry_night',
+      floor: 'checker_marble',
+      interiorWalls: [
+        InteriorWallConfig(id: 'david_bedroom_w0', gridX: 5, gridY: 0, orientation: 'west', style: 'solid_navy_blue'),
+        InteriorWallConfig(id: 'david_bedroom_w1', gridX: 5, gridY: 1, orientation: 'west', style: 'solid_navy_blue', hasDoorway: true),
+        InteriorWallConfig(id: 'david_bedroom_w2', gridX: 5, gridY: 2, orientation: 'west', style: 'solid_navy_blue'),
+        InteriorWallConfig(id: 'david_bedroom_s0', gridX: 5, gridY: 3, orientation: 'north', style: 'solid_navy_blue'),
+        InteriorWallConfig(id: 'david_bedroom_s1', gridX: 6, gridY: 3, orientation: 'north', style: 'solid_navy_blue'),
+        InteriorWallConfig(id: 'david_bedroom_s2', gridX: 7, gridY: 3, orientation: 'north', style: 'solid_navy_blue'),
+      ],
+    ),
   };
 
   static String get activeUserId => _activeUserId;

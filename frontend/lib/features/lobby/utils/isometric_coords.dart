@@ -53,6 +53,15 @@ class IsometricCoords {
     return (gx + gy) * 1000 + 10 + layer;
   }
 
+  /// Calculates depth priority for interior partition walls located on tile boundaries.
+  /// A North/West wall on tile (gx, gy) sits on the back edge of (gx, gy) separating it
+  /// from the tile behind (gx+gy-1). Its depth sits strictly between the tile behind
+  /// (base - 1000) and the tile in front (base), ensuring perfect occlusion for all tiles.
+  static int getInteriorWallZOrder(int gx, int gy, String orientation) {
+    final base = (gx + gy) * 1000;
+    return (orientation == 'north') ? (base - 400) : (base - 300);
+  }
+
   /// Calculates the exact isometric sprite anchor offset based on grid footprint (1x1, 1x2, 2x1, 2x2, surface, wall_n, wall_w)
   static Vector2 getFurnitureSpriteOffset({
     required int gridWidth,
