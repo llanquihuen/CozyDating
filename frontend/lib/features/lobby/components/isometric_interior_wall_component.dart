@@ -107,26 +107,52 @@ class IsometricInteriorWallComponent extends Component {
     final basePos = IsometricCoords.gridToScreen(gridX.toDouble(), gridY.toDouble()) + dragVisualOffset;
     final isNorth = (orientation == 'north');
 
-    // Bounding quad in world coordinates
-    double x1, y1, x2, y2;
+    // Same 4 corners used to paint the wall in render() — bottom-near, top-near,
+    // top-far, bottom-far — so the hit area matches the actual slanted parallelogram
+    // instead of the larger axis-aligned box that used to wrap loosely around it.
+    double bX1, bY1, bX2, bY2;
     if (isNorth) {
-      x1 = basePos.x;
-      y1 = basePos.y - halfTileH;
-      x2 = basePos.x + halfTileW;
-      y2 = basePos.y;
+      bX1 = basePos.x;
+      bY1 = basePos.y - halfTileH;
+      bX2 = basePos.x + halfTileW;
+      bY2 = basePos.y;
     } else {
-      x1 = basePos.x - halfTileW;
-      y1 = basePos.y;
-      x2 = basePos.x;
-      y2 = basePos.y - halfTileH;
+      bX1 = basePos.x - halfTileW;
+      bY1 = basePos.y;
+      bX2 = basePos.x;
+      bY2 = basePos.y - halfTileH;
     }
+    final tX1 = bX1, tY1 = bY1 - wallHeight;
+    final tX2 = bX2, tY2 = bY2 - wallHeight;
 
-    final minX = min(x1, x2) - 6.0;
-    final maxX = max(x1, x2) + 6.0;
-    final minY = min(y1, y2) - wallHeight - 6.0;
-    final maxY = max(y1, y2) + 6.0;
+    return _pointInQuad(
+      worldPos,
+      Vector2(bX1, bY1),
+      Vector2(tX1, tY1),
+      Vector2(tX2, tY2),
+      Vector2(bX2, bY2),
+    );
+  }
 
-    return (worldPos.x >= minX && worldPos.x <= maxX && worldPos.y >= minY && worldPos.y <= maxY);
+  /// Point-in-convex-quad test: true when [p] is on the same side of every edge of the
+  /// quad a→b→c→d→a (checked via the cross product's sign), which holds for any point
+  /// strictly inside a convex, non-self-intersecting polygon like this wall panel.
+  bool _pointInQuad(Vector2 p, Vector2 a, Vector2 b, Vector2 c, Vector2 d) {
+    final pts = [a, b, c, d];
+    double? sign;
+    for (int i = 0; i < 4; i++) {
+      final edge = pts[(i + 1) % 4] - pts[i];
+      final toPoint = p - pts[i];
+      final cross = edge.x * toPoint.y - edge.y * toPoint.x;
+      if (cross.abs() < 1e-6) continue;
+      final s = cross.sign;
+      if (sign == null) {
+        sign = s;
+      } else if (sign != s) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @override

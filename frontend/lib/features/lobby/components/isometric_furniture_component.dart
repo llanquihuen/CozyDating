@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/furniture_item.dart';
 import '../../../core/services/furniture_catalog_service.dart';
 import '../utils/isometric_coords.dart';
+import '../utils/sprite_alpha_cache.dart';
 
 enum FurnitureType { wardrobe, portal, bed, plant, table, carpet, custom }
 
@@ -278,52 +279,43 @@ class IsometricFurnitureComponent extends PositionComponent {
     );
   }
 
-  /// Checks if a world touch/click point directly hits this component (supports direct on-wall and on-surface hit-testing)
+  /// Checks if a world touch/click point directly hits this component's actual drawn
+  /// pixels — same precision the interior walls get from testing their real parallelogram
+  /// shape, just done here by sampling the sprite's own alpha channel instead of a polygon,
+  /// since furniture silhouettes (a chair, a lamp, a bookshelf) aren't a single clean shape.
   bool hitTestWorld(Vector2 worldPos) {
-    if (isSurfaceItem) {
-      // Precise, compact hitbox for surface items (tightly around the actual visual object, not surrounding space)
-      final off = spriteOffset;
-      final size = renderSize;
-      final cx = position.x + off.x + size.x / 2.0 + dragVisualOffset.x;
-      final cy = position.y + off.y + (size.y * 0.70) + dragVisualOffset.y;
-      // Tight 24x24 box centered on the drawn object itself
-      final hitW = min(size.x * 0.6, 24.0);
-      final hitH = min(size.y * 0.6, 24.0);
-      final surfaceBox = Rect.fromCenter(center: Offset(cx, cy), width: hitW, height: hitH);
-      return surfaceBox.contains(Offset(worldPos.x, worldPos.y));
-    }
-
     if (isWallItem) {
-      // Wall items must strictly be selected on the wall (above the floor baseline), NOT on their floor baldosa.
+      // Wall items must strictly be selected on the wall (above the floor baseline), NOT on
+      // their floor baldosa — unrelated to pixel precision, just where "on the wall" ends.
       final floorBaseY = isWallNorth
           ? position.y - (IsometricCoords.tileHeight / 2) + 0.5 * (worldPos.x - position.x)
           : position.y - (IsometricCoords.tileHeight / 2) - 0.5 * (worldPos.x - position.x);
       if (worldPos.y > floorBaseY) {
         return false; // Touch is on the floor baldosa below the wall
       }
-
-      // Hit-test within the visual bounds of the item on the wall
-      final off = spriteOffset;
-      final size = renderSize;
-      final cx = position.x + off.x + size.x / 2.0 + dragVisualOffset.x;
-      final cy = position.y + off.y + size.y / 2.0 + dragVisualOffset.y;
-      final hitW = max(size.x, 32.0) + 8.0;
-      final hitH = max(size.y, 32.0) + 8.0;
-      final wallBox = Rect.fromCenter(center: Offset(cx, cy), width: hitW, height: hitH);
-      return wallBox.contains(Offset(worldPos.x, worldPos.y));
     }
 
-    // Standard floor furniture: check grid diamond or visual bounding box
-    final gridPos = IsometricCoords.screenToGrid(worldPos.x, worldPos.y);
-    final occupiesGrid = gridPos.x >= gridX &&
-        gridPos.x < gridX + gridWidth &&
-        gridPos.y >= gridY &&
-        gridPos.y < gridY + gridHeight;
+    final off = spriteOffset;
+    final size = renderSize;
+    // Point within the sprite's own locally-drawn rect: (0,0) at its top-left corner,
+    // `size` at its bottom-right — exactly what render() passes as position:/size: to
+    // sprite.render(), so this is the exact inverse of that mapping.
+    final local = Vector2(
+      worldPos.x - position.x - dragVisualOffset.x - off.x,
+      worldPos.y - position.y - dragVisualOffset.y - off.y,
+    );
 
-    if (occupiesGrid) return true;
+    final s = sprite;
+    if (s != null) {
+      final opaque = SpriteAlphaCache.isOpaqueAt(s, local, size);
+      if (opaque != null) return opaque;
+    }
 
-    final box = worldVisualBoundingBox.inflate(4.0);
-    return box.contains(Offset(worldPos.x, worldPos.y));
+    // Fallback for the brief window before this sprite's pixel data finishes decoding (or
+    // if there's no sprite at all, e.g. a programmatically-drawn placeholder): a loosely
+    // inflated box around the drawn area, so nothing is untappable while warming up.
+    final fallbackBox = Rect.fromLTWH(0, 0, size.x, size.y).inflate(4.0);
+    return fallbackBox.contains(Offset(local.x, local.y));
   }
 
   @override

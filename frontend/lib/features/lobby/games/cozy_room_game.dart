@@ -1,3 +1,4 @@
+import 'dart:async' as async_lib;
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -13,6 +14,7 @@ import '../components/isometric_furniture_component.dart';
 import '../components/isometric_interior_wall_component.dart';
 import '../utils/isometric_coords.dart';
 import '../utils/isometric_pathfinder.dart';
+import '../utils/sprite_alpha_cache.dart';
 
 class CozyRoomGame extends FlameGame with DragCallbacks {
   AvatarConfig avatarConfig;
@@ -47,6 +49,18 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   IsometricInteriorWallComponent? _draggedInteriorWall;
   Point<int>? _originalWallGridPos;
   String? _originalWallOrientation;
+
+  // A wall must be held (touched without much movement) for this long before it's
+  // selected and armed for dragging — see onDragStart/onDragUpdate.
+  static const Duration _wallGrabHoldDuration = Duration(milliseconds: 300);
+  async_lib.Timer? _wallGrabTimer;
+  IsometricInteriorWallComponent? _pendingWallGrab;
+
+  // Same idea for furniture (floor, wall-mounted, and surface items alike), just a
+  // shorter hold since these are grabbed/repositioned more often.
+  static const Duration _furnitureGrabHoldDuration = Duration(milliseconds: 200);
+  async_lib.Timer? _furnitureGrabTimer;
+  IsometricFurnitureComponent? _pendingFurnitureGrab;
 
   // Camera Pan state
   bool _isPanningCamera = false;
@@ -323,6 +337,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         } catch (_) {}
       }
     }
+
+    // Kick off alpha-channel decoding for these sprites now, well before any tap needs it,
+    // so pixel-exact hit-testing (see IsometricFurnitureComponent.hitTestWorld) is ready by
+    // the time the player actually interacts with the placed furniture.
+    for (final sprite in map.values) {
+      SpriteAlphaCache.warm(sprite.image);
+    }
+
     return map;
   }
 
@@ -954,6 +976,43 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     _draggedInteriorWall!.dragVisualOffset = targetScreenPos - currentScreenPos;
   }
 
+  /// Arms [hit] for dragging: records its original placement (for cancel/restore) and
+  /// marks it — and any surface items sitting on it — as being dragged. Shared by the
+  /// "already selected, grab instantly" and "hold-timer just fired" paths in onDragStart.
+  void _armFurnitureDrag(IsometricFurnitureComponent hit, Vector2 worldPos) {
+    _draggedFurniture = hit;
+    _originalGridPos = Point(hit.gridX, hit.gridY);
+    _originalParentId = hit.parentId;
+    _originalSurfaceHeight = hit.parentSurfaceHeight;
+    _originalWallId = hit.typeName;
+    _currentHoverGrid = Point(hit.gridX, hit.gridY);
+    _dragStartWorldPos = worldPos;
+    _isValidDropLocation = true;
+
+    hit.isBeingDragged = true;
+    hit.isDirectlyDragged = true;
+    hit.priority = 9999;
+
+    // If dragging a surface-supporting furniture, find all attached surface children strictly on top of THIS table's tiles
+    _attachedSurfaceItems.clear();
+    if (!hit.isSurfaceItem && !hit.isWallItem) {
+      _attachedSurfaceItems = world.children
+          .whereType<IsometricFurnitureComponent>()
+          .where((c) =>
+              c.isSurfaceItem &&
+              c.gridX >= hit.gridX &&
+              c.gridX < hit.gridX + hit.gridWidth &&
+              c.gridY >= hit.gridY &&
+              c.gridY < hit.gridY + hit.gridHeight)
+          .toList();
+      for (final child in _attachedSurfaceItems) {
+        child.isBeingDragged = true;
+        child.isDirectlyDragged = false;
+        child.priority = 10001; // Render strictly on top of parent table during drag
+      }
+    }
+  }
+
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
@@ -969,16 +1028,42 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
       for (final w in allInteriorWalls) {
         if (w.hitTestWorld(worldPos)) {
-          selectInteriorWall(w);
-          _draggedInteriorWall = w;
-          _originalWallGridPos = Point(w.gridX, w.gridY);
-          _originalWallOrientation = w.orientation;
-          _currentHoverGrid = Point(w.gridX, w.gridY);
-          _dragStartWorldPos = worldPos;
-          _isValidDropLocation = true;
+          if (w == selectedInteriorWall) {
+            // Already selected — grab it immediately, no hold delay, so it tracks the
+            // finger from the very first movement instead of waiting on the timer below.
+            _dragStartWorldPos = worldPos;
+            _draggedInteriorWall = w;
+            _originalWallGridPos = Point(w.gridX, w.gridY);
+            _originalWallOrientation = w.orientation;
+            _currentHoverGrid = Point(w.gridX, w.gridY);
+            _isValidDropLocation = true;
+            w.isBeingDragged = true;
+            w.priority = 9999;
+            return;
+          }
 
-          w.isBeingDragged = true;
-          w.priority = 9999;
+          // Not selected yet — this could be a deliberate grab-and-hold, or just a finger
+          // passing over the wall on its way to pan the camera. Wait for a short hold before
+          // committing to a grab; if the finger moves first, hand off to camera panning
+          // instead (see onDragUpdate). A plain tap still selects it via handleScreenTap on
+          // pointer-up, independent of this timer.
+          _pendingWallGrab = w;
+          _dragStartWorldPos = worldPos;
+          _wallGrabTimer?.cancel();
+          _wallGrabTimer = async_lib.Timer(_wallGrabHoldDuration, () {
+            if (_pendingWallGrab != w || !w.isMounted) return;
+            _pendingWallGrab = null;
+
+            selectInteriorWall(w);
+            _draggedInteriorWall = w;
+            _originalWallGridPos = Point(w.gridX, w.gridY);
+            _originalWallOrientation = w.orientation;
+            _currentHoverGrid = Point(w.gridX, w.gridY);
+            _isValidDropLocation = true;
+
+            w.isBeingDragged = true;
+            w.priority = 9999;
+          });
           return;
         }
       }
@@ -1020,37 +1105,25 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       }
 
       if (hit != null) {
-        selectFurniture(hit);
-        _draggedFurniture = hit;
-        _originalGridPos = Point(hit.gridX, hit.gridY);
-        _originalParentId = hit.parentId;
-        _originalSurfaceHeight = hit.parentSurfaceHeight;
-        _originalWallId = hit.typeName;
-        _currentHoverGrid = Point(hit.gridX, hit.gridY);
-        _dragStartWorldPos = worldPos;
-        _isValidDropLocation = true;
-
-        hit.isBeingDragged = true;
-        hit.isDirectlyDragged = true;
-        hit.priority = 9999;
-
-        // If dragging a surface-supporting furniture, find all attached surface children strictly on top of THIS table's tiles
-        _attachedSurfaceItems.clear();
-        if (!hit.isSurfaceItem && !hit.isWallItem) {
-          _attachedSurfaceItems = world.children
-              .whereType<IsometricFurnitureComponent>()
-              .where((c) =>
-                  c.isSurfaceItem &&
-                  c.gridX >= hit!.gridX &&
-                  c.gridX < hit!.gridX + hit!.gridWidth &&
-                  c.gridY >= hit!.gridY &&
-                  c.gridY < hit!.gridY + hit!.gridHeight)
-              .toList();
-          for (final child in _attachedSurfaceItems) {
-            child.isBeingDragged = true;
-            child.isDirectlyDragged = false;
-            child.priority = 10001; // Render strictly on top of parent table during drag
-          }
+        if (hit == selectedFurniture) {
+          // Already selected — grab it immediately, no hold delay, so it tracks the
+          // finger from the very first movement.
+          _armFurnitureDrag(hit, worldPos);
+        } else {
+          // Not selected yet — wait for a short hold before committing to a grab; if the
+          // finger moves first, hand off to camera panning instead (see onDragUpdate). A
+          // plain tap still selects it via handleScreenTap on pointer-up, independent of
+          // this timer.
+          final targetHit = hit;
+          _pendingFurnitureGrab = targetHit;
+          _dragStartWorldPos = worldPos;
+          _furnitureGrabTimer?.cancel();
+          _furnitureGrabTimer = async_lib.Timer(_furnitureGrabHoldDuration, () {
+            if (_pendingFurnitureGrab != targetHit || !targetHit.isMounted) return;
+            _pendingFurnitureGrab = null;
+            selectFurniture(targetHit);
+            _armFurnitureDrag(targetHit, worldPos);
+          });
         }
       } else {
         _isPanningCamera = true;
@@ -1070,6 +1143,36 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       return;
     }
 
+    // A wall grab is still pending its hold timer — if the finger has actually moved by
+    // now, this wasn't a deliberate hold-still-to-grab. Treat it like it started on empty
+    // space instead and pan the camera with it.
+    if (_pendingWallGrab != null && _dragStartWorldPos != null) {
+      final worldPos = camera.viewfinder.transform.globalToLocal(event.localEndPosition);
+      if ((worldPos - _dragStartWorldPos!).length > 8.0) {
+        _wallGrabTimer?.cancel();
+        _wallGrabTimer = null;
+        _pendingWallGrab = null;
+        _dragStartWorldPos = null;
+        _isPanningCamera = true;
+        panCamera(event.localDelta);
+      }
+      return;
+    }
+
+    // Same idea for a furniture grab that's still pending its hold timer.
+    if (_pendingFurnitureGrab != null && _dragStartWorldPos != null) {
+      final worldPos = camera.viewfinder.transform.globalToLocal(event.localEndPosition);
+      if ((worldPos - _dragStartWorldPos!).length > 8.0) {
+        _furnitureGrabTimer?.cancel();
+        _furnitureGrabTimer = null;
+        _pendingFurnitureGrab = null;
+        _dragStartWorldPos = null;
+        _isPanningCamera = true;
+        panCamera(event.localDelta);
+      }
+      return;
+    }
+
     if (isDecorateMode && _draggedInteriorWall != null && _dragStartWorldPos != null) {
       _updateWallDragHoverPosition(event.localEndPosition);
       return;
@@ -1083,6 +1186,12 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
+    _wallGrabTimer?.cancel();
+    _wallGrabTimer = null;
+    _pendingWallGrab = null;
+    _furnitureGrabTimer?.cancel();
+    _furnitureGrabTimer = null;
+    _pendingFurnitureGrab = null;
     _isPanningCamera = false;
     _lastDragScreenPos = null;
     _currentDragScreenPos = null;
@@ -1094,6 +1203,12 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   @override
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
+    _wallGrabTimer?.cancel();
+    _wallGrabTimer = null;
+    _pendingWallGrab = null;
+    _furnitureGrabTimer?.cancel();
+    _furnitureGrabTimer = null;
+    _pendingFurnitureGrab = null;
     _isPanningCamera = false;
     _lastDragScreenPos = null;
     _currentDragScreenPos = null;
