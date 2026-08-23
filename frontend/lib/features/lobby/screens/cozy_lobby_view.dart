@@ -1105,22 +1105,40 @@ class _FollowingOverlayState extends State<_FollowingOverlay> with SingleTickerP
   @override
   Widget build(BuildContext context) {
     final anchor = widget.anchor();
-    if (anchor == null) return const SizedBox.shrink();
-
     final screenSize = MediaQuery.of(context).size;
     final topPadding = MediaQuery.of(context).padding.top;
-    // Keep the toolbar on-screen: below the header gradient, above the bottom decorator
-    // dock, and away from the left/right edges regardless of where the object drifts to.
-    final clampedX = anchor.x.clamp(90.0, screenSize.width - 90.0);
-    final clampedY = anchor.y.clamp(topPadding + 110.0, screenSize.height - 210.0);
 
+    // Only trust the anchor when it's a real, finite point — a stray NaN/Infinity (e.g. a
+    // one-frame glitch mid-pan) must never reach Positioned/the canvas.
+    final hasValidAnchor = anchor != null && anchor.x.isFinite && anchor.y.isFinite;
+
+    // Worth showing only when the point is both valid and actually within the camera's
+    // rendered viewport — otherwise the object has panned/zoomed out of view.
+    final isOnScreen = hasValidAnchor && anchor.x >= 0 && anchor.x <= screenSize.width && anchor.y >= 0 && anchor.y <= screenSize.height;
+
+    // Keep the toolbar clear of the header gradient and bottom decorator dock, and away
+    // from the left/right edges. Falls back to screen-center (never NaN/Infinity) when the
+    // anchor isn't valid — harmless since nothing is shown there in that case anyway.
+    final maxX = screenSize.width > 180.0 ? screenSize.width - 90.0 : screenSize.width / 2;
+    final minY = topPadding + 110.0;
+    final maxY = screenSize.height > (topPadding + 320.0) ? screenSize.height - 210.0 : minY;
+    final targetX = hasValidAnchor ? anchor.x.clamp(90.0, maxX) : screenSize.width / 2;
+    final targetY = hasValidAnchor ? anchor.y.clamp(minY, maxY) : screenSize.height / 2;
+
+    // The Stack's direct child is *always* this one Positioned — never swapped for a plain
+    // SizedBox at this level — since alternating widget types there is what was actually
+    // triggering the black-screen crash. Only the (interactive-or-not) content underneath
+    // it changes, which is safe: fully present when on-screen (no IgnorePointer needed, so
+    // the buttons work normally), or simply absent otherwise.
     return Positioned(
-      left: clampedX,
-      top: clampedY - 10,
-      child: FractionalTranslation(
-        translation: const Offset(-0.5, -1.0),
-        child: widget.child,
-      ),
+      left: targetX,
+      top: targetY - 10,
+      child: isOnScreen
+          ? FractionalTranslation(
+              translation: const Offset(-0.5, -1.0),
+              child: widget.child,
+            )
+          : const SizedBox.shrink(),
     );
   }
 }

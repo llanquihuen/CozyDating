@@ -630,16 +630,31 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   /// screen corner. Returns null when nothing is selected.
   Vector2? getSelectedFurnitureAnchor() {
     final f = selectedFurniture;
-    if (f == null) return null;
-    final worldTop = f.position + f.spriteOffset + Vector2(f.renderSize.x / 2.0, 0);
-    return camera.viewfinder.transform.localToGlobal(worldTop);
+    if (f == null || !f.isMounted) return null;
+    try {
+      final worldTop = f.position + f.spriteOffset + Vector2(f.renderSize.x / 2.0, 0);
+      final anchor = camera.viewfinder.transform.localToGlobal(worldTop);
+      if (!anchor.x.isFinite || !anchor.y.isFinite) return null;
+      return anchor;
+    } catch (_) {
+      // Called every frame from a UI ticker while the camera may be mid-transform — never
+      // let a transient failure here (e.g. a degenerate matrix for one frame) escape as an
+      // uncaught exception during a build.
+      return null;
+    }
   }
 
   /// Same idea as [getSelectedFurnitureAnchor] but for the selected interior wall.
   Vector2? getSelectedInteriorWallAnchor() {
     final w = selectedInteriorWall;
-    if (w == null) return null;
-    return camera.viewfinder.transform.localToGlobal(w.topAnchorWorld);
+    if (w == null || !w.isMounted) return null;
+    try {
+      final anchor = camera.viewfinder.transform.localToGlobal(w.topAnchorWorld);
+      if (!anchor.x.isFinite || !anchor.y.isFinite) return null;
+      return anchor;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _recalculateObstacles() {

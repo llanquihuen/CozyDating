@@ -295,6 +295,18 @@ class IsometricFurnitureComponent extends PositionComponent {
       }
     }
 
+    // Floor furniture also counts a touch anywhere on the tile(s) it occupies, on top of
+    // the pixel-exact test below — sometimes you just want to tap "its square" without
+    // hunting for the exact drawn pixel, especially for oddly-shaped or multi-tile items.
+    if (!isWallItem && !isSurfaceItem) {
+      final gridPos = IsometricCoords.screenToGrid(worldPos.x, worldPos.y);
+      final occupiesGrid = gridPos.x >= gridX &&
+          gridPos.x < gridX + gridWidth &&
+          gridPos.y >= gridY &&
+          gridPos.y < gridY + gridHeight;
+      if (occupiesGrid) return true;
+    }
+
     final off = spriteOffset;
     final size = renderSize;
     // Point within the sprite's own locally-drawn rect: (0,0) at its top-left corner,
