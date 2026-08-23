@@ -16,7 +16,7 @@ class IsometricAvatarComponent extends PositionComponent {
   Point<int>? _finalGoal;
   bool isVisible = true;
 
-  static const double walkSpeed = 2.8; // Tiles per second
+  static const double walkSpeed = 5.6; // Sub-tiles per second (matching 2.8 full tiles/s)
 
   // Compact Chibi proportion (1:2 aspect ratio matching 64x128 sprites)
   static const double avatarWidth = 30.0;
@@ -31,7 +31,7 @@ class IsometricAvatarComponent extends PositionComponent {
     this.onReachedDestination,
   }) : super(size: Vector2(avatarWidth, avatarHeight)) {
     position = _calculateScreenPosition(gridX, gridY);
-    priority = ((gridX + gridY) * 1000).round() + 12;
+    priority = ((gridX + gridY) * 1000).round() + 20;
 
     avatarRenderer = ModularAvatarComponent(
       config: config,
@@ -42,11 +42,11 @@ class IsometricAvatarComponent extends PositionComponent {
     add(avatarRenderer);
   }
 
-  /// Calculates the screen position that places the avatar's feet EXACTLY in the center of tile (gx, gy)
-  Vector2 _calculateScreenPosition(double gx, double gy) {
-    // Center point of the isometric diamond
-    final centerTile = IsometricCoords.gridToScreen(gx, gy);
-    // Align bottom center of avatar feet with center of tile diamond
+  /// Calculates the screen position that places the avatar's feet EXACTLY in the center of sub-cell (u, v)
+  Vector2 _calculateScreenPosition(double u, double v) {
+    // Center point of the isometric sub-grid diamond
+    final centerTile = IsometricCoords.subGridToScreen(u, v);
+    // Align bottom center of avatar feet with center of sub-grid tile diamond
     return Vector2(
       centerTile.x - (avatarWidth / 2.0),
       centerTile.y - (avatarHeight - feetBottomPadding),
@@ -69,7 +69,7 @@ class IsometricAvatarComponent extends PositionComponent {
     gridX = gx;
     gridY = gy;
     position = _calculateScreenPosition(gridX, gridY);
-    priority = ((gridX + gridY) * 1000).round() + 12;
+    priority = ((gridX + gridY) * 1000).round() + 20;
   }
 
   void updateConfig(AvatarConfig newConfig) {
@@ -137,7 +137,7 @@ class IsometricAvatarComponent extends PositionComponent {
 
       // Update Screen Position and Z-sorting depth
       position = _calculateScreenPosition(gridX, gridY);
-      priority = ((gridX + gridY) * 1000).round() + 12;
+      priority = ((gridX + gridY) * 1000).round() + 20;
     }
   }
 }

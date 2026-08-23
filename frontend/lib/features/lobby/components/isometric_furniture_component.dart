@@ -103,16 +103,83 @@ class IsometricFurnitureComponent extends PositionComponent {
 
     position = IsometricCoords.gridToScreen(gx.toDouble(), gy.toDouble());
     
-    // Z-order based on footprint and furthest tile occupied (surface items get layer 2)
+    // Z-order based on sub-grid footprint and furthest tile occupied (surface items get layer 2)
     final layer = (type == FurnitureType.carpet ? -1 : (isSurfaceItem ? 2 : 1));
-    final targetX = (isSurfaceItem && parentFurthestX != null) ? parentFurthestX : (gx + gridWidth - 1);
-    final targetY = (isSurfaceItem && parentFurthestY != null) ? parentFurthestY : (gy + gridHeight - 1);
-    priority = IsometricCoords.getZOrder(
+    final subX = gx * 2;
+    final subY = gy * 2;
+    final targetX = (isSurfaceItem && parentFurthestX != null) ? (parentFurthestX * 2 + 1) : subX;
+    final targetY = (isSurfaceItem && parentFurthestY != null) ? (parentFurthestY * 2 + 1) : subY;
+    priority = IsometricCoords.getSubZOrder(
       targetX,
       targetY,
+      width: isSurfaceItem ? 1 : gridWidth,
+      depth: isSurfaceItem ? 1 : gridHeight,
       layer: layer,
       footprint: footprint,
     );
+  }
+
+  /// Returns the list of sub-grid points (u, v) occupied by this furniture item
+  List<Point<int>> get occupiedSubCells {
+    if (isSurfaceItem || type == FurnitureType.carpet) {
+      return [];
+    }
+
+    final baseU = gridX * 2;
+    final baseV = gridY * 2;
+
+    // 1. Bookshelves and tall wardrobes / closets
+    final isBookshelfOrWardrobe = id.contains('bookshelf') ||
+        typeName.contains('bookshelf') ||
+        id.contains('wardrobe') ||
+        typeName.contains('wardrobe') ||
+        typeName.contains('closet');
+
+    if (isBookshelfOrWardrobe) {
+      // Rotation 0 or 2 (North-facing): occupies 2 subcells along North edge: (baseU, baseV) and (baseU+1, baseV)
+      // Rotation 1 or 3 (West-facing): occupies 2 subcells along West edge: (baseU, baseV) and (baseU, baseV+1)
+      if (rotation == 1 || rotation == 3 || footprint == '1x2') {
+        return [Point(baseU, baseV), Point(baseU, baseV + 1)];
+      } else {
+        return [Point(baseU, baseV), Point(baseU + 1, baseV)];
+      }
+    }
+
+    // 2. Refrigerators / compact corner appliances
+    final isFridge = id.contains('fridge') ||
+        typeName.contains('fridge') ||
+        id.contains('refrigerator') ||
+        typeName.contains('refrigerator') ||
+        typeName.contains('inox');
+
+    if (isFridge) {
+      switch (rotation) {
+        case 0:
+          return [Point(baseU, baseV)]; // NW
+        case 1:
+          return [Point(baseU + 1, baseV)]; // NE
+        case 2:
+          return [Point(baseU + 1, baseV + 1)]; // SE
+        case 3:
+          return [Point(baseU, baseV + 1)]; // SW
+        default:
+          return [Point(baseU, baseV)];
+      }
+    }
+
+    // 3. Wall items (do not block floor walking)
+    if (isWallNorth || isWallWest) {
+      return [];
+    }
+
+    // 4. Standard floor items: occupies all (gridWidth * 2) x (gridHeight * 2) subcells
+    final cells = <Point<int>>[];
+    for (int du = 0; du < gridWidth * 2; du++) {
+      for (int dv = 0; dv < gridHeight * 2; dv++) {
+        cells.add(Point(baseU + du, baseV + dv));
+      }
+    }
+    return cells;
   }
 
   /// Changes the wall height level between 'mid' and 'high'

@@ -5,6 +5,31 @@ class IsometricCoords {
   static const double tileWidth = 64.0;
   static const double tileHeight = 32.0;
 
+  // Sub-grid (2x2 factor) constants
+  static const double subTileWidth = 32.0;   // tileWidth / 2
+  static const double subTileHeight = 16.0;  // tileHeight / 2
+  static const double subStepX = 16.0;       // tileWidth / 4
+  static const double subStepY = 8.0;        // tileHeight / 4
+
+  /// Converts sub-grid coordinates (u, v) to 2D screen coordinates (sx, sy)
+  static Vector2 subGridToScreen(double u, double v, {double originX = 0, double originY = 0}) {
+    final sx = (u - v) * subStepX + originX;
+    final sy = (u + v) * subStepY - subStepY + originY;
+    return Vector2(sx, sy);
+  }
+
+  /// Converts 2D screen coordinates (sx, sy) to sub-grid coordinates (u, v)
+  static Point<int> screenToSubGrid(double sx, double sy, {double originX = 0, double originY = 0}) {
+    final relX = sx - originX;
+    final relY = sy - originY + subStepY;
+
+    // Floor isometric sub-grid projection
+    final double rawU = ((relX / subStepX) + (relY / subStepY)) / 2;
+    final double rawV = ((relY / subStepY) - (relX / subStepX)) / 2;
+
+    return Point(rawU.floor(), rawV.floor());
+  }
+
   /// Converts isometric grid coordinates (gx, gy) to 2D screen coordinates (sx, sy)
   static Vector2 gridToScreen(double gx, double gy, {double originX = 0, double originY = 0}) {
     final sx = (gx - gy) * (tileWidth / 2) + originX;
@@ -18,8 +43,8 @@ class IsometricCoords {
     final relX = sx - originX;
     final relY = sy - originY;
 
-    final halfW = tileWidth / 2;   // 32.0
-    final halfH = tileHeight / 2;  // 16.0
+    const halfW = tileWidth / 2;   // 32.0
+    const halfH = tileHeight / 2;  // 16.0
 
     // Standard floor isometric projection (Z = 0)
     final double rawGx = ((relX / halfW) + (relY / halfH)) / 2;
@@ -39,6 +64,21 @@ class IsometricCoords {
     return Point(rawGx.round(), rawGy.round());
   }
 
+  /// Calculates dynamic isometric depth priority for sub-grid z-sorting
+  static int getSubZOrder(int u, int v, {int width = 1, int depth = 1, int layer = 0, String footprint = '1x1'}) {
+    if (footprint == 'wall_n' || footprint.contains('wall_n')) {
+      return -100 + (u ~/ 2) * 5 + layer;
+    }
+    if (footprint == 'wall_w' || footprint.contains('wall_w')) {
+      return -100 + (v ~/ 2) * 5 + layer;
+    }
+    final int baseDepth = u + v + width + depth - 1;
+    if (footprint == 'surface') {
+      return baseDepth * 1000 + 50 + layer;
+    }
+    return baseDepth * 1000 + 10 + layer;
+  }
+
   /// Calculates dynamic isometric depth priority for z-sorting
   static int getZOrder(int gx, int gy, {int layer = 0, String footprint = '1x1'}) {
     if (footprint == 'wall_n' || footprint.contains('wall_n')) {
@@ -47,18 +87,12 @@ class IsometricCoords {
     if (footprint == 'wall_w' || footprint.contains('wall_w')) {
       return -100 + gy * 5 + layer;
     }
-    if (footprint == 'surface') {
-      return (gx + gy) * 1000 + 50 + layer;
-    }
-    return (gx + gy) * 1000 + 10 + layer;
+    return getSubZOrder(gx * 2, gy * 2, width: 1, depth: 1, layer: layer, footprint: footprint);
   }
 
   /// Calculates depth priority for interior partition walls located on tile boundaries.
-  /// A North/West wall on tile (gx, gy) sits on the back edge of (gx, gy) separating it
-  /// from the tile behind (gx+gy-1). Its depth sits strictly between the tile behind
-  /// (base - 1000) and the tile in front (base), ensuring perfect occlusion for all tiles.
   static int getInteriorWallZOrder(int gx, int gy, String orientation) {
-    final base = (gx + gy) * 1000;
+    final base = (gx + gy) * 2000;
     return (orientation == 'north') ? (base - 400) : (base - 300);
   }
 

@@ -9,6 +9,7 @@ import 'package:frontend/core/services/avatar_storage_service.dart';
 import 'package:frontend/features/game/bloc/game_bloc.dart';
 import 'package:frontend/features/lobby/screens/cozy_lobby_view.dart';
 import 'package:frontend/features/lobby/games/cozy_room_game.dart';
+import 'package:frontend/features/lobby/components/isometric_furniture_component.dart';
 import 'package:frontend/features/lobby/components/isometric_interior_wall_component.dart';
 import 'package:frontend/features/lobby/utils/isometric_coords.dart';
 import 'package:frontend/features/lobby/utils/isometric_pathfinder.dart';
@@ -108,17 +109,17 @@ void main() {
       final northWallZ = IsometricCoords.getInteriorWallZOrder(gx, gy, 'north');
       final westWallZ = IsometricCoords.getInteriorWallZOrder(gx, gy, 'west');
 
-      // 1. Avatar on tile behind North wall (4, 3)
-      final avatarBehindNorthZ = ((4 + 3) * 1000) + 12;
+      // 1. Avatar on subcell behind North wall (tile 4, 3: u=8, v=7)
+      final avatarBehindNorthZ = ((8 + 7) * 1000) + 20;
       expect(avatarBehindNorthZ < northWallZ, isTrue, reason: 'Avatar behind north wall must be occluded');
 
-      // 2. Avatar on tile in front of North wall (4, 4)
-      final avatarInFrontNorthZ = ((4 + 4) * 1000) + 12;
+      // 2. Avatar on subcell in front of North wall (tile 4, 4: u=8, v=8)
+      final avatarInFrontNorthZ = ((8 + 8) * 1000) + 20;
       expect(avatarInFrontNorthZ > northWallZ, isTrue, reason: 'Avatar in front of north wall must be on top');
 
-      // 3. Avatar on anti-diagonal adjacent tile (5, 3)
-      final avatarDiagonalZ = ((5 + 3) * 1000) + 12;
-      expect(avatarDiagonalZ > northWallZ, isTrue, reason: 'Avatar on adjacent right tile must not be occluded by left wall');
+      // 3. Avatar on tile behind North wall (tile 4, 3: u=8, v=6)
+      final avatarBehindZ = ((8 + 6) * 1000) + 20;
+      expect(avatarBehindZ < northWallZ, isTrue);
 
       // 4. Furniture on tile behind North wall (4, 3)
       final furnitureBehindZ = IsometricCoords.getZOrder(4, 3, layer: 1);
@@ -395,6 +396,137 @@ void main() {
       // Clear all overrides
       game.clearAllFloorOverrides();
       expect(game.roomConfig.floorOverrides.isEmpty, isTrue);
+    });
+  });
+
+  group('Sub-Grid (2x2 Factor) System Tests', () {
+    test('Isometric sub-grid coordinate conversions (subGridToScreen & screenToSubGrid)', () {
+      // (8.5, 8.5) in sub-grid is the exact center of tile (4, 4)
+      final subCenter = IsometricCoords.subGridToScreen(8.5, 8.5);
+      final tileCenter = IsometricCoords.gridToScreen(4.0, 4.0);
+
+      expect(subCenter.x, equals(tileCenter.x));
+      expect(subCenter.y, equals(tileCenter.y));
+
+      // Inverse projection of tile (4, 4) North subcell (8, 8)
+      final subScreen = IsometricCoords.subGridToScreen(8.0, 8.0);
+      final subPoint = IsometricCoords.screenToSubGrid(subScreen.x, subScreen.y);
+      expect(subPoint.x, equals(8));
+      expect(subPoint.y, equals(8));
+
+      // Half-tile step (e.g. u=9, v=8 vs u=8, v=8)
+      final halfStepScreen = IsometricCoords.subGridToScreen(9.0, 8.0);
+      expect(halfStepScreen.x - subScreen.x, equals(16.0));
+      expect(halfStepScreen.y - subScreen.y, equals(8.0));
+    });
+
+    test('Pathfinder operates smoothly on 16x16 sub-grid', () {
+      final obstacles = {const Point(4, 4), const Point(4, 5)};
+      final path = IsometricPathfinder.findPath(
+        start: const Point(2, 2),
+        goal: const Point(6, 6),
+        obstacles: obstacles,
+        mapSize: IsometricPathfinder.subGridSize,
+      );
+
+      expect(path.isNotEmpty, isTrue);
+      expect(path.last, equals(const Point(6, 6)));
+      expect(path.contains(const Point(4, 4)), isFalse);
+      expect(path.contains(const Point(4, 5)), isFalse);
+    });
+
+    test('Bookshelf and tall wardrobe occupy 2 sub-cells on North wall (leaving South sub-cells free)', () {
+      final bookshelf = IsometricFurnitureComponent(
+        id: 'bookshelf_1',
+        typeName: 'bookshelf',
+        gridX: 2,
+        gridY: 2,
+        rotation: 0,
+      );
+
+      // Tile (2, 2) has sub-grid origin (4, 4).
+      // On rot 0 (North-facing), it occupies (4, 4) and (5, 4).
+      // South sub-cells (4, 5) and (5, 5) remain FREE for avatar walking.
+      final occupied = bookshelf.occupiedSubCells;
+      expect(occupied.length, equals(2));
+      expect(occupied, contains(const Point(4, 4)));
+      expect(occupied, contains(const Point(5, 4)));
+      expect(occupied.contains(const Point(4, 5)), isFalse);
+      expect(occupied.contains(const Point(5, 5)), isFalse);
+    });
+
+    test('Bookshelf rotation to West wall swaps occupied sub-cells to (4, 4) and (4, 5)', () {
+      final bookshelf = IsometricFurnitureComponent(
+        id: 'bookshelf_1',
+        typeName: 'bookshelf',
+        gridX: 2,
+        gridY: 2,
+        rotation: 1, // West-facing
+      );
+
+      final occupied = bookshelf.occupiedSubCells;
+      expect(occupied.length, equals(2));
+      expect(occupied, contains(const Point(4, 4)));
+      expect(occupied, contains(const Point(4, 5)));
+      expect(occupied.contains(const Point(5, 4)), isFalse);
+      expect(occupied.contains(const Point(5, 5)), isFalse);
+    });
+
+    test('Refrigerator occupies exactly 1 sub-cell depending on rotation corner', () {
+      final fridgeRot0 = IsometricFurnitureComponent(
+        id: 'refrigerator_inox',
+        typeName: 'refrigerator',
+        gridX: 3,
+        gridY: 3,
+        rotation: 0, // NW
+      );
+      expect(fridgeRot0.occupiedSubCells, equals([const Point(6, 6)]));
+
+      final fridgeRot1 = IsometricFurnitureComponent(
+        id: 'refrigerator_inox',
+        typeName: 'refrigerator',
+        gridX: 3,
+        gridY: 3,
+        rotation: 1, // NE
+      );
+      expect(fridgeRot1.occupiedSubCells, equals([const Point(7, 6)]));
+
+      final fridgeRot2 = IsometricFurnitureComponent(
+        id: 'refrigerator_inox',
+        typeName: 'refrigerator',
+        gridX: 3,
+        gridY: 3,
+        rotation: 2, // SE
+      );
+      expect(fridgeRot2.occupiedSubCells, equals([const Point(7, 7)]));
+
+      final fridgeRot3 = IsometricFurnitureComponent(
+        id: 'refrigerator_inox',
+        typeName: 'refrigerator',
+        gridX: 3,
+        gridY: 3,
+        rotation: 3, // SW
+      );
+      expect(fridgeRot3.occupiedSubCells, equals([const Point(6, 7)]));
+    });
+
+    test('Coffee table (1x1 standard) occupies all 4 sub-cells in its quadrant (2x2)', () {
+      final table = IsometricFurnitureComponent(
+        id: 'coffee_table',
+        typeName: 'table',
+        gridX: 1,
+        gridY: 1,
+        gridWidth: 1,
+        gridHeight: 1,
+      );
+
+      // Tile (1, 1) has sub-grid origin (2, 2). Occupies all 4: (2,2), (3,2), (2,3), (3,3)
+      final occupied = table.occupiedSubCells;
+      expect(occupied.length, equals(4));
+      expect(occupied, contains(const Point(2, 2)));
+      expect(occupied, contains(const Point(3, 2)));
+      expect(occupied, contains(const Point(2, 3)));
+      expect(occupied, contains(const Point(3, 3)));
     });
   });
 }

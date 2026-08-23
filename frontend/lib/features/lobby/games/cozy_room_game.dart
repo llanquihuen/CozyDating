@@ -118,10 +118,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     // 5. Register Initial Obstacles for all solid furniture
     _recalculateObstacles();
 
-    // 6. Add Player Avatar inside world
+    // 6. Add Player Avatar inside world (positioned at subgrid 8.0, 8.0 = center of 16x16 room)
     final av = IsometricAvatarComponent(
-      gridX: 4.0,
-      gridY: 4.0,
+      gridX: 8.0,
+      gridY: 8.0,
       config: avatarConfig.copyWith(spriteResolution: roomConfig.resolution),
       onReachedDestination: _handleDestinationReached,
     );
@@ -695,24 +695,23 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     final allFurniture = world.children.whereType<IsometricFurnitureComponent>();
     for (final f in allFurniture) {
-      if (f.type == FurnitureType.carpet || f.isSurfaceItem || f.isWallNorth || f.isWallWest) continue;
-      for (int x = 0; x < f.gridWidth; x++) {
-        for (int y = 0; y < f.gridHeight; y++) {
-          obstacles.add(Point(f.gridX + x, f.gridY + y));
-        }
-      }
+      obstacles.addAll(f.occupiedSubCells);
     }
 
     final allWalls = world.children.whereType<IsometricInteriorWallComponent>();
     for (final w in allWalls) {
       if (w.hasDoorway || w.style == 'doorway_frame') continue;
+      final baseU = w.gridX * 2;
+      final baseV = w.gridY * 2;
       if (w.orientation == 'north') {
         if (w.gridY > 0) {
-          blockedEdges.add(IsometricPathfinder.edgeKey(w.gridX, w.gridY, w.gridX, w.gridY - 1));
+          blockedEdges.add(IsometricPathfinder.edgeKey(baseU, baseV, baseU, baseV - 1));
+          blockedEdges.add(IsometricPathfinder.edgeKey(baseU + 1, baseV, baseU + 1, baseV - 1));
         }
       } else {
         if (w.gridX > 0) {
-          blockedEdges.add(IsometricPathfinder.edgeKey(w.gridX, w.gridY, w.gridX - 1, w.gridY));
+          blockedEdges.add(IsometricPathfinder.edgeKey(baseU, baseV, baseU - 1, baseV));
+          blockedEdges.add(IsometricPathfinder.edgeKey(baseU, baseV + 1, baseU - 1, baseV + 1));
         }
       }
     }
@@ -774,14 +773,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     final wardrobe = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.isWardrobe).firstOrNull;
     if (wardrobe != null) {
-      if ((dest.x - wardrobe.gridX).abs() <= 1 && (dest.y - wardrobe.gridY).abs() <= 1) {
+      if ((dest.x - wardrobe.gridX * 2).abs() <= 2 && (dest.y - wardrobe.gridY * 2).abs() <= 2) {
         onOpenWardrobe?.call();
       }
     }
 
     final portal = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.isPortal).firstOrNull;
     if (portal != null) {
-      if ((dest.x - portal.gridX).abs() <= 1 && (dest.y - portal.gridY).abs() <= 1) {
+      if ((dest.x - portal.gridX * 2).abs() <= 2 && (dest.y - portal.gridY * 2).abs() <= 2) {
         onOpenMatchmaking?.call();
       }
     }
@@ -1573,23 +1572,27 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       return;
     }
 
-    // In Normal Mode: Tap-to-move avatar
+    // In Normal Mode: Tap-to-move avatar in sub-grid units
     if (_draggedFurniture != null || _draggedInteriorWall != null) return;
 
-    if (gridPos.x >= 0 && gridPos.x < gridSize && gridPos.y >= 0 && gridPos.y < gridSize) {
-      world.add(_TapWaveComponent(grid: gridPos));
+    final subGridPos = IsometricCoords.screenToSubGrid(worldPos.x, worldPos.y);
+    const subLimit = gridSize * 2;
+
+    if (subGridPos.x >= 0 && subGridPos.x < subLimit && subGridPos.y >= 0 && subGridPos.y < subLimit) {
+      world.add(_TapWaveComponent(grid: subGridPos, isSubGrid: true));
 
       if (avatar != null) {
         final startPos = Point(avatar!.gridX.round(), avatar!.gridY.round());
         final path = IsometricPathfinder.findPath(
           start: startPos,
-          goal: gridPos,
+          goal: subGridPos,
           obstacles: obstacles,
           blockedEdges: blockedEdges,
+          mapSize: IsometricPathfinder.subGridSize,
         );
 
         if (path.isNotEmpty) {
-          avatar!.setPath(path, gridPos);
+          avatar!.setPath(path, subGridPos);
         }
       }
     }
@@ -2091,9 +2094,10 @@ class _IsometricRoomBackgroundComponent extends Component {
 class _TapWaveComponent extends Component {
   final Point<int> grid;
   final bool isSnap;
+  final bool isSubGrid;
   double progress = 0.0;
 
-  _TapWaveComponent({required this.grid, this.isSnap = false}) {
+  _TapWaveComponent({required this.grid, this.isSnap = false, this.isSubGrid = false}) {
     priority = 500;
   }
 
@@ -2109,7 +2113,9 @@ class _TapWaveComponent extends Component {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    final pos = IsometricCoords.gridToScreen(grid.x.toDouble(), grid.y.toDouble());
+    final pos = isSubGrid
+        ? IsometricCoords.subGridToScreen(grid.x.toDouble(), grid.y.toDouble())
+        : IsometricCoords.gridToScreen(grid.x.toDouble(), grid.y.toDouble());
     final opacity = (1.0 - progress).clamp(0.0, 1.0);
     final waveColor = isSnap ? const Color(0xFF00E5FF) : const Color(0xFFFFD54F);
 
@@ -2118,11 +2124,14 @@ class _TapWaveComponent extends Component {
       ..style = PaintingStyle.stroke
       ..strokeWidth = isSnap ? 3.5 : 2.5;
 
+    final w = (isSubGrid ? IsometricCoords.subTileWidth : IsometricCoords.tileWidth) * progress;
+    final h = (isSubGrid ? IsometricCoords.subTileHeight : IsometricCoords.tileHeight) * progress;
+
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(pos.x, pos.y),
-        width: IsometricCoords.tileWidth * progress,
-        height: IsometricCoords.tileHeight * progress,
+        width: w,
+        height: h,
       ),
       paint,
     );

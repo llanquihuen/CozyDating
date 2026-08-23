@@ -2,6 +2,7 @@ import 'dart:math';
 
 class IsometricPathfinder {
   static const int gridSize = 8;
+  static const int subGridSize = 16;
 
   /// Calculates A* path from [start] to [goal] avoiding [obstacles] and [blockedEdges].
   /// Returns a list of Points representing the step-by-step path.
@@ -10,6 +11,7 @@ class IsometricPathfinder {
     required Point<int> goal,
     required Set<Point<int>> obstacles,
     Set<String> blockedEdges = const {},
+    int mapSize = gridSize,
   }) {
     if (start == goal) return [];
 
@@ -21,7 +23,7 @@ class IsometricPathfinder {
         Point(goal.x - 1, goal.y),
         Point(goal.x, goal.y + 1),
         Point(goal.x, goal.y - 1),
-      ].where((p) => _isValid(p) && !obstacles.contains(p) && !blockedEdges.contains(edgeKey(goal.x, goal.y, p.x, p.y))).toList();
+      ].where((p) => _isValid(p, mapSize) && !obstacles.contains(p) && !blockedEdges.contains(edgeKey(goal.x, goal.y, p.x, p.y))).toList();
 
       if (neighbors.isEmpty) return [];
       neighbors.sort((a, b) => _manhattan(a, start).compareTo(_manhattan(b, start)));
@@ -60,7 +62,7 @@ class IsometricPathfinder {
       ];
 
       for (final neighbor in neighbors) {
-        if (!_isValid(neighbor) || obstacles.contains(neighbor)) continue;
+        if (!_isValid(neighbor, mapSize) || obstacles.contains(neighbor)) continue;
         if (blockedEdges.contains(edgeKey(current.x, current.y, neighbor.x, neighbor.y))) continue;
 
         final tentativeG = (gScore[current] ?? double.infinity) + 1.0;
@@ -77,8 +79,8 @@ class IsometricPathfinder {
     return []; // No path found
   }
 
-  static bool _isValid(Point<int> p) {
-    return p.x >= 0 && p.x < gridSize && p.y >= 0 && p.y < gridSize;
+  static bool _isValid(Point<int> p, [int mapSize = gridSize]) {
+    return p.x >= 0 && p.x < mapSize && p.y >= 0 && p.y < mapSize;
   }
 
   static int _manhattan(Point<int> a, Point<int> b) {
