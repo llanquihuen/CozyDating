@@ -349,5 +349,52 @@ void main() {
       expect(w1.style, equals('rustic_brick'));
       expect(w2.style, equals('rustic_brick'));
     });
+
+    test('Floor tile overrides serialize and deserialize properly in RoomConfig', () {
+      const config = RoomConfig(
+        floor: 'oak_parquet',
+        floorOverrides: {
+          '0,0': 'solid_white_tiles',
+          '0,1': 'solid_white_tiles',
+          '1,0': 'checker_marble',
+        },
+      );
+
+      final jsonStr = config.toJson();
+      final decoded = RoomConfig.fromJson(jsonStr);
+
+      expect(decoded.floor, equals('oak_parquet'));
+      expect(decoded.floorOverrides.length, equals(3));
+      expect(decoded.floorOverrides['0,0'], equals('solid_white_tiles'));
+      expect(decoded.floorOverrides['0,1'], equals('solid_white_tiles'));
+      expect(decoded.floorOverrides['1,0'], equals('checker_marble'));
+    });
+
+    test('CozyRoomGame paints, erases and clears custom floor tile zones', () {
+      final game = CozyRoomGame(
+        avatarConfig: AvatarStorageService.getUserConfig('alice'),
+        roomConfig: const RoomConfig(floor: 'dark_walnut'),
+      );
+
+      // Paint tiles
+      game.paintFloorTile(1, 1, 'solid_white_tiles');
+      game.paintFloorTile(1, 2, 'solid_white_tiles');
+      expect(game.roomConfig.floorOverrides['1,1'], equals('solid_white_tiles'));
+      expect(game.roomConfig.floorOverrides['1,2'], equals('solid_white_tiles'));
+      expect(game.roomConfig.floorOverrides.length, equals(2));
+
+      // Erase tile
+      game.eraseFloorTile(1, 1);
+      expect(game.roomConfig.floorOverrides.containsKey('1,1'), isFalse);
+      expect(game.roomConfig.floorOverrides['1,2'], equals('solid_white_tiles'));
+
+      // Export preserves overrides
+      final exported = game.exportCurrentRoomConfig();
+      expect(exported.floorOverrides['1,2'], equals('solid_white_tiles'));
+
+      // Clear all overrides
+      game.clearAllFloorOverrides();
+      expect(game.roomConfig.floorOverrides.isEmpty, isTrue);
+    });
   });
 }

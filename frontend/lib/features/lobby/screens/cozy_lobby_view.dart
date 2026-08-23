@@ -39,6 +39,7 @@ class CozyLobbyView extends StatefulWidget {
 }
 
 enum LobbyEditMode { none, decorate, construct }
+enum FloorEditTool { globalRoom, zoneBrush, eraser }
 
 class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProviderStateMixin {
   late CozyRoomGame _roomGame;
@@ -49,6 +50,8 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   LobbyEditMode _editMode = LobbyEditMode.none;
   bool get _isDecorating => _editMode != LobbyEditMode.none;
   bool _paintAllWallsMode = false;
+  FloorEditTool _floorEditTool = FloorEditTool.globalRoom;
+  String _selectedZoneFloorId = 'solid_white_tiles';
   final ValueNotifier<String?> _topNotificationNotifier = ValueNotifier<String?>(null);
   Timer? _topNotificationTimer;
   IsometricFurnitureComponent? _selectedFurniture;
@@ -80,6 +83,22 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   void initState() {
     super.initState();
     _constructorTabController = TabController(length: 3, vsync: this);
+    _constructorTabController.addListener(() {
+      if (!mounted) return;
+      if (_editMode == LobbyEditMode.construct) {
+        if (_constructorTabController.index == 1) {
+          if (_floorEditTool == FloorEditTool.zoneBrush) {
+            _roomGame.setFloorBrush(_selectedZoneFloorId);
+          } else if (_floorEditTool == FloorEditTool.eraser) {
+            _roomGame.setFloorBrush('__eraser__');
+          } else {
+            _roomGame.setFloorBrush(null);
+          }
+        } else {
+          _roomGame.setFloorBrush(null);
+        }
+      }
+    });
     AvatarStorageService.setActiveUser(widget.activeUserId);
     _currentAvatarConfig = AvatarStorageService.getUserConfig(widget.activeUserId);
     _currentRoomConfig = AvatarStorageService.getUserRoomConfig(widget.activeUserId);
@@ -149,6 +168,17 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
       _roomGame.setDecorateMode(true);
       _selectedFurniture = null;
       _selectedInteriorWall = null;
+      if (_constructorTabController.index == 1) {
+        if (_floorEditTool == FloorEditTool.zoneBrush) {
+          _roomGame.setFloorBrush(_selectedZoneFloorId);
+        } else if (_floorEditTool == FloorEditTool.eraser) {
+          _roomGame.setFloorBrush('__eraser__');
+        } else {
+          _roomGame.setFloorBrush(null);
+        }
+      } else {
+        _roomGame.setFloorBrush(null);
+      }
     });
   }
 
@@ -176,6 +206,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   void _saveAndExitDecorateMode() {
+    _roomGame.setFloorBrush(null);
     final updatedConfig = _roomGame.exportCurrentRoomConfig();
     AvatarStorageService.saveUserRoomConfig(widget.activeUserId, updatedConfig);
     final wasConstructor = (_editMode == LobbyEditMode.construct);
@@ -191,6 +222,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   void _cancelDecorateMode() {
+    _roomGame.setFloorBrush(null);
     _roomGame.updateRoomConfig(_currentRoomConfig);
     setState(() {
       _editMode = LobbyEditMode.none;
@@ -1062,51 +1094,224 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   Widget _buildFloorSelector() {
-    return ListView.builder(
-      key: const PageStorageKey('floors_scroll_list'),
-      scrollDirection: Axis.horizontal,
-      itemCount: RoomThemes.floors.length,
-      itemBuilder: (context, index) {
-        final item = RoomThemes.floors[index];
-        final isSelected = _roomGame.roomConfig.floor == item.id;
-        return GestureDetector(
-          onTap: () {
-            _roomGame.updateFloor(item.id);
-            setState(() {});
-          },
-          child: Container(
-            width: 100,
-            margin: const EdgeInsets.only(right: 10),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? const Color(0xFFFFB300) : const Color(0xFF453F58),
-                width: isSelected ? 2.0 : 1.0,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(item.emoji, style: const TextStyle(fontSize: 22)),
-                const SizedBox(height: 4),
-                Text(
-                  item.name,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? const Color(0xFFFFB300) : Colors.white,
+    final hasOverrides = _roomGame.roomConfig.floorOverrides.isNotEmpty;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              // 1. All Room Mode
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _floorEditTool = FloorEditTool.globalRoom;
+                    _roomGame.setFloorBrush(null);
+                  });
+                  _showTopNotification('🌟 Modo: Cambiar piso de todo el salón');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _floorEditTool == FloorEditTool.globalRoom ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _floorEditTool == FloorEditTool.globalRoom ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.home_outlined, size: 12, color: _floorEditTool == FloorEditTool.globalRoom ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Todo el Salón',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _floorEditTool == FloorEditTool.globalRoom ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 5),
+              // 2. Zone Brush Mode
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _floorEditTool = FloorEditTool.zoneBrush;
+                    _roomGame.setFloorBrush(_selectedZoneFloorId);
+                  });
+                  _showTopNotification('🖌️ Pincel activo: toca o arrastra en el suelo para pintar');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _floorEditTool == FloorEditTool.zoneBrush ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _floorEditTool == FloorEditTool.zoneBrush ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.brush, size: 12, color: _floorEditTool == FloorEditTool.zoneBrush ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Pintar Zona',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _floorEditTool == FloorEditTool.zoneBrush ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              // 3. Eraser Mode
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _floorEditTool = FloorEditTool.eraser;
+                    _roomGame.setFloorBrush('__eraser__');
+                  });
+                  _showTopNotification('🧹 Borrador activo: toca baldosas para restaurar al piso base');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _floorEditTool == FloorEditTool.eraser ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _floorEditTool == FloorEditTool.eraser ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.cleaning_services, size: 12, color: _floorEditTool == FloorEditTool.eraser ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Borrador',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _floorEditTool == FloorEditTool.eraser ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (hasOverrides)
+                GestureDetector(
+                  onTap: () {
+                    _roomGame.clearAllFloorOverrides();
+                    setState(() {});
+                    _showTopNotification('🧹 Se restauraron todas las baldosas al piso base');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF5350).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.6)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.delete_sweep, size: 12, color: Color(0xFFEF5350)),
+                        SizedBox(width: 3),
+                        Text(
+                          'Limpiar Zonas',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFEF5350),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: ListView.builder(
+            key: const PageStorageKey('floors_scroll_list'),
+            scrollDirection: Axis.horizontal,
+            itemCount: RoomThemes.floors.length,
+            itemBuilder: (context, index) {
+              final item = RoomThemes.floors[index];
+              final isGlobalSelected = _roomGame.roomConfig.floor == item.id;
+              final isBrushSelected = _selectedZoneFloorId == item.id;
+              final isSelected = (_floorEditTool == FloorEditTool.globalRoom) ? isGlobalSelected : (_floorEditTool == FloorEditTool.zoneBrush && isBrushSelected);
+
+              return GestureDetector(
+                onTap: () {
+                  if (_floorEditTool == FloorEditTool.globalRoom) {
+                    _roomGame.updateFloor(item.id);
+                    setState(() {});
+                  } else if (_floorEditTool == FloorEditTool.zoneBrush) {
+                    setState(() {
+                      _selectedZoneFloorId = item.id;
+                      _roomGame.setFloorBrush(item.id);
+                    });
+                    _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca o arrastra en el suelo!');
+                  } else {
+                    setState(() {
+                      _floorEditTool = FloorEditTool.zoneBrush;
+                      _selectedZoneFloorId = item.id;
+                      _roomGame.setFloorBrush(item.id);
+                    });
+                    _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca o arrastra en el suelo!');
+                  }
+                },
+                child: Container(
+                  width: 100,
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                      width: isSelected ? 2.0 : 1.0,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(item.emoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(height: 3),
+                      Text(
+                        item.name,
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? const Color(0xFFFFB300) : Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

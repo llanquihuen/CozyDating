@@ -62,6 +62,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   async_lib.Timer? _furnitureGrabTimer;
   IsometricFurnitureComponent? _pendingFurnitureGrab;
 
+  // Floor Brush State (paint specific zones)
+  String? activeFloorBrushId;
+  bool _isFloorBrushDragging = false;
+
   // Camera Pan state
   bool _isPanningCamera = false;
   Vector2? _lastDragScreenPos;
@@ -135,6 +139,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       selectFurniture(null);
       selectInteriorWall(null);
     } else {
+      activeFloorBrushId = null;
+      _isFloorBrushDragging = false;
       _recalculateObstacles();
       Point<int> spawnTile = const Point(4, 4);
       bool found = false;
@@ -812,6 +818,42 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     _backgroundComponent?.roomConfig = roomConfig;
   }
 
+  void setFloorBrush(String? floorBrushId) {
+    activeFloorBrushId = floorBrushId;
+    if (floorBrushId != null) {
+      selectFurniture(null);
+      selectInteriorWall(null);
+    }
+  }
+
+  void paintFloorTile(int gx, int gy, String floorId) {
+    if (gx < 0 || gx >= gridSize || gy < 0 || gy >= gridSize) return;
+    final key = '$gx,$gy';
+    if (roomConfig.floorOverrides[key] == floorId) return;
+
+    final newOverrides = Map<String, String>.from(roomConfig.floorOverrides);
+    newOverrides[key] = floorId;
+    roomConfig = roomConfig.copyWith(floorOverrides: newOverrides);
+    _backgroundComponent?.roomConfig = roomConfig;
+  }
+
+  void eraseFloorTile(int gx, int gy) {
+    if (gx < 0 || gx >= gridSize || gy < 0 || gy >= gridSize) return;
+    final key = '$gx,$gy';
+    if (!roomConfig.floorOverrides.containsKey(key)) return;
+
+    final newOverrides = Map<String, String>.from(roomConfig.floorOverrides);
+    newOverrides.remove(key);
+    roomConfig = roomConfig.copyWith(floorOverrides: newOverrides);
+    _backgroundComponent?.roomConfig = roomConfig;
+  }
+
+  void clearAllFloorOverrides() {
+    if (roomConfig.floorOverrides.isEmpty) return;
+    roomConfig = roomConfig.copyWith(floorOverrides: const {});
+    _backgroundComponent?.roomConfig = roomConfig;
+  }
+
   void updateRoomConfig(RoomConfig newConfig, {bool reloadFurniture = true}) {
     roomConfig = newConfig;
     _backgroundComponent?.roomConfig = newConfig;
@@ -847,7 +889,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       wallList.add(w.toConfig());
     }
 
-    return roomConfig.copyWith(furniture: list, interiorWalls: wallList);
+    return roomConfig.copyWith(
+      furniture: list,
+      interiorWalls: wallList,
+      floorOverrides: roomConfig.floorOverrides,
+    );
   }
 
   void adjustZoom(double zoomMultiplier) {
@@ -1075,6 +1121,22 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final worldPos = camera.viewfinder.transform.globalToLocal(event.localPosition);
 
     if (isDecorateMode) {
+      // Pass -1: Floor Brush Mode (Paints/Erases tiles by touch & dragging)
+      if (activeFloorBrushId != null) {
+        final gridPos = IsometricCoords.screenToGrid(worldPos.x, worldPos.y);
+        if (gridPos.x >= 0 && gridPos.x < gridSize && gridPos.y >= 0 && gridPos.y < gridSize) {
+          _isFloorBrushDragging = true;
+          if (activeFloorBrushId == '__eraser__') {
+            eraseFloorTile(gridPos.x, gridPos.y);
+            world.add(_TapWaveComponent(grid: gridPos, isSnap: true));
+          } else {
+            paintFloorTile(gridPos.x, gridPos.y, activeFloorBrushId!);
+            world.add(_TapWaveComponent(grid: gridPos));
+          }
+          return;
+        }
+      }
+
       // Pass 0: Check Interior Walls
       final allInteriorWalls = world.children.whereType<IsometricInteriorWallComponent>().toList();
       allInteriorWalls.sort((a, b) => b.priority.compareTo(a.priority));
@@ -1191,6 +1253,26 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     super.onDragUpdate(event);
     _currentDragScreenPos = event.localEndPosition;
 
+    if (_isFloorBrushDragging && activeFloorBrushId != null) {
+      final worldPos = camera.viewfinder.transform.globalToLocal(event.localEndPosition);
+      final gridPos = IsometricCoords.screenToGrid(worldPos.x, worldPos.y);
+      if (gridPos.x >= 0 && gridPos.x < gridSize && gridPos.y >= 0 && gridPos.y < gridSize) {
+        final key = '${gridPos.x},${gridPos.y}';
+        if (activeFloorBrushId == '__eraser__') {
+          if (roomConfig.floorOverrides.containsKey(key)) {
+            eraseFloorTile(gridPos.x, gridPos.y);
+            world.add(_TapWaveComponent(grid: gridPos, isSnap: true));
+          }
+        } else {
+          if (roomConfig.floorOverrides[key] != activeFloorBrushId) {
+            paintFloorTile(gridPos.x, gridPos.y, activeFloorBrushId!);
+            world.add(_TapWaveComponent(grid: gridPos));
+          }
+        }
+      }
+      return;
+    }
+
     if (_isPanningCamera) {
       panCamera(event.localDelta);
       return;
@@ -1239,6 +1321,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
+    _isFloorBrushDragging = false;
     _wallGrabTimer?.cancel();
     _wallGrabTimer = null;
     _pendingWallGrab = null;
@@ -1256,6 +1339,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   @override
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
+    _isFloorBrushDragging = false;
     _wallGrabTimer?.cancel();
     _wallGrabTimer = null;
     _pendingWallGrab = null;
@@ -1422,6 +1506,20 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final gridPos = IsometricCoords.screenToGrid(worldPos.x, worldPos.y);
 
     if (isDecorateMode) {
+      // Pass -1: Floor Brush Mode (Paints/Erases tiles on tap)
+      if (activeFloorBrushId != null) {
+        if (gridPos.x >= 0 && gridPos.x < gridSize && gridPos.y >= 0 && gridPos.y < gridSize) {
+          if (activeFloorBrushId == '__eraser__') {
+            eraseFloorTile(gridPos.x, gridPos.y);
+            world.add(_TapWaveComponent(grid: gridPos, isSnap: true));
+          } else {
+            paintFloorTile(gridPos.x, gridPos.y, activeFloorBrushId!);
+            world.add(_TapWaveComponent(grid: gridPos));
+          }
+          return;
+        }
+      }
+
       // Pass 0: Check Interior Walls
       final allInteriorWalls = world.children.whereType<IsometricInteriorWallComponent>().toList();
       allInteriorWalls.sort((a, b) => b.priority.compareTo(a.priority));
@@ -1865,6 +1963,65 @@ class _IsometricRoomBackgroundComponent extends Component {
           Rect.fromLTWH(0, 0, totalGridSize, totalGridSize),
           Paint()..color = const Color(0xFF8D6E63),
         );
+      }
+    }
+
+    // 2. Render Custom Floor Tile Overrides (each tile displays 1/8th slice of the general texture)
+    if (roomConfig.floorOverrides.isNotEmpty) {
+      final Map<String, List<Point<int>>> floorGroups = {};
+      for (final entry in roomConfig.floorOverrides.entries) {
+        final parts = entry.key.split(',');
+        if (parts.length != 2) continue;
+        final gx = int.tryParse(parts[0]);
+        final gy = int.tryParse(parts[1]);
+        if (gx == null || gy == null || gx < 0 || gx >= gridSize || gy < 0 || gy >= gridSize) continue;
+        floorGroups.putIfAbsent(entry.value, () => []).add(Point(gx, gy));
+      }
+
+      for (final group in floorGroups.entries) {
+        final tileFloorId = group.key;
+        final tiles = group.value;
+        final tileFloorOpt = RoomThemes.floors.firstWhere(
+          (o) => o.id == tileFloorId,
+          orElse: () => RoomThemes.floors.first,
+        );
+
+        final groupPath = Path();
+        for (final p in tiles) {
+          groupPath.addRect(Rect.fromLTWH(p.x * 32.0, p.y * 32.0, 32.0, 32.0));
+        }
+
+        canvas.save();
+        canvas.clipPath(groupPath);
+
+        if (tileFloorOpt.color != null) {
+          final baseTileSprite = _floorSprites['solid_tiles'];
+          if (baseTileSprite != null) {
+            final tintPaint = Paint()
+              ..colorFilter = ColorFilter.mode(tileFloorOpt.color!, BlendMode.modulate);
+            baseTileSprite.render(
+              canvas,
+              position: Vector2.zero(),
+              size: Vector2(totalGridSize, totalGridSize),
+              overridePaint: tintPaint,
+            );
+          } else {
+            canvas.drawPath(groupPath, Paint()..color = tileFloorOpt.color!);
+          }
+        } else {
+          final tileSprite = _floorSprites[tileFloorId];
+          if (tileSprite != null) {
+            tileSprite.render(
+              canvas,
+              position: Vector2.zero(),
+              size: Vector2(totalGridSize, totalGridSize),
+            );
+          } else {
+            canvas.drawPath(groupPath, Paint()..color = const Color(0xFF8D6E63));
+          }
+        }
+
+        canvas.restore();
       }
     }
 

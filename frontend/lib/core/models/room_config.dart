@@ -103,6 +103,7 @@ class PlacedFurnitureConfig extends Equatable {
 class RoomConfig extends Equatable {
   final String wallpaper;
   final String floor;
+  final Map<String, String> floorOverrides; // 'x,y' -> floorId
   final String resolution; // '64x128' or '32x64'
   final List<PlacedFurnitureConfig> furniture;
   final List<InteriorWallConfig> interiorWalls;
@@ -110,6 +111,7 @@ class RoomConfig extends Equatable {
   const RoomConfig({
     this.wallpaper = 'rustic_wood',
     this.floor = 'oak_parquet',
+    this.floorOverrides = const {},
     this.resolution = '64x128',
     this.interiorWalls = const [],
     this.furniture = const [
@@ -187,6 +189,7 @@ class RoomConfig extends Equatable {
   RoomConfig copyWith({
     String? wallpaper,
     String? floor,
+    Map<String, String>? floorOverrides,
     String? resolution,
     List<PlacedFurnitureConfig>? furniture,
     List<InteriorWallConfig>? interiorWalls,
@@ -194,6 +197,7 @@ class RoomConfig extends Equatable {
     return RoomConfig(
       wallpaper: wallpaper ?? this.wallpaper,
       floor: floor ?? this.floor,
+      floorOverrides: floorOverrides ?? this.floorOverrides,
       resolution: resolution ?? this.resolution,
       furniture: furniture ?? this.furniture,
       interiorWalls: interiorWalls ?? this.interiorWalls,
@@ -204,6 +208,7 @@ class RoomConfig extends Equatable {
     return {
       'wallpaper': wallpaper,
       'floor': floor,
+      if (floorOverrides.isNotEmpty) 'floorOverrides': floorOverrides,
       'resolution': resolution,
       'furniture': furniture.map((f) => f.toMap()).toList(),
       if (interiorWalls.isNotEmpty)
@@ -215,6 +220,9 @@ class RoomConfig extends Equatable {
     return RoomConfig(
       wallpaper: map['wallpaper'] ?? 'rustic_wood',
       floor: map['floor'] ?? 'oak_parquet',
+      floorOverrides: map['floorOverrides'] != null
+          ? Map<String, String>.from(map['floorOverrides'] as Map)
+          : const {},
       resolution: map['resolution'] ?? '64x128',
       interiorWalls: map['interiorWalls'] != null
           ? List<InteriorWallConfig>.from(
@@ -299,7 +307,7 @@ class RoomConfig extends Equatable {
   factory RoomConfig.fromJson(String source) => RoomConfig.fromMap(json.decode(source));
 
   @override
-  List<Object?> get props => [wallpaper, floor, resolution, furniture, interiorWalls];
+  List<Object?> get props => [wallpaper, floor, floorOverrides, resolution, furniture, interiorWalls];
 }
 
 class InteriorWallConfig extends Equatable {
