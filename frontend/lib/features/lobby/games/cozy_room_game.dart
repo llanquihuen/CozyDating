@@ -24,8 +24,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   final ValueChanged<IsometricFurnitureComponent?>? onFurnitureSelected;
   final ValueChanged<IsometricInteriorWallComponent?>? onInteriorWallSelected;
 
-  late IsometricAvatarComponent avatar;
-  late _IsometricRoomBackgroundComponent _backgroundComponent;
+  IsometricAvatarComponent? avatar;
+  _IsometricRoomBackgroundComponent? _backgroundComponent;
   final Set<Point<int>> obstacles = {};
   final Set<String> blockedEdges = {};
 
@@ -86,13 +86,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     await FurnitureCatalogService.initialize(forceReload: true);
 
     // 1. Add Isometric Room Floor & Walls inside world (priority: -100)
-    _backgroundComponent = _IsometricRoomBackgroundComponent(
+    final bg = _IsometricRoomBackgroundComponent(
       gridSize: gridSize,
       roomConfig: roomConfig,
       game: this,
     );
-    await _backgroundComponent.loadTextures();
-    world.add(_backgroundComponent);
+    _backgroundComponent = bg;
+    await bg.loadTextures();
+    world.add(bg);
 
     // 2. Add Drag Highlighting Layer inside world (priority: 50)
     world.add(_DragHighlightLayer(game: this));
@@ -114,22 +115,23 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     _recalculateObstacles();
 
     // 6. Add Player Avatar inside world
-    avatar = IsometricAvatarComponent(
+    final av = IsometricAvatarComponent(
       gridX: 4.0,
       gridY: 4.0,
       config: avatarConfig.copyWith(spriteResolution: roomConfig.resolution),
       onReachedDestination: _handleDestinationReached,
     );
     if (isDecorateMode) {
-      avatar.isVisible = false;
+      av.isVisible = false;
     }
-    world.add(avatar);
+    avatar = av;
+    world.add(av);
   }
 
   void setDecorateMode(bool enabled) {
     isDecorateMode = enabled;
     if (enabled) {
-      avatar.isVisible = false;
+      avatar?.isVisible = false;
       selectFurniture(null);
       selectInteriorWall(null);
     } else {
@@ -163,8 +165,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         }
       }
 
-      avatar.teleportTo(spawnTile.x.toDouble(), spawnTile.y.toDouble());
-      avatar.isVisible = true;
+      avatar?.teleportTo(spawnTile.x.toDouble(), spawnTile.y.toDouble());
+      avatar?.isVisible = true;
       selectFurniture(null);
       selectInteriorWall(null);
     }
@@ -190,7 +192,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         orientation: w.orientation,
         style: w.style,
         hasDoorway: w.hasDoorway,
-        plasterSprite: _backgroundComponent._wallpaperSprites['solid_plaster'],
+        plasterSprite: _backgroundComponent?._wallpaperSprites['solid_plaster'],
       ));
     }
 
@@ -579,7 +581,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       orientation: 'north',
       style: styleOption.id,
       hasDoorway: styleOption.isDoorway,
-      plasterSprite: _backgroundComponent._wallpaperSprites['solid_plaster'],
+      plasterSprite: _backgroundComponent?._wallpaperSprites['solid_plaster'],
     );
     world.add(comp);
     selectInteriorWall(comp);
@@ -622,6 +624,30 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       selectInteriorWall(null);
       _recalculateObstacles();
     }
+  }
+
+  int applyStyleToAllInteriorWalls(InteriorWallStyleOption styleOption) {
+    if (styleOption.isDoorway) return 0;
+    final walls = world.children
+        .whereType<IsometricInteriorWallComponent>()
+        .where((w) => !w.hasDoorway)
+        .toList();
+    for (final w in walls) {
+      w.style = styleOption.id;
+      w.plasterSprite = _backgroundComponent?._wallpaperSprites['solid_plaster'];
+    }
+    return walls.length;
+  }
+
+  int applySelectedInteriorWallStyleToAll() {
+    if (selectedInteriorWall == null) return 0;
+    final targetStyle = selectedInteriorWall!.style;
+    final walls = world.children.whereType<IsometricInteriorWallComponent>().toList();
+    for (final w in walls) {
+      w.style = targetStyle;
+      w.plasterSprite = _backgroundComponent?._wallpaperSprites['solid_plaster'];
+    }
+    return walls.length;
   }
 
   /// Screen-space point (in the GameWidget's own coordinate space, which lines up
@@ -757,13 +783,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
   void updateAvatarConfig(AvatarConfig newConfig) {
     avatarConfig = newConfig;
-    avatar.updateConfig(newConfig);
+    avatar?.updateConfig(newConfig);
   }
 
   Future<void> updateResolution(String newResolution) async {
     roomConfig = roomConfig.copyWith(resolution: newResolution);
     avatarConfig = avatarConfig.copyWith(spriteResolution: newResolution);
-    avatar.updateConfig(avatarConfig);
+    avatar?.updateConfig(avatarConfig);
 
     // Reload all furniture sprites
     final allFurniture = world.children.whereType<IsometricFurnitureComponent>().where((f) => !f.isPortal).toList();
@@ -776,10 +802,22 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
   }
 
-  void updateRoomConfig(RoomConfig newConfig) {
+  void updateWallpaper(String wallpaperId) {
+    roomConfig = roomConfig.copyWith(wallpaper: wallpaperId);
+    _backgroundComponent?.roomConfig = roomConfig;
+  }
+
+  void updateFloor(String floorId) {
+    roomConfig = roomConfig.copyWith(floor: floorId);
+    _backgroundComponent?.roomConfig = roomConfig;
+  }
+
+  void updateRoomConfig(RoomConfig newConfig, {bool reloadFurniture = true}) {
     roomConfig = newConfig;
-    _backgroundComponent.roomConfig = newConfig;
-    _loadFurnitureFromConfig(newConfig);
+    _backgroundComponent?.roomConfig = newConfig;
+    if (reloadFurniture) {
+      _loadFurnitureFromConfig(newConfig);
+    }
   }
 
   RoomConfig exportCurrentRoomConfig() {
@@ -1443,16 +1481,18 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     if (gridPos.x >= 0 && gridPos.x < gridSize && gridPos.y >= 0 && gridPos.y < gridSize) {
       world.add(_TapWaveComponent(grid: gridPos));
 
-      final startPos = Point(avatar.gridX.round(), avatar.gridY.round());
-      final path = IsometricPathfinder.findPath(
-        start: startPos,
-        goal: gridPos,
-        obstacles: obstacles,
-        blockedEdges: blockedEdges,
-      );
+      if (avatar != null) {
+        final startPos = Point(avatar!.gridX.round(), avatar!.gridY.round());
+        final path = IsometricPathfinder.findPath(
+          start: startPos,
+          goal: gridPos,
+          obstacles: obstacles,
+          blockedEdges: blockedEdges,
+        );
 
-      if (path.isNotEmpty) {
-        avatar.setPath(path, gridPos);
+        if (path.isNotEmpty) {
+          avatar!.setPath(path, gridPos);
+        }
       }
     }
   }

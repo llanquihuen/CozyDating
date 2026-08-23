@@ -10,6 +10,7 @@ class RoomDecoratorSheet extends StatefulWidget {
   final ValueChanged<RoomConfig> onSave;
   final Function(FurnitureCatalogItem catalogItem)? onAddFurniture;
   final Function(InteriorWallStyleOption styleOption)? onAddInteriorWall;
+  final ValueChanged<String>? onNotification;
 
   const RoomDecoratorSheet({
     super.key,
@@ -19,6 +20,7 @@ class RoomDecoratorSheet extends StatefulWidget {
     required this.onSave,
     this.onAddFurniture,
     this.onAddInteriorWall,
+    this.onNotification,
   });
 
   static Future<void> show(
@@ -29,6 +31,7 @@ class RoomDecoratorSheet extends StatefulWidget {
     required ValueChanged<RoomConfig> onSave,
     Function(FurnitureCatalogItem catalogItem)? onAddFurniture,
     Function(InteriorWallStyleOption styleOption)? onAddInteriorWall,
+    ValueChanged<String>? onNotification,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -41,6 +44,7 @@ class RoomDecoratorSheet extends StatefulWidget {
         onSave: onSave,
         onAddFurniture: onAddFurniture,
         onAddInteriorWall: onAddInteriorWall,
+        onNotification: onNotification,
       ),
     );
   }
@@ -69,7 +73,6 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
     {'id': 'guide', 'name': '📦 Cubos Guías'},
     {'id': 'surface', 'name': '🕯️ Sobremesa'},
     {'id': 'walls', 'name': '🖼️ Paredes'},
-    {'id': 'dividers', 'name': '🧱 Tabiques y Muros'},
   ];
 
   @override
@@ -249,8 +252,11 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
 
           // Slim 4-column GridView (mobile and tablet alike) showing at least 3 rows
           Expanded(
-            child: _selectedCategory == 'dividers'
-                ? GridView.builder(
+            child: filteredItems.isEmpty
+                ? const Center(
+                    child: Text('No hay muebles en esta categoría.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                  )
+                : GridView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 4,
@@ -258,28 +264,11 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
                       mainAxisSpacing: 6,
                       childAspectRatio: 0.80,
                     ),
-                    itemCount: InteriorWallStyles.all.length,
+                    itemCount: filteredItems.length,
                     itemBuilder: (context, index) {
-                      return _buildInteriorWallCard(InteriorWallStyles.all[index]);
+                      return _buildFurnitureItemCard(filteredItems[index]);
                     },
-                  )
-                : filteredItems.isEmpty
-                    ? const Center(
-                        child: Text('No hay muebles en esta categoría.', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                      )
-                    : GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 6,
-                          mainAxisSpacing: 6,
-                          childAspectRatio: 0.80,
-                        ),
-                        itemCount: filteredItems.length,
-                        itemBuilder: (context, index) {
-                          return _buildFurnitureItemCard(filteredItems[index]);
-                        },
-                      ),
+                  ),
           ),
           SizedBox(height: bottomPadding + 4),
         ],
@@ -344,19 +333,22 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
       onTap: () {
         widget.onAddFurniture?.call(item);
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              item.isSurfaceItem
-                  ? '¡${item.name} agregado! Arrástralo sobre una mesa o mueble.'
-                  : (item.isWallItem
-                      ? '¡${item.name} agregado! Arrástralo a la pared.'
-                      : '¡${item.name} agregado! Mantén presionado para ubicarlo.'),
+        final msg = item.isSurfaceItem
+            ? '¡${item.name} agregado! Arrástralo sobre un mueble.'
+            : (item.isWallItem
+                ? '¡${item.name} agregado! Arrástralo a la pared.'
+                : '¡${item.name} agregado! Ubícalo en la habitación.');
+        if (widget.onNotification != null) {
+          widget.onNotification!(msg);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              backgroundColor: const Color(0xFF282531),
+              duration: const Duration(seconds: 2),
             ),
-            backgroundColor: const Color(0xFF282531),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+          );
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(5),
@@ -415,94 +407,6 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
             // Extra info
             Text(
               item.isSurfaceSupporting ? 'Superficie (+${item.effectiveSurfaceHeight}px)' : (item.isSurfaceItem ? 'Sobre muebles' : 'Decoración'),
-              style: const TextStyle(
-                fontSize: 7.5,
-                color: Colors.white54,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInteriorWallCard(InteriorWallStyleOption option) {
-    const tagColor = Color(0xFFA78BFA);
-    return GestureDetector(
-      onTap: () {
-        widget.onAddInteriorWall?.call(option);
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('¡${option.name} agregado! Arrástralo a cualquier borde entre baldosas.'),
-            backgroundColor: const Color(0xFF282531),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF282531),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: tagColor.withOpacity(0.4), width: 1.0),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Badge & Add Icon
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: tagColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    option.isDoorway ? '🚪 Paso Libre' : '🧱 Arista',
-                    style: const TextStyle(fontSize: 7.5, fontWeight: FontWeight.bold, color: tagColor),
-                  ),
-                ),
-                const Icon(Icons.add_circle, color: tagColor, size: 13),
-              ],
-            ),
-            const SizedBox(height: 2),
-            // Centered Emoji Preview
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: option.color != null ? option.color!.withOpacity(0.25) : const Color(0xFF1E1C27),
-                  borderRadius: BorderRadius.circular(6),
-                  border: option.color != null ? Border.all(color: option.color!.withOpacity(0.6), width: 1.2) : null,
-                ),
-                padding: const EdgeInsets.all(2),
-                child: Text(
-                  option.emoji,
-                  style: const TextStyle(fontSize: 30),
-                ),
-              ),
-            ),
-            const SizedBox(height: 2),
-            // Item Name
-            Text(
-              option.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 9.5,
-                color: Colors.white,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            // Extra info
-            Text(
-              option.description,
               style: const TextStyle(
                 fontSize: 7.5,
                 color: Colors.white54,

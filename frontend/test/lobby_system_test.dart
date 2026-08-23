@@ -8,6 +8,8 @@ import 'package:frontend/core/network/websocket_client.dart';
 import 'package:frontend/core/services/avatar_storage_service.dart';
 import 'package:frontend/features/game/bloc/game_bloc.dart';
 import 'package:frontend/features/lobby/screens/cozy_lobby_view.dart';
+import 'package:frontend/features/lobby/games/cozy_room_game.dart';
+import 'package:frontend/features/lobby/components/isometric_interior_wall_component.dart';
 import 'package:frontend/features/lobby/utils/isometric_coords.dart';
 import 'package:frontend/features/lobby/utils/isometric_pathfinder.dart';
 
@@ -198,10 +200,154 @@ void main() {
 
       // Verify UI elements
       expect(find.text('Decorar'), findsOneWidget);
+      expect(find.text('Constructor'), findsOneWidget);
       expect(find.text('Armario'), findsOneWidget);
       expect(find.text('Iniciar Cita'), findsOneWidget);
       expect(find.text('Habitación Cozy (Lobby)'), findsOneWidget);
       expect(find.text('🧑‍🦰 Alice (Explorador)'), findsOneWidget);
+    });
+
+    testWidgets('Tapping Decorar button enters decorate mode with Muebles & Decoracion bottom bar', (tester) async {
+      final webSocketClient = WebSocketClient();
+      final gameBloc = GameBloc(webSocketClient: webSocketClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider<GameBloc>.value(
+            value: gameBloc,
+            child: CozyLobbyView(
+              activeUserId: 'alice',
+              onUserChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      // Tap Decorar button
+      await tester.tap(find.text('Decorar'));
+      await tester.pumpAndSettle();
+
+      // Should show Decorate mode UI with Muebles & Decoración section
+      expect(find.text('DECORAR'), findsOneWidget);
+      expect(find.text('🛋️ Muebles & Decoración'), findsOneWidget);
+      expect(find.text('Abrir Catálogo'), findsOneWidget);
+      expect(find.text('Salón y Mesas'), findsOneWidget);
+      expect(find.text('Dormitorio'), findsOneWidget);
+      expect(find.text('Listo'), findsOneWidget);
+      expect(find.text('Cancelar'), findsOneWidget);
+
+      // Open catalog and check dividers/tabiques is not in catalog categories
+      await tester.tap(find.text('Abrir Catálogo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Catálogo de Muebles'), findsOneWidget);
+      expect(find.text('🧱 Tabiques y Muros'), findsNothing);
+    });
+
+    testWidgets('Tapping Constructor button switches to constructor mode with tabs', (tester) async {
+      final webSocketClient = WebSocketClient();
+      final gameBloc = GameBloc(webSocketClient: webSocketClient);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider<GameBloc>.value(
+            value: gameBloc,
+            child: CozyLobbyView(
+              activeUserId: 'alice',
+              onUserChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      // Tap Constructor button
+      await tester.tap(find.text('Constructor'));
+      await tester.pumpAndSettle();
+
+      // Should show Constructor mode UI elements
+      expect(find.text('CONSTRUCTOR'), findsOneWidget);
+      expect(find.text('🧱 Paredes'), findsOneWidget);
+      expect(find.text('🪵 Pisos'), findsOneWidget);
+      expect(find.text('🚪 Muros Internos'), findsOneWidget);
+      expect(find.text('Listo'), findsOneWidget);
+      expect(find.text('Cancelar'), findsOneWidget);
+    });
+
+    test('updateWallpaper and updateFloor update background config without reloading furniture', () {
+      final initialConfig = RoomConfig(
+        wallpaper: 'rustic_wood',
+        floor: 'oak_parquet',
+        furniture: [
+          PlacedFurnitureConfig(id: 'bed_1', typeName: 'bed_single', gridX: 2, gridY: 2),
+          PlacedFurnitureConfig(id: 'table_1', typeName: 'table', gridX: 4, gridY: 4),
+        ],
+      );
+
+      final game = CozyRoomGame(
+        avatarConfig: AvatarStorageService.getUserConfig('alice'),
+        roomConfig: initialConfig,
+      );
+
+      expect(game.roomConfig.wallpaper, equals('rustic_wood'));
+      expect(game.roomConfig.floor, equals('oak_parquet'));
+      expect(game.roomConfig.furniture.length, equals(2));
+
+      // Paint wallpaper
+      game.updateWallpaper('starry_night');
+      expect(game.roomConfig.wallpaper, equals('starry_night'));
+      expect(game.roomConfig.furniture.length, equals(2));
+
+      // Paint floor
+      game.updateFloor('checker_marble');
+      expect(game.roomConfig.floor, equals('checker_marble'));
+      expect(game.roomConfig.wallpaper, equals('starry_night'));
+      expect(game.roomConfig.furniture.length, equals(2));
+    });
+
+    test('applyStyleToAllInteriorWalls updates all interior walls in the room', () {
+      final initialConfig = RoomConfig(
+        interiorWalls: [
+          InteriorWallConfig(id: 'w1', gridX: 2, gridY: 2, orientation: 'north', style: 'wood_slats'),
+          InteriorWallConfig(id: 'w2', gridX: 4, gridY: 4, orientation: 'west', style: 'wood_slats'),
+        ],
+      );
+
+      final game = CozyRoomGame(
+        avatarConfig: AvatarStorageService.getUserConfig('alice'),
+        roomConfig: initialConfig,
+      );
+
+      final styleOption = InteriorWallStyles.all.firstWhere((s) => s.id == 'solid_sage_green');
+      final count = game.applyStyleToAllInteriorWalls(styleOption);
+
+      expect(count, equals(0)); // World components not yet added since onLoad wasn't called in pure unit test
+
+      // Directly add components to world (two solid walls and one doorway)
+      final w1 = IsometricInteriorWallComponent(id: 'w1', gridX: 2, gridY: 2, style: 'wood_slats');
+      final w2 = IsometricInteriorWallComponent(id: 'w2', gridX: 4, gridY: 4, style: 'wood_slats');
+      final wDoor = IsometricInteriorWallComponent(id: 'wDoor', gridX: 3, gridY: 3, style: 'doorway_frame', hasDoorway: true);
+      game.world.add(w1);
+      game.world.add(w2);
+      game.world.add(wDoor);
+
+      final count2 = game.applyStyleToAllInteriorWalls(styleOption);
+      expect(count2, equals(2)); // Only solid walls updated
+      expect(w1.style, equals('solid_sage_green'));
+      expect(w2.style, equals('solid_sage_green'));
+      expect(wDoor.style, equals('doorway_frame')); // Doorway preserved!
+      expect(wDoor.hasDoorway, isTrue);
+
+      // Attempting to paint using a doorway style option returns 0
+      final doorwayStyle = InteriorWallStyles.all.firstWhere((s) => s.isDoorway);
+      expect(game.applyStyleToAllInteriorWalls(doorwayStyle), equals(0));
+
+      // Apply selected wall style to all
+      w1.style = 'rustic_brick';
+      game.selectedInteriorWall = w1;
+      final count3 = game.applySelectedInteriorWallStyleToAll();
+      expect(count3, equals(3));
+      expect(w1.style, equals('rustic_brick'));
+      expect(w2.style, equals('rustic_brick'));
     });
   });
 }
