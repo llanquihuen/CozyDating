@@ -79,6 +79,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "SANCTUARY_DECISION":
                     handleForwardMessage(session, data);
                     break;
+                case "PING":
+                    sendJson(session, Map.of("type", "PONG"));
+                    break;
+                case "PONG":
+                    // Keep-alive acknowledgment
+                    break;
                 case "ROLE_SWAP":
                     handleRoleSwap(session);
                     break;
@@ -99,7 +105,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         if (userId != null) {
             logger.warn("[SOCKET CLOSED] WebSocket link closed for userId: {} (Status: {}). Triggering cleanup...", userId, status);
             matchmakingService.leaveQueue(userId);
-            gameSessionService.handleDisconnect(userId);
+            gameSessionService.handleDisconnect(userId, session);
         } else {
             logger.info("[SOCKET CLOSED] Unauthenticated session closed: {}", session.getId());
         }

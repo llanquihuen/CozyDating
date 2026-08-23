@@ -245,6 +245,60 @@ class _GameViewState extends State<GameView> {
                 ],
               ),
             ),
+
+            // 3. Portal Open Countdown Banner (top center)
+            Positioned(
+              top: 16,
+              left: 24,
+              right: 24,
+              child: ValueListenableBuilder<int>(
+                valueListenable: _dungeonGame.portalRemainingSeconds,
+                builder: (context, seconds, child) {
+                  if (seconds <= 0) return const SizedBox.shrink();
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
+                        width: 2.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (seconds <= 3 ? Colors.redAccent : Colors.cyanAccent).withOpacity(0.35),
+                          blurRadius: 16,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.cyclone,
+                          color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            '¡PORTAL ABIERTO! Cierra en: ${seconds}s',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),

@@ -330,25 +330,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   void _onSendSanctuaryReached(SendSanctuaryReachedEvent event, Emitter<GameState> emit) {
-    print('[BLOC EVENT] SendSanctuaryReachedEvent triggered');
+    print('[BLOC EVENT] SendSanctuaryReachedEvent triggered - sending ROLE_SWAP packet to server');
     webSocketClient.sendMessage({'type': 'ROLE_SWAP'});
-
-    if (state is ActiveGameState) {
-      final active = state as ActiveGameState;
-      final currentRole = active.session.role;
-      final newRole = currentRole == 'EXPLORER' ? 'GUIDE' : 'EXPLORER';
-      final updatedSession = SessionInitPayload(
-        roomId: active.session.roomId,
-        role: newRole,
-        mode: active.session.mode,
-        livekitToken: active.session.livekitToken,
-        partnerId: active.session.partnerId,
-        act: 2,
-        seed: active.session.seed,
-      );
-      print('[BLOC EVENT] Local Roles swapped for Act 2: $currentRole -> $newRole (Act 2 Map Seed)');
-      emit(ActiveGameState(session: updatedSession));
-    }
   }
 
   Future<void> _onSendEmergencyDisconnect(SendEmergencyDisconnectEvent event, Emitter<GameState> emit) async {
@@ -423,13 +406,29 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
 
     if (type == 'ROLE_SWAP') {
-      print('[BLOC IN] Received ROLE_SWAP from server: $msg');
+      print('[BLOC IN] Received authoritative ROLE_SWAP from server: $msg');
       if (state is ActiveGameState) {
         final active = state as ActiveGameState;
         final currentRole = active.session.role;
-        final newRole = currentRole == 'EXPLORER' ? 'GUIDE' : 'EXPLORER';
         final newSeed = (msg['seed'] as num?)?.toInt() ?? active.session.seed;
         final newAct = (msg['act'] as num?)?.toInt() ?? 2;
+
+        String newRole;
+        final serverExplorerId = msg['explorerId'] as String?;
+        final serverGuideId = msg['guideId'] as String?;
+
+        if (serverExplorerId != null && serverGuideId != null) {
+          if (active.session.partnerId == serverGuideId) {
+            newRole = 'EXPLORER';
+          } else if (active.session.partnerId == serverExplorerId) {
+            newRole = 'GUIDE';
+          } else {
+            newRole = currentRole == 'EXPLORER' ? 'GUIDE' : 'EXPLORER';
+          }
+        } else {
+          newRole = currentRole == 'EXPLORER' ? 'GUIDE' : 'EXPLORER';
+        }
+
         final updatedSession = SessionInitPayload(
           roomId: active.session.roomId,
           role: newRole,
@@ -439,7 +438,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           act: newAct,
           seed: newSeed,
         );
-        print('[BLOC IN] Roles swapped for Act $newAct: $currentRole -> $newRole (Seed: $newSeed)');
+        print('[BLOC IN] Roles swapped for Act $newAct: $currentRole -> $newRole (Seed: $newSeed, Partner: ${active.session.partnerId})');
         emit(ActiveGameState(session: updatedSession));
       }
       return;

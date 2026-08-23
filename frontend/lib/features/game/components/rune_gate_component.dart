@@ -65,7 +65,7 @@ class RuneGateComponent extends PositionComponent with CollisionCallbacks {
   }
 
   void unlock() {
-    unlockForDuration(const Duration(seconds: 8));
+    unlockForDuration(const Duration(seconds: 10));
   }
 
   @override

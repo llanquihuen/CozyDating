@@ -93,11 +93,24 @@ public class GameSessionService {
     }
 
     public void handleDisconnect(String userId) {
+        handleDisconnect(userId, null);
+    }
+
+    public void handleDisconnect(String userId, WebSocketSession closedSession) {
         String roomId = userToRoomMap.get(userId);
         if (roomId == null) return;
 
         GameRoom room = activeRooms.get(roomId);
         if (room == null || room.isPaused()) return;
+
+        // If the closed session is not the active session (e.g. an old session was closed after reconnect), ignore
+        if (closedSession != null) {
+            WebSocketSession activeSession = userId.equals(room.getExplorerId()) ? room.getExplorerSession() : room.getGuideSession();
+            if (activeSession != null && activeSession != closedSession && activeSession.isOpen()) {
+                logger.info("[GAME SESSION INFO] Closed socket was a previous connection for user {}. Active session remains open.", userId);
+                return;
+            }
+        }
 
         logger.warn("[GAME SESSION PAUSE] User {} disconnected from room {}. Transitioning to WAITING_RECONNECT (20s grace period).", userId, roomId);
         
@@ -159,19 +172,29 @@ public class GameSessionService {
         if (roomId == null) return false;
 
         GameRoom room = activeRooms.get(roomId);
-        if (room == null || !room.isPaused()) return false;
+        if (room == null) return false;
 
         if (room.getReconnectGraceTask() != null) {
             room.getReconnectGraceTask().cancel(false);
             room.setReconnectGraceTask(null);
         }
 
-        logger.info("[GAME SESSION RESUME] User {} successfully reconnected within grace window to room {}. Resuming match!", userId, roomId);
+        logger.info("[GAME SESSION RESUME] User {} successfully attached new session to room {}. Resuming match!", userId, roomId);
 
         if (userId.equals(room.getExplorerId())) {
+            WebSocketSession old = room.getExplorerSession();
+            if (old != null && old != newSession && old.isOpen()) {
+                try { old.close(); } catch (Exception ignored) {}
+            }
             room.setExplorerSession(newSession);
-        } else {
+        } else if (userId.equals(room.getGuideId())) {
+            WebSocketSession old = room.getGuideSession();
+            if (old != null && old != newSession && old.isOpen()) {
+                try { old.close(); } catch (Exception ignored) {}
+            }
             room.setGuideSession(newSession);
+        } else {
+            return false;
         }
 
         room.setPaused(false);

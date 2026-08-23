@@ -17,9 +17,11 @@ class WebSocketClient {
   final _messageController = StreamController<Map<String, dynamic>>.broadcast();
 
   Timer? _reconnectTimer;
+  Timer? _heartbeatTimer;
   int _reconnectAttempts = 0;
   final int _maxReconnectAttempts = 10;
   final Duration _reconnectInterval = const Duration(seconds: 2);
+  final Duration _heartbeatInterval = const Duration(seconds: 15);
 
   bool _isSessionActive = false;
 
@@ -52,6 +54,7 @@ class WebSocketClient {
     print('[NET LOG] Manual disconnect requested.');
     _isSessionActive = false;
     _cancelReconnectTimer();
+    _stopHeartbeat();
     await _closeChannel();
     _transitionTo(WebSocketConnectionState.disconnected);
   }
@@ -85,6 +88,7 @@ class WebSocketClient {
       _reconnectAttempts = 0;
       print('[NET LOG] Socket connection ESTABLISHED successfully!');
       _transitionTo(WebSocketConnectionState.connected);
+      _startHeartbeat();
 
       _channelSubscription = _channel!.stream.listen(
         _onMessageReceived,
@@ -99,10 +103,14 @@ class WebSocketClient {
   }
 
   void _onMessageReceived(dynamic data) {
-    print('[NET INCOMING] Raw text received: $data');
     if (data is String) {
       try {
         final Map<String, dynamic> parsed = jsonDecode(data) as Map<String, dynamic>;
+        if (parsed['type'] == 'PONG') {
+          // Keep-alive heartbeat pong received
+          return;
+        }
+        print('[NET INCOMING] Raw text received: $data');
         _messageController.add(parsed);
       } catch (e) {
         print('[NET ERROR] Failed to parse JSON message: $e');
@@ -112,6 +120,7 @@ class WebSocketClient {
 
   void _onConnectionClosed() {
     print('[NET LOG] Socket connection closed by server or network loss. ActiveSession = $_isSessionActive');
+    _stopHeartbeat();
     _channel = null;
     if (_isSessionActive) {
       _startReconnectionSchedule();
@@ -122,12 +131,27 @@ class WebSocketClient {
 
   void _handleError(dynamic error) {
     print('[NET ERROR] Socket error encountered: $error. ActiveSession = $_isSessionActive');
+    _stopHeartbeat();
     _channel = null;
     if (_isSessionActive) {
       _startReconnectionSchedule();
     } else {
       _transitionTo(WebSocketConnectionState.disconnected);
     }
+  }
+
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
+      if (_connectionState == WebSocketConnectionState.connected && _channel != null) {
+        sendMessage({'type': 'PING'});
+      }
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
   }
 
   void _startReconnectionSchedule() {
@@ -162,6 +186,7 @@ class WebSocketClient {
         _channel = channel;
         _reconnectAttempts = 0;
         _transitionTo(WebSocketConnectionState.connected);
+        _startHeartbeat();
 
         _channelSubscription = _channel!.stream.listen(
           _onMessageReceived,
@@ -199,6 +224,7 @@ class WebSocketClient {
   }
 
   Future<void> _closeChannel() async {
+    _stopHeartbeat();
     try {
       await _channelSubscription?.cancel();
       await _channel?.sink.close();
@@ -208,6 +234,7 @@ class WebSocketClient {
   }
 
   void dispose() {
+    _stopHeartbeat();
     _cancelReconnectTimer();
     _closeChannel();
     _stateController.close();

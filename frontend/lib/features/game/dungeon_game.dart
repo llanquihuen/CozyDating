@@ -1,7 +1,9 @@
+import 'dart:async' as async;
 import 'dart:math';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import '../../../core/models/avatar_config.dart';
@@ -36,6 +38,8 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
   bool hasKey = false;
   final List<String> currentSteppedSequence = [];
   Vector2? _lastProcessedRunePos;
+  final ValueNotifier<int> portalRemainingSeconds = ValueNotifier<int>(0);
+  async.Timer? _portalCountdownTimer;
 
   DungeonGame({
     this.dungeonMapData,
@@ -334,8 +338,8 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
       onRuneFeedback?.call('✨ Correct Rune: ${DungeonGenerator.getRuneLabel(runeType)}');
 
       if (currentSteppedSequence.length == targetSeq.length) {
-        unlockRuneGate();
-        onRuneFeedback?.call('🔓 RUNE GATE UNLOCKED! 8 SECONDS to pass!');
+        unlockRuneGate(seconds: 10);
+        onRuneFeedback?.call('🔓 ¡PORTÓN RÚNICO ABIERTO! 10 SEGUNDOS para cruzar!');
       }
     } else {
       print('[RUNE LOG] Wrong rune stepped! Resetting sequence...');
@@ -349,17 +353,36 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     }
   }
 
-  void unlockRuneGate() {
+  void unlockRuneGate({int seconds = 10}) {
+    _portalCountdownTimer?.cancel();
+    portalRemainingSeconds.value = seconds;
+
+    _portalCountdownTimer = async.Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (portalRemainingSeconds.value > 1) {
+        portalRemainingSeconds.value -= 1;
+      } else {
+        portalRemainingSeconds.value = 0;
+        timer.cancel();
+      }
+    });
+
     for (final gate in world.children.whereType<RuneGateComponent>()) {
-      gate.unlockForDuration(const Duration(seconds: 8), onRelocked: () {
+      gate.unlockForDuration(Duration(seconds: seconds), onRelocked: () {
+        _portalCountdownTimer?.cancel();
+        portalRemainingSeconds.value = 0;
         currentSteppedSequence.clear();
-        onRuneFeedback?.call('🔒 Time Expired! Rune Gate Relocked.');
+        onRuneFeedback?.call('🔒 ¡Tiempo agotado! El portón rúnico se ha cerrado.');
         // Reset tiles when gate relocks
         for (final tile in world.children.whereType<RuneTileComponent>()) {
           tile.reset();
         }
       });
     }
+  }
+
+  void cancelPortalCountdown() {
+    _portalCountdownTimer?.cancel();
+    portalRemainingSeconds.value = 0;
   }
 
   void collectKey() {
