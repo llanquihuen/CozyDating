@@ -71,6 +71,7 @@ class SessionInitPayload extends Equatable {
   final String? livekitToken;
   final String partnerId;
   final int act;
+  final int? seed;
 
   const SessionInitPayload({
     required this.roomId,
@@ -79,6 +80,7 @@ class SessionInitPayload extends Equatable {
     this.livekitToken,
     required this.partnerId,
     this.act = 1,
+    this.seed,
   });
 
   factory SessionInitPayload.fromJson(Map<String, dynamic> json) {
@@ -89,6 +91,7 @@ class SessionInitPayload extends Equatable {
       livekitToken: json['livekitToken'] as String?,
       partnerId: json['partnerId'] as String? ?? '',
       act: (json['act'] as num?)?.toInt() ?? 1,
+      seed: (json['seed'] as num?)?.toInt(),
     );
   }
 
@@ -100,11 +103,12 @@ class SessionInitPayload extends Equatable {
       'livekitToken': livekitToken,
       'partnerId': partnerId,
       'act': act,
+      'seed': seed,
     };
   }
 
   @override
-  List<Object?> get props => [roomId, role, mode, livekitToken, partnerId, act];
+  List<Object?> get props => [roomId, role, mode, livekitToken, partnerId, act, seed];
 }
 
 class DungeonStatePayload extends Equatable {
@@ -113,6 +117,8 @@ class DungeonStatePayload extends Equatable {
   final double? chaserX;
   final double? chaserY;
   final String role;
+  final String direction;
+  final bool isMoving;
   final Map<String, dynamic> activeTraps;
   final Map<String, dynamic> blockPositions;
 
@@ -122,6 +128,8 @@ class DungeonStatePayload extends Equatable {
     this.chaserX,
     this.chaserY,
     required this.role,
+    this.direction = 'down',
+    this.isMoving = false,
     required this.activeTraps,
     required this.blockPositions,
   });
@@ -133,6 +141,8 @@ class DungeonStatePayload extends Equatable {
       chaserX: (json['chaserX'] as num?)?.toDouble(),
       chaserY: (json['chaserY'] as num?)?.toDouble(),
       role: json['role'] as String? ?? 'EXPLORER',
+      direction: json['direction'] as String? ?? 'down',
+      isMoving: json['isMoving'] as bool? ?? false,
       activeTraps: json['activeTraps'] as Map<String, dynamic>? ?? const {},
       blockPositions: json['blockPositions'] as Map<String, dynamic>? ?? const {},
     );
@@ -145,11 +155,23 @@ class DungeonStatePayload extends Equatable {
       'chaserX': chaserX,
       'chaserY': chaserY,
       'role': role,
+      'direction': direction,
+      'isMoving': isMoving,
       'activeTraps': activeTraps,
       'blockPositions': blockPositions,
     };
   }
 
   @override
-  List<Object?> get props => [playerX, playerY, chaserX, chaserY, role, activeTraps, blockPositions];
+  List<Object?> get props => [
+        playerX,
+        playerY,
+        chaserX,
+        chaserY,
+        role,
+        direction,
+        isMoving,
+        activeTraps,
+        blockPositions,
+      ];
 }

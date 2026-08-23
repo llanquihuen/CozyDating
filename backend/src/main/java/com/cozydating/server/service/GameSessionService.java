@@ -49,13 +49,16 @@ public class GameSessionService {
             livekitTokenGuide = liveKitTokenGenerator.createToken(guideId, roomId);
         }
 
+        long dungeonSeed = Math.abs((long) roomId.hashCode() * 31 + (System.currentTimeMillis() % 1000000L));
+
         GameRoom room = new GameRoom(
             roomId,
             explorerId, explorerSession,
             guideId, guideSession,
             mode,
             livekitTokenExplorer,
-            livekitTokenGuide
+            livekitTokenGuide,
+            dungeonSeed
         );
 
         activeRooms.put(roomId, room);
@@ -63,7 +66,7 @@ public class GameSessionService {
         userToRoomMap.put(guideId, roomId);
 
         // Send SESSION_INIT to Explorer
-        logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer ({})", explorerId);
+        logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer ({}) with seed {}", explorerId, dungeonSeed);
         Map<String, Object> explorerInit = new HashMap<>();
         explorerInit.put("type", "SESSION_INIT");
         explorerInit.put("roomId", roomId);
@@ -71,10 +74,12 @@ public class GameSessionService {
         explorerInit.put("mode", mode);
         explorerInit.put("livekitToken", livekitTokenExplorer);
         explorerInit.put("partnerId", guideId);
+        explorerInit.put("seed", dungeonSeed);
+        explorerInit.put("act", 1);
         sendJsonMessage(explorerSession, explorerInit);
 
         // Send SESSION_INIT to Guide
-        logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide ({})", guideId);
+        logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide ({}) with seed {}", guideId, dungeonSeed);
         Map<String, Object> guideInit = new HashMap<>();
         guideInit.put("type", "SESSION_INIT");
         guideInit.put("roomId", roomId);
@@ -82,6 +87,8 @@ public class GameSessionService {
         guideInit.put("mode", mode);
         guideInit.put("livekitToken", livekitTokenGuide);
         guideInit.put("partnerId", explorerId);
+        guideInit.put("seed", dungeonSeed);
+        guideInit.put("act", 1);
         sendJsonMessage(guideSession, guideInit);
     }
 
@@ -288,19 +295,32 @@ public class GameSessionService {
         GameRoom room = activeRooms.get(roomId);
         if (room == null || room.isPaused()) return;
 
-        String partnerId = room.getPartnerId(userId);
-        logger.info("[GAME SESSION SWAP] User {} entered Final Portal in room {}. Swapping Act 2 Roles: Explorer ({}) <-> Guide ({})",
-                userId, roomId, room.getExplorerId(), room.getGuideId());
+        long newSeed = Math.abs(room.getDungeonSeed() * 31 + 7919);
+        room.swapRoles(newSeed);
+
+        String newExplorerId = room.getExplorerId();
+        String newGuideId = room.getGuideId();
+
+        logger.info("[GAME SESSION SWAP] User {} entered Final Portal in room {}. Swapped Act 2 Roles: Explorer ({}) <-> Guide ({}) with seed {}",
+                userId, roomId, newExplorerId, newGuideId, newSeed);
 
         Map<String, Object> swapMsg = new HashMap<>();
         swapMsg.put("type", "ROLE_SWAP");
         swapMsg.put("message", "Roles swapped for Act 2.");
         swapMsg.put("triggerUserId", userId);
+        swapMsg.put("seed", newSeed);
+        swapMsg.put("act", 2);
+        swapMsg.put("explorerId", newExplorerId);
+        swapMsg.put("guideId", newGuideId);
 
-        WebSocketSession partnerSession = room.getPartnerSession(userId);
-        if (partnerSession != null && partnerSession.isOpen()) {
-            logger.info("[GAME SESSION SWAP] Forwarding ROLE_SWAP frame to partner: {} (GUIDE -> EXPLORER)", partnerId);
-            sendJsonMessage(partnerSession, swapMsg);
+        WebSocketSession explorerSession = room.getExplorerSession();
+        WebSocketSession guideSession = room.getGuideSession();
+
+        if (explorerSession != null && explorerSession.isOpen()) {
+            sendJsonMessage(explorerSession, swapMsg);
+        }
+        if (guideSession != null && guideSession.isOpen() && guideSession != explorerSession) {
+            sendJsonMessage(guideSession, swapMsg);
         }
     }
 

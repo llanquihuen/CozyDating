@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
+import 'core/config/app_config.dart';
 import 'core/models/game_models.dart';
 import 'core/network/websocket_client.dart';
 import 'core/services/avatar_storage_service.dart';
@@ -53,11 +52,6 @@ class GameLauncherScreen extends StatefulWidget {
 }
 
 class _GameLauncherScreenState extends State<GameLauncherScreen> {
-  final String _serverHost = kIsWeb
-      ? 'localhost'
-      : (Platform.isAndroid ? '10.0.2.2' : 'localhost');
-  final int _serverPort = 8080;
-
   String _selectedUserId = 'alice';
   int _currentTicketBalance = 5;
   bool _isFetchingBalance = false;
@@ -72,8 +66,8 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
   bool _isAuthenticating = false;
   String? _jwtToken;
 
-  String get _baseUrl => 'http://$_serverHost:$_serverPort';
-  String get _wsUrl => 'ws://$_serverHost:$_serverPort/game';
+  String get _baseUrl => AppConfig.baseUrl;
+  String get _wsUrl => AppConfig.wsUrl;
 
   @override
   void initState() {

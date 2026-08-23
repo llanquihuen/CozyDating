@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
+import '../../../core/models/avatar_config.dart';
 import 'components/darkness_overlay_component.dart';
 import 'components/explorer_component.dart';
 import 'components/floor_component.dart';
@@ -25,8 +26,10 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
 
   final void Function()? onSanctuaryReached;
   final void Function(Vector2 pos)? onExplorerMoved;
+  final void Function(Vector2 pos, String direction, bool isMoving)? onExplorerMovedFull;
   final void Function(bool hasKey)? onKeyStatusChanged;
   final void Function(String message)? onRuneFeedback;
+  final AvatarConfig? explorerAvatarConfig;
   final bool isGuideMode;
   final double tileSize = 36.0;
 
@@ -38,8 +41,10 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     this.dungeonMapData,
     this.onSanctuaryReached,
     this.onExplorerMoved,
+    this.onExplorerMovedFull,
     this.onKeyStatusChanged,
     this.onRuneFeedback,
+    this.explorerAvatarConfig,
     this.isGuideMode = false,
   });
 
@@ -289,7 +294,11 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     explorer = ExplorerComponent(
       position: spawnPosition,
       size: spriteSize,
+      avatarConfig: explorerAvatarConfig,
       onPositionChanged: onExplorerMoved,
+      onPositionChangedFull: (pos, dir, moving) {
+        onExplorerMovedFull?.call(pos, dir.name, moving);
+      },
     );
     world.add(explorer);
 

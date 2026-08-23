@@ -74,7 +74,7 @@ void main() {
       );
 
       // Verify UI Title
-      expect(find.text('Avatar Studio 16-Bit'), findsOneWidget);
+      expect(find.text('Armario'), findsOneWidget);
       expect(find.text('Guardar'), findsOneWidget);
 
       // Verify Resolution Toggles

@@ -6,8 +6,8 @@ import java.util.concurrent.ScheduledFuture;
 
 public class GameRoom {
     private final String roomId;
-    private final String explorerId;
-    private final String guideId;
+    private String explorerId;
+    private String guideId;
     
     private WebSocketSession explorerSession;
     private WebSocketSession guideSession;
@@ -15,6 +15,9 @@ public class GameRoom {
     private final String mode;
     private final String livekitTokenExplorer;
     private final String livekitTokenGuide;
+    
+    private long dungeonSeed;
+    private int act = 1;
     
     private boolean paused = false;
     private boolean explorerReady = false;
@@ -25,7 +28,8 @@ public class GameRoom {
 
     public GameRoom(String roomId, String explorerId, WebSocketSession explorerSession,
                     String guideId, WebSocketSession guideSession, String mode,
-                    String livekitTokenExplorer, String livekitTokenGuide) {
+                    String livekitTokenExplorer, String livekitTokenGuide,
+                    long dungeonSeed) {
         this.roomId = roomId;
         this.explorerId = explorerId;
         this.explorerSession = explorerSession;
@@ -34,6 +38,31 @@ public class GameRoom {
         this.mode = mode;
         this.livekitTokenExplorer = livekitTokenExplorer;
         this.livekitTokenGuide = livekitTokenGuide;
+        this.dungeonSeed = dungeonSeed;
+        this.act = 1;
+    }
+
+    public void swapRoles(long newSeed) {
+        String tempId = this.explorerId;
+        this.explorerId = this.guideId;
+        this.guideId = tempId;
+
+        WebSocketSession tempSession = this.explorerSession;
+        this.explorerSession = this.guideSession;
+        this.guideSession = tempSession;
+
+        this.act = 2;
+        this.dungeonSeed = newSeed;
+        this.explorerReady = false;
+        this.guideReady = false;
+    }
+
+    public long getDungeonSeed() {
+        return dungeonSeed;
+    }
+
+    public int getAct() {
+        return act;
     }
 
     public String getRoomId() {

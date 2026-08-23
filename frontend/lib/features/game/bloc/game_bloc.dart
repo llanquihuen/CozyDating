@@ -301,6 +301,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         'chaserX': event.move.chaserX,
         'chaserY': event.move.chaserY,
         'role': event.move.role,
+        'direction': event.move.direction,
+        'isMoving': event.move.isMoving,
         'activeTraps': event.move.activeTraps,
         'blockPositions': event.move.blockPositions,
       });
@@ -342,6 +344,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         livekitToken: active.session.livekitToken,
         partnerId: active.session.partnerId,
         act: 2,
+        seed: active.session.seed,
       );
       print('[BLOC EVENT] Local Roles swapped for Act 2: $currentRole -> $newRole (Act 2 Map Seed)');
       emit(ActiveGameState(session: updatedSession));
@@ -420,20 +423,23 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
 
     if (type == 'ROLE_SWAP') {
-      print('[BLOC IN] Received ROLE_SWAP from server!');
+      print('[BLOC IN] Received ROLE_SWAP from server: $msg');
       if (state is ActiveGameState) {
         final active = state as ActiveGameState;
         final currentRole = active.session.role;
         final newRole = currentRole == 'EXPLORER' ? 'GUIDE' : 'EXPLORER';
+        final newSeed = (msg['seed'] as num?)?.toInt() ?? active.session.seed;
+        final newAct = (msg['act'] as num?)?.toInt() ?? 2;
         final updatedSession = SessionInitPayload(
           roomId: active.session.roomId,
           role: newRole,
           mode: active.session.mode,
           livekitToken: active.session.livekitToken,
           partnerId: active.session.partnerId,
-          act: 2,
+          act: newAct,
+          seed: newSeed,
         );
-        print('[BLOC IN] Roles swapped for Act 2: $currentRole -> $newRole (Act 2 Map Seed)');
+        print('[BLOC IN] Roles swapped for Act $newAct: $currentRole -> $newRole (Seed: $newSeed)');
         emit(ActiveGameState(session: updatedSession));
       }
       return;

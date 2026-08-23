@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
+import '../avatar/components/modular_avatar_component.dart';
 import 'components/explorer_component.dart';
 import 'components/ping_beacon_component.dart';
 import 'components/spike_trap_component.dart';
@@ -13,6 +14,7 @@ class GuideDungeonGame extends DungeonGame with TapCallbacks, DragCallbacks {
 
   GuideDungeonGame({
     super.dungeonMapData,
+    super.explorerAvatarConfig,
     this.onPingTap,
   }) : super(isGuideMode: true);
 
@@ -52,16 +54,47 @@ class GuideDungeonGame extends DungeonGame with TapCallbacks, DragCallbacks {
     }
   }
 
-  /// Updates the remote Explorer avatar position, snapping 100% centered in grid cell
-  void updateExplorerRemotePosition(Vector2 remotePos) {
+  /// Updates the remote Explorer avatar position, direction and animation in the Guide screen
+  void updateExplorerRemotePosition(Vector2 remotePos, {String? direction, bool isMoving = false}) {
     final marginX = (tileSize - explorer.size.x) / 2;
     final marginY = (tileSize - explorer.size.x) / 2 - (explorer.size.y - explorer.size.x);
     final col = ((remotePos.x - marginX) / tileSize).round();
     final row = ((remotePos.y - marginY) / tileSize).round();
     final centeredPos = ExplorerComponent.getCenteredTilePosition(col, row, tileSize, explorer.size);
 
-    explorer.position = centeredPos;
-    explorer.targetPosition = centeredPos.clone();
-    explorer.isMoving = false;
+    if (direction != null) {
+      switch (direction.toLowerCase()) {
+        case 'up':
+          explorer.avatarRenderer.direction = AvatarDirection.up;
+          break;
+        case 'down':
+          explorer.avatarRenderer.direction = AvatarDirection.down;
+          break;
+        case 'left':
+          explorer.avatarRenderer.direction = AvatarDirection.left;
+          break;
+        case 'right':
+          explorer.avatarRenderer.direction = AvatarDirection.right;
+          break;
+      }
+    }
+
+    explorer.avatarRenderer.isMoving = isMoving;
+
+    // If far away (like respawn at start), snap immediately
+    if ((explorer.position - centeredPos).length > tileSize * 2) {
+      explorer.position = centeredPos.clone();
+      explorer.targetPosition = centeredPos.clone();
+      explorer.isMoving = false;
+    } else {
+      explorer.targetPosition = centeredPos.clone();
+      if ((explorer.position - centeredPos).length > 1.0) {
+        explorer.direction = (centeredPos - explorer.position).normalized();
+        explorer.isMoving = true;
+      } else {
+        explorer.position = centeredPos.clone();
+        explorer.isMoving = isMoving;
+      }
+    }
   }
 }

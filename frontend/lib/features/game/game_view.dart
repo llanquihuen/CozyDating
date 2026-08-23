@@ -32,8 +32,9 @@ class _GameViewState extends State<GameView> {
   @override
   void initState() {
     super.initState();
-    // Use roomId.hashCode as deterministic seed so Explorer and Guide share identical map & secret puzzle sequence
-    final sharedSeed = widget.state.session.roomId.hashCode;
+    // Use deterministic shared seed from server or fallback to deterministic room hash
+    final sharedSeed = widget.state.session.seed ??
+        DungeonGenerator.deterministicStringSeed(widget.state.session.roomId);
     _dungeonGame = DungeonGame(
       dungeonMapData: DungeonGenerator.generateMap(
         seed: sharedSeed,
@@ -46,7 +47,11 @@ class _GameViewState extends State<GameView> {
       onExplorerMoved: (pos) {
         if (!mounted) return;
         _lastExplorerPos = pos;
-        _sendDungeonState();
+      },
+      onExplorerMovedFull: (pos, dir, moving) {
+        if (!mounted) return;
+        _lastExplorerPos = pos;
+        _sendDungeonState(direction: dir, isMoving: moving);
       },
       onKeyStatusChanged: (hasKey) {
         if (!mounted) return;
@@ -74,7 +79,7 @@ class _GameViewState extends State<GameView> {
     );
   }
 
-  void _sendDungeonState() {
+  void _sendDungeonState({String direction = 'down', bool isMoving = false}) {
     if (!mounted) return;
     if (_lastExplorerPos != null) {
       context.read<GameBloc>().add(SendPlayerMoveEvent(
@@ -82,6 +87,8 @@ class _GameViewState extends State<GameView> {
           playerX: _lastExplorerPos!.x,
           playerY: _lastExplorerPos!.y,
           role: 'EXPLORER',
+          direction: direction,
+          isMoving: isMoving,
           activeTraps: const {},
           blockPositions: const {},
         ),

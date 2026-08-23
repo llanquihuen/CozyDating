@@ -16,16 +16,30 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
   double _damageShakeTimer = 0.0;
   final double _shakeDuration = 0.4;
   final double _shakeIntensity = 4.0;
-
   final void Function(Vector2 position)? onPositionChanged;
+  final void Function(Vector2 position, AvatarDirection direction, bool isMoving)? onPositionChangedFull;
   final AvatarConfig avatarConfig;
   late ModularAvatarComponent avatarRenderer;
+
+  String get directionName {
+    switch (avatarRenderer.direction) {
+      case AvatarDirection.up:
+        return 'up';
+      case AvatarDirection.down:
+        return 'down';
+      case AvatarDirection.left:
+        return 'left';
+      case AvatarDirection.right:
+        return 'right';
+    }
+  }
 
   ExplorerComponent({
     required Vector2 position,
     required Vector2 size,
     AvatarConfig? avatarConfig,
     this.onPositionChanged,
+    this.onPositionChangedFull,
   })  : avatarConfig = avatarConfig ?? AvatarStorageService.loadConfig(),
         super(position: position, size: size) {
     anchor = Anchor.topLeft;
@@ -105,6 +119,8 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     targetPosition = potentialTargetPosition;
     isMoving = true;
     avatarRenderer.isMoving = true;
+    onPositionChanged?.call(position);
+    onPositionChangedFull?.call(position, avatarRenderer.direction, true);
   }
 
   void stopMovement() {
@@ -128,6 +144,7 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     isMoving = false;
     avatarRenderer.isMoving = false;
     onPositionChanged?.call(position);
+    onPositionChangedFull?.call(position, avatarRenderer.direction, false);
   }
 
   @override
@@ -148,6 +165,7 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
         avatarRenderer.isMoving = false;
         direction = Vector2.zero();
         onPositionChanged?.call(position);
+        onPositionChangedFull?.call(position, avatarRenderer.direction, false);
       } else {
         position += direction * moveDistance;
       }

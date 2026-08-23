@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/services/avatar_storage_service.dart';
 import 'bloc/game_bloc.dart';
 import 'guide_dungeon_game.dart';
 import 'services/dungeon_generator.dart';
@@ -23,13 +24,17 @@ class _GuideGameViewState extends State<GuideGameView> {
   @override
   void initState() {
     super.initState();
-    // Use roomId.hashCode as deterministic seed so Guide and Explorer share identical map & puzzle sequence
-    final sharedSeed = widget.state.session.roomId.hashCode;
+    // Use deterministic shared seed from server or fallback to deterministic room hash
+    final sharedSeed = widget.state.session.seed ??
+        DungeonGenerator.deterministicStringSeed(widget.state.session.roomId);
+    final partnerAvatar = AvatarStorageService.getUserConfig(widget.state.session.partnerId);
+
     _guideGame = GuideDungeonGame(
       dungeonMapData: DungeonGenerator.generateMap(
         seed: sharedSeed,
         act: widget.state.session.act,
       ),
+      explorerAvatarConfig: partnerAvatar,
       onPingTap: (pingPos) {
         if (!mounted) return;
         context.read<GameBloc>().add(SendPingEvent(pingPos.x, pingPos.y));
@@ -88,7 +93,11 @@ class _GuideGameViewState extends State<GuideGameView> {
         if (state is ActiveGameState) {
           if (state.latestDungeonState != null) {
             final ds = state.latestDungeonState!;
-            _guideGame.updateExplorerRemotePosition(Vector2(ds.playerX, ds.playerY));
+            _guideGame.updateExplorerRemotePosition(
+              Vector2(ds.playerX, ds.playerY),
+              direction: ds.direction,
+              isMoving: ds.isMoving,
+            );
           }
           if (state.trapsDisarmedTrigger != null && state.trapsDisarmedTrigger != _lastHandledDisarmTrigger) {
             _lastHandledDisarmTrigger = state.trapsDisarmedTrigger;

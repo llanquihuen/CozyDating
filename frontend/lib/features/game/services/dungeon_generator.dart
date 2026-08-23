@@ -29,6 +29,17 @@ class DungeonGenerator {
     }
   }
 
+  /// Generates a deterministic positive integer hash from a string (e.g. roomId)
+  /// Guaranteed to be 100% identical across all Dart platforms and devices.
+  static int deterministicStringSeed(String str) {
+    var hash = 5381;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) + hash) + str.codeUnitAt(i);
+      hash = hash & 0x7FFFFFFF;
+    }
+    return hash;
+  }
+
   /// Generates a dense, maze-like 11x11 dungeon map with rich wall architecture.
   /// Guarantees:
   /// 1. High wall density with 1-tile wide corridors and pillars.

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flame/game.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/room_config.dart';
 import '../../../core/services/avatar_storage_service.dart';
@@ -167,7 +168,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> {
       };
       final token = tokens[widget.activeUserId] ?? 'alice_jwt';
       context.read<GameBloc>().add(JoinQueueEvent(
-            socketUrl: 'ws://localhost:8080/game',
+            socketUrl: AppConfig.wsUrl,
             token: token,
             commune: 'Santiago',
             timeSlot: '20',
