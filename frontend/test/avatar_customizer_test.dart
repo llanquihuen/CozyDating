@@ -66,31 +66,48 @@ void main() {
   });
 
   group('CharacterCreatorScreen Widget Tests', () {
-    testWidgets('Renders CharacterCreatorScreen tabs and controls', (tester) async {
+    testWidgets('Renders CharacterCreatorScreen 2-section workspace, zoom mode and controls', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: CharacterCreatorScreen(),
         ),
       );
 
-      // Verify UI Title
-      expect(find.text('Armario'), findsOneWidget);
+      // Verify Title & Save Button
+      expect(find.textContaining('Armario'), findsWidgets);
       expect(find.text('Guardar'), findsOneWidget);
 
-      // Verify Resolution Toggles
-      expect(find.text('64x128 (Detalle)'), findsOneWidget);
-      expect(find.text('32x64 (Pixel Chibi)'), findsWidgets);
+      // Verify Main 2 Sections
+      expect(find.text('1. Rostro & Cabello'), findsOneWidget);
+      expect(find.text('2. Vestimenta & Estilo'), findsOneWidget);
 
-      // Verify Tabs
+      // Verify Camera Mode Badge (initial is Face Zoom)
+      expect(find.text('Zoom Rostro'), findsOneWidget);
+
+      // Verify Section 1 Sub-tabs
       expect(find.text('Cara & Piel'), findsOneWidget);
       expect(find.text('Expresión & Ojos'), findsOneWidget);
       expect(find.text('Peinado'), findsOneWidget);
-      expect(find.text('Vestimenta'), findsOneWidget);
-      expect(find.text('Accesorios'), findsOneWidget);
+
+      // Switch to Section 2 (Vestimenta & Estilo)
+      await tester.tap(find.text('2. Vestimenta & Estilo'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Verify Section 2 Sub-tabs
+      expect(find.widgetWithText(Tab, 'Prenda Superior'), findsOneWidget);
+      expect(find.widgetWithText(Tab, 'Prenda Inferior'), findsOneWidget);
+      expect(find.widgetWithText(Tab, 'Calzado'), findsOneWidget);
+      expect(find.widgetWithText(Tab, 'Accesorios'), findsOneWidget);
+
+      // Verify Resolution Toggles
+      expect(find.textContaining('64x128'), findsOneWidget);
+      expect(find.textContaining('32x64'), findsWidgets);
 
       // Verify Controls
-      expect(find.text('Caminar'), findsOneWidget);
-      expect(find.text('Aleatorio'), findsOneWidget);
+      expect(find.textContaining('Caminar'), findsOneWidget);
+      expect(find.byIcon(Icons.casino), findsOneWidget);
+      expect(find.byTooltip('Aleatorio'), findsOneWidget);
     });
   });
 }
