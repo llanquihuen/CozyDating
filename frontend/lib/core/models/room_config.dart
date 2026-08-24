@@ -109,83 +109,244 @@ class RoomConfig extends Equatable {
   final List<PlacedFurnitureConfig> furniture;
   final List<InteriorWallConfig> interiorWalls;
 
+  static const List<PlacedFurnitureConfig> defaultFurniture = [
+    // --- Salón / Común ---
+    PlacedFurnitureConfig(
+      id: 'window_yellow_n',
+      typeName: 'window_yellow_n',
+      gridX: 3,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 1,
+      wallHeightLevel: 'high',
+    ),
+    PlacedFurnitureConfig(
+      id: 'bookshelf',
+      typeName: 'bookshelf',
+      gridX: 4,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'table',
+      typeName: 'table',
+      gridX: 3,
+      gridY: 4,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'coffee_mug',
+      typeName: 'coffee_mug',
+      gridX: 3,
+      gridY: 4,
+      gridWidth: 1,
+      gridHeight: 1,
+      parentId: 'table',
+    ),
+    PlacedFurnitureConfig(
+      id: 'wooden_chair',
+      typeName: 'wooden_chair',
+      gridX: 4,
+      gridY: 4,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'potted_plant',
+      typeName: 'potted_plant',
+      gridX: 4,
+      gridY: 3,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+
+    // --- Dormitorio (NE: gridX 5..7, gridY 0..2) ---
+    PlacedFurnitureConfig(
+      id: 'single_bed',
+      typeName: 'single_bed',
+      gridX: 7,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 2,
+    ),
+    PlacedFurnitureConfig(
+      id: 'side_table',
+      typeName: 'side_table',
+      gridX: 6,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'table_lamp',
+      typeName: 'table_lamp',
+      gridX: 6,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 1,
+      parentId: 'side_table',
+    ),
+    PlacedFurnitureConfig(
+      id: 'closet',
+      typeName: 'closet',
+      gridX: 5,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+
+    // --- Baño (NW: gridX 0..2, gridY 0..2) ---
+    PlacedFurnitureConfig(
+      id: 'bathtub_1x2',
+      typeName: 'bathtub_1x2',
+      gridX: 0,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 2,
+    ),
+    PlacedFurnitureConfig(
+      id: 'bathroom_toilet',
+      typeName: 'bathroom_toilet',
+      gridX: 2,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'towel_rack_wall',
+      typeName: 'towel_rack_wall',
+      gridX: 1,
+      gridY: 0,
+      gridWidth: 1,
+      gridHeight: 1,
+      wallHeightLevel: 'high',
+    ),
+
+    // --- Cocina (SW: gridX 0..2, gridY 4..6) ---
+    PlacedFurnitureConfig(
+      id: 'kitchen_fridge',
+      typeName: 'kitchen_fridge',
+      gridX: 0,
+      gridY: 4,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'kitchen_stove',
+      typeName: 'kitchen_stove',
+      gridX: 0,
+      gridY: 5,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'kitchen_sink',
+      typeName: 'kitchen_sink',
+      gridX: 0,
+      gridY: 6,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'kitchen_counter',
+      typeName: 'kitchen_counter',
+      gridX: 1,
+      gridY: 6,
+      gridWidth: 1,
+      gridHeight: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'pan_rack_wall',
+      typeName: 'pan_rack_wall',
+      gridX: 0,
+      gridY: 5,
+      gridWidth: 1,
+      gridHeight: 1,
+      wallHeightLevel: 'high',
+    ),
+  ];
+
+  static const List<InteriorWallConfig> defaultInteriorWalls = [
+    // --- Baño (NW: gridX 0..2, gridY 0..2) con mampara de cristal ---
+    InteriorWallConfig(id: 'bath_wall_e0', gridX: 3, gridY: 0, orientation: 'west', style: 'bathroom_glass'),
+    InteriorWallConfig(id: 'bath_wall_e1', gridX: 3, gridY: 1, orientation: 'west', style: 'bathroom_glass', hasDoorway: true),
+    InteriorWallConfig(id: 'bath_wall_e2', gridX: 3, gridY: 2, orientation: 'west', style: 'bathroom_glass'),
+    InteriorWallConfig(id: 'bath_wall_s0', gridX: 0, gridY: 3, orientation: 'north', style: 'bathroom_glass'),
+    InteriorWallConfig(id: 'bath_wall_s1', gridX: 1, gridY: 3, orientation: 'north', style: 'bathroom_glass'),
+    InteriorWallConfig(id: 'bath_wall_s2', gridX: 2, gridY: 3, orientation: 'north', style: 'bathroom_glass'),
+
+    // --- Dormitorio (NE: gridX 5..7, gridY 0..2) con tabiques de madera ---
+    InteriorWallConfig(id: 'bed_wall_w0', gridX: 5, gridY: 0, orientation: 'west', style: 'wood_slats'),
+    InteriorWallConfig(id: 'bed_wall_w1', gridX: 5, gridY: 1, orientation: 'west', style: 'wood_slats', hasDoorway: true),
+    InteriorWallConfig(id: 'bed_wall_w2', gridX: 5, gridY: 2, orientation: 'west', style: 'wood_slats'),
+    InteriorWallConfig(id: 'bed_wall_s0', gridX: 5, gridY: 3, orientation: 'north', style: 'wood_slats'),
+    InteriorWallConfig(id: 'bed_wall_s1', gridX: 6, gridY: 3, orientation: 'north', style: 'wood_slats'),
+    InteriorWallConfig(id: 'bed_wall_s2', gridX: 7, gridY: 3, orientation: 'north', style: 'wood_slats'),
+
+    // --- Cocina (SW: gridX 0..2, gridY 4..6) con separador cálido ---
+    InteriorWallConfig(id: 'kitchen_wall_n0', gridX: 0, gridY: 4, orientation: 'north', style: 'wood_slats'),
+    InteriorWallConfig(id: 'kitchen_wall_n1', gridX: 1, gridY: 4, orientation: 'north', style: 'wood_slats', hasDoorway: true),
+    InteriorWallConfig(id: 'kitchen_wall_n2', gridX: 2, gridY: 4, orientation: 'north', style: 'wood_slats'),
+    InteriorWallConfig(id: 'kitchen_wall_e0', gridX: 3, gridY: 4, orientation: 'west', style: 'wood_slats'),
+    InteriorWallConfig(id: 'kitchen_wall_e1', gridX: 3, gridY: 5, orientation: 'west', style: 'wood_slats'),
+    InteriorWallConfig(id: 'kitchen_wall_e2', gridX: 3, gridY: 6, orientation: 'west', style: 'wood_slats', hasDoorway: true),
+  ];
+
+  static const Map<String, String> defaultFloorOverrides = {
+    // Baño (azulejos cerámicos blancos)
+    '0,0': 'solid_white_tiles',
+    '1,0': 'solid_white_tiles',
+    '2,0': 'solid_white_tiles',
+    '0,1': 'solid_white_tiles',
+    '1,1': 'solid_white_tiles',
+    '2,1': 'solid_white_tiles',
+    '0,2': 'solid_white_tiles',
+    '1,2': 'solid_white_tiles',
+    '2,2': 'solid_white_tiles',
+
+    // Dormitorio (alfombra arena cálida)
+    '5,0': 'solid_carpet_warm_sand',
+    '6,0': 'solid_carpet_warm_sand',
+    '7,0': 'solid_carpet_warm_sand',
+    '5,1': 'solid_carpet_warm_sand',
+    '6,1': 'solid_carpet_warm_sand',
+    '7,1': 'solid_carpet_warm_sand',
+    '5,2': 'solid_carpet_warm_sand',
+    '6,2': 'solid_carpet_warm_sand',
+    '7,2': 'solid_carpet_warm_sand',
+
+    // Cocina (microcemento gris)
+    '0,4': 'solid_slate_gray',
+    '1,4': 'solid_slate_gray',
+    '2,4': 'solid_slate_gray',
+    '0,5': 'solid_slate_gray',
+    '1,5': 'solid_slate_gray',
+    '2,5': 'solid_slate_gray',
+    '0,6': 'solid_slate_gray',
+    '1,6': 'solid_slate_gray',
+    '2,6': 'solid_slate_gray',
+  };
+
+  static const Map<String, String> defaultWallOverrides = {
+    // Baño (azulejos cerámicos en las paredes)
+    'n,0': 'solid_tiles_white',
+    'n,1': 'solid_tiles_white',
+    'n,2': 'solid_tiles_white',
+    'w,0': 'solid_tiles_white',
+    'w,1': 'solid_tiles_white',
+    'w,2': 'solid_tiles_white',
+  };
+
   const RoomConfig({
     this.wallpaper = 'rustic_wood',
     this.floor = 'oak_parquet',
-    this.floorOverrides = const {},
-    this.wallOverrides = const {},
+    this.floorOverrides = defaultFloorOverrides,
+    this.wallOverrides = defaultWallOverrides,
     this.resolution = '64x128',
-    this.interiorWalls = const [],
-    this.furniture = const [
-      PlacedFurnitureConfig(
-        id: 'window_yellow_n',
-        typeName: 'window_yellow_n',
-        gridX: 3,
-        gridY: 0,
-        gridWidth: 1,
-        gridHeight: 1,
-        wallHeightLevel: 'high',
-      ),
-      PlacedFurnitureConfig(
-        id: 'art_painting_w',
-        typeName: 'art_painting_w',
-        gridX: 0,
-        gridY: 2,
-        gridWidth: 1,
-        gridHeight: 1,
-        wallHeightLevel: 'high',
-      ),
-      PlacedFurnitureConfig(
-        id: 'tall_bookshelf',
-        typeName: 'tall_bookshelf',
-        gridX: 1,
-        gridY: 0,
-        gridWidth: 1,
-        gridHeight: 1,
-      ),
-      PlacedFurnitureConfig(
-        id: 'bookshelf',
-        typeName: 'bookshelf',
-        gridX: 6,
-        gridY: 0,
-        gridWidth: 1,
-        gridHeight: 1,
-      ),
-      PlacedFurnitureConfig(
-        id: 'single_bed',
-        typeName: 'single_bed',
-        // Tucked into the far corner of the east bedroom nook (gridX 5-7, gridY 0-2).
-        gridX: 7,
-        gridY: 0,
-        gridWidth: 1,
-        gridHeight: 2,
-      ),
-      PlacedFurnitureConfig(
-        id: 'closet',
-        typeName: 'closet',
-        gridX: 0,
-        gridY: 6,
-        gridWidth: 1,
-        gridHeight: 1,
-      ),
-      PlacedFurnitureConfig(
-        id: 'table',
-        typeName: 'table',
-        gridX: 3,
-        gridY: 3,
-        gridWidth: 1,
-        gridHeight: 1,
-      ),
-      PlacedFurnitureConfig(
-        id: 'coffee_mug',
-        typeName: 'coffee_mug',
-        gridX: 3,
-        gridY: 3,
-        gridWidth: 1,
-        gridHeight: 1,
-        parentId: 'table',
-      ),
-    ],
+    this.interiorWalls = defaultInteriorWalls,
+    this.furniture = defaultFurniture,
   });
 
   RoomConfig copyWith({
@@ -227,86 +388,19 @@ class RoomConfig extends Equatable {
       floor: map['floor'] ?? 'oak_parquet',
       floorOverrides: map['floorOverrides'] != null
           ? Map<String, String>.from(map['floorOverrides'] as Map)
-          : const {},
+          : defaultFloorOverrides,
       wallOverrides: map['wallOverrides'] != null
           ? Map<String, String>.from(map['wallOverrides'] as Map)
-          : const {},
+          : defaultWallOverrides,
       resolution: map['resolution'] ?? '64x128',
       interiorWalls: map['interiorWalls'] != null
           ? List<InteriorWallConfig>.from(
               (map['interiorWalls'] as List).map((x) => InteriorWallConfig.fromMap(x)))
-          : const [],
+          : defaultInteriorWalls,
       furniture: map['furniture'] != null
           ? List<PlacedFurnitureConfig>.from(
               (map['furniture'] as List).map((x) => PlacedFurnitureConfig.fromMap(x)))
-          : const [
-              PlacedFurnitureConfig(
-                id: 'window_yellow_n',
-                typeName: 'window_yellow_n',
-                gridX: 3,
-                gridY: 0,
-                gridWidth: 1,
-                gridHeight: 1,
-                wallHeightLevel: 'high',
-              ),
-              PlacedFurnitureConfig(
-                id: 'art_painting_w',
-                typeName: 'art_painting_w',
-                gridX: 0,
-                gridY: 2,
-                gridWidth: 1,
-                gridHeight: 1,
-              ),
-              PlacedFurnitureConfig(
-                id: 'tall_bookshelf',
-                typeName: 'tall_bookshelf',
-                gridX: 1,
-                gridY: 0,
-                gridWidth: 1,
-                gridHeight: 1,
-              ),
-              PlacedFurnitureConfig(
-                id: 'bookshelf',
-                typeName: 'bookshelf',
-                gridX: 6,
-                gridY: 0,
-                gridWidth: 1,
-                gridHeight: 1,
-              ),
-              PlacedFurnitureConfig(
-                id: 'single_bed',
-                typeName: 'single_bed',
-                gridX: 7,
-                gridY: 0,
-                gridWidth: 1,
-                gridHeight: 2,
-              ),
-              PlacedFurnitureConfig(
-                id: 'closet',
-                typeName: 'closet',
-                gridX: 0,
-                gridY: 6,
-                gridWidth: 1,
-                gridHeight: 1,
-              ),
-              PlacedFurnitureConfig(
-                id: 'table',
-                typeName: 'table',
-                gridX: 3,
-                gridY: 3,
-                gridWidth: 1,
-                gridHeight: 1,
-              ),
-              PlacedFurnitureConfig(
-                id: 'coffee_mug',
-                typeName: 'coffee_mug',
-                gridX: 3,
-                gridY: 3,
-                gridWidth: 1,
-                gridHeight: 1,
-                parentId: 'table',
-              ),
-            ],
+          : defaultFurniture,
     );
   }
 

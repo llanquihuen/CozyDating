@@ -415,7 +415,7 @@ void main() {
     test('CozyRoomGame paints, erases and clears custom floor tile zones', () {
       final game = CozyRoomGame(
         avatarConfig: AvatarStorageService.getUserConfig('alice'),
-        roomConfig: const RoomConfig(floor: 'dark_walnut'),
+        roomConfig: const RoomConfig(floor: 'dark_walnut', floorOverrides: {}),
       );
 
       // Paint tiles
@@ -475,7 +475,7 @@ void main() {
       // 6. Paint with carpet texture in CozyRoomGame
       final game = CozyRoomGame(
         avatarConfig: AvatarStorageService.getUserConfig('alice'),
-        roomConfig: const RoomConfig(floor: 'solid_carpet_warm_sand'),
+        roomConfig: const RoomConfig(floor: 'solid_carpet_warm_sand', floorOverrides: {}),
       );
       game.paintFloorTile(2, 2, 'solid_carpet_mint_green');
       expect(game.roomConfig.floorOverrides['2,2'], equals('solid_carpet_mint_green'));
@@ -504,7 +504,7 @@ void main() {
     test('CozyRoomGame paints, erases and clears custom wall segment overrides', () {
       final game = CozyRoomGame(
         avatarConfig: AvatarStorageService.getUserConfig('alice'),
-        roomConfig: const RoomConfig(wallpaper: 'rustic_wood'),
+        roomConfig: const RoomConfig(wallpaper: 'rustic_wood', wallOverrides: {}),
       );
 
       // Paint wall segments
@@ -673,6 +673,12 @@ void main() {
       final halfStepScreen = IsometricCoords.subGridToScreen(9.0, 8.0);
       expect(halfStepScreen.x - subScreen.x, equals(16.0));
       expect(halfStepScreen.y - subScreen.y, equals(8.0));
+
+      // Precision click tests: clicks slightly offset from center in all 4 directions still resolve to (8, 8)
+      expect(IsometricCoords.screenToSubGrid(subScreen.x, subScreen.y - 3.0), equals(const Point(8, 8))); // Top
+      expect(IsometricCoords.screenToSubGrid(subScreen.x, subScreen.y + 3.0), equals(const Point(8, 8))); // Bottom
+      expect(IsometricCoords.screenToSubGrid(subScreen.x - 6.0, subScreen.y), equals(const Point(8, 8))); // Left
+      expect(IsometricCoords.screenToSubGrid(subScreen.x + 6.0, subScreen.y), equals(const Point(8, 8))); // Right
     });
 
     test('Pathfinder operates smoothly on 16x16 sub-grid', () {
@@ -782,6 +788,84 @@ void main() {
       expect(occupied, contains(const Point(3, 2)));
       expect(occupied, contains(const Point(2, 3)));
       expect(occupied, contains(const Point(3, 3)));
+    });
+  });
+
+  group('Initial 3-Room Layout (Bathroom, Bedroom, Kitchen) Tests', () {
+    test('Default RoomConfig includes bathroom, bedroom, kitchen furniture and walls', () {
+      const defaultRoom = RoomConfig();
+
+      // Check furniture contains key items from all 3 rooms
+      final furnitureIds = defaultRoom.furniture.map((f) => f.id).toSet();
+      // Bathroom
+      expect(furnitureIds.contains('bathtub_1x2'), isTrue);
+      expect(furnitureIds.contains('bathroom_toilet'), isTrue);
+      expect(furnitureIds.contains('towel_rack_wall'), isTrue);
+      // Bedroom
+      expect(furnitureIds.contains('single_bed'), isTrue);
+      expect(furnitureIds.contains('side_table'), isTrue);
+      expect(furnitureIds.contains('table_lamp'), isTrue);
+      expect(furnitureIds.contains('closet'), isTrue);
+      // Kitchen
+      expect(furnitureIds.contains('kitchen_fridge'), isTrue);
+      expect(furnitureIds.contains('kitchen_stove'), isTrue);
+      expect(furnitureIds.contains('kitchen_sink'), isTrue);
+      expect(furnitureIds.contains('kitchen_counter'), isTrue);
+      expect(furnitureIds.contains('pan_rack_wall'), isTrue);
+      // Salón / Living
+      expect(furnitureIds.contains('table'), isTrue);
+      expect(furnitureIds.contains('coffee_mug'), isTrue);
+      expect(furnitureIds.contains('wooden_chair'), isTrue);
+
+      // Check interior walls include dividing partitions with doors for all 3 rooms
+      final wallStyles = defaultRoom.interiorWalls.map((w) => w.style).toSet();
+      expect(wallStyles.contains('bathroom_glass'), isTrue);
+      expect(wallStyles.contains('wood_slats'), isTrue);
+
+      // Doorways
+      final doorways = defaultRoom.interiorWalls.where((w) => w.hasDoorway).toList();
+      expect(doorways.length, greaterThanOrEqualTo(3)); // At least 1 door for bathroom, bedroom, kitchen
+
+      // Floor overrides for zones
+      expect(defaultRoom.floorOverrides.containsKey('0,0'), isTrue); // Bathroom tile
+      expect(defaultRoom.floorOverrides['0,0'], equals('solid_white_tiles'));
+      expect(defaultRoom.floorOverrides.containsKey('7,0'), isTrue); // Bedroom carpet
+      expect(defaultRoom.floorOverrides['7,0'], equals('solid_carpet_warm_sand'));
+      expect(defaultRoom.floorOverrides.containsKey('0,5'), isTrue); // Kitchen tile
+      expect(defaultRoom.floorOverrides['0,5'], equals('solid_slate_gray'));
+    });
+
+    test('Avatar safe spawn location is never on an obstacle or furniture object', () {
+      for (final uid in ['alice', 'bob', 'charlie', 'david']) {
+        final cfg = AvatarStorageService.getUserRoomConfig(uid);
+        final game = CozyRoomGame(
+          avatarConfig: AvatarStorageService.getUserConfig(uid),
+          roomConfig: cfg,
+        );
+
+        for (final item in cfg.furniture) {
+          final comp = IsometricFurnitureComponent(
+            id: item.id,
+            typeName: item.typeName,
+            gridX: item.gridX,
+            gridY: item.gridY,
+            gridWidth: item.gridWidth,
+            gridHeight: item.gridHeight,
+            rotation: item.rotation,
+            footprint: item.gridWidth == 2 && item.gridHeight == 2
+                ? '2x2'
+                : (item.gridWidth == 1 && item.gridHeight == 2 ? '1x2' : '1x1'),
+          );
+          game.world.add(comp);
+        }
+        game.obstacles.clear();
+        for (final f in game.world.children.whereType<IsometricFurnitureComponent>()) {
+          game.obstacles.addAll(f.occupiedSubCells);
+        }
+
+        final spawnPos = game.findSafeSpawnSubGrid();
+        expect(game.obstacles.contains(spawnPos), isFalse, reason: 'User $uid spawnPos $spawnPos should not be in obstacles');
+      }
     });
   });
 }

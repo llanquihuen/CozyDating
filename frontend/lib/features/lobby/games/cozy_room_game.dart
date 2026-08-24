@@ -122,10 +122,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     // 5. Register Initial Obstacles for all solid furniture
     _recalculateObstacles();
 
-    // 6. Add Player Avatar inside world (positioned at subgrid 8.0, 8.0 = center of 16x16 room)
+    // 6. Add Player Avatar inside world (guaranteed safe, unobstructed spawn location)
+    final spawnPos = findSafeSpawnSubGrid();
     final av = IsometricAvatarComponent(
-      gridX: 8.0,
-      gridY: 8.0,
+      gridX: spawnPos.x.toDouble(),
+      gridY: spawnPos.y.toDouble(),
       config: avatarConfig.copyWith(spriteResolution: roomConfig.resolution),
       onReachedDestination: _handleDestinationReached,
     );
@@ -134,6 +135,49 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
     avatar = av;
     world.add(av);
+  }
+
+  /// Finds a guaranteed free and walkable sub-grid position for the avatar,
+  /// searching outward from the central living area (around subgrid 8, 8).
+  Point<int> findSafeSpawnSubGrid() {
+    const subLimit = gridSize * 2; // 16
+    const centerU = 8;
+    const centerV = 8;
+
+    Point<int>? best;
+    double minDistance = double.infinity;
+
+    // Search inward/walkable sub-cells (excluding borders where walls sit)
+    for (int u = 2; u < subLimit - 2; u++) {
+      for (int v = 2; v < subLimit - 2; v++) {
+        final p = Point(u, v);
+        if (!obstacles.contains(p)) {
+          final dist = (u - centerU) * (u - centerU) + (v - centerV) * (v - centerV);
+          if (dist < minDistance) {
+            minDistance = dist.toDouble();
+            best = p;
+          }
+        }
+      }
+    }
+
+    if (best != null) return best;
+
+    // Fallback search across entire sub-grid bounds
+    for (int u = 0; u < subLimit; u++) {
+      for (int v = 0; v < subLimit; v++) {
+        final p = Point(u, v);
+        if (!obstacles.contains(p)) {
+          final dist = (u - centerU) * (u - centerU) + (v - centerV) * (v - centerV);
+          if (dist < minDistance) {
+            minDistance = dist.toDouble();
+            best = p;
+          }
+        }
+      }
+    }
+
+    return best ?? const Point(centerU, centerV);
   }
 
   void setDecorateMode(bool enabled) {
@@ -148,36 +192,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       _isFloorBrushDragging = false;
       _isWallBrushDragging = false;
       _recalculateObstacles();
-      Point<int> spawnTile = const Point(4, 4);
-      bool found = false;
 
-      const searchOrder = [
-        Point(4, 4), Point(3, 4), Point(4, 3), Point(3, 3),
-        Point(5, 4), Point(4, 5), Point(2, 4), Point(4, 2),
-        Point(2, 2), Point(5, 5), Point(1, 4), Point(4, 1),
-      ];
-      for (final p in searchOrder) {
-        if (!obstacles.contains(p)) {
-          spawnTile = p;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        for (int x = 0; x < gridSize; x++) {
-          for (int y = 0; y < gridSize; y++) {
-            final p = Point(x, y);
-            if (!obstacles.contains(p)) {
-              spawnTile = p;
-              found = true;
-              break;
-            }
-          }
-          if (found) break;
-        }
-      }
-
-      avatar?.teleportTo(spawnTile.x.toDouble(), spawnTile.y.toDouble());
+      final spawnPos = findSafeSpawnSubGrid();
+      avatar?.teleportTo(spawnPos.x.toDouble(), spawnPos.y.toDouble());
       avatar?.isVisible = true;
       selectFurniture(null);
       selectInteriorWall(null);
@@ -1101,11 +1118,19 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     _backgroundComponent?.roomConfig = roomConfig;
   }
 
-  void updateRoomConfig(RoomConfig newConfig, {bool reloadFurniture = true}) {
+  void updateRoomConfig(RoomConfig newConfig, {bool reloadFurniture = true}) async {
     roomConfig = newConfig;
     _backgroundComponent?.roomConfig = newConfig;
     if (reloadFurniture) {
-      _loadFurnitureFromConfig(newConfig);
+      await _loadFurnitureFromConfig(newConfig);
+      _recalculateObstacles();
+      if (avatar != null && !isDecorateMode) {
+        final currentPos = Point(avatar!.gridX.round(), avatar!.gridY.round());
+        if (obstacles.contains(currentPos)) {
+          final spawnPos = findSafeSpawnSubGrid();
+          avatar!.teleportTo(spawnPos.x.toDouble(), spawnPos.y.toDouble());
+        }
+      }
     }
   }
 

@@ -27,7 +27,7 @@ class IsometricCoords {
     final double rawU = ((relX / subStepX) + (relY / subStepY)) / 2;
     final double rawV = ((relY / subStepY) - (relX / subStepX)) / 2;
 
-    return Point(rawU.floor(), rawV.floor());
+    return Point(rawU.round(), rawV.round());
   }
 
   /// Converts isometric grid coordinates (gx, gy) to 2D screen coordinates (sx, sy)
