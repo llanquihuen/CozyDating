@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/models/furniture_item.dart';
 import 'package:frontend/core/models/room_config.dart';
 import 'package:frontend/core/services/furniture_catalog_service.dart';
 import 'package:frontend/features/lobby/components/isometric_furniture_component.dart';
+import 'package:frontend/features/lobby/games/cozy_room_game.dart';
 import 'package:frontend/features/lobby/utils/isometric_coords.dart';
 
 void main() {
@@ -321,6 +323,213 @@ void main() {
       expect(deserialized.furniture[1].parentId, equals('table_1'));
       expect(deserialized.furniture[2].wallHeightLevel, equals('high'));
       expect(deserialized, equals(room));
+    });
+  });
+
+  group('0.5x0.5 Sub-Tile & Compact Furniture Tests', () {
+    test('PlacedFurnitureConfig and PlacedFurniture support 0.5x0.5 coordinates and dimensions', () {
+      const config = PlacedFurnitureConfig(
+        id: 'plant_corner_1',
+        typeName: 'potted_plant',
+        gridX: 2.5,
+        gridY: 3.5,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+      );
+
+      final map = config.toMap();
+      final fromMap = PlacedFurnitureConfig.fromMap(map);
+
+      expect(fromMap.gridX, equals(2.5));
+      expect(fromMap.gridY, equals(3.5));
+      expect(fromMap.gridWidth, equals(0.5));
+      expect(fromMap.gridHeight, equals(0.5));
+
+      const placed = PlacedFurniture(
+        id: 'plant_1',
+        gx: 1.5,
+        gy: 4.5,
+      );
+      final json = placed.toJson();
+      final fromJson = PlacedFurniture.fromJson(json);
+
+      expect(fromJson.gx, equals(1.5));
+      expect(fromJson.gy, equals(4.5));
+    });
+
+    test('IsometricCoords.getFurnitureSpriteOffset handles 0.5x0.5 sub-tile offset', () {
+      final offset = IsometricCoords.getFurnitureSpriteOffset(
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        spriteWidth: 32,
+        spriteHeight: 48,
+        footprint: '0.5x0.5',
+      );
+
+      expect(offset.x, equals(-16.0));
+      expect(offset.y, equals(IsometricCoords.tileHeight / 4.0 - 48.0)); // 8.0 - 48.0 = -40.0
+    });
+
+    test('IsometricFurnitureComponent 0.5x0.5 occupies exactly 1 sub-cell at (gx*2, gy*2)', () {
+      final plant1 = IsometricFurnitureComponent(
+        id: 'plant_nw',
+        gridX: 2.0,
+        gridY: 3.0,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        footprint: '0.5x0.5',
+      );
+      expect(plant1.occupiedSubCells, equals([const Point(4, 6)]));
+
+      final plant2 = IsometricFurnitureComponent(
+        id: 'plant_se',
+        gridX: 2.5,
+        gridY: 3.5,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        footprint: '0.5x0.5',
+      );
+      expect(plant2.occupiedSubCells, equals([const Point(5, 7)]));
+    });
+
+    test('CozyRoomGame permits multiple 0.5x0.5 items sharing the same standard tile without collision', () {
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+      );
+
+      final plant1 = IsometricFurnitureComponent(
+        id: 'plant_nw',
+        gridX: 2.0,
+        gridY: 3.0,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        footprint: '0.5x0.5',
+      );
+      game.world.add(plant1);
+
+      final plant2 = IsometricFurnitureComponent(
+        id: 'plant_se',
+        gridX: 2.5,
+        gridY: 3.5,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        footprint: '0.5x0.5',
+      );
+
+      // Placing plant2 at (2.5, 3.5) inside the same (2, 3) tile should be valid!
+      final isValidDifferentSubcell = game.checkIsValidLocationForTesting(plant2, const Point<num>(2.5, 3.5));
+      expect(isValidDifferentSubcell, isTrue);
+
+      // Placing plant2 directly at the same subcell (2.0, 3.0) should collide and be invalid
+      final isValidSameSubcell = game.checkIsValidLocationForTesting(plant2, const Point<num>(2.0, 3.0));
+      expect(isValidSameSubcell, isFalse);
+
+      // Placing a 1x1 table at (2.0, 3.0) should collide with plant1 at (2.0, 3.0)
+      final table = IsometricFurnitureComponent(
+        id: 'table_1x1',
+        gridX: 0,
+        gridY: 0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+        footprint: '1x1',
+      );
+      final isTableValid = game.checkIsValidLocationForTesting(table, const Point<num>(2.0, 3.0));
+      expect(isTableValid, isFalse);
+
+      // Placing table at a completely free tile (4.0, 4.0) should be valid
+      final isTableValidFree = game.checkIsValidLocationForTesting(table, const Point<num>(4.0, 4.0));
+      expect(isTableValidFree, isTrue);
+    });
+
+    test('FurnitureCatalogService includes kitchen_fridge_sm with 0.5x0.5 footprint in kitchen_bath category', () {
+      final fridge = FurnitureCatalogService.getItem('kitchen_fridge_sm');
+      expect(fridge, isNotNull);
+      expect(fridge!.footprint, equals('0.5x0.5'));
+      expect(fridge.gridWidth, equals(0.5));
+      expect(fridge.gridHeight, equals(0.5));
+
+      final kitchenItems = FurnitureCatalogService.getByCategory('kitchen_bath');
+      expect(kitchenItems.any((i) => i.id == 'kitchen_fridge_sm'), isTrue);
+    });
+
+    test('All floor furniture (1x1, 1x2, 2x2) supports 0.5 fractional grid placement and accurate occupied sub-cells', () {
+      final table1x1 = IsometricFurnitureComponent(
+        id: 'table',
+        gridX: 2.5,
+        gridY: 3.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+      );
+      expect(table1x1.occupiedSubCells, containsAll([
+        const Point(5, 6),
+        const Point(6, 6),
+        const Point(5, 7),
+        const Point(6, 7),
+      ]));
+
+      final bed1x2 = IsometricFurnitureComponent(
+        id: 'bed',
+        gridX: 1.5,
+        gridY: 2.5,
+        gridWidth: 1.0,
+        gridHeight: 2.0,
+        footprint: '1x2',
+      );
+      expect(bed1x2.occupiedSubCells.length, equals(8));
+      expect(bed1x2.occupiedSubCells, contains(const Point(3, 5)));
+      expect(bed1x2.occupiedSubCells, contains(const Point(4, 8)));
+    });
+
+    test('Depth sorting correctly orders items in-front vs behind other furniture and walls', () {
+      // Chair placed at (2.0, 2.0) is behind Table placed at (2.5, 2.0)
+      final chairBehind = IsometricCoords.getSubZOrder(4, 4, width: 2, depth: 2);
+      final tableInFront = IsometricCoords.getSubZOrder(5, 4, width: 2, depth: 2);
+      expect(tableInFront, greaterThan(chairBehind));
+
+      // Table at (3.0, 3.0) is in front of North interior wall at (3, 3) AND West interior wall at (3, 3)
+      final northWall = IsometricCoords.getInteriorWallZOrder(3, 3, 'north');
+      final westWall = IsometricCoords.getInteriorWallZOrder(3, 3, 'west');
+      final tableSouthOfWall = IsometricCoords.getSubZOrder(6, 6, width: 2, depth: 2);
+      expect(tableSouthOfWall, greaterThan(northWall));
+      expect(tableSouthOfWall, greaterThan(westWall));
+
+      // Object at (3.0, 2.0) is on the north side of the wall at (3, 3), and renders behind it
+      final tableNorthOfWall = IsometricCoords.getSubZOrder(6, 4, width: 2, depth: 2);
+      expect(tableNorthOfWall, lessThan(northWall));
+
+      // Object at (2.0, 3.0) is on the west side of the wall at (3, 3), and renders behind it
+      final tableWestOfWall = IsometricCoords.getSubZOrder(4, 6, width: 2, depth: 2);
+      expect(tableWestOfWall, lessThan(westWall));
+
+      // Wardrobe at (3.5, 3.0) in front of Left North Wall (3, 3)
+      final leftNorthWall = IsometricCoords.getInteriorWallZOrder(3, 3, 'north');
+      final rightNorthWall = IsometricCoords.getInteriorWallZOrder(4, 3, 'north');
+      final wardrobeInFront = IsometricCoords.getSubZOrder(7, 6, width: 2, depth: 2);
+      expect(wardrobeInFront, greaterThan(leftNorthWall));
+
+      // Compact Fridge 0.5x0.5 on NW subcell (u=6, v=6, width=1, depth=1) in front of North wall at (3, 3)
+      final fridge05InFrontNorth = IsometricCoords.getSubZOrder(6, 6, width: 1, depth: 1);
+      expect(fridge05InFrontNorth, greaterThan(leftNorthWall));
+
+      // Compact Fridge 0.5x0.5 on SW subcell (u=6, v=7, width=1, depth=1) in front of West wall at (3, 3)
+      final fridge05InFrontWest = IsometricCoords.getSubZOrder(6, 7, width: 1, depth: 1);
+      expect(fridge05InFrontWest, greaterThan(IsometricCoords.getInteriorWallZOrder(3, 3, 'west')));
+
+      // Avatar (u=6, v=6, layer=100) on NW subcell in front of North wall at (3, 3)
+      final avatarInFrontNorth = IsometricCoords.getSubZOrder(6, 6, width: 1, depth: 1, layer: 100);
+      expect(avatarInFrontNorth, greaterThan(leftNorthWall));
+
+      // Avatar (u=6, v=7, layer=100) on SW subcell in front of West wall at (3, 3)
+      final avatarInFrontWest = IsometricCoords.getSubZOrder(6, 7, width: 1, depth: 1, layer: 100);
+      expect(avatarInFrontWest, greaterThan(IsometricCoords.getInteriorWallZOrder(3, 3, 'west')));
+
+      // Avatar behind North Wall (3, 3) placed on subcell (6, 5)
+      final avatarBehindNorth = IsometricCoords.getSubZOrder(6, 5, width: 1, depth: 1, layer: 100);
+      expect(avatarBehindNorth, lessThan(leftNorthWall));
+
+      // Furniture at (3.5, 2.0) behind Right North Wall (4, 3)
+      final furnitureBehind = IsometricCoords.getSubZOrder(7, 4, width: 2, depth: 2);
+      expect(furnitureBehind, lessThan(rightNorthWall));
     });
   });
 }

@@ -72,18 +72,21 @@ class IsometricCoords {
     if (footprint == 'wall_w' || footprint.contains('wall_w')) {
       return -100 + (v ~/ 2) * 5 + layer;
     }
+
     final int gx = u ~/ 2;
     final int gy = v ~/ 2;
     final int intraX = u % 2;
     final int intraY = v % 2;
-    final int intraDepth = intraX + intraY + (width - 1) + (depth - 1);
-    final int baseTilePriority = (gx + gy) * 4000;
-    final int subOffset = 500 + intraDepth * 1000;
+    final int wSub = width;
+    final int dSub = depth;
+
+    final int subOffset = 1000 + (intraX + intraY + wSub - 1 + dSub - 1) * 1000 + intraY * 200 + intraX * 50;
+    final int base = (gx + gy) * 10000 + subOffset;
 
     if (footprint == 'surface') {
-      return baseTilePriority + subOffset + 50 + layer;
+      return base + 500 + layer;
     }
-    return baseTilePriority + subOffset + 10 + layer;
+    return base + layer;
   }
 
   /// Calculates dynamic isometric depth priority for z-sorting (full tile)
@@ -99,14 +102,16 @@ class IsometricCoords {
 
   /// Calculates depth priority for interior partition walls located on tile boundaries.
   static int getInteriorWallZOrder(int gx, int gy, String orientation) {
-    final base = (gx + gy) * 4000;
-    return (orientation == 'north') ? (base + 100) : (base + 200);
+    final int base = (gx + gy) * 10000;
+    return (orientation == 'north')
+        ? (base + 100)
+        : (base + 200);
   }
 
-  /// Calculates the exact isometric sprite anchor offset based on grid footprint (1x1, 1x2, 2x1, 2x2, surface, wall_n, wall_w)
+  /// Calculates the exact isometric sprite anchor offset based on grid footprint (0.5x0.5, 1x1, 1x2, 2x1, 2x2, surface, wall_n, wall_w)
   static Vector2 getFurnitureSpriteOffset({
-    required int gridWidth,
-    required int gridHeight,
+    required num gridWidth,
+    required num gridHeight,
     required double spriteWidth,
     required double spriteHeight,
     String footprint = '1x1',
@@ -128,6 +133,9 @@ class IsometricCoords {
       // 'mid' = -32.0, 'high' = -48.0
       final wallYOffset = (wallHeightLevel == 'high') ? -48.0 : -32.0;
       return Vector2((-spriteWidth / 2.0) - 16.0, wallYOffset - spriteHeight / 2.0);
+    } else if (footprint == '0.5x0.5' || (gridWidth <= 0.5 && gridHeight <= 0.5)) {
+      // 0.5x0.5 compact quarter-tile: centered horizontally, baseline at sub-tile ground level (y = +8)
+      return Vector2(-spriteWidth / 2.0, (tileHeight / 4.0) - spriteHeight);
     } else if (footprint == '1x2' || (gridWidth == 1 && gridHeight == 2)) {
       // 1x2 along Y-axis (extends Down-Left across 2 tiles)
       return Vector2(-64.0, -36.0);

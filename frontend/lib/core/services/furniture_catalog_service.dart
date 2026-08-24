@@ -22,6 +22,7 @@ class FurnitureCatalogService {
           _catalog[key] = FurnitureCatalogItem.fromJson(key, value);
         }
       });
+      _mergeFallbackCatalog();
       _isLoaded = true;
     } catch (e) {
       if (_catalog.isEmpty) {
@@ -60,7 +61,7 @@ class FurnitureCatalogService {
       case 'bedroom':
         return _catalog.values.where((i) => (i.zone == 'bedroom' || i.id == 'single_bed' || i.id == 'closet' || i.id == 'king_bed') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'kitchen_bath':
-        return _catalog.values.where((i) => (i.zone == 'kitchen' || i.zone == 'bathroom' || i.id == 'kitchen_fridge' || i.id == 'kitchen_stove' || i.id == 'kitchen_sink' || i.id == 'kitchen_counter' || i.id == 'bathtub_1x2' || i.id == 'bathroom_toilet') && !i.isSurfaceItem && !i.isWallItem).toList();
+        return _catalog.values.where((i) => (i.zone == 'kitchen' || i.zone == 'bathroom' || i.id == 'kitchen_fridge_sm' || i.id == 'kitchen_stove' || i.id == 'kitchen_sink' || i.id == 'kitchen_counter' || i.id == 'bathtub_1x2' || i.id == 'bathroom_toilet') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'surface':
         return _catalog.values.where((i) => i.isSurfaceItem).toList();
       case 'walls':
@@ -74,7 +75,11 @@ class FurnitureCatalogService {
     }
   }
 
-  static void _loadFallbackCatalog() {
+  static void _mergeFallbackCatalog() {
+    _loadFallbackCatalog(overwriteExisting: false);
+  }
+
+  static void _loadFallbackCatalog({bool overwriteExisting = true}) {
     final fallbackList = [
       // Muebles Nuevos (New Added)
       const FurnitureCatalogItem(id: 'table', name: 'Mesa Rústica', zone: 'living', footprint: '1x1', surfaceHeight: 18, spriteOffset: [-32, -48]),
@@ -109,7 +114,7 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'kitchen_counter', name: 'Encimera de Cocina', zone: 'kitchen', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'kitchen_stove', name: 'Cocina con Fogones', zone: 'kitchen', footprint: '1x1', surfaceHeight: 22, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'kitchen_sink', name: 'Fregadero Inox', zone: 'kitchen', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'kitchen_fridge', name: 'Refrigerador Inox', zone: 'kitchen', footprint: '1x1', spriteOffset: [-32, -64]),
+      const FurnitureCatalogItem(id: 'kitchen_fridge_sm', name: 'Refrigerador Compacto', zone: 'kitchen', footprint: '0.5x0.5', spriteOffset: [-16, -56]),
       const FurnitureCatalogItem(id: 'bathtub_1x2', name: 'Bañera Clásica (1x2)', zone: 'bathroom', footprint: '1x2', spriteOffset: [-64, -36]),
       const FurnitureCatalogItem(id: 'bathroom_toilet', name: 'Inodoro Cerámica', zone: 'bathroom', footprint: '1x1', spriteOffset: [-32, -48]),
 
@@ -127,7 +132,9 @@ class FurnitureCatalogService {
     ];
 
     for (final item in fallbackList) {
-      _catalog[item.id] = item;
+      if (overwriteExisting || !_catalog.containsKey(item.id)) {
+        _catalog[item.id] = item;
+      }
     }
   }
 }

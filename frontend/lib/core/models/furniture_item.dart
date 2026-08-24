@@ -147,14 +147,16 @@ class FurnitureCatalogItem extends Equatable {
     }
   }
 
-  int get gridWidth {
-    if (footprint == '2x1' || footprint == '2x2') return 2;
-    return 1;
+  double get gridWidth {
+    if (footprint == '0.5x0.5') return 0.5;
+    if (footprint == '2x1' || footprint == '2x2') return 2.0;
+    return 1.0;
   }
 
-  int get gridHeight {
-    if (footprint == '1x2' || footprint == '2x2') return 2;
-    return 1;
+  double get gridHeight {
+    if (footprint == '0.5x0.5') return 0.5;
+    if (footprint == '1x2' || footprint == '2x2') return 2.0;
+    return 1.0;
   }
 
   static String getWallVariantFor(String rawId, bool isNorth) {
@@ -225,8 +227,8 @@ class FurnitureCatalogItem extends Equatable {
 
 class PlacedFurniture extends Equatable {
   final String id;
-  final int gx;
-  final int gy;
+  final double gx;
+  final double gy;
   final int rot; // 0, 1, 2, 3
   final String? parentId; // ID of the supporting surface furniture (e.g. side_table)
   final String wallHeightLevel; // 'mid' or 'high'
@@ -246,8 +248,8 @@ class PlacedFurniture extends Equatable {
 
   PlacedFurniture copyWith({
     String? id,
-    int? gx,
-    int? gy,
+    double? gx,
+    double? gy,
     int? rot,
     String? parentId,
     bool clearParent = false,
@@ -283,8 +285,8 @@ class PlacedFurniture extends Equatable {
   factory PlacedFurniture.fromJson(Map<String, dynamic> json) {
     return PlacedFurniture(
       id: json['id'] as String? ?? 'side_table',
-      gx: json['gx'] as int? ?? 0,
-      gy: json['gy'] as int? ?? 0,
+      gx: (json['gx'] as num?)?.toDouble() ?? 0.0,
+      gy: (json['gy'] as num?)?.toDouble() ?? 0.0,
       rot: json['rot'] as int? ?? 0,
       parentId: json['parent_id'] as String?,
       wallHeightLevel: json['wall_height_level'] as String? ?? 'mid',

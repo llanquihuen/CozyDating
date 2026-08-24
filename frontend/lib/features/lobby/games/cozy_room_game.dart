@@ -37,11 +37,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   // Drag-and-Drop state for furniture
   IsometricFurnitureComponent? _draggedFurniture;
   List<IsometricFurnitureComponent> _attachedSurfaceItems = [];
-  Point<int>? _originalGridPos;
+  Point<num>? _originalGridPos;
   String? _originalParentId;
   double _originalSurfaceHeight = 0.0;
   String _originalWallId = '';
-  Point<int>? _currentHoverGrid;
+  Point<num>? _currentHoverGrid;
   bool _isValidDropLocation = true;
   Vector2? _dragStartWorldPos;
 
@@ -276,6 +276,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         if (parent != null) {
           final pMeta = FurnitureCatalogService.getItem(parent.typeName) ?? FurnitureCatalogService.getItem(parent.id);
           final sH = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
+          comp.parentId = parent.id;
+          comp.parentSurfaceHeight = sH;
           comp.updateGridPosition(
             comp.gridX,
             comp.gridY,
@@ -284,14 +286,19 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
             parentFurthestX: parent.gridX + parent.gridWidth - 1,
             parentFurthestY: parent.gridY + parent.gridHeight - 1,
           );
+          if (comp.priority <= parent.priority) {
+            comp.priority = parent.priority + 100;
+          }
         } else {
+          comp.parentId = null;
+          comp.parentSurfaceHeight = 0.0;
           comp.updateGridPosition(comp.gridX, comp.gridY);
         }
       }
     }
   }
 
-  IsometricFurnitureComponent? _findSurfaceParentAt(int gx, int gy, {IsometricFurnitureComponent? exclude}) {
+  IsometricFurnitureComponent? _findSurfaceParentAt(num gx, num gy, {IsometricFurnitureComponent? exclude}) {
     final candidates = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != exclude && f.type != FurnitureType.portal && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
     for (final f in candidates) {
       if (gx >= f.gridX && gx < f.gridX + f.gridWidth && gy >= f.gridY && gy < f.gridY + f.gridHeight) {
@@ -358,6 +365,72 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
           } catch (_) {}
         }
 
+        // new_added folder fallbacks (05x05, 1x1, 1x2, 2x1, 2x2, surface, walls)
+        try {
+          map[rot] = await loadSprite('furniture/new_added/05x05/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/05x05/$cid.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/1x1/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/1x1/$cid.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/1x2/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/1x2/$cid.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/2x1/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/2x1/$cid.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/2x2/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/2x2/$cid.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/surface/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/surface/$cid.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/walls/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/walls/$cid.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/${cid}_rot$rot.png');
+          break;
+        } catch (_) {}
+        try {
+          map[rot] = await loadSprite('furniture/new_added/$cid.png');
+          break;
+        } catch (_) {}
+
         // Root fallbacks
         try {
           map[rot] = await loadSprite('furniture/${cid}_rot$rot.png');
@@ -419,7 +492,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final targetCenterX = camCenter.x.toDouble().clamp(0.0, (gridSize - gw).toDouble());
     final targetCenterY = camCenter.y.toDouble().clamp(0.0, (gridSize - gh).toDouble());
 
-    Point<int> spawnPos = Point(targetCenterX.round(), targetCenterY.round());
+    Point<num> spawnPos = Point(targetCenterX.round(), targetCenterY.round());
     String? parentId;
     double surfaceH = 0.0;
 
@@ -429,8 +502,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         final p = Point(x, 0);
         final temp = IsometricFurnitureComponent(
           id: catalogItem.id,
-          gridX: x,
-          gridY: 0,
+          gridX: x.toDouble(),
+          gridY: 0.0,
           gridWidth: gw,
           gridHeight: gh,
           footprint: 'wall_n',
@@ -449,8 +522,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         final p = Point(0, y);
         final temp = IsometricFurnitureComponent(
           id: catalogItem.id,
-          gridX: 0,
-          gridY: y,
+          gridX: 0.0,
+          gridY: y.toDouble(),
           gridWidth: gw,
           gridHeight: gh,
           footprint: 'wall_w',
@@ -490,8 +563,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
           final p = Point(r, c);
           final temp = IsometricFurnitureComponent(
             id: catalogItem.id,
-            gridX: r,
-            gridY: c,
+            gridX: r.toDouble(),
+            gridY: c.toDouble(),
             gridWidth: gw,
             gridHeight: gh,
             footprint: catalogItem.footprint,
@@ -515,8 +588,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final comp = IsometricFurnitureComponent(
       id: uniqueId,
       typeName: initialTypeName,
-      gridX: spawnPos.x,
-      gridY: spawnPos.y,
+      gridX: spawnPos.x.toDouble(),
+      gridY: spawnPos.y.toDouble(),
       gridWidth: gw,
       gridHeight: gh,
       rotation: 0,
@@ -533,6 +606,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     world.add(comp);
     selectFurniture(comp);
     _recalculateObstacles();
+    _recalculateSurfacePriorities();
   }
 
   void toggleSelectedWallHeight() {
@@ -547,34 +621,41 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final comp = selectedFurniture!;
     if (comp.isSurfaceItem || comp.isWallNorth || comp.isWallWest) {
       comp.rotateClockwise();
+      _recalculateSurfacePriorities();
       return;
     }
 
     final nextW = comp.gridHeight;
     final nextH = comp.gridWidth;
 
-    int targetX = comp.gridX;
-    int targetY = comp.gridY;
+    double targetX = comp.gridX;
+    double targetY = comp.gridY;
 
-    if (targetX + nextW > gridSize) targetX = gridSize - nextW;
-    if (targetY + nextH > gridSize) targetY = gridSize - nextH;
+    if (targetX + nextW > gridSize) targetX = (gridSize - nextW).toDouble();
+    if (targetY + nextH > gridSize) targetY = (gridSize - nextH).toDouble();
+
+    final testSubCells = <Point<int>>[];
+    final baseU = (targetX * 2).round();
+    final baseV = (targetY * 2).round();
+    final subW = (nextW * 2).round();
+    final subH = (nextH * 2).round();
+    for (int du = 0; du < subW; du++) {
+      for (int dv = 0; dv < subH; dv++) {
+        testSubCells.add(Point(baseU + du, baseV + dv));
+      }
+    }
 
     bool fits = true;
     final others = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != comp && f.type != FurnitureType.carpet && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
     for (final f in others) {
-      for (int fx = 0; fx < f.gridWidth; fx++) {
-        for (int fy = 0; fy < f.gridHeight; fy++) {
-          final fPoint = Point(f.gridX + fx, f.gridY + fy);
-          for (int nx = 0; nx < nextW; nx++) {
-            for (int ny = 0; ny < nextH; ny++) {
-              if (Point(targetX + nx, targetY + ny) == fPoint) {
-                fits = false;
-                break;
-              }
-            }
-          }
+      final fCells = f.occupiedSubCells;
+      for (final cell in testSubCells) {
+        if (fCells.contains(cell)) {
+          fits = false;
+          break;
         }
       }
+      if (!fits) break;
     }
 
     if (fits) {
@@ -582,6 +663,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       comp.gridY = targetY;
       comp.rotateClockwise();
       _recalculateObstacles();
+      _recalculateSurfacePriorities();
     }
   }
 
@@ -804,7 +886,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     _recalculateSurfacePriorities();
   }
 
-  bool _checkIsValidLocation(IsometricFurnitureComponent item, Point<int> target) {
+  bool _checkIsValidLocation(IsometricFurnitureComponent item, Point<num> target) {
     // 1. Surface Item: Must be placed on a furniture with surface_height > 0
     if (item.isSurfaceItem) {
       if (target.x < 0 || target.x >= gridSize || target.y < 0 || target.y >= gridSize) {
@@ -833,49 +915,61 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       return false;
     }
 
-    // Collision check against other solid floor items
-    final allFurniture = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != item && f.type != FurnitureType.carpet && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
+    // Collision check against other solid floor items using sub-cells
+    final itemSubCells = <Point<int>>[];
+    final baseU = (target.x * 2).round();
+    final baseV = (target.y * 2).round();
+    if (item.footprint == '0.5x0.5') {
+      itemSubCells.add(Point(baseU, baseV));
+    } else {
+      final subW = (item.gridWidth * 2).round();
+      final subH = (item.gridHeight * 2).round();
+      for (int du = 0; du < subW; du++) {
+        for (int dv = 0; dv < subH; dv++) {
+          itemSubCells.add(Point(baseU + du, baseV + dv));
+        }
+      }
+    }
+
+    final allFurniture = world.children
+        .whereType<IsometricFurnitureComponent>()
+        .where((f) => f != item && f.type != FurnitureType.carpet && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
+
     for (final f in allFurniture) {
-      for (int fx = 0; fx < f.gridWidth; fx++) {
-        for (int fy = 0; fy < f.gridHeight; fy++) {
-          final fPoint = Point(f.gridX + fx, f.gridY + fy);
-          for (int ix = 0; ix < item.gridWidth; ix++) {
-            for (int iy = 0; iy < item.gridHeight; iy++) {
-              if (Point(target.x + ix, target.y + iy) == fPoint) {
-                return false;
-              }
-            }
-          }
+      final fCells = f.occupiedSubCells;
+      for (final cell in itemSubCells) {
+        if (fCells.contains(cell)) {
+          return false;
         }
       }
     }
 
     // 5. Collision check against interior dividing walls:
-    // Multi-tile furniture cannot span across or be crossed by an interior wall.
+    // Furniture cannot span across or be crossed by an interior wall.
     if (item.type != FurnitureType.carpet && !item.isSurfaceItem && !item.isWallNorth && !item.isWallWest) {
       final interiorWalls = world.children.whereType<IsometricInteriorWallComponent>().toList();
+      final itemXMin = target.x.toDouble();
+      final itemXMax = (target.x + item.gridWidth).toDouble();
+      final itemYMin = target.y.toDouble();
+      final itemYMax = (target.y + item.gridHeight).toDouble();
 
-      // Check vertical crossings (West walls at target.x + ix for ix in 1..item.gridWidth-1)
-      if (item.gridWidth > 1) {
-        for (int ix = 1; ix < item.gridWidth; ix++) {
-          final crossX = target.x + ix;
-          for (int iy = 0; iy < item.gridHeight; iy++) {
-            final crossY = target.y + iy;
-            if (interiorWalls.any((w) => w.gridX == crossX && w.gridY == crossY && w.orientation == 'west')) {
-              return false;
+      for (final w in interiorWalls) {
+        if (w.orientation == 'west') {
+          final wallX = w.gridX.toDouble();
+          final wallYStart = w.gridY.toDouble();
+          final wallYEnd = (w.gridY + 1).toDouble();
+          if (itemXMin < wallX && wallX < itemXMax) {
+            if (max(itemYMin, wallYStart) < min(itemYMax, wallYEnd)) {
+              return false; // Crossed by West wall
             }
           }
-        }
-      }
-
-      // Check horizontal crossings (North walls at target.y + iy for iy in 1..item.gridHeight-1)
-      if (item.gridHeight > 1) {
-        for (int iy = 1; iy < item.gridHeight; iy++) {
-          final crossY = target.y + iy;
-          for (int ix = 0; ix < item.gridWidth; ix++) {
-            final crossX = target.x + ix;
-            if (interiorWalls.any((w) => w.gridX == crossX && w.gridY == crossY && w.orientation == 'north')) {
-              return false;
+        } else if (w.orientation == 'north') {
+          final wallY = w.gridY.toDouble();
+          final wallXStart = w.gridX.toDouble();
+          final wallXEnd = (w.gridX + 1).toDouble();
+          if (itemYMin < wallY && wallY < itemYMax) {
+            if (max(itemXMin, wallXStart) < min(itemXMax, wallXEnd)) {
+              return false; // Crossed by North wall
             }
           }
         }
@@ -921,7 +1015,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   }
 
   @visibleForTesting
-  bool checkIsValidLocationForTesting(IsometricFurnitureComponent item, Point<int> target) => _checkIsValidLocation(item, target);
+  bool checkIsValidLocationForTesting(IsometricFurnitureComponent item, Point<num> target) => _checkIsValidLocation(item, target);
 
   @visibleForTesting
   bool checkIsValidWallLocationForTesting(IsometricInteriorWallComponent wall, Point<int> target, {String? orientation}) =>
@@ -1257,7 +1351,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     final currentWorldPos = camera.viewfinder.transform.globalToLocal(screenPos);
 
-    Point<int> clampedGrid;
+    Point<num> clampedGrid;
     if (_draggedFurniture!.isWallItem) {
       // Wall items exist along the vertical planes of North Wall (sx >= 0) or West Wall (sx < 0).
       // Each isometric wall panel occupies exactly (tileWidth / 2 = 32px) horizontally:
@@ -1270,26 +1364,44 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
       if (isNorth) {
         final rawX = (anchorSx / panelWidth).floor();
-        final gx = rawX.clamp(0, gridSize - _draggedFurniture!.gridWidth);
+        final gx = rawX.clamp(0, (gridSize - _draggedFurniture!.gridWidth).toInt());
         clampedGrid = Point(gx, 0);
         _switchWallVariant(_draggedFurniture!, true);
       } else {
         final rawY = ((-anchorSx) / panelWidth).floor();
-        final gy = rawY.clamp(0, gridSize - _draggedFurniture!.gridHeight);
+        final gy = rawY.clamp(0, (gridSize - _draggedFurniture!.gridHeight).toInt());
         clampedGrid = Point(0, gy);
         _switchWallVariant(_draggedFurniture!, false);
       }
     } else {
-      final rawGrid = IsometricCoords.screenToGrid(currentWorldPos.x, currentWorldPos.y);
-      final clX = rawGrid.x.clamp(0, gridSize - _draggedFurniture!.gridWidth);
-      final clY = rawGrid.y.clamp(0, gridSize - _draggedFurniture!.gridHeight);
-      clampedGrid = Point(clX, clY);
+      // All floor furniture snaps to 0.5 subgrid increments
+      final subPoint = IsometricCoords.screenToSubGrid(currentWorldPos.x, currentWorldPos.y);
+      final maxSubX = ((gridSize - _draggedFurniture!.gridWidth) * 2).round();
+      final maxSubY = ((gridSize - _draggedFurniture!.gridHeight) * 2).round();
+      final clU = subPoint.x.clamp(0, maxSubX);
+      final clV = subPoint.y.clamp(0, maxSubY);
+      clampedGrid = Point(clU / 2.0, clV / 2.0);
     }
 
     _currentHoverGrid = clampedGrid;
     _isValidDropLocation = _checkIsValidLocation(_draggedFurniture!, clampedGrid);
 
-    // If surface item, update dynamic elevation and parent linkage for magnetic preview
+    // Dynamic depth sorting: update priority in real-time according to hover position so
+    // furniture naturally renders behind/in-front of other furniture and walls during movement
+    final subX = (clampedGrid.x * 2).round();
+    final subY = (clampedGrid.y * 2).round();
+    final layer = (_draggedFurniture!.type == FurnitureType.carpet ? -1 : (_draggedFurniture!.isSurfaceItem ? 2 : 1));
+    final hoverPriority = IsometricCoords.getSubZOrder(
+      subX,
+      subY,
+      width: _draggedFurniture!.isSurfaceItem ? 1 : (_draggedFurniture!.footprint == '0.5x0.5' ? 1 : (_draggedFurniture!.gridWidth * 2).round()),
+      depth: _draggedFurniture!.isSurfaceItem ? 1 : (_draggedFurniture!.footprint == '0.5x0.5' ? 1 : (_draggedFurniture!.gridHeight * 2).round()),
+      layer: layer,
+      footprint: _draggedFurniture!.footprint,
+    );
+    _draggedFurniture!.priority = hoverPriority;
+
+    // If surface item, update dynamic elevation, parent linkage and priority for magnetic preview
     if (_draggedFurniture!.isSurfaceItem) {
       final parent = _findSurfaceParentAt(clampedGrid.x, clampedGrid.y, exclude: _draggedFurniture);
       if (parent != null) {
@@ -1301,21 +1413,28 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         } else {
           _draggedFurniture!.parentSurfaceHeight = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
         }
+        _draggedFurniture!.priority = parent.priority + 100;
       } else {
         _draggedFurniture!.parentId = null;
         _draggedFurniture!.parentSurfaceHeight = 0.0;
       }
     }
 
-    final targetScreenPos = IsometricCoords.gridToScreen(clampedGrid.x.toDouble(), clampedGrid.y.toDouble());
-    final currentScreenPos = IsometricCoords.gridToScreen(_draggedFurniture!.gridX.toDouble(), _draggedFurniture!.gridY.toDouble());
+    final isHalf = (_draggedFurniture!.footprint == '0.5x0.5' || _draggedFurniture!.gridWidth <= 0.5);
+    final targetScreenPos = isHalf
+        ? IsometricCoords.subGridToScreen(clampedGrid.x * 2.0, clampedGrid.y * 2.0)
+        : IsometricCoords.gridToScreen(clampedGrid.x.toDouble(), clampedGrid.y.toDouble());
+    final currentScreenPos = isHalf
+        ? IsometricCoords.subGridToScreen(_draggedFurniture!.gridX * 2.0, _draggedFurniture!.gridY * 2.0)
+        : IsometricCoords.gridToScreen(_draggedFurniture!.gridX.toDouble(), _draggedFurniture!.gridY.toDouble());
     final delta = targetScreenPos - currentScreenPos;
     _draggedFurniture!.dragVisualOffset = delta;
 
-    // Also update visual offset for attached surface items
+    // Also update visual offset and priority for attached surface items
     for (final child in _attachedSurfaceItems) {
       child.dragVisualOffset = delta;
       child.isBeingDragged = true;
+      child.priority = hoverPriority + 100;
     }
   }
 
@@ -1363,7 +1482,6 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     hit.isBeingDragged = true;
     hit.isDirectlyDragged = true;
-    hit.priority = 9999;
 
     // If dragging a surface-supporting furniture, find all attached surface children strictly on top of THIS table's tiles
     _attachedSurfaceItems.clear();
@@ -1380,7 +1498,6 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       for (final child in _attachedSurfaceItems) {
         child.isBeingDragged = true;
         child.isDirectlyDragged = false;
-        child.priority = 10001; // Render strictly on top of parent table during drag
       }
     }
   }
@@ -1682,8 +1799,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       _draggedInteriorWall!.isBeingDragged = false;
       if (_isValidDropLocation && _currentHoverGrid != null) {
         _draggedInteriorWall!.updateGridPosition(
-          _currentHoverGrid!.x,
-          _currentHoverGrid!.y,
+          _currentHoverGrid!.x.toInt(),
+          _currentHoverGrid!.y.toInt(),
         );
         world.add(_TapWaveComponent(grid: _currentHoverGrid!, isSnap: true));
       } else if (_originalWallGridPos != null) {
@@ -1724,8 +1841,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         }
 
         _draggedFurniture!.updateGridPosition(
-          _currentHoverGrid!.x,
-          _currentHoverGrid!.y,
+          _currentHoverGrid!.x.toDouble(),
+          _currentHoverGrid!.y.toDouble(),
           parentId: newParentId,
           parentSurfaceHeight: newSurfaceH,
         );
@@ -1750,8 +1867,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
           _switchWallVariant(_draggedFurniture!, _originalWallId.endsWith('_n'));
         }
         _draggedFurniture!.updateGridPosition(
-          _originalGridPos!.x,
-          _originalGridPos!.y,
+          _originalGridPos!.x.toDouble(),
+          _originalGridPos!.y.toDouble(),
           parentId: _originalParentId,
           parentSurfaceHeight: _originalSurfaceHeight,
         );
@@ -1798,8 +1915,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         _switchWallVariant(_draggedFurniture!, _originalWallId.endsWith('_n'));
       }
       _draggedFurniture!.updateGridPosition(
-        _originalGridPos!.x,
-        _originalGridPos!.y,
+        _originalGridPos!.x.toDouble(),
+        _originalGridPos!.y.toDouble(),
         parentId: _originalParentId,
         parentSurfaceHeight: _originalSurfaceHeight,
       );
@@ -2040,9 +2157,22 @@ class _DragHighlightLayer extends Component {
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.5;
           canvas.drawPath(wallPath, origStroke);
+        } else if (item.footprint == '0.5x0.5' || item.gridWidth <= 0.5) {
+          final pos = IsometricCoords.subGridToScreen(orig.x * 2.0, orig.y * 2.0);
+          final path = Path()
+            ..moveTo(pos.x, pos.y - (IsometricCoords.subTileHeight / 2))
+            ..lineTo(pos.x + (IsometricCoords.subTileWidth / 2), pos.y)
+            ..lineTo(pos.x, pos.y + (IsometricCoords.subTileHeight / 2))
+            ..lineTo(pos.x - (IsometricCoords.subTileWidth / 2), pos.y)
+            ..close();
+          final origStroke = Paint()
+            ..color = const Color(0x8000E5FF)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5;
+          canvas.drawPath(path, origStroke);
         } else {
-          for (int x = 0; x < item.gridWidth; x++) {
-            for (int y = 0; y < item.gridHeight; y++) {
+          for (int x = 0; x < item.gridWidth.round(); x++) {
+            for (int y = 0; y < item.gridHeight.round(); y++) {
               final pos = IsometricCoords.gridToScreen((orig.x + x).toDouble(), (orig.y + y).toDouble());
               final path = Path()
                 ..moveTo(pos.x, pos.y - (IsometricCoords.tileHeight / 2))
@@ -2175,9 +2305,20 @@ class _DragHighlightLayer extends Component {
             canvas.drawPath(path, fillPaint);
             canvas.drawPath(path, strokePaint);
           }
+        } else if (item.footprint == '0.5x0.5' || item.gridWidth <= 0.5) {
+          final pos = IsometricCoords.subGridToScreen(target.x * 2.0, target.y * 2.0);
+          final path = Path()
+            ..moveTo(pos.x, pos.y - (IsometricCoords.subTileHeight / 2))
+            ..lineTo(pos.x + (IsometricCoords.subTileWidth / 2), pos.y)
+            ..lineTo(pos.x, pos.y + (IsometricCoords.subTileHeight / 2))
+            ..lineTo(pos.x - (IsometricCoords.subTileWidth / 2), pos.y)
+            ..close();
+
+          canvas.drawPath(path, fillPaint);
+          canvas.drawPath(path, strokePaint);
         } else {
-          for (int x = 0; x < item.gridWidth; x++) {
-            for (int y = 0; y < item.gridHeight; y++) {
+          for (int x = 0; x < item.gridWidth.round(); x++) {
+            for (int y = 0; y < item.gridHeight.round(); y++) {
               final gx = target.x + x;
               final gy = target.y + y;
               final pos = IsometricCoords.gridToScreen(gx.toDouble(), gy.toDouble());
@@ -2505,7 +2646,7 @@ class _IsometricRoomBackgroundComponent extends Component {
 }
 
 class _TapWaveComponent extends Component {
-  final Point<int> grid;
+  final Point<num> grid;
   final bool isSnap;
   final bool isSubGrid;
   double progress = 0.0;
@@ -2526,8 +2667,11 @@ class _TapWaveComponent extends Component {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    final pos = isSubGrid
-        ? IsometricCoords.subGridToScreen(grid.x.toDouble(), grid.y.toDouble())
+    final isHalfGrid = isSubGrid || (grid.x % 1 != 0) || (grid.y % 1 != 0);
+    final pos = isHalfGrid
+        ? (isSubGrid
+            ? IsometricCoords.subGridToScreen(grid.x.toDouble(), grid.y.toDouble())
+            : IsometricCoords.subGridToScreen(grid.x * 2.0, grid.y * 2.0))
         : IsometricCoords.gridToScreen(grid.x.toDouble(), grid.y.toDouble());
     final opacity = (1.0 - progress).clamp(0.0, 1.0);
     final waveColor = isSnap ? const Color(0xFF00E5FF) : const Color(0xFFFFD54F);
@@ -2536,9 +2680,8 @@ class _TapWaveComponent extends Component {
       ..color = waveColor.withOpacity(opacity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = isSnap ? 3.5 : 2.5;
-
-    final w = (isSubGrid ? IsometricCoords.subTileWidth : IsometricCoords.tileWidth) * progress;
-    final h = (isSubGrid ? IsometricCoords.subTileHeight : IsometricCoords.tileHeight) * progress;
+    final w = (isHalfGrid ? IsometricCoords.subTileWidth : IsometricCoords.tileWidth) * progress;
+    final h = (isHalfGrid ? IsometricCoords.subTileHeight : IsometricCoords.tileHeight) * progress;
 
     canvas.drawOval(
       Rect.fromCenter(

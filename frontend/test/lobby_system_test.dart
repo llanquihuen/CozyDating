@@ -112,17 +112,17 @@ void main() {
       final avatarBehindNorthSouthQuadZ = IsometricCoords.getSubZOrder(9, 7, layer: 100);
       expect(avatarBehindNorthSouthQuadZ < northWallZ, isTrue, reason: 'Avatar in South quadrant behind north wall must be occluded');
 
-      // 2. Avatar on North subcell in front of North wall (tile 4, 4: North subcell is u=8, v=8)
+      // 2. Avatar on North subcell in front of North wall (tile 4, 4: NW subcell is u=8, v=8)
       final avatarInFrontNorthZ = IsometricCoords.getSubZOrder(8, 8, layer: 100);
-      expect(avatarInFrontNorthZ > northWallZ, isTrue, reason: 'Avatar in front of north wall must be on top');
+      expect(avatarInFrontNorthZ > northWallZ, isTrue, reason: 'Avatar on NW subcell in front of north wall must be on top');
 
       // 3. Avatar on South subcell behind West wall (tile 3, 4: South subcell is u=7, v=9)
       final avatarBehindWestSouthQuadZ = IsometricCoords.getSubZOrder(7, 9, layer: 100);
       expect(avatarBehindWestSouthQuadZ < westWallZ, isTrue, reason: 'Avatar in South quadrant behind west wall must be occluded');
 
-      // 4. Avatar on North subcell in front of West wall (tile 4, 4: North subcell is u=8, v=8)
-      final avatarInFrontWestZ = IsometricCoords.getSubZOrder(8, 8, layer: 100);
-      expect(avatarInFrontWestZ > westWallZ, isTrue, reason: 'Avatar in front of west wall must be on top');
+      // 4. Avatar on South subcell in front of West wall (tile 4, 4: South subcell is u=9, v=9)
+      final avatarInFrontWestZ = IsometricCoords.getSubZOrder(9, 9, layer: 100);
+      expect(avatarInFrontWestZ > westWallZ, isTrue, reason: 'Avatar in South quadrant in front of west wall must be on top');
 
       // 5. Furniture on tile behind North wall (4, 3)
       final furnitureBehindZ = IsometricCoords.getZOrder(4, 3, layer: 1);
@@ -807,7 +807,7 @@ void main() {
       expect(furnitureIds.contains('table_lamp'), isTrue);
       expect(furnitureIds.contains('closet'), isTrue);
       // Kitchen
-      expect(furnitureIds.contains('kitchen_fridge'), isTrue);
+      expect(furnitureIds.contains('kitchen_fridge_sm'), isTrue);
       expect(furnitureIds.contains('kitchen_stove'), isTrue);
       expect(furnitureIds.contains('kitchen_sink'), isTrue);
       expect(furnitureIds.contains('kitchen_counter'), isTrue);

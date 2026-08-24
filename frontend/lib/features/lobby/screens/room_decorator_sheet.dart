@@ -100,7 +100,7 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
         return (item.zone == 'bedroom' || item.id == 'single_bed' || item.id == 'closet' || item.id == 'king_bed') && !item.isSurfaceItem && !item.isWallItem;
       }
       if (_selectedCategory == 'kitchen_bath') {
-        return (item.zone == 'kitchen' || item.zone == 'bathroom' || item.id == 'kitchen_fridge' || item.id == 'kitchen_stove' || item.id == 'kitchen_sink' || item.id == 'kitchen_counter' || item.id == 'bathtub_1x2' || item.id == 'bathroom_toilet') && !item.isSurfaceItem && !item.isWallItem;
+        return (item.zone == 'kitchen' || item.zone == 'bathroom' || item.id == 'kitchen_fridge_sm' || item.id == 'kitchen_stove' || item.id == 'kitchen_sink' || item.id == 'kitchen_counter' || item.id == 'bathtub_1x2' || item.id == 'bathroom_toilet') && !item.isSurfaceItem && !item.isWallItem;
       }
       if (_selectedCategory == 'patio') {
         return (item.zone == 'patio' || item.id == 'bbq_grill' || item.id == 'stone_fountain') && !item.isSurfaceItem && !item.isWallItem;
@@ -278,38 +278,39 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
 
   Widget _buildPreviewImage(FurnitureCatalogItem item) {
     final assetName = item.isWallItem ? (item.id.endsWith('_n') || item.id.endsWith('_w') ? item.id : '${item.id}_n') : item.id;
-    return Image.asset(
+    final candidatePaths = [
       'assets/images/furniture/64x128/$assetName.png',
-      cacheWidth: 80,
-      cacheHeight: 80,
-      filterQuality: FilterQuality.medium,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        return Image.asset(
-          'assets/images/furniture/128x256/$assetName.png',
-          cacheWidth: 80,
-          cacheHeight: 80,
-          filterQuality: FilterQuality.medium,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            return Image.asset(
-              'assets/images/furniture/$assetName.png',
-              cacheWidth: 80,
-              cacheHeight: 80,
-              filterQuality: FilterQuality.medium,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  item.isSurfaceItem ? Icons.local_cafe : (item.isWallItem ? Icons.wallpaper : Icons.chair),
-                  color: Colors.white24,
-                  size: 22,
-                );
-              },
-            );
-          },
+      'assets/images/furniture/128x256/$assetName.png',
+      'assets/images/furniture/new_added/05x05/$assetName.png',
+      'assets/images/furniture/new_added/1x1/$assetName.png',
+      'assets/images/furniture/new_added/1x2/$assetName.png',
+      'assets/images/furniture/new_added/2x1/$assetName.png',
+      'assets/images/furniture/new_added/2x2/$assetName.png',
+      'assets/images/furniture/new_added/surface/$assetName.png',
+      'assets/images/furniture/new_added/walls/$assetName.png',
+      'assets/images/furniture/new_added/$assetName.png',
+      'assets/images/furniture/$assetName.png',
+    ];
+
+    Widget buildCandidate(int index) {
+      if (index >= candidatePaths.length) {
+        return Icon(
+          item.isSurfaceItem ? Icons.local_cafe : (item.isWallItem ? Icons.wallpaper : Icons.chair),
+          color: Colors.white24,
+          size: 22,
         );
-      },
-    );
+      }
+      return Image.asset(
+        candidatePaths[index],
+        cacheWidth: 80,
+        cacheHeight: 80,
+        filterQuality: FilterQuality.medium,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => buildCandidate(index + 1),
+      );
+    }
+
+    return buildCandidate(0);
   }
 
   Widget _buildFurnitureItemCard(FurnitureCatalogItem item) {

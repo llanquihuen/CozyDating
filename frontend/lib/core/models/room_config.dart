@@ -5,10 +5,10 @@ import 'package:equatable/equatable.dart';
 class PlacedFurnitureConfig extends Equatable {
   final String id;
   final String typeName;
-  final int gridX;
-  final int gridY;
-  final int gridWidth;
-  final int gridHeight;
+  final double gridX;
+  final double gridY;
+  final double gridWidth;
+  final double gridHeight;
   final int rotation;
   final String? assetPath;
   final String? parentId;
@@ -21,8 +21,8 @@ class PlacedFurnitureConfig extends Equatable {
     required this.typeName,
     required this.gridX,
     required this.gridY,
-    this.gridWidth = 1,
-    this.gridHeight = 1,
+    this.gridWidth = 1.0,
+    this.gridHeight = 1.0,
     this.rotation = 0,
     this.assetPath,
     this.parentId,
@@ -34,10 +34,10 @@ class PlacedFurnitureConfig extends Equatable {
   PlacedFurnitureConfig copyWith({
     String? id,
     String? typeName,
-    int? gridX,
-    int? gridY,
-    int? gridWidth,
-    int? gridHeight,
+    double? gridX,
+    double? gridY,
+    double? gridWidth,
+    double? gridHeight,
     int? rotation,
     String? assetPath,
     String? parentId,
@@ -83,11 +83,11 @@ class PlacedFurnitureConfig extends Equatable {
     return PlacedFurnitureConfig(
       id: map['id'] ?? '',
       typeName: map['typeName'] ?? 'table',
-      gridX: map['gridX'] ?? 0,
-      gridY: map['gridY'] ?? 0,
-      gridWidth: map['gridWidth'] ?? 1,
-      gridHeight: map['gridHeight'] ?? 1,
-      rotation: map['rotation'] ?? 0,
+      gridX: (map['gridX'] as num?)?.toDouble() ?? 0.0,
+      gridY: (map['gridY'] as num?)?.toDouble() ?? 0.0,
+      gridWidth: (map['gridWidth'] as num?)?.toDouble() ?? 1.0,
+      gridHeight: (map['gridHeight'] as num?)?.toDouble() ?? 1.0,
+      rotation: (map['rotation'] as num?)?.toInt() ?? 0,
       assetPath: map['assetPath'],
       parentId: map['parentId'] ?? map['parent_id'],
       wallHeightLevel: map['wallHeightLevel'] ?? map['wall_height_level'] ?? 'high',
@@ -226,12 +226,12 @@ class RoomConfig extends Equatable {
 
     // --- Cocina (SW: gridX 0..2, gridY 4..6) ---
     PlacedFurnitureConfig(
-      id: 'kitchen_fridge',
-      typeName: 'kitchen_fridge',
+      id: 'kitchen_fridge_sm',
+      typeName: 'kitchen_fridge_sm',
       gridX: 0,
       gridY: 4,
-      gridWidth: 1,
-      gridHeight: 1,
+      gridWidth: 0.5,
+      gridHeight: 0.5,
     ),
     PlacedFurnitureConfig(
       id: 'kitchen_stove',

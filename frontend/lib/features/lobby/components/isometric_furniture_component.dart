@@ -11,10 +11,10 @@ enum FurnitureType { wardrobe, portal, bed, plant, table, carpet, custom }
 class IsometricFurnitureComponent extends PositionComponent {
   String id;
   String typeName;
-  int gridX;
-  int gridY;
-  int gridWidth;
-  int gridHeight;
+  double gridX;
+  double gridY;
+  double gridWidth;
+  double gridHeight;
   int rotation;
   String footprint;
   String? parentId;
@@ -63,8 +63,8 @@ class IsometricFurnitureComponent extends PositionComponent {
     String? typeName,
     required this.gridX,
     required this.gridY,
-    this.gridWidth = 1,
-    this.gridHeight = 1,
+    this.gridWidth = 1.0,
+    this.gridHeight = 1.0,
     this.rotation = 0,
     this.footprint = '1x1',
     this.parentId,
@@ -87,13 +87,13 @@ class IsometricFurnitureComponent extends PositionComponent {
 
   /// Updates the component's position and Z-order based on grid coordinates and surface/wall placement
   void updateGridPosition(
-    int gx,
-    int gy, {
+    double gx,
+    double gy, {
     String? parentId,
     double? parentSurfaceHeight,
     String? wallHeightLevel,
-    int? parentFurthestX,
-    int? parentFurthestY,
+    double? parentFurthestX,
+    double? parentFurthestY,
   }) {
     gridX = gx;
     gridY = gy;
@@ -101,21 +101,23 @@ class IsometricFurnitureComponent extends PositionComponent {
     if (parentSurfaceHeight != null) this.parentSurfaceHeight = parentSurfaceHeight;
     if (wallHeightLevel != null) this.wallHeightLevel = wallHeightLevel;
 
-    position = IsometricCoords.gridToScreen(gx.toDouble(), gy.toDouble());
+    position = (footprint == '0.5x0.5' || gridWidth <= 0.5)
+        ? IsometricCoords.subGridToScreen(gx * 2.0, gy * 2.0)
+        : IsometricCoords.gridToScreen(gx, gy);
     
-    // Z-order based on sub-grid footprint and furthest tile occupied (surface items get layer 2)
-    final layer = (type == FurnitureType.carpet ? -1 : (isSurfaceItem ? 2 : 1));
-    final subX = gx * 2;
-    final subY = gy * 2;
-    final targetX = (isSurfaceItem && parentFurthestX != null) ? (parentFurthestX * 2 + 1) : subX;
-    final targetY = (isSurfaceItem && parentFurthestY != null) ? (parentFurthestY * 2 + 1) : subY;
+    // Z-order based on sub-grid footprint and furthest tile occupied (surface items get layer 100 on top of parent)
+    final layer = (type == FurnitureType.carpet ? -1 : (isSurfaceItem ? 100 : 1));
+    final subX = (gx * 2).round();
+    final subY = (gy * 2).round();
+    final targetX = (isSurfaceItem && parentFurthestX != null) ? (parentFurthestX * 2).round() : subX;
+    final targetY = (isSurfaceItem && parentFurthestY != null) ? (parentFurthestY * 2).round() : subY;
     priority = IsometricCoords.getSubZOrder(
       targetX,
       targetY,
-      width: isSurfaceItem ? 1 : gridWidth,
-      depth: isSurfaceItem ? 1 : gridHeight,
+      width: isSurfaceItem ? 2 : (footprint == '0.5x0.5' ? 1 : (gridWidth * 2).round()),
+      depth: isSurfaceItem ? 2 : (footprint == '0.5x0.5' ? 1 : (gridHeight * 2).round()),
       layer: layer,
-      footprint: footprint,
+      footprint: isSurfaceItem ? 'surface' : footprint,
     );
   }
 
@@ -125,8 +127,13 @@ class IsometricFurnitureComponent extends PositionComponent {
       return [];
     }
 
-    final baseU = gridX * 2;
-    final baseV = gridY * 2;
+    final baseU = (gridX * 2).round();
+    final baseV = (gridY * 2).round();
+
+    // 0. 0.5x0.5 compact footprint (plant, compact appliance, etc.)
+    if (footprint == '0.5x0.5') {
+      return [Point(baseU, baseV)];
+    }
 
     // 1. Bookshelves and tall wardrobes / closets
     final isBookshelfOrWardrobe = id.contains('bookshelf') ||
@@ -173,9 +180,11 @@ class IsometricFurnitureComponent extends PositionComponent {
     }
 
     // 4. Standard floor items: occupies all (gridWidth * 2) x (gridHeight * 2) subcells
+    final subW = (gridWidth * 2).round();
+    final subH = (gridHeight * 2).round();
     final cells = <Point<int>>[];
-    for (int du = 0; du < gridWidth * 2; du++) {
-      for (int dv = 0; dv < gridHeight * 2; dv++) {
+    for (int du = 0; du < subW; du++) {
+      for (int dv = 0; dv < subH; dv++) {
         cells.add(Point(baseU + du, baseV + dv));
       }
     }
@@ -285,7 +294,24 @@ class IsometricFurnitureComponent extends PositionComponent {
       return Vector2((-rSize.x / 2.0) - 16.0, wallYOffset - rSize.y / 2.0);
     }
 
-    // 1. Check catalog item / rotation metadata for floor items
+    // 1. For 0.5x0.5 sub-tile items, calculate the exact centered offset on sub-cell diamond
+    if (footprint == '0.5x0.5' || gridWidth <= 0.5) {
+      if (rotMeta != null && rotMeta.spriteOffset.length >= 2 && rotMeta.spriteOffset[0] != -32) {
+        return Vector2(rotMeta.spriteOffset[0].toDouble(), rotMeta.spriteOffset[1].toDouble());
+      }
+      return IsometricCoords.getFurnitureSpriteOffset(
+        gridWidth: gridWidth,
+        gridHeight: gridHeight,
+        spriteWidth: rSize.x,
+        spriteHeight: rSize.y,
+        footprint: footprint,
+        surfaceHeight: parentSurfaceHeight,
+        wallHeightLevel: wallHeightLevel,
+        rotation: rotation,
+      );
+    }
+
+    // 2. Check catalog item / rotation metadata for floor items
     if (catalogItem != null) {
       if (rotMeta != null && rotMeta.spriteOffset.length >= 2) {
         double offX = rotMeta.spriteOffset[0].toDouble();
@@ -366,12 +392,19 @@ class IsometricFurnitureComponent extends PositionComponent {
     // the pixel-exact test below — sometimes you just want to tap "its square" without
     // hunting for the exact drawn pixel, especially for oddly-shaped or multi-tile items.
     if (!isWallItem && !isSurfaceItem) {
-      final gridPos = IsometricCoords.screenToGrid(worldPos.x, worldPos.y);
-      final occupiesGrid = gridPos.x >= gridX &&
-          gridPos.x < gridX + gridWidth &&
-          gridPos.y >= gridY &&
-          gridPos.y < gridY + gridHeight;
-      if (occupiesGrid) return true;
+      if (footprint == '0.5x0.5') {
+        final subPos = IsometricCoords.screenToSubGrid(worldPos.x, worldPos.y);
+        final myU = (gridX * 2).round();
+        final myV = (gridY * 2).round();
+        if (subPos.x == myU && subPos.y == myV) return true;
+      } else {
+        final gridPos = IsometricCoords.screenToGrid(worldPos.x, worldPos.y);
+        final occupiesGrid = gridPos.x >= gridX &&
+            gridPos.x < gridX + gridWidth &&
+            gridPos.y >= gridY &&
+            gridPos.y < gridY + gridHeight;
+        if (occupiesGrid) return true;
+      }
     }
 
     final off = spriteOffset;
@@ -567,6 +600,18 @@ class IsometricFurnitureComponent extends PositionComponent {
 
       canvas.drawOval(glowRect, fillGlow);
       canvas.drawOval(glowRect, borderGlow);
+      return;
+    }
+
+    if (footprint == '0.5x0.5' || gridWidth <= 0.5) {
+      final path = Path()
+        ..moveTo(0, -(IsometricCoords.subTileHeight / 2))
+        ..lineTo(IsometricCoords.subTileWidth / 2, 0)
+        ..lineTo(0, IsometricCoords.subTileHeight / 2)
+        ..lineTo(-IsometricCoords.subTileWidth / 2, 0)
+        ..close();
+
+      canvas.drawPath(path, borderPaint);
       return;
     }
 

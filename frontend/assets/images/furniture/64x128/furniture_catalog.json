@@ -2271,21 +2271,21 @@
             -48
         ]
     },
-    "kitchen_fridge": {
+    "kitchen_fridge_sm": {
         "rotations": {
             "0": {
-                "id": "kitchen_fridge",
-                "name": "Refrigerador Inox",
+                "id": "kitchen_fridge_sm",
+                "name": "Refrigerador Compacto",
                 "zone": "kitchen",
-                "footprint": "1x1",
+                "footprint": "0.5x0.5",
                 "rot": 0,
                 "canvas_size": [
                     128,
                     160
                 ],
                 "sprite_offset": [
-                    -32,
-                    -73
+                    -16,
+                    -56
                 ],
                 "surface_height": 0,
                 "supports_surface": false,
@@ -2295,18 +2295,18 @@
                 ]
             },
             "1": {
-                "id": "kitchen_fridge",
-                "name": "Refrigerador Inox",
+                "id": "kitchen_fridge_sm",
+                "name": "Refrigerador Compacto",
                 "zone": "kitchen",
-                "footprint": "1x1",
+                "footprint": "0.5x0.5",
                 "rot": 1,
                 "canvas_size": [
                     128,
                     160
                 ],
                 "sprite_offset": [
-                    -32,
-                    -73
+                    -16,
+                    -56
                 ],
                 "surface_height": 0,
                 "supports_surface": false,
@@ -2316,18 +2316,18 @@
                 ]
             },
             "2": {
-                "id": "kitchen_fridge",
-                "name": "Refrigerador Inox",
+                "id": "kitchen_fridge_sm",
+                "name": "Refrigerador Compacto",
                 "zone": "kitchen",
-                "footprint": "1x1",
+                "footprint": "0.5x0.5",
                 "rot": 2,
                 "canvas_size": [
                     128,
                     160
                 ],
                 "sprite_offset": [
-                    -32,
-                    -73
+                    -16,
+                    -56
                 ],
                 "surface_height": 0,
                 "supports_surface": false,
@@ -2337,18 +2337,18 @@
                 ]
             },
             "3": {
-                "id": "kitchen_fridge",
-                "name": "Refrigerador Inox",
+                "id": "kitchen_fridge_sm",
+                "name": "Refrigerador Compacto",
                 "zone": "kitchen",
-                "footprint": "1x1",
+                "footprint": "0.5x0.5",
                 "rot": 3,
                 "canvas_size": [
                     128,
                     160
                 ],
                 "sprite_offset": [
-                    -32,
-                    -73
+                    -16,
+                    -56
                 ],
                 "surface_height": 0,
                 "supports_surface": false,
@@ -2358,10 +2358,10 @@
                 ]
             }
         },
-        "id": "kitchen_fridge",
-        "name": "Refrigerador Inox",
+        "id": "kitchen_fridge_sm",
+        "name": "Refrigerador Compacto",
         "zone": "kitchen",
-        "footprint": "1x1",
+        "footprint": "0.5x0.5",
         "surface_height": 0,
         "supports_surface": false,
         "surface_offset": [
@@ -2369,8 +2369,8 @@
             0
         ],
         "sprite_offset": [
-            -32,
-            -73
+            -16,
+            -56
         ]
     },
     "bathtub_1x2": {
