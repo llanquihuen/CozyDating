@@ -31,7 +31,7 @@ class IsometricAvatarComponent extends PositionComponent {
     this.onReachedDestination,
   }) : super(size: Vector2(avatarWidth, avatarHeight)) {
     position = _calculateScreenPosition(gridX, gridY);
-    priority = ((gridX + gridY) * 1000).round() + 20;
+    priority = IsometricCoords.getSubZOrder(gridX.round(), gridY.round(), layer: 100);
 
     avatarRenderer = ModularAvatarComponent(
       config: config,
@@ -69,7 +69,7 @@ class IsometricAvatarComponent extends PositionComponent {
     gridX = gx;
     gridY = gy;
     position = _calculateScreenPosition(gridX, gridY);
-    priority = ((gridX + gridY) * 1000).round() + 20;
+    priority = IsometricCoords.getSubZOrder(gridX.round(), gridY.round(), layer: 100);
   }
 
   void updateConfig(AvatarConfig newConfig) {
@@ -137,7 +137,7 @@ class IsometricAvatarComponent extends PositionComponent {
 
       // Update Screen Position and Z-sorting depth
       position = _calculateScreenPosition(gridX, gridY);
-      priority = ((gridX + gridY) * 1000).round() + 20;
+      priority = IsometricCoords.getSubZOrder(gridX.round(), gridY.round(), layer: 100);
     }
   }
 }

@@ -72,14 +72,21 @@ class IsometricCoords {
     if (footprint == 'wall_w' || footprint.contains('wall_w')) {
       return -100 + (v ~/ 2) * 5 + layer;
     }
-    final int baseDepth = u + v + width + depth - 1;
+    final int gx = u ~/ 2;
+    final int gy = v ~/ 2;
+    final int intraX = u % 2;
+    final int intraY = v % 2;
+    final int intraDepth = intraX + intraY + (width - 1) + (depth - 1);
+    final int baseTilePriority = (gx + gy) * 4000;
+    final int subOffset = 500 + intraDepth * 1000;
+
     if (footprint == 'surface') {
-      return baseDepth * 1000 + 50 + layer;
+      return baseTilePriority + subOffset + 50 + layer;
     }
-    return baseDepth * 1000 + 10 + layer;
+    return baseTilePriority + subOffset + 10 + layer;
   }
 
-  /// Calculates dynamic isometric depth priority for z-sorting
+  /// Calculates dynamic isometric depth priority for z-sorting (full tile)
   static int getZOrder(int gx, int gy, {int layer = 0, String footprint = '1x1'}) {
     if (footprint == 'wall_n' || footprint.contains('wall_n')) {
       return -100 + gx * 5 + layer;
@@ -87,13 +94,13 @@ class IsometricCoords {
     if (footprint == 'wall_w' || footprint.contains('wall_w')) {
       return -100 + gy * 5 + layer;
     }
-    return getSubZOrder(gx * 2, gy * 2, width: 1, depth: 1, layer: layer, footprint: footprint);
+    return getSubZOrder(gx * 2, gy * 2, width: 2, depth: 2, layer: layer, footprint: footprint);
   }
 
   /// Calculates depth priority for interior partition walls located on tile boundaries.
   static int getInteriorWallZOrder(int gx, int gy, String orientation) {
-    final base = (gx + gy) * 2000;
-    return (orientation == 'north') ? (base - 400) : (base - 300);
+    final base = (gx + gy) * 4000;
+    return (orientation == 'north') ? (base + 100) : (base + 200);
   }
 
   /// Calculates the exact isometric sprite anchor offset based on grid footprint (1x1, 1x2, 2x1, 2x2, surface, wall_n, wall_w)

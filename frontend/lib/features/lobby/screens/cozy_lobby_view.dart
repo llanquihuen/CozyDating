@@ -40,6 +40,7 @@ class CozyLobbyView extends StatefulWidget {
 
 enum LobbyEditMode { none, decorate, construct }
 enum FloorEditTool { globalRoom, zoneBrush, eraser }
+enum InteriorWallEditTool { addWall, allWalls, brush, eraser }
 
 class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProviderStateMixin {
   late CozyRoomGame _roomGame;
@@ -49,9 +50,24 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
 
   LobbyEditMode _editMode = LobbyEditMode.none;
   bool get _isDecorating => _editMode != LobbyEditMode.none;
-  bool _paintAllWallsMode = false;
+
+  // Floor Selector State
   FloorEditTool _floorEditTool = FloorEditTool.globalRoom;
+  String _floorCategory = 'colors'; // 'colors' or 'patterns'
+  String _selectedFloorTexture = 'tiles'; // 'tiles' or 'carpet'
   String _selectedZoneFloorId = 'solid_white_tiles';
+
+  // Wall Selector State (Paredes)
+  FloorEditTool _wallEditTool = FloorEditTool.globalRoom;
+  String _wallCategory = 'colors'; // 'colors' or 'patterns'
+  String _selectedWallTexture = 'plaster'; // 'plaster' or 'tiles'
+  String _selectedZoneWallId = 'solid_white_plaster';
+
+  // Interior Wall Selector State (Muros Internos)
+  InteriorWallEditTool _interiorWallEditTool = InteriorWallEditTool.addWall;
+  String _interiorWallCategory = 'colors'; // 'colors' or 'patterns'
+  String _selectedInteriorWallTexture = 'plaster'; // 'plaster' or 'tiles'
+
   final ValueNotifier<String?> _topNotificationNotifier = ValueNotifier<String?>(null);
   Timer? _topNotificationTimer;
   IsometricFurnitureComponent? _selectedFurniture;
@@ -86,7 +102,18 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     _constructorTabController.addListener(() {
       if (!mounted) return;
       if (_editMode == LobbyEditMode.construct) {
-        if (_constructorTabController.index == 1) {
+        if (_constructorTabController.index == 0) {
+          // Tab 0: Paredes
+          if (_wallEditTool == FloorEditTool.zoneBrush) {
+            _roomGame.setWallBrush(_selectedZoneWallId);
+          } else if (_wallEditTool == FloorEditTool.eraser) {
+            _roomGame.setWallBrush('__eraser__');
+          } else {
+            _roomGame.setWallBrush(null);
+          }
+          _roomGame.setFloorBrush(null);
+        } else if (_constructorTabController.index == 1) {
+          // Tab 1: Pisos
           if (_floorEditTool == FloorEditTool.zoneBrush) {
             _roomGame.setFloorBrush(_selectedZoneFloorId);
           } else if (_floorEditTool == FloorEditTool.eraser) {
@@ -94,7 +121,16 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
           } else {
             _roomGame.setFloorBrush(null);
           }
-        } else {
+          _roomGame.setWallBrush(null);
+        } else if (_constructorTabController.index == 2) {
+          // Tab 2: Muros Internos
+          if (_interiorWallEditTool == InteriorWallEditTool.brush) {
+            _roomGame.setWallBrush(_selectedZoneWallId);
+          } else if (_interiorWallEditTool == InteriorWallEditTool.eraser) {
+            _roomGame.setWallBrush('__eraser__');
+          } else {
+            _roomGame.setWallBrush(null);
+          }
           _roomGame.setFloorBrush(null);
         }
       }
@@ -1045,65 +1081,509 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   Widget _buildWallpaperSelector() {
-    return ListView.builder(
-      key: const PageStorageKey('wallpapers_scroll_list'),
-      scrollDirection: Axis.horizontal,
-      itemCount: RoomThemes.wallpapers.length,
-      itemBuilder: (context, index) {
-        final item = RoomThemes.wallpapers[index];
-        final isSelected = _roomGame.roomConfig.wallpaper == item.id;
-        return GestureDetector(
-          onTap: () {
-            _roomGame.updateWallpaper(item.id);
-            setState(() {});
-          },
-          child: Container(
-            width: 100,
-            margin: const EdgeInsets.only(right: 10),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? const Color(0xFFFFB300) : const Color(0xFF453F58),
-                width: isSelected ? 2.0 : 1.0,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(item.emoji, style: const TextStyle(fontSize: 22)),
-                const SizedBox(height: 4),
-                Text(
-                  item.name,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? const Color(0xFFFFB300) : Colors.white,
+    final hasOverrides = _roomGame.roomConfig.wallOverrides.isNotEmpty;
+
+    final currentWallpaperId = _roomGame.roomConfig.wallpaper;
+    final currentWallpaperOpt = RoomThemes.getWallpaperOption(currentWallpaperId);
+    final isCurrentWallpaperTiles = currentWallpaperOpt.textureType == 'tiles' || currentWallpaperId.contains('tiles');
+    final isZoneWallTiles = _selectedZoneWallId.contains('tiles');
+
+    final activeTexture = (_wallEditTool == FloorEditTool.zoneBrush)
+        ? (isZoneWallTiles ? 'tiles' : 'plaster')
+        : (isCurrentWallpaperTiles ? 'tiles' : _selectedWallTexture);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 1. Tool Selection Row
+        Padding(
+          padding: const EdgeInsets.only(bottom: 3),
+          child: Row(
+            children: [
+              // All Walls (Todo el Salón)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _wallEditTool = FloorEditTool.globalRoom;
+                    _roomGame.setWallBrush(null);
+                  });
+                  _showTopNotification('🌟 Modo: Cambiar papel tapiz de todo el salón');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _wallEditTool == FloorEditTool.globalRoom ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _wallEditTool == FloorEditTool.globalRoom ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.home_outlined, size: 12, color: _wallEditTool == FloorEditTool.globalRoom ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Todo el Salón',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _wallEditTool == FloorEditTool.globalRoom ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              // Zone Brush Mode
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _wallEditTool = FloorEditTool.zoneBrush;
+                    _roomGame.setWallBrush(_selectedZoneWallId);
+                  });
+                  _showTopNotification('🖌️ Pincel activo: toca o arrastra en las paredes para pintar');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _wallEditTool == FloorEditTool.zoneBrush ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _wallEditTool == FloorEditTool.zoneBrush ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.brush, size: 12, color: _wallEditTool == FloorEditTool.zoneBrush ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Pintar Zona',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _wallEditTool == FloorEditTool.zoneBrush ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              // Eraser Mode
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _wallEditTool = FloorEditTool.eraser;
+                    _roomGame.setWallBrush('__eraser__');
+                  });
+                  _showTopNotification('🧹 Borrador activo: toca paneles para restaurar a la pared base');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _wallEditTool == FloorEditTool.eraser ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _wallEditTool == FloorEditTool.eraser ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.cleaning_services, size: 12, color: _wallEditTool == FloorEditTool.eraser ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Borrador',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _wallEditTool == FloorEditTool.eraser ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (hasOverrides)
+                GestureDetector(
+                  onTap: () {
+                    _roomGame.clearAllWallOverrides();
+                    setState(() {});
+                    _showTopNotification('🧹 Se restauraron todas las paredes al papel tapiz base');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF5350).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFEF5350).withOpacity(0.6)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.delete_sweep, size: 12, color: Color(0xFFEF5350)),
+                        SizedBox(width: 3),
+                        Text(
+                          'Limpiar Zonas',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFEF5350),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // 2. Category & Texture Sub-Bar
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              // Category: Colores vs Patrones
+              GestureDetector(
+                onTap: () => setState(() => _wallCategory = 'colors'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: _wallCategory == 'colors' ? const Color(0xFF453F58) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '🎨 Colores',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: _wallCategory == 'colors' ? Colors.white : Colors.white60,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => setState(() => _wallCategory = 'patterns'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: _wallCategory == 'patterns' ? const Color(0xFF453F58) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '🪵 Patrones',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: _wallCategory == 'patterns' ? Colors.white : Colors.white60,
+                    ),
+                  ),
+                ),
+              ),
+
+              if (_wallCategory == 'colors') ...[
+                const SizedBox(width: 10),
+                Container(width: 1, height: 12, color: Colors.white24),
+                const SizedBox(width: 10),
+                const Text(
+                  'Textura:',
+                  style: TextStyle(fontSize: 9, color: Colors.white60),
+                ),
+                const SizedBox(width: 4),
+
+                // Texture Switcher: Yeso / Liso
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedWallTexture = 'plaster';
+                      if (_wallEditTool == FloorEditTool.globalRoom) {
+                        final newId = RoomThemes.changeWallpaperTexture(_roomGame.roomConfig.wallpaper, 'plaster');
+                        _roomGame.updateWallpaper(newId);
+                      } else if (_wallEditTool == FloorEditTool.zoneBrush) {
+                        _selectedZoneWallId = RoomThemes.changeWallpaperTexture(_selectedZoneWallId, 'plaster');
+                        _roomGame.setWallBrush(_selectedZoneWallId);
+                      }
+                    });
+                    _showTopNotification('🧱 Textura cambiada a: Yeso / Liso');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: activeTexture == 'plaster' ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: activeTexture == 'plaster' ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🧱', style: TextStyle(fontSize: 10)),
+                        const SizedBox(width: 2),
+                        Text(
+                          'Yeso/Liso',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: activeTexture == 'plaster' ? Colors.black : Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+
+                // Texture Switcher: Azulejos
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedWallTexture = 'tiles';
+                      if (_wallEditTool == FloorEditTool.globalRoom) {
+                        final newId = RoomThemes.changeWallpaperTexture(_roomGame.roomConfig.wallpaper, 'tiles');
+                        _roomGame.updateWallpaper(newId);
+                      } else if (_wallEditTool == FloorEditTool.zoneBrush) {
+                        _selectedZoneWallId = RoomThemes.changeWallpaperTexture(_selectedZoneWallId, 'tiles');
+                        _roomGame.setWallBrush(_selectedZoneWallId);
+                      }
+                    });
+                    _showTopNotification('🔲 Textura cambiada a: Azulejos Cerámicos');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: activeTexture == 'tiles' ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: activeTexture == 'tiles' ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔲', style: TextStyle(fontSize: 10)),
+                        const SizedBox(width: 2),
+                        Text(
+                          'Azulejos',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: activeTexture == 'tiles' ? Colors.black : Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
-            ),
+            ],
           ),
-        );
-      },
+        ),
+
+        // 3. Carousel List (Colors or Patterns)
+        Expanded(
+          child: _wallCategory == 'colors'
+              ? ListView.builder(
+                  key: const PageStorageKey('wallpapers_colors_scroll_list'),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: RoomThemes.wallpaperColors.length,
+                  itemBuilder: (context, index) {
+                    final colorOpt = RoomThemes.wallpaperColors[index];
+                    final wpId = RoomThemes.getWallpaperId(colorOpt.key, activeTexture);
+
+                    final currentGlobalOpt = RoomThemes.getWallpaperOption(_roomGame.roomConfig.wallpaper);
+                    final isGlobalSelected = currentGlobalOpt.color?.value == colorOpt.color.value &&
+                        ((currentGlobalOpt.textureType == 'tiles') == (activeTexture == 'tiles'));
+
+                    final currentBrushOpt = RoomThemes.getWallpaperOption(_selectedZoneWallId);
+                    final isBrushSelected = currentBrushOpt.color?.value == colorOpt.color.value &&
+                        ((currentBrushOpt.textureType == 'tiles') == (activeTexture == 'tiles'));
+
+                    final isSelected = (_wallEditTool == FloorEditTool.globalRoom)
+                        ? isGlobalSelected
+                        : (_wallEditTool == FloorEditTool.zoneBrush && isBrushSelected);
+
+                    final textureLabel = activeTexture == 'tiles' ? 'Azulejos' : 'Yeso/Liso';
+                    final textureIcon = activeTexture == 'tiles' ? '🔲' : '🧱';
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (_wallEditTool == FloorEditTool.globalRoom) {
+                          _roomGame.updateWallpaper(wpId);
+                          setState(() {});
+                          _showTopNotification('$textureIcon $textureLabel ${colorOpt.name} aplicado a todo el salón');
+                        } else if (_wallEditTool == FloorEditTool.zoneBrush) {
+                          setState(() {
+                            _selectedZoneWallId = wpId;
+                            _roomGame.setWallBrush(wpId);
+                          });
+                          _showTopNotification('🖌️ Pincel: $textureLabel ${colorOpt.name}. ¡Toca o arrastra en las paredes!');
+                        } else {
+                          setState(() {
+                            _wallEditTool = FloorEditTool.zoneBrush;
+                            _selectedZoneWallId = wpId;
+                            _roomGame.setWallBrush(wpId);
+                          });
+                          _showTopNotification('🖌️ Pincel: $textureLabel ${colorOpt.name}. ¡Toca o arrastra en las paredes!');
+                        }
+                      },
+                      child: Container(
+                        width: 90,
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                            width: isSelected ? 2.0 : 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 26,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: colorOpt.color,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white30, width: 1.5),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colorOpt.color.withOpacity(0.4),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Positioned(
+                                  right: -2,
+                                  bottom: -2,
+                                  child: Text(textureIcon, style: const TextStyle(fontSize: 10)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              colorOpt.name,
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? const Color(0xFFFFB300) : Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : ListView.builder(
+                  key: const PageStorageKey('wallpapers_patterns_scroll_list'),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: RoomThemes.wallpaperPatterns.length,
+                  itemBuilder: (context, index) {
+                    final item = RoomThemes.wallpaperPatterns[index];
+                    final isGlobalSelected = _roomGame.roomConfig.wallpaper == item.id;
+                    final isBrushSelected = _selectedZoneWallId == item.id;
+                    final isSelected = (_wallEditTool == FloorEditTool.globalRoom)
+                        ? isGlobalSelected
+                        : (_wallEditTool == FloorEditTool.zoneBrush && isBrushSelected);
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (_wallEditTool == FloorEditTool.globalRoom) {
+                          _roomGame.updateWallpaper(item.id);
+                          setState(() {});
+                          _showTopNotification('🌟 Pared cambiada a: ${item.name}');
+                        } else if (_wallEditTool == FloorEditTool.zoneBrush) {
+                          setState(() {
+                            _selectedZoneWallId = item.id;
+                            _roomGame.setWallBrush(item.id);
+                          });
+                          _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca o arrastra en las paredes!');
+                        } else {
+                          setState(() {
+                            _wallEditTool = FloorEditTool.zoneBrush;
+                            _selectedZoneWallId = item.id;
+                            _roomGame.setWallBrush(item.id);
+                          });
+                          _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca o arrastra en las paredes!');
+                        }
+                      },
+                      child: Container(
+                        width: 100,
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                            width: isSelected ? 2.0 : 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(item.emoji, style: const TextStyle(fontSize: 20)),
+                            const SizedBox(height: 3),
+                            Text(
+                              item.name,
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? const Color(0xFFFFB300) : Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 
   Widget _buildFloorSelector() {
     final hasOverrides = _roomGame.roomConfig.floorOverrides.isNotEmpty;
 
+    final currentFloorId = _roomGame.roomConfig.floor;
+    final currentFloorOpt = RoomThemes.getFloorOption(currentFloorId);
+    final isCurrentFloorCarpet = currentFloorOpt.textureType == 'carpet' || currentFloorId.contains('carpet');
+    final isZoneFloorCarpet = _selectedZoneFloorId.contains('carpet');
+
+    final activeTexture = (_floorEditTool == FloorEditTool.zoneBrush)
+        ? (isZoneFloorCarpet ? 'carpet' : 'tiles')
+        : (isCurrentFloorCarpet ? 'carpet' : _selectedFloorTexture);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // 1. Tool Selection Row
         Padding(
-          padding: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.only(bottom: 3),
           child: Row(
             children: [
-              // 1. All Room Mode
+              // All Room Mode
               GestureDetector(
                 onTap: () {
                   setState(() {
@@ -1139,7 +1619,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                 ),
               ),
               const SizedBox(width: 5),
-              // 2. Zone Brush Mode
+              // Zone Brush Mode
               GestureDetector(
                 onTap: () {
                   setState(() {
@@ -1175,7 +1655,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                 ),
               ),
               const SizedBox(width: 5),
-              // 3. Eraser Mode
+              // Eraser Mode
               GestureDetector(
                 onTap: () {
                   setState(() {
@@ -1245,123 +1725,496 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             ],
           ),
         ),
-        Expanded(
-          child: ListView.builder(
-            key: const PageStorageKey('floors_scroll_list'),
-            scrollDirection: Axis.horizontal,
-            itemCount: RoomThemes.floors.length,
-            itemBuilder: (context, index) {
-              final item = RoomThemes.floors[index];
-              final isGlobalSelected = _roomGame.roomConfig.floor == item.id;
-              final isBrushSelected = _selectedZoneFloorId == item.id;
-              final isSelected = (_floorEditTool == FloorEditTool.globalRoom) ? isGlobalSelected : (_floorEditTool == FloorEditTool.zoneBrush && isBrushSelected);
 
-              return GestureDetector(
+        // 2. Texture and Category Selector Bar
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              // Category toggle: Colores vs Patrones
+              GestureDetector(
                 onTap: () {
-                  if (_floorEditTool == FloorEditTool.globalRoom) {
-                    _roomGame.updateFloor(item.id);
-                    setState(() {});
-                  } else if (_floorEditTool == FloorEditTool.zoneBrush) {
-                    setState(() {
-                      _selectedZoneFloorId = item.id;
-                      _roomGame.setFloorBrush(item.id);
-                    });
-                    _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca o arrastra en el suelo!');
-                  } else {
-                    setState(() {
-                      _floorEditTool = FloorEditTool.zoneBrush;
-                      _selectedZoneFloorId = item.id;
-                      _roomGame.setFloorBrush(item.id);
-                    });
-                    _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca o arrastra en el suelo!');
-                  }
+                  setState(() {
+                    _floorCategory = 'colors';
+                  });
                 },
                 child: Container(
-                  width: 100,
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
-                    borderRadius: BorderRadius.circular(12),
+                    color: _floorCategory == 'colors' ? const Color(0xFF453F58) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: isSelected ? const Color(0xFFFFB300) : const Color(0xFF453F58),
-                      width: isSelected ? 2.0 : 1.0,
+                      color: _floorCategory == 'colors' ? const Color(0xFFFFB300) : const Color(0xFF383247),
                     ),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(item.emoji, style: const TextStyle(fontSize: 20)),
-                      const SizedBox(height: 3),
-                      Text(
-                        item.name,
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? const Color(0xFFFFB300) : Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                  child: Text(
+                    '🎨 Colores',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: _floorCategory == 'colors' ? const Color(0xFFFFB300) : Colors.white60,
+                    ),
                   ),
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _floorCategory = 'patterns';
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _floorCategory == 'patterns' ? const Color(0xFF453F58) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _floorCategory == 'patterns' ? const Color(0xFFFFB300) : const Color(0xFF383247),
+                    ),
+                  ),
+                  child: Text(
+                    '🪵 Patrones',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: _floorCategory == 'patterns' ? const Color(0xFFFFB300) : Colors.white60,
+                    ),
+                  ),
+                ),
+              ),
+
+              if (_floorCategory == 'colors') ...[
+                const SizedBox(width: 8),
+                Container(width: 1, height: 14, color: const Color(0xFF453F58)),
+                const SizedBox(width: 8),
+                const Text(
+                  'Textura:',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white70),
+                ),
+                const SizedBox(width: 4),
+                // Tile texture toggle button
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedFloorTexture = 'tiles';
+                      if (_floorEditTool == FloorEditTool.globalRoom) {
+                        final newId = RoomThemes.changeTexture(_roomGame.roomConfig.floor, 'tiles');
+                        _roomGame.updateFloor(newId);
+                        _showTopNotification('🔲 Textura cambiada a: Baldosas (Cuadros)');
+                      } else {
+                        _selectedZoneFloorId = RoomThemes.changeTexture(_selectedZoneFloorId, 'tiles');
+                        _roomGame.setFloorBrush(_selectedZoneFloorId);
+                        _showTopNotification('🔲 Pincel cambiado a textura: Baldosas');
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: activeTexture == 'tiles' ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: activeTexture == 'tiles' ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔲', style: TextStyle(fontSize: 10)),
+                        const SizedBox(width: 2),
+                        Text(
+                          'Baldosas',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: activeTexture == 'tiles' ? Colors.black : Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                // Carpet texture toggle button
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedFloorTexture = 'carpet';
+                      if (_floorEditTool == FloorEditTool.globalRoom) {
+                        final newId = RoomThemes.changeTexture(_roomGame.roomConfig.floor, 'carpet');
+                        _roomGame.updateFloor(newId);
+                        _showTopNotification('🧶 Textura cambiada a: Alfombra (Felpa)');
+                      } else {
+                        _selectedZoneFloorId = RoomThemes.changeTexture(_selectedZoneFloorId, 'carpet');
+                        _roomGame.setFloorBrush(_selectedZoneFloorId);
+                        _showTopNotification('🧶 Pincel cambiado a textura: Alfombra');
+                      }
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: activeTexture == 'carpet' ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: activeTexture == 'carpet' ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🧶', style: TextStyle(fontSize: 10)),
+                        const SizedBox(width: 2),
+                        Text(
+                          'Alfombra',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: activeTexture == 'carpet' ? Colors.black : Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
+        ),
+
+        // 3. Carousel List (Colors or Patterns)
+        Expanded(
+          child: _floorCategory == 'colors'
+              ? ListView.builder(
+                  key: const PageStorageKey('floors_colors_scroll_list'),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: RoomThemes.floorColors.length,
+                  itemBuilder: (context, index) {
+                    final colorOpt = RoomThemes.floorColors[index];
+                    final floorId = RoomThemes.getFloorId(colorOpt.key, activeTexture);
+
+                    final currentGlobalOpt = RoomThemes.getFloorOption(_roomGame.roomConfig.floor);
+                    final isGlobalSelected = currentGlobalOpt.color?.value == colorOpt.color.value &&
+                        ((currentGlobalOpt.textureType == 'carpet') == (activeTexture == 'carpet'));
+
+                    final currentBrushOpt = RoomThemes.getFloorOption(_selectedZoneFloorId);
+                    final isBrushSelected = currentBrushOpt.color?.value == colorOpt.color.value &&
+                        ((currentBrushOpt.textureType == 'carpet') == (activeTexture == 'carpet'));
+
+                    final isSelected = (_floorEditTool == FloorEditTool.globalRoom)
+                        ? isGlobalSelected
+                        : (_floorEditTool == FloorEditTool.zoneBrush && isBrushSelected);
+
+                    final textureLabel = activeTexture == 'carpet' ? 'Alfombra' : 'Baldosa';
+                    final textureIcon = activeTexture == 'carpet' ? '🧶' : '🔲';
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (_floorEditTool == FloorEditTool.globalRoom) {
+                          _roomGame.updateFloor(floorId);
+                          setState(() {});
+                          _showTopNotification('$textureIcon $textureLabel ${colorOpt.name} aplicado a todo el salón');
+                        } else if (_floorEditTool == FloorEditTool.zoneBrush) {
+                          setState(() {
+                            _selectedZoneFloorId = floorId;
+                            _roomGame.setFloorBrush(floorId);
+                          });
+                          _showTopNotification('🖌️ Pincel: $textureLabel ${colorOpt.name}. ¡Toca o arrastra en el suelo!');
+                        } else {
+                          setState(() {
+                            _floorEditTool = FloorEditTool.zoneBrush;
+                            _selectedZoneFloorId = floorId;
+                            _roomGame.setFloorBrush(floorId);
+                          });
+                          _showTopNotification('🖌️ Pincel: $textureLabel ${colorOpt.name}. ¡Toca o arrastra en el suelo!');
+                        }
+                      },
+                      child: Container(
+                        width: 100,
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                            width: isSelected ? 2.0 : 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: colorOpt.color,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white24, width: 1.5),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colorOpt.color.withOpacity(0.4),
+                                        blurRadius: 4,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(textureIcon, style: const TextStyle(fontSize: 11)),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              colorOpt.name,
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? const Color(0xFFFFB300) : Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              textureLabel,
+                              style: TextStyle(
+                                fontSize: 7.5,
+                                color: isSelected ? const Color(0xFFFFB300).withOpacity(0.8) : Colors.white54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : ListView.builder(
+                  key: const PageStorageKey('floors_patterns_scroll_list'),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: RoomThemes.patterns.length,
+                  itemBuilder: (context, index) {
+                    final item = RoomThemes.patterns[index];
+                    final isGlobalSelected = _roomGame.roomConfig.floor == item.id;
+                    final isBrushSelected = _selectedZoneFloorId == item.id;
+                    final isSelected = (_floorEditTool == FloorEditTool.globalRoom)
+                        ? isGlobalSelected
+                        : (_floorEditTool == FloorEditTool.zoneBrush && isBrushSelected);
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (_floorEditTool == FloorEditTool.globalRoom) {
+                          _roomGame.updateFloor(item.id);
+                          setState(() {});
+                          _showTopNotification('🌟 Piso cambiado a: ${item.name}');
+                        } else if (_floorEditTool == FloorEditTool.zoneBrush) {
+                          setState(() {
+                            _selectedZoneFloorId = item.id;
+                            _roomGame.setFloorBrush(item.id);
+                          });
+                          _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca o arrastra en el suelo!');
+                        } else {
+                          setState(() {
+                            _floorEditTool = FloorEditTool.zoneBrush;
+                            _selectedZoneFloorId = item.id;
+                            _roomGame.setFloorBrush(item.id);
+                          });
+                          _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca o arrastra en el suelo!');
+                        }
+                      },
+                      child: Container(
+                        width: 100,
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF383247) : const Color(0xFF282531),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                            width: isSelected ? 2.0 : 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(item.emoji, style: const TextStyle(fontSize: 20)),
+                            const SizedBox(height: 3),
+                            Text(
+                              item.name,
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? const Color(0xFFFFB300) : Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
 
   Widget _buildInteriorWallsSelector() {
+    final activeTexture = _selectedInteriorWallTexture;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // 1. Tool Selection Row
         Padding(
-          padding: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.only(bottom: 3),
           child: Row(
             children: [
-              Text(
-                _paintAllWallsMode ? '🎨 Toca un color para pintar TODOS los muros' : '🧱 Toca para añadir un nuevo muro',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.bold,
-                  color: _paintAllWallsMode ? const Color(0xFFFFB300) : Colors.white70,
-                ),
-              ),
-              const Spacer(),
+              // Add Wall Mode
               GestureDetector(
                 onTap: () {
                   setState(() {
-                    _paintAllWallsMode = !_paintAllWallsMode;
+                    _interiorWallEditTool = InteriorWallEditTool.addWall;
+                    _roomGame.setWallBrush(null);
                   });
+                  _showTopNotification('➕ Modo: Toca un diseño o color para añadir un muro');
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
-                    color: _paintAllWallsMode ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    color: _interiorWallEditTool == InteriorWallEditTool.addWall ? const Color(0xFFFFB300) : const Color(0xFF282531),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: _paintAllWallsMode ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                      color: _interiorWallEditTool == InteriorWallEditTool.addWall ? const Color(0xFFFFB300) : const Color(0xFF453F58),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        _paintAllWallsMode ? Icons.format_paint_rounded : Icons.add_circle_outline,
-                        size: 11,
-                        color: _paintAllWallsMode ? Colors.black : Colors.white70,
-                      ),
-                      const SizedBox(width: 4),
+                      Icon(Icons.add_circle_outline, size: 12, color: _interiorWallEditTool == InteriorWallEditTool.addWall ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
                       Text(
-                        _paintAllWallsMode ? 'Pintar Todos' : 'Añadir Muro',
+                        'Añadir Muro',
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.bold,
-                          color: _paintAllWallsMode ? Colors.black : Colors.white70,
+                          color: _interiorWallEditTool == InteriorWallEditTool.addWall ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+
+              // All Walls (Todos los Muros)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _interiorWallEditTool = InteriorWallEditTool.allWalls;
+                    _roomGame.setWallBrush(null);
+                  });
+                  _showTopNotification('🎨 Modo: Toca un color para pintar TODOS los muros del salón');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _interiorWallEditTool == InteriorWallEditTool.allWalls ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _interiorWallEditTool == InteriorWallEditTool.allWalls ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.format_paint_rounded, size: 12, color: _interiorWallEditTool == InteriorWallEditTool.allWalls ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Todos los Muros',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _interiorWallEditTool == InteriorWallEditTool.allWalls ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+
+              // Paint Single Wall (Zone Brush)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _interiorWallEditTool = InteriorWallEditTool.brush;
+                    _roomGame.setWallBrush(_selectedZoneWallId);
+                  });
+                  _showTopNotification('🖌️ Pincel activo: toca muros en el salón para pintarlos individualmente');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _interiorWallEditTool == InteriorWallEditTool.brush ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _interiorWallEditTool == InteriorWallEditTool.brush ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.brush, size: 12, color: _interiorWallEditTool == InteriorWallEditTool.brush ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Pintar Muro',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _interiorWallEditTool == InteriorWallEditTool.brush ? Colors.black : Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+
+              // Eraser
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _interiorWallEditTool = InteriorWallEditTool.eraser;
+                    _roomGame.setWallBrush('__eraser__');
+                  });
+                  _showTopNotification('🧹 Borrador: toca un muro en el salón para restaurarlo al blanco base');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _interiorWallEditTool == InteriorWallEditTool.eraser ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _interiorWallEditTool == InteriorWallEditTool.eraser ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.cleaning_services, size: 12, color: _interiorWallEditTool == InteriorWallEditTool.eraser ? Colors.black : Colors.white70),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Borrador',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: _interiorWallEditTool == InteriorWallEditTool.eraser ? Colors.black : Colors.white70,
                         ),
                       ),
                     ],
@@ -1371,89 +2224,320 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             ],
           ),
         ),
-        Expanded(
-          child: ListView.builder(
-            key: const PageStorageKey('interior_walls_scroll_list'),
-            scrollDirection: Axis.horizontal,
-            itemCount: InteriorWallStyles.all.length,
-            itemBuilder: (context, index) {
-              final item = InteriorWallStyles.all[index];
-              final isDoorway = item.isDoorway;
-              final isCardDisabled = _paintAllWallsMode && isDoorway;
 
-              return GestureDetector(
-                onTap: () {
-                  if (_paintAllWallsMode) {
-                    if (isDoorway) {
-                      _showTopNotification('Los marcos de paso libre no se usan para pintar muros.');
-                      return;
-                    }
-                    final count = _roomGame.applyStyleToAllInteriorWalls(item);
-                    setState(() {});
-                    _showTopNotification(count > 0 ? '✨ ¡$count muros actualizados a "${item.name}"!' : 'No hay muros sólidos para pintar.');
-                  } else {
-                    _roomGame.addInteriorWallFromStyle(item);
-                    setState(() {});
-                    _showTopNotification('¡${item.name} añadido! Arrástralo a un borde.');
-                  }
-                },
-                child: Opacity(
-                  opacity: isCardDisabled ? 0.35 : 1.0,
+        // 2. Category & Texture Sub-Bar
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => setState(() => _interiorWallCategory = 'colors'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: _interiorWallCategory == 'colors' ? const Color(0xFF453F58) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '🎨 Colores',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: _interiorWallCategory == 'colors' ? Colors.white : Colors.white60,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => setState(() => _interiorWallCategory = 'patterns'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: _interiorWallCategory == 'patterns' ? const Color(0xFF453F58) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '🪵 Diseños',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: _interiorWallCategory == 'patterns' ? Colors.white : Colors.white60,
+                    ),
+                  ),
+                ),
+              ),
+
+              if (_interiorWallCategory == 'colors') ...[
+                const SizedBox(width: 10),
+                Container(width: 1, height: 12, color: Colors.white24),
+                const SizedBox(width: 10),
+                const Text(
+                  'Textura:',
+                  style: TextStyle(fontSize: 9, color: Colors.white60),
+                ),
+                const SizedBox(width: 4),
+
+                // Texture Switcher: Yeso / Liso
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedInteriorWallTexture = 'plaster';
+                      if (_interiorWallEditTool == InteriorWallEditTool.brush) {
+                        _selectedZoneWallId = RoomThemes.changeWallpaperTexture(_selectedZoneWallId, 'plaster');
+                        _roomGame.setWallBrush(_selectedZoneWallId);
+                      }
+                    });
+                    _showTopNotification('🧱 Textura de muros: Yeso / Liso');
+                  },
                   child: Container(
-                    width: 110,
-                    margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF282531),
-                      borderRadius: BorderRadius.circular(12),
+                      color: activeTexture == 'plaster' ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isCardDisabled
-                            ? Colors.white24
-                            : (_paintAllWallsMode
-                                ? const Color(0xFFFFB300).withOpacity(0.6)
-                                : const Color(0xFFA78BFA).withOpacity(0.6)),
-                        width: 1.0,
+                        color: activeTexture == 'plaster' ? const Color(0xFFFFB300) : const Color(0xFF453F58),
                       ),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(item.emoji, style: const TextStyle(fontSize: 20)),
-                        const SizedBox(height: 2),
+                        const Text('🧱', style: TextStyle(fontSize: 10)),
+                        const SizedBox(width: 2),
                         Text(
-                          item.name,
+                          'Yeso/Liso',
                           style: TextStyle(
-                            fontSize: 9.5,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
-                            color: isCardDisabled ? Colors.white54 : Colors.white,
+                            color: activeTexture == 'plaster' ? Colors.black : Colors.white70,
                           ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 1),
-                        Text(
-                          isCardDisabled
-                              ? '🚫 No aplicable'
-                              : (_paintAllWallsMode ? '🎨 Pintar' : (item.isDoorway ? '🚪 Paso Libre' : '🧱 Muro Sólido')),
-                          style: TextStyle(
-                            fontSize: 8,
-                            color: isCardDisabled
-                                ? Colors.white38
-                                : (_paintAllWallsMode ? const Color(0xFFFFB300) : const Color(0xFFA78BFA)),
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
                 ),
-              );
-            },
+                const SizedBox(width: 4),
+
+                // Texture Switcher: Azulejos
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedInteriorWallTexture = 'tiles';
+                      if (_interiorWallEditTool == InteriorWallEditTool.brush) {
+                        _selectedZoneWallId = RoomThemes.changeWallpaperTexture(_selectedZoneWallId, 'tiles');
+                        _roomGame.setWallBrush(_selectedZoneWallId);
+                      }
+                    });
+                    _showTopNotification('🔲 Textura de muros: Azulejos Cerámicos');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: activeTexture == 'tiles' ? const Color(0xFFFFB300) : const Color(0xFF282531),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: activeTexture == 'tiles' ? const Color(0xFFFFB300) : const Color(0xFF453F58),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔲', style: TextStyle(fontSize: 10)),
+                        const SizedBox(width: 2),
+                        Text(
+                          'Azulejos',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: activeTexture == 'tiles' ? Colors.black : Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
+        ),
+
+        // 3. Carousel List
+        Expanded(
+          child: _interiorWallCategory == 'colors'
+              ? ListView.builder(
+                  key: const PageStorageKey('interior_walls_colors_scroll_list'),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: RoomThemes.wallpaperColors.length,
+                  itemBuilder: (context, index) {
+                    final colorOpt = RoomThemes.wallpaperColors[index];
+                    final styleId = RoomThemes.getWallpaperId(colorOpt.key, activeTexture);
+                    final styleOpt = InteriorWallStyles.getOption(styleId);
+
+                    final textureLabel = activeTexture == 'tiles' ? 'Azulejos' : 'Yeso/Liso';
+                    final textureIcon = activeTexture == 'tiles' ? '🔲' : '🧱';
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (_interiorWallEditTool == InteriorWallEditTool.allWalls) {
+                          final count = _roomGame.applyStyleToAllInteriorWalls(styleOpt);
+                          setState(() {});
+                          _showTopNotification(count > 0 ? '✨ ¡$count muros actualizados a "$textureLabel ${colorOpt.name}"!' : 'No hay muros sólidos para pintar.');
+                        } else if (_interiorWallEditTool == InteriorWallEditTool.brush) {
+                          setState(() {
+                            _selectedZoneWallId = styleId;
+                            _roomGame.setWallBrush(styleId);
+                          });
+                          _showTopNotification('🖌️ Pincel: $textureLabel ${colorOpt.name}. ¡Toca muros para pintarlos!');
+                        } else {
+                          _roomGame.addInteriorWallFromStyle(styleOpt);
+                          setState(() {});
+                          _showTopNotification('¡$textureLabel ${colorOpt.name} añadido! Arrástralo a su posición.');
+                        }
+                      },
+                      child: Container(
+                        width: 90,
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF282531),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF453F58),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 26,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: colorOpt.color,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white30, width: 1.5),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colorOpt.color.withOpacity(0.4),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Positioned(
+                                  right: -2,
+                                  bottom: -2,
+                                  child: Text(textureIcon, style: const TextStyle(fontSize: 10)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              colorOpt.name,
+                              style: const TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : ListView.builder(
+                  key: const PageStorageKey('interior_walls_structural_scroll_list'),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: InteriorWallStyles.structural.length,
+                  itemBuilder: (context, index) {
+                    final item = InteriorWallStyles.structural[index];
+                    final isDoorway = item.isDoorway;
+                    final isCardDisabled = _interiorWallEditTool == InteriorWallEditTool.allWalls && isDoorway;
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (_interiorWallEditTool == InteriorWallEditTool.allWalls) {
+                          if (isDoorway) {
+                            _showTopNotification('Los marcos de paso libre no se usan para pintar muros.');
+                            return;
+                          }
+                          final count = _roomGame.applyStyleToAllInteriorWalls(item);
+                          setState(() {});
+                          _showTopNotification(count > 0 ? '✨ ¡$count muros actualizados a "${item.name}"!' : 'No hay muros sólidos para pintar.');
+                        } else if (_interiorWallEditTool == InteriorWallEditTool.brush) {
+                          setState(() {
+                            _selectedZoneWallId = item.id;
+                            _roomGame.setWallBrush(item.id);
+                          });
+                          _showTopNotification('🖌️ Pincel: ${item.name}. ¡Toca muros en el salón para cambiarlos!');
+                        } else {
+                          _roomGame.addInteriorWallFromStyle(item);
+                          setState(() {});
+                          _showTopNotification('¡${item.name} añadido! Arrástralo a su posición.');
+                        }
+                      },
+                      child: Opacity(
+                        opacity: isCardDisabled ? 0.35 : 1.0,
+                        child: Container(
+                          width: 100,
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF282531),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isCardDisabled
+                                  ? Colors.white24
+                                  : const Color(0xFFA78BFA).withOpacity(0.6),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(item.emoji, style: const TextStyle(fontSize: 20)),
+                              const SizedBox(height: 2),
+                              Text(
+                                item.name,
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: isCardDisabled ? Colors.white54 : Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                isCardDisabled
+                                    ? '🚫 No aplicable'
+                                    : (item.isDoorway ? '🚪 Paso Libre' : '🧱 Muro Sólido'),
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: isCardDisabled
+                                      ? Colors.white38
+                                      : const Color(0xFFA78BFA),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );

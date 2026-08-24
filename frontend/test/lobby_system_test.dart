@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/models/room_config.dart';
 import 'package:frontend/core/network/websocket_client.dart';
 import 'package:frontend/core/services/avatar_storage_service.dart';
@@ -109,27 +108,31 @@ void main() {
       final northWallZ = IsometricCoords.getInteriorWallZOrder(gx, gy, 'north');
       final westWallZ = IsometricCoords.getInteriorWallZOrder(gx, gy, 'west');
 
-      // 1. Avatar on subcell behind North wall (tile 4, 3: u=8, v=7)
-      final avatarBehindNorthZ = ((8 + 7) * 1000) + 20;
-      expect(avatarBehindNorthZ < northWallZ, isTrue, reason: 'Avatar behind north wall must be occluded');
+      // 1. Avatar on South subcell behind North wall (tile 4, 3: South subcell is u=9, v=7)
+      final avatarBehindNorthSouthQuadZ = IsometricCoords.getSubZOrder(9, 7, layer: 100);
+      expect(avatarBehindNorthSouthQuadZ < northWallZ, isTrue, reason: 'Avatar in South quadrant behind north wall must be occluded');
 
-      // 2. Avatar on subcell in front of North wall (tile 4, 4: u=8, v=8)
-      final avatarInFrontNorthZ = ((8 + 8) * 1000) + 20;
+      // 2. Avatar on North subcell in front of North wall (tile 4, 4: North subcell is u=8, v=8)
+      final avatarInFrontNorthZ = IsometricCoords.getSubZOrder(8, 8, layer: 100);
       expect(avatarInFrontNorthZ > northWallZ, isTrue, reason: 'Avatar in front of north wall must be on top');
 
-      // 3. Avatar on tile behind North wall (tile 4, 3: u=8, v=6)
-      final avatarBehindZ = ((8 + 6) * 1000) + 20;
-      expect(avatarBehindZ < northWallZ, isTrue);
+      // 3. Avatar on South subcell behind West wall (tile 3, 4: South subcell is u=7, v=9)
+      final avatarBehindWestSouthQuadZ = IsometricCoords.getSubZOrder(7, 9, layer: 100);
+      expect(avatarBehindWestSouthQuadZ < westWallZ, isTrue, reason: 'Avatar in South quadrant behind west wall must be occluded');
 
-      // 4. Furniture on tile behind North wall (4, 3)
+      // 4. Avatar on North subcell in front of West wall (tile 4, 4: North subcell is u=8, v=8)
+      final avatarInFrontWestZ = IsometricCoords.getSubZOrder(8, 8, layer: 100);
+      expect(avatarInFrontWestZ > westWallZ, isTrue, reason: 'Avatar in front of west wall must be on top');
+
+      // 5. Furniture on tile behind North wall (4, 3)
       final furnitureBehindZ = IsometricCoords.getZOrder(4, 3, layer: 1);
       expect(furnitureBehindZ < northWallZ, isTrue, reason: 'Furniture behind north wall must be occluded');
 
-      // 5. Furniture on tile in front of North wall (4, 4)
+      // 6. Furniture on tile in front of North wall (4, 4)
       final furnitureInFrontZ = IsometricCoords.getZOrder(4, 4, layer: 1);
       expect(furnitureInFrontZ > northWallZ, isTrue, reason: 'Furniture in front of north wall must be on top');
 
-      // 6. Corner L-junction: West wall draws over North wall
+      // 7. Corner L-junction: West wall draws over North wall
       expect(westWallZ > northWallZ, isTrue, reason: 'West wall must cap North wall cleanly at corner');
     });
   });
@@ -272,6 +275,44 @@ void main() {
       expect(find.text('🚪 Muros Internos'), findsOneWidget);
       expect(find.text('Listo'), findsOneWidget);
       expect(find.text('Cancelar'), findsOneWidget);
+
+      // Verify Paredes tab (active by default) has tools and texture selector
+      expect(find.text('Todo el Salón'), findsOneWidget);
+      expect(find.text('Pintar Zona'), findsOneWidget);
+      expect(find.text('Borrador'), findsOneWidget);
+      expect(find.text('🎨 Colores'), findsOneWidget);
+      expect(find.text('Yeso/Liso'), findsOneWidget);
+      expect(find.text('Azulejos'), findsOneWidget);
+
+      // Tap Azulejos button in Paredes
+      await tester.tap(find.text('Azulejos'));
+      await tester.pumpAndSettle();
+
+      // Tap Pisos tab
+      await tester.tap(find.text('🪵 Pisos'));
+      await tester.pumpAndSettle();
+
+      // Verify floor tools and texture selectors are visible
+      expect(find.text('Todo el Salón'), findsOneWidget);
+      expect(find.text('Pintar Zona'), findsOneWidget);
+      expect(find.text('Borrador'), findsOneWidget);
+      expect(find.text('Baldosas'), findsOneWidget);
+      expect(find.text('Alfombra'), findsOneWidget);
+
+      // Tap Alfombra texture button
+      await tester.tap(find.text('Alfombra'));
+      await tester.pumpAndSettle();
+
+      // Tap Muros Internos tab
+      await tester.tap(find.text('🚪 Muros Internos'));
+      await tester.pumpAndSettle();
+
+      // Verify Muros Internos tools and textures are visible
+      expect(find.text('Añadir Muro'), findsOneWidget);
+      expect(find.text('Todos los Muros'), findsOneWidget);
+      expect(find.text('Pintar Muro'), findsOneWidget);
+      expect(find.text('Yeso/Liso'), findsOneWidget);
+      expect(find.text('Azulejos'), findsOneWidget);
     });
 
     test('updateWallpaper and updateFloor update background config without reloading furniture', () {
@@ -396,6 +437,220 @@ void main() {
       // Clear all overrides
       game.clearAllFloorOverrides();
       expect(game.roomConfig.floorOverrides.isEmpty, isTrue);
+    });
+
+    test('RoomThemes resolves floor options and converts textures (tiles vs carpet) correctly', () {
+      // 1. Resolve pattern
+      final parquet = RoomThemes.getFloorOption('oak_parquet');
+      expect(parquet.textureType, equals('pattern'));
+      expect(parquet.color, isNull);
+
+      // 2. Resolve legacy solid tiles
+      final whiteTiles = RoomThemes.getFloorOption('solid_white_tiles');
+      expect(whiteTiles.textureType, equals('tiles'));
+      expect(whiteTiles.color, isNotNull);
+      expect(whiteTiles.name, contains('Blanca'));
+
+      // 3. Resolve solid carpet
+      final mintCarpet = RoomThemes.getFloorOption('solid_carpet_mint_green');
+      expect(mintCarpet.textureType, equals('carpet'));
+      expect(mintCarpet.emoji, equals('🧶'));
+      expect(mintCarpet.name, contains('Alfombra'));
+      expect(mintCarpet.color, equals(const Color(0xFFA8D8B9)));
+
+      // 4. changeTexture preserves color when switching from tiles to carpet
+      final carpetFromTiles = RoomThemes.changeTexture('solid_mint_green', 'carpet');
+      expect(carpetFromTiles, equals('solid_carpet_mint_green'));
+      final optCarpet = RoomThemes.getFloorOption(carpetFromTiles);
+      expect(optCarpet.textureType, equals('carpet'));
+      expect(optCarpet.color, equals(const Color(0xFFA8D8B9)));
+
+      // 5. changeTexture converts carpet back to tiles
+      final tilesFromCarpet = RoomThemes.changeTexture('solid_carpet_blush_pink', 'tiles');
+      expect(tilesFromCarpet, equals('solid_tiles_blush_pink'));
+      final optTiles = RoomThemes.getFloorOption(tilesFromCarpet);
+      expect(optTiles.textureType, equals('tiles'));
+      expect(optTiles.color, equals(const Color(0xFFEBBFC2)));
+
+      // 6. Paint with carpet texture in CozyRoomGame
+      final game = CozyRoomGame(
+        avatarConfig: AvatarStorageService.getUserConfig('alice'),
+        roomConfig: const RoomConfig(floor: 'solid_carpet_warm_sand'),
+      );
+      game.paintFloorTile(2, 2, 'solid_carpet_mint_green');
+      expect(game.roomConfig.floorOverrides['2,2'], equals('solid_carpet_mint_green'));
+    });
+
+    test('Wall segment overrides serialize and deserialize properly in RoomConfig', () {
+      const config = RoomConfig(
+        wallpaper: 'rustic_wood',
+        wallOverrides: {
+          'n,0': 'solid_tiles_sage_green',
+          'n,1': 'solid_tiles_sage_green',
+          'w,3': 'solid_plaster_warm_beige',
+        },
+      );
+
+      final jsonStr = config.toJson();
+      final decoded = RoomConfig.fromJson(jsonStr);
+
+      expect(decoded.wallpaper, equals('rustic_wood'));
+      expect(decoded.wallOverrides.length, equals(3));
+      expect(decoded.wallOverrides['n,0'], equals('solid_tiles_sage_green'));
+      expect(decoded.wallOverrides['n,1'], equals('solid_tiles_sage_green'));
+      expect(decoded.wallOverrides['w,3'], equals('solid_plaster_warm_beige'));
+    });
+
+    test('CozyRoomGame paints, erases and clears custom wall segment overrides', () {
+      final game = CozyRoomGame(
+        avatarConfig: AvatarStorageService.getUserConfig('alice'),
+        roomConfig: const RoomConfig(wallpaper: 'rustic_wood'),
+      );
+
+      // Paint wall segments
+      game.paintWallSegment('n', 2, 'solid_tiles_mint_green');
+      game.paintWallSegment('w', 4, 'solid_plaster_dusty_rose');
+      expect(game.roomConfig.wallOverrides['n,2'], equals('solid_tiles_mint_green'));
+      expect(game.roomConfig.wallOverrides['w,4'], equals('solid_plaster_dusty_rose'));
+      expect(game.roomConfig.wallOverrides.length, equals(2));
+
+      // Erase wall segment
+      game.eraseWallSegment('n', 2);
+      expect(game.roomConfig.wallOverrides.containsKey('n,2'), isFalse);
+      expect(game.roomConfig.wallOverrides['w,4'], equals('solid_plaster_dusty_rose'));
+
+      // Export preserves wall overrides
+      final exported = game.exportCurrentRoomConfig();
+      expect(exported.wallOverrides['w,4'], equals('solid_plaster_dusty_rose'));
+
+      // Clear all wall overrides
+      game.clearAllWallOverrides();
+      expect(game.roomConfig.wallOverrides.isEmpty, isTrue);
+    });
+
+    test('RoomThemes resolves wallpaper options and converts textures (plaster vs tiles) correctly', () {
+      // 1. Resolve pattern
+      final rustic = RoomThemes.getWallpaperOption('rustic_wood');
+      expect(rustic.textureType, equals('pattern'));
+      expect(rustic.color, isNull);
+
+      // 2. Resolve plaster color
+      final whitePlaster = RoomThemes.getWallpaperOption('solid_white_plaster');
+      expect(whitePlaster.textureType, equals('plaster'));
+      expect(whitePlaster.color, isNotNull);
+      expect(whitePlaster.name, contains('Blanco Lino'));
+
+      // 3. Resolve tiles color
+      final sageTiles = RoomThemes.getWallpaperOption('solid_tiles_sage_green');
+      expect(sageTiles.textureType, equals('tiles'));
+      expect(sageTiles.emoji, equals('🔲'));
+      expect(sageTiles.name, contains('Azulejos'));
+      expect(sageTiles.color, equals(const Color(0xFF8DA399)));
+
+      // 4. changeWallpaperTexture preserves color when switching between plaster and tiles
+      final tilesFromPlaster = RoomThemes.changeWallpaperTexture('solid_sage_green', 'tiles');
+      expect(tilesFromPlaster, equals('solid_tiles_sage_green'));
+      final optTiles = RoomThemes.getWallpaperOption(tilesFromPlaster);
+      expect(optTiles.textureType, equals('tiles'));
+      expect(optTiles.color, equals(const Color(0xFF8DA399)));
+
+      final plasterFromTiles = RoomThemes.changeWallpaperTexture('solid_tiles_dusty_rose', 'plaster');
+      expect(plasterFromTiles, equals('solid_plaster_dusty_rose'));
+      final optPlaster = RoomThemes.getWallpaperOption(plasterFromTiles);
+      expect(optPlaster.textureType, equals('plaster'));
+      expect(optPlaster.color, equals(const Color(0xFFE5B2B7)));
+    });
+
+    test('addFurnitureFromCatalog and addInteriorWallFromStyle spawn near camera viewport center', () async {
+      final game = CozyRoomGame(
+        avatarConfig: AvatarStorageService.getUserConfig('alice'),
+        roomConfig: const RoomConfig(),
+      );
+
+      // Pan camera to tile (5, 5)
+      final pos55 = IsometricCoords.gridToScreen(5.0, 5.0);
+      game.camera.viewfinder.position = pos55;
+
+      final camCenter = game.getCameraCenterGrid();
+      expect(camCenter.x, equals(5));
+      expect(camCenter.y, equals(5));
+
+      // 1. Add interior wall -> should spawn at (5, 5)
+      final wallStyle = InteriorWallStyles.structural.first;
+      game.addInteriorWallFromStyle(wallStyle);
+
+      final addedWall = game.world.children.whereType<IsometricInteriorWallComponent>().first;
+      expect(addedWall.gridX, equals(5));
+      expect(addedWall.gridY, equals(5));
+
+      // 2. Add second interior wall -> (5, 5, 'north') is taken, so it takes (5, 5, 'west') or closest empty slot
+      game.addInteriorWallFromStyle(wallStyle);
+      final walls = game.world.children.whereType<IsometricInteriorWallComponent>().toList();
+      expect(walls.length, equals(2));
+      expect(walls[1].gridX, equals(5));
+      expect(walls[1].gridY, equals(5));
+      expect(walls[1].orientation, equals('west'));
+    });
+
+    test('Multi-tile furniture (1x2, 2x1, 2x2) cannot be placed crossing interior dividing walls', () {
+      final game = CozyRoomGame(
+        avatarConfig: AvatarStorageService.getUserConfig('alice'),
+        roomConfig: const RoomConfig(),
+      );
+
+      // Add a West wall at (3, 2)
+      final wall = IsometricInteriorWallComponent(
+        id: 'w1',
+        gridX: 3,
+        gridY: 2,
+        orientation: 'west',
+        style: 'wood_slats',
+      );
+      game.world.add(wall);
+
+      // 1. A 2x1 item placed at (2, 2) would cross the West wall at (3, 2)
+      final bed2x1 = IsometricFurnitureComponent(
+        id: 'test_bed_2x1',
+        gridX: 2,
+        gridY: 2,
+        gridWidth: 2,
+        gridHeight: 1,
+      );
+      // Attempting to place bed at (2, 2) crossing the wall at (3, 2)
+      expect(game.checkIsValidLocationForTesting(bed2x1, const Point(2, 2)), isFalse);
+
+      // Placing the 2x1 item at (3, 2) does not cross the wall (wall is on its outer West edge)
+      expect(game.checkIsValidLocationForTesting(bed2x1, const Point(3, 2)), isTrue);
+
+      // 2. Add a North wall at (2, 3)
+      final northWall = IsometricInteriorWallComponent(
+        id: 'w2',
+        gridX: 2,
+        gridY: 3,
+        orientation: 'north',
+        style: 'wood_slats',
+      );
+      game.world.add(northWall);
+
+      // A 1x2 item placed at (2, 2) would cross the North wall at (2, 3)
+      final bed1x2 = IsometricFurnitureComponent(
+        id: 'test_bed_1x2',
+        gridX: 2,
+        gridY: 2,
+        gridWidth: 1,
+        gridHeight: 2,
+      );
+      expect(game.checkIsValidLocationForTesting(bed1x2, const Point(2, 2)), isFalse);
+
+      // 3. A 2x2 item at (2, 2) is also blocked
+      final kingBed2x2 = IsometricFurnitureComponent(
+        id: 'test_king_bed_2x2',
+        gridX: 2,
+        gridY: 2,
+        gridWidth: 2,
+        gridHeight: 2,
+      );
+      expect(game.checkIsValidLocationForTesting(kingBed2x2, const Point(2, 2)), isFalse);
     });
   });
 

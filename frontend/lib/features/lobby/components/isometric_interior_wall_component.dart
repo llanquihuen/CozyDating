@@ -14,9 +14,8 @@ class IsometricInteriorWallComponent extends Component {
   String style; // 'wood_slats', 'bathroom_glass', 'rustic_brick', 'modern_white', 'japanese_shoji', 'doorway_frame'
   bool hasDoorway;
   bool isSelected;
-  // Shared plaster texture (wallpaper_solid_plaster.png), tinted per-style to
-  // texture the flat-color wall styles the same way the room's own walls are textured.
   Sprite? plasterSprite;
+  Sprite? tilesSprite;
   bool _isBeingDragged = false;
   bool get isBeingDragged => _isBeingDragged;
   set isBeingDragged(bool value) {
@@ -41,6 +40,7 @@ class IsometricInteriorWallComponent extends Component {
     this.hasDoorway = false,
     this.isSelected = false,
     this.plasterSprite,
+    this.tilesSprite,
     bool isBeingDragged = false,
   }) : _isBeingDragged = isBeingDragged {
     _updatePriority();
@@ -170,7 +170,7 @@ class IsometricInteriorWallComponent extends Component {
     bool isOccludingAvatar = false;
 
     if (avatars.isNotEmpty) {
-      final basePos = IsometricCoords.gridToScreen(gridX.toDouble(), gridY.toDouble());
+      final basePos = IsometricCoords.gridToScreen(gridX.toDouble(), gridY.toDouble()) + dragVisualOffset;
       final isNorth = (orientation == 'north');
 
       final double bX1 = isNorth ? basePos.x : basePos.x - halfTileW;
@@ -196,7 +196,7 @@ class IsometricInteriorWallComponent extends Component {
       }
     }
 
-    // When avatar is behind the wall, fade to 50% opacity
+    // When avatar is behind the wall, fade smoothly to 50% opacity
     targetOpacity = isOccludingAvatar ? 0.50 : 1.0;
 
     // Smooth transition
@@ -293,10 +293,7 @@ class IsometricInteriorWallComponent extends Component {
     Path quad,
     bool isNorth,
   ) {
-    final styleOpt = InteriorWallStyles.all.firstWhere(
-      (o) => o.id == style,
-      orElse: () => InteriorWallStyles.all.first,
-    );
+    final styleOpt = InteriorWallStyles.getOption(style);
 
     if (styleOpt.color != null && style != 'modern_white') {
       _renderPlasterColorWall(canvas, bX1, bY1, bX2, bY2, tX1, tY1, tX2, tY2, quad, isNorth, styleOpt.color!);
@@ -372,7 +369,8 @@ class IsometricInteriorWallComponent extends Component {
 
     // Wall Face (North side is brightly lit, West side has subtle ambient shading)
     final faceColor = isNorth ? color : (Color.lerp(color, Colors.black, 0.08) ?? color);
-    final sprite = plasterSprite;
+    final isTiles = style.contains('tiles');
+    final sprite = isTiles ? (tilesSprite ?? plasterSprite) : (plasterSprite ?? tilesSprite);
     if (sprite != null) {
       // Texture the face with the shared plaster sprite, tinted to the style's color —
       // same technique the room's own perimeter walls use for their solid-color wallpapers.

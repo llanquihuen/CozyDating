@@ -104,6 +104,7 @@ class RoomConfig extends Equatable {
   final String wallpaper;
   final String floor;
   final Map<String, String> floorOverrides; // 'x,y' -> floorId
+  final Map<String, String> wallOverrides; // 'n,x' or 'w,y' -> wallpaperId
   final String resolution; // '64x128' or '32x64'
   final List<PlacedFurnitureConfig> furniture;
   final List<InteriorWallConfig> interiorWalls;
@@ -112,6 +113,7 @@ class RoomConfig extends Equatable {
     this.wallpaper = 'rustic_wood',
     this.floor = 'oak_parquet',
     this.floorOverrides = const {},
+    this.wallOverrides = const {},
     this.resolution = '64x128',
     this.interiorWalls = const [],
     this.furniture = const [
@@ -190,6 +192,7 @@ class RoomConfig extends Equatable {
     String? wallpaper,
     String? floor,
     Map<String, String>? floorOverrides,
+    Map<String, String>? wallOverrides,
     String? resolution,
     List<PlacedFurnitureConfig>? furniture,
     List<InteriorWallConfig>? interiorWalls,
@@ -198,6 +201,7 @@ class RoomConfig extends Equatable {
       wallpaper: wallpaper ?? this.wallpaper,
       floor: floor ?? this.floor,
       floorOverrides: floorOverrides ?? this.floorOverrides,
+      wallOverrides: wallOverrides ?? this.wallOverrides,
       resolution: resolution ?? this.resolution,
       furniture: furniture ?? this.furniture,
       interiorWalls: interiorWalls ?? this.interiorWalls,
@@ -209,6 +213,7 @@ class RoomConfig extends Equatable {
       'wallpaper': wallpaper,
       'floor': floor,
       if (floorOverrides.isNotEmpty) 'floorOverrides': floorOverrides,
+      if (wallOverrides.isNotEmpty) 'wallOverrides': wallOverrides,
       'resolution': resolution,
       'furniture': furniture.map((f) => f.toMap()).toList(),
       if (interiorWalls.isNotEmpty)
@@ -222,6 +227,9 @@ class RoomConfig extends Equatable {
       floor: map['floor'] ?? 'oak_parquet',
       floorOverrides: map['floorOverrides'] != null
           ? Map<String, String>.from(map['floorOverrides'] as Map)
+          : const {},
+      wallOverrides: map['wallOverrides'] != null
+          ? Map<String, String>.from(map['wallOverrides'] as Map)
           : const {},
       resolution: map['resolution'] ?? '64x128',
       interiorWalls: map['interiorWalls'] != null
@@ -307,7 +315,7 @@ class RoomConfig extends Equatable {
   factory RoomConfig.fromJson(String source) => RoomConfig.fromMap(json.decode(source));
 
   @override
-  List<Object?> get props => [wallpaper, floor, floorOverrides, resolution, furniture, interiorWalls];
+  List<Object?> get props => [wallpaper, floor, floorOverrides, wallOverrides, resolution, furniture, interiorWalls];
 }
 
 class InteriorWallConfig extends Equatable {
@@ -390,7 +398,7 @@ class InteriorWallStyleOption {
 }
 
 class InteriorWallStyles {
-  static const List<InteriorWallStyleOption> all = [
+  static const List<InteriorWallStyleOption> structural = [
     // Structural Architectural Styles
     InteriorWallStyleOption(
       id: 'wood_slats',
@@ -423,6 +431,17 @@ class InteriorWallStyles {
       description: 'Paso libre entre ambientes sin bloquear el paso.',
       isDoorway: true,
     ),
+    InteriorWallStyleOption(
+      id: 'modern_white',
+      name: 'Panel Blanco Minimalista',
+      emoji: '◻️',
+      description: 'Separador minimalista con perfil gris y base negra.',
+      color: Color(0xFFECEFF1),
+    ),
+  ];
+
+  static const List<InteriorWallStyleOption> all = [
+    ...structural,
 
     // Solid Color Textured Plaster Walls (Paredes de color a juego con la habitación)
     InteriorWallStyleOption(
@@ -481,14 +500,24 @@ class InteriorWallStyles {
       description: 'Pared violeta pastel suave.',
       color: Color(0xFFC3B1E1),
     ),
-    InteriorWallStyleOption(
-      id: 'modern_white',
-      name: 'Panel Blanco Minimalista',
-      emoji: '◻️',
-      description: 'Separador minimalista con perfil gris y base negra.',
-      color: Color(0xFFECEFF1),
-    ),
   ];
+
+  static InteriorWallStyleOption getOption(String id) {
+    for (final opt in all) {
+      if (opt.id == id) return opt;
+    }
+    final wpOpt = RoomThemes.getWallpaperOption(id);
+    if (wpOpt.color != null) {
+      return InteriorWallStyleOption(
+        id: id,
+        name: wpOpt.name,
+        emoji: wpOpt.emoji,
+        description: wpOpt.description,
+        color: wpOpt.color,
+      );
+    }
+    return all.first;
+  }
 }
 
 class WallpaperOption {
@@ -497,6 +526,7 @@ class WallpaperOption {
   final String emoji;
   final String description;
   final Color? color;
+  final String textureType; // 'pattern', 'plaster', 'tiles'
 
   const WallpaperOption({
     required this.id,
@@ -504,6 +534,21 @@ class WallpaperOption {
     required this.emoji,
     required this.description,
     this.color,
+    this.textureType = 'pattern',
+  });
+}
+
+class WallpaperColorOption {
+  final String key;
+  final String name;
+  final String emoji;
+  final Color color;
+
+  const WallpaperColorOption({
+    required this.key,
+    required this.name,
+    required this.emoji,
+    required this.color,
   });
 }
 
@@ -513,6 +558,7 @@ class FloorOption {
   final String emoji;
   final String description;
   final Color? color;
+  final String textureType; // 'pattern', 'tiles', 'carpet'
 
   const FloorOption({
     required this.id,
@@ -520,42 +566,80 @@ class FloorOption {
     required this.emoji,
     required this.description,
     this.color,
+    this.textureType = 'pattern',
+  });
+}
+
+class FloorColorOption {
+  final String key;
+  final String name;
+  final String emoji;
+  final Color color;
+
+  const FloorColorOption({
+    required this.key,
+    required this.name,
+    required this.emoji,
+    required this.color,
   });
 }
 
 class RoomThemes {
-  static const List<WallpaperOption> wallpapers = [
-    // Patterns
+  static const List<WallpaperColorOption> wallpaperColors = [
+    WallpaperColorOption(key: 'white', name: 'Blanco Lino', emoji: '🤍', color: Color(0xFFF9F9F8)),
+    WallpaperColorOption(key: 'sage_green', name: 'Verde Salvia', emoji: '🍃', color: Color(0xFF8DA399)),
+    WallpaperColorOption(key: 'mint_green', name: 'Menta Pastel', emoji: '🌿', color: Color(0xFFA8D8B9)),
+    WallpaperColorOption(key: 'warm_beige', name: 'Beige Arena', emoji: '🌾', color: Color(0xFFE8DCCB)),
+    WallpaperColorOption(key: 'dusty_rose', name: 'Rosa Pastel', emoji: '🩰', color: Color(0xFFE5B2B7)),
+    WallpaperColorOption(key: 'slate_gray', name: 'Microcemento Gris', emoji: '🏢', color: Color(0xFF7F8C8D)),
+    WallpaperColorOption(key: 'lavender', name: 'Lavanda Suave', emoji: '🪻', color: Color(0xFFC3B1E1)),
+    WallpaperColorOption(key: 'mustard', name: 'Mostaza Cálido', emoji: '🌻', color: Color(0xFFE5A65D)),
+    WallpaperColorOption(key: 'ocean_teal', name: 'Turquesa Suave', emoji: '🌊', color: Color(0xFF5C9496)),
+    WallpaperColorOption(key: 'navy_blue', name: 'Azul Índigo', emoji: '🌌', color: Color(0xFF2C3E50)),
+    WallpaperColorOption(key: 'charcoal', name: 'Gris Pizarra', emoji: '🌑', color: Color(0xFF4A4E5A)),
+  ];
+
+  static const List<WallpaperOption> wallpaperPatterns = [
     WallpaperOption(
       id: 'rustic_wood',
       name: 'Madera Rústica',
       emoji: '🪵',
       description: 'Paneles de madera de roble con zócalos cálidos.',
+      textureType: 'pattern',
     ),
     WallpaperOption(
       id: 'brick_stone',
       name: 'Ladrillo Vintage',
       emoji: '🧱',
       description: 'Pared de ladrillo visto con mortero artesanal.',
+      textureType: 'pattern',
     ),
     WallpaperOption(
       id: 'cozy_stripes',
       name: 'Rayas Salvia',
       emoji: '🌿',
       description: 'Rayas elegantes con moldura victoriana.',
+      textureType: 'pattern',
     ),
     WallpaperOption(
       id: 'starry_night',
       name: 'Noche Estrellada',
       emoji: '✨',
       description: 'Fondo azul noche profundo con destellos dorados.',
+      textureType: 'pattern',
     ),
     WallpaperOption(
       id: 'pastel_floral',
       name: 'Floral Romántico',
       emoji: '🌸',
       description: 'Papel tapiz rosa pastel con motivos florales.',
+      textureType: 'pattern',
     ),
+  ];
+
+  static const List<WallpaperOption> wallpapers = [
+    // Patterns
+    ...wallpaperPatterns,
 
     // Solid Textured Colors (Paredes de color con textura de yeso y zócalo)
     WallpaperOption(
@@ -564,6 +648,7 @@ class RoomThemes {
       emoji: '🤍',
       description: 'Pared lisa blanco suave con textura de yeso.',
       color: Color(0xFFF9F9F8),
+      textureType: 'plaster',
     ),
     WallpaperOption(
       id: 'solid_sage_green',
@@ -571,6 +656,7 @@ class RoomThemes {
       emoji: '🍃',
       description: 'Pintura mate verde salvia relajante.',
       color: Color(0xFF8DA399),
+      textureType: 'plaster',
     ),
     WallpaperOption(
       id: 'solid_warm_beige',
@@ -578,6 +664,7 @@ class RoomThemes {
       emoji: '🌾',
       description: 'Pared cálida tono arena tostada.',
       color: Color(0xFFE8DCCB),
+      textureType: 'plaster',
     ),
     WallpaperOption(
       id: 'solid_dusty_rose',
@@ -585,6 +672,7 @@ class RoomThemes {
       emoji: '🩰',
       description: 'Pintura suave rosa empolvado cálido.',
       color: Color(0xFFE5B2B7),
+      textureType: 'plaster',
     ),
     WallpaperOption(
       id: 'solid_navy_blue',
@@ -592,6 +680,7 @@ class RoomThemes {
       emoji: '🌌',
       description: 'Pared azul profundo aterciopelada.',
       color: Color(0xFF2C3E50),
+      textureType: 'plaster',
     ),
     WallpaperOption(
       id: 'solid_charcoal',
@@ -599,6 +688,7 @@ class RoomThemes {
       emoji: '🌑',
       description: 'Pintura gris grafito contemporánea.',
       color: Color(0xFF4A4E5A),
+      textureType: 'plaster',
     ),
     WallpaperOption(
       id: 'solid_mustard',
@@ -606,6 +696,7 @@ class RoomThemes {
       emoji: '🌻',
       description: 'Pintura ocre soleada y acogedora.',
       color: Color(0xFFE5A65D),
+      textureType: 'plaster',
     ),
     WallpaperOption(
       id: 'solid_lavender',
@@ -613,49 +704,153 @@ class RoomThemes {
       emoji: '🪻',
       description: 'Pintura violeta pastel relajante.',
       color: Color(0xFFC3B1E1),
+      textureType: 'plaster',
     ),
   ];
 
-  static const List<FloorOption> floors = [
-    // Patterns
+  static WallpaperOption getWallpaperOption(String id) {
+    for (final p in wallpaperPatterns) {
+      if (p.id == id) return p;
+    }
+    for (final w in wallpapers) {
+      if (w.id == id) return w;
+    }
+
+    final isTiles = id.contains('tiles');
+    final String cleanKey = id
+        .replaceAll('solid_tiles_', '')
+        .replaceAll('solid_plaster_', '')
+        .replaceAll('solid_', '')
+        .replaceAll('tiles_', '')
+        .replaceAll('_tiles', '')
+        .replaceAll('_plaster', '');
+
+    WallpaperColorOption? matchedColor;
+    for (final c in wallpaperColors) {
+      if (c.key == cleanKey || cleanKey == c.key || cleanKey.contains(c.key)) {
+        matchedColor = c;
+        break;
+      }
+    }
+
+    if (matchedColor != null) {
+      return WallpaperOption(
+        id: id,
+        name: isTiles ? 'Azulejos ${matchedColor.name}' : 'Muro ${matchedColor.name}',
+        emoji: isTiles ? '🔲' : '🧱',
+        description: isTiles
+            ? 'Pared con azulejos cerámicos en color ${matchedColor.name.toLowerCase()}.'
+            : 'Pared lisa con textura de yeso en color ${matchedColor.name.toLowerCase()}.',
+        color: matchedColor.color,
+        textureType: isTiles ? 'tiles' : 'plaster',
+      );
+    }
+
+    return wallpaperPatterns.first;
+  }
+
+  static String getWallpaperId(String colorKey, String textureType) {
+    if (textureType == 'tiles') {
+      return 'solid_tiles_$colorKey';
+    } else {
+      return 'solid_plaster_$colorKey';
+    }
+  }
+
+  static String changeWallpaperTexture(String currentWallpaperId, String newTextureType) {
+    if (newTextureType == 'pattern') return currentWallpaperId;
+    final opt = getWallpaperOption(currentWallpaperId);
+    if (opt.color == null) {
+      return getWallpaperId('white', newTextureType);
+    }
+    final isTiles = currentWallpaperId.contains('tiles');
+    if ((isTiles && newTextureType == 'tiles') || (!isTiles && newTextureType == 'plaster')) {
+      return currentWallpaperId;
+    }
+    final String cleanKey = currentWallpaperId
+        .replaceAll('solid_tiles_', '')
+        .replaceAll('solid_plaster_', '')
+        .replaceAll('solid_', '')
+        .replaceAll('tiles_', '')
+        .replaceAll('_tiles', '')
+        .replaceAll('_plaster', '');
+
+    WallpaperColorOption? matchedColor;
+    for (final c in wallpaperColors) {
+      if (c.key == cleanKey || cleanKey == c.key || cleanKey.contains(c.key)) {
+        matchedColor = c;
+        break;
+      }
+    }
+    final key = matchedColor?.key ?? cleanKey;
+    return getWallpaperId(key, newTextureType);
+  }
+
+  static const List<FloorColorOption> floorColors = [
+    FloorColorOption(key: 'white', name: 'Blanco Lino', emoji: '🤍', color: Color(0xFFF5F6F8)),
+    FloorColorOption(key: 'sage_green', name: 'Verde Salvia', emoji: '🍃', color: Color(0xFF8DA399)),
+    FloorColorOption(key: 'mint_green', name: 'Menta Pastel', emoji: '🌿', color: Color(0xFFA8D8B9)),
+    FloorColorOption(key: 'blush_pink', name: 'Rosa Cuarzo', emoji: '🌸', color: Color(0xFFEBBFC2)),
+    FloorColorOption(key: 'dusty_rose', name: 'Rosa Pastel', emoji: '🩰', color: Color(0xFFE5B2B7)),
+    FloorColorOption(key: 'warm_sand', name: 'Arena Cálida', emoji: '🌾', color: Color(0xFFD8C3A5)),
+    FloorColorOption(key: 'slate_gray', name: 'Microcemento Gris', emoji: '🏢', color: Color(0xFF7F8C8D)),
+    FloorColorOption(key: 'lavender', name: 'Lavanda Suave', emoji: '🪻', color: Color(0xFFC3B1E1)),
+    FloorColorOption(key: 'mustard', name: 'Mostaza Cálido', emoji: '🌻', color: Color(0xFFE5A65D)),
+    FloorColorOption(key: 'ocean_teal', name: 'Turquesa Suave', emoji: '🌊', color: Color(0xFF5C9496)),
+    FloorColorOption(key: 'navy_blue', name: 'Azul Índigo', emoji: '🌌', color: Color(0xFF2C3E50)),
+    FloorColorOption(key: 'dark_graphite', name: 'Grafito Mate', emoji: '🖤', color: Color(0xFF34495E)),
+  ];
+
+  static const List<FloorOption> patterns = [
     FloorOption(
       id: 'oak_parquet',
       name: 'Parquet de Roble',
       emoji: '🪵',
       description: 'Madera de roble natural pulida en espiga.',
+      textureType: 'pattern',
     ),
     FloorOption(
       id: 'dark_walnut',
       name: 'Nogal Oscuro',
       emoji: '🍂',
       description: 'Tablones oscuros de nogal noble.',
+      textureType: 'pattern',
     ),
     FloorOption(
       id: 'checker_marble',
       name: 'Mármol Ajedrezado',
       emoji: '🏁',
       description: 'Baldosas de mármol blanco y pizarra gris.',
+      textureType: 'pattern',
     ),
     FloorOption(
       id: 'terracotta_tiles',
       name: 'Terracota Rústica',
       emoji: '🏺',
       description: 'Barro cocido mediterráneo artesanal.',
+      textureType: 'pattern',
     ),
     FloorOption(
       id: 'tatami_mat',
       name: 'Tatami Japonés',
       emoji: '🎋',
       description: 'Esteras de bambú y paja natural relajante.',
+      textureType: 'pattern',
     ),
+  ];
 
-    // Solid Textured Colors (Suelos cerámicos de color con textura)
+  static const List<FloorOption> floors = [
+    // Patterns
+    ...patterns,
+
+    // Solid Textured Colors (Suelos cerámicos de color con textura de baldosas)
     FloorOption(
       id: 'solid_white_tiles',
       name: 'Cerámica Blanca',
       emoji: '⚪',
       description: 'Baldosas lisas blancas con juntas finas.',
       color: Color(0xFFF5F6F8),
+      textureType: 'tiles',
     ),
     FloorOption(
       id: 'solid_slate_gray',
@@ -663,6 +858,7 @@ class RoomThemes {
       emoji: '🏢',
       description: 'Suelo gris moderno estilo cemento pulido.',
       color: Color(0xFF7F8C8D),
+      textureType: 'tiles',
     ),
     FloorOption(
       id: 'solid_mint_green',
@@ -670,6 +866,7 @@ class RoomThemes {
       emoji: '🌿',
       description: 'Baldosas cerámicas verde menta suave.',
       color: Color(0xFFA8D8B9),
+      textureType: 'tiles',
     ),
     FloorOption(
       id: 'solid_blush_pink',
@@ -677,6 +874,7 @@ class RoomThemes {
       emoji: '🌸',
       description: 'Baldosas lisas rosa pastel.',
       color: Color(0xFFEBBFC2),
+      textureType: 'tiles',
     ),
     FloorOption(
       id: 'solid_warm_sand',
@@ -684,6 +882,7 @@ class RoomThemes {
       emoji: '🏖️',
       description: 'Suelo continuo color arena mediterránea.',
       color: Color(0xFFD8C3A5),
+      textureType: 'tiles',
     ),
     FloorOption(
       id: 'solid_dark_graphite',
@@ -691,6 +890,7 @@ class RoomThemes {
       emoji: '🖤',
       description: 'Baldosas oscuras de pizarra moderna.',
       color: Color(0xFF34495E),
+      textureType: 'tiles',
     ),
     FloorOption(
       id: 'solid_ocean_teal',
@@ -698,6 +898,85 @@ class RoomThemes {
       emoji: '🌊',
       description: 'Baldosas cerámicas azul verdoso.',
       color: Color(0xFF5C9496),
+      textureType: 'tiles',
     ),
   ];
+
+  static FloorOption getFloorOption(String id) {
+    for (final f in patterns) {
+      if (f.id == id) return f;
+    }
+    for (final f in floors) {
+      if (f.id == id) return f;
+    }
+
+    final isCarpet = id.contains('carpet');
+    final String cleanKey = id
+        .replaceAll('solid_carpet_', '')
+        .replaceAll('carpet_', '')
+        .replaceAll('solid_tiles_', '')
+        .replaceAll('solid_', '')
+        .replaceAll('tiles_', '')
+        .replaceAll('_tiles', '');
+
+    FloorColorOption? matchedColor;
+    for (final c in floorColors) {
+      if (c.key == cleanKey || cleanKey == c.key || cleanKey.contains(c.key)) {
+        matchedColor = c;
+        break;
+      }
+    }
+
+    if (matchedColor != null) {
+      return FloorOption(
+        id: id,
+        name: isCarpet ? 'Alfombra ${matchedColor.name}' : 'Baldosa ${matchedColor.name}',
+        emoji: isCarpet ? '🧶' : '🔲',
+        description: isCarpet
+            ? 'Alfombra afelpada continua color ${matchedColor.name.toLowerCase()}.'
+            : 'Baldosas cerámicas en cuadrícula color ${matchedColor.name.toLowerCase()}.',
+        color: matchedColor.color,
+        textureType: isCarpet ? 'carpet' : 'tiles',
+      );
+    }
+
+    return patterns.first;
+  }
+
+  static String getFloorId(String colorKey, String textureType) {
+    if (textureType == 'carpet') {
+      return 'solid_carpet_$colorKey';
+    } else {
+      return 'solid_tiles_$colorKey';
+    }
+  }
+
+  static String changeTexture(String currentFloorId, String newTextureType) {
+    if (newTextureType == 'pattern') return currentFloorId;
+    final opt = getFloorOption(currentFloorId);
+    if (opt.color == null) {
+      return getFloorId('warm_sand', newTextureType);
+    }
+    final isCarpet = currentFloorId.contains('carpet');
+    if ((isCarpet && newTextureType == 'carpet') || (!isCarpet && newTextureType == 'tiles')) {
+      return currentFloorId;
+    }
+    final String cleanKey = currentFloorId
+        .replaceAll('solid_carpet_', '')
+        .replaceAll('carpet_', '')
+        .replaceAll('solid_tiles_', '')
+        .replaceAll('solid_', '')
+        .replaceAll('tiles_', '')
+        .replaceAll('_tiles', '');
+
+    FloorColorOption? matchedColor;
+    for (final c in floorColors) {
+      if (c.key == cleanKey || cleanKey == c.key || cleanKey.contains(c.key)) {
+        matchedColor = c;
+        break;
+      }
+    }
+    final key = matchedColor?.key ?? cleanKey;
+    return getFloorId(key, newTextureType);
+  }
 }

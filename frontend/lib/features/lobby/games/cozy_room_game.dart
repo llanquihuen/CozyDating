@@ -66,6 +66,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   String? activeFloorBrushId;
   bool _isFloorBrushDragging = false;
 
+  // Wall Brush State (paint specific wall segments / interior walls)
+  String? activeWallBrushId;
+  bool _isWallBrushDragging = false;
+
   // Camera Pan state
   bool _isPanningCamera = false;
   Vector2? _lastDragScreenPos;
@@ -140,7 +144,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       selectInteriorWall(null);
     } else {
       activeFloorBrushId = null;
+      activeWallBrushId = null;
       _isFloorBrushDragging = false;
+      _isWallBrushDragging = false;
       _recalculateObstacles();
       Point<int> spawnTile = const Point(4, 4);
       bool found = false;
@@ -199,6 +205,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         style: w.style,
         hasDoorway: w.hasDoorway,
         plasterSprite: _backgroundComponent?._wallpaperSprites['solid_plaster'],
+        tilesSprite: _backgroundComponent?._wallpaperSprites['solid_tiles'],
       ));
     }
 
@@ -370,6 +377,19 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     comp.updateGridPosition(comp.gridX, comp.gridY);
   }
 
+  /// Returns the grid coordinate (clamped to room bounds) focused at the center of the camera viewport.
+  Point<int> getCameraCenterGrid() {
+    try {
+      final centerWorld = camera.viewfinder.position;
+      final gridPoint = IsometricCoords.screenToGrid(centerWorld.x, centerWorld.y);
+      final clampedX = gridPoint.x.clamp(0, gridSize - 1);
+      final clampedY = gridPoint.y.clamp(0, gridSize - 1);
+      return Point(clampedX, clampedY);
+    } catch (_) {
+      return Point((gridSize / 2).floor(), (gridSize / 2).floor());
+    }
+  }
+
   Future<void> addFurnitureFromCatalog(FurnitureCatalogItem catalogItem) async {
     final isWall = catalogItem.isWallItem;
     final initialWallIsNorth = !catalogItem.isWallWest;
@@ -378,12 +398,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final gw = catalogItem.gridWidth;
     final gh = catalogItem.gridHeight;
 
-    Point<int> spawnPos = const Point(3, 3);
+    final camCenter = getCameraCenterGrid();
+    final targetCenterX = camCenter.x.toDouble().clamp(0.0, (gridSize - gw).toDouble());
+    final targetCenterY = camCenter.y.toDouble().clamp(0.0, (gridSize - gh).toDouble());
+
+    Point<int> spawnPos = Point(targetCenterX.round(), targetCenterY.round());
     String? parentId;
     double surfaceH = 0.0;
-
-    final centerX = (gridSize - gw) / 2.0;
-    final centerY = (gridSize - gh) / 2.0;
 
     if (catalogItem.isWallNorth || (catalogItem.isWallItem && !catalogItem.isWallWest)) {
       final candidates = <Point<int>>[];
@@ -402,7 +423,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         }
       }
       if (candidates.isNotEmpty) {
-        candidates.sort((a, b) => ((a.x - centerX).abs()).compareTo((b.x - centerX).abs()));
+        candidates.sort((a, b) => ((a.x - targetCenterX).abs()).compareTo((b.x - targetCenterX).abs()));
         spawnPos = candidates.first;
       }
     } else if (catalogItem.isWallWest) {
@@ -422,11 +443,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         }
       }
       if (candidates.isNotEmpty) {
-        candidates.sort((a, b) => ((a.y - centerY).abs()).compareTo((b.y - centerY).abs()));
+        candidates.sort((a, b) => ((a.y - targetCenterY).abs()).compareTo((b.y - targetCenterY).abs()));
         spawnPos = candidates.first;
       }
     } else if (catalogItem.isSurfaceItem) {
-      // Find surface-supporting furniture closest to room center
+      // Find surface-supporting furniture closest to camera center
       final parents = world.children.whereType<IsometricFurnitureComponent>().where((f) {
         final m = FurnitureCatalogService.getItem(f.id) ?? FurnitureCatalogService.getItem(f.typeName);
         return m != null && m.isSurfaceSupporting;
@@ -434,8 +455,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
       if (parents.isNotEmpty) {
         parents.sort((a, b) {
-          final distA = (a.gridX - centerX) * (a.gridX - centerX) + (a.gridY - centerY) * (a.gridY - centerY);
-          final distB = (b.gridX - centerX) * (b.gridX - centerX) + (b.gridY - centerY) * (b.gridY - centerY);
+          final distA = (a.gridX - targetCenterX) * (a.gridX - targetCenterX) + (a.gridY - targetCenterY) * (a.gridY - targetCenterY);
+          final distB = (b.gridX - targetCenterX) * (b.gridX - targetCenterX) + (b.gridY - targetCenterY) * (b.gridY - targetCenterY);
           return distA.compareTo(distB);
         });
         final parent = parents.first;
@@ -445,7 +466,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         surfaceH = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
       }
     } else {
-      // Normal floor item: find free valid location closest to the center of the room
+      // Normal floor item: find free valid location closest to camera center
       final candidates = <Point<int>>[];
       for (int r = 0; r <= gridSize - gw; r++) {
         for (int c = 0; c <= gridSize - gh; c++) {
@@ -465,8 +486,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       }
       if (candidates.isNotEmpty) {
         candidates.sort((a, b) {
-          final distA = (a.x - centerX) * (a.x - centerX) + (a.y - centerY) * (a.y - centerY);
-          final distB = (b.x - centerX) * (b.x - centerX) + (b.y - centerY) * (b.y - centerY);
+          final distA = (a.x - targetCenterX) * (a.x - targetCenterX) + (a.y - targetCenterY) * (a.y - targetCenterY);
+          final distB = (b.x - targetCenterX) * (b.x - targetCenterX) + (b.y - targetCenterY) * (b.y - targetCenterY);
           return distA.compareTo(distB);
         });
         spawnPos = candidates.first;
@@ -579,15 +600,57 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   }
 
   void addInteriorWallFromStyle(InteriorWallStyleOption styleOption) {
+    final camCenter = getCameraCenterGrid();
+    final targetX = camCenter.x.toDouble();
+    final targetY = camCenter.y.toDouble();
+
+    final tempWall = IsometricInteriorWallComponent(
+      id: 'temp',
+      gridX: 0,
+      gridY: 0,
+      orientation: 'north',
+      style: styleOption.id,
+    );
+
+    final candidates = <({int x, int y, String orientation})>[];
+    for (int x = 0; x < gridSize; x++) {
+      for (int y = 0; y < gridSize; y++) {
+        // Try 'north' orientation
+        if (_checkIsValidWallLocation(tempWall, Point(x, y), orientation: 'north')) {
+          candidates.add((x: x, y: y, orientation: 'north'));
+        }
+        // Try 'west' orientation
+        if (_checkIsValidWallLocation(tempWall, Point(x, y), orientation: 'west')) {
+          candidates.add((x: x, y: y, orientation: 'west'));
+        }
+      }
+    }
+
+    int spawnX = camCenter.x;
+    int spawnY = camCenter.y;
+    String spawnOrientation = 'north';
+
+    if (candidates.isNotEmpty) {
+      candidates.sort((a, b) {
+        final distA = (a.x - targetX) * (a.x - targetX) + (a.y - targetY) * (a.y - targetY);
+        final distB = (b.x - targetX) * (b.x - targetX) + (b.y - targetY) * (b.y - targetY);
+        return distA.compareTo(distB);
+      });
+      spawnX = candidates.first.x;
+      spawnY = candidates.first.y;
+      spawnOrientation = candidates.first.orientation;
+    }
+
     final uniqueId = 'interior_wall_${DateTime.now().microsecondsSinceEpoch}';
     final comp = IsometricInteriorWallComponent(
       id: uniqueId,
-      gridX: 3,
-      gridY: 3,
-      orientation: 'north',
+      gridX: spawnX,
+      gridY: spawnY,
+      orientation: spawnOrientation,
       style: styleOption.id,
       hasDoorway: styleOption.isDoorway,
       plasterSprite: _backgroundComponent?._wallpaperSprites['solid_plaster'],
+      tilesSprite: _backgroundComponent?._wallpaperSprites['solid_tiles'],
     );
     world.add(comp);
     selectInteriorWall(comp);
@@ -612,8 +675,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
   void rotateSelectedInteriorWall() {
     if (selectedInteriorWall != null) {
-      selectedInteriorWall!.toggleOrientation();
-      _recalculateObstacles();
+      final targetOrientation = (selectedInteriorWall!.orientation == 'north') ? 'west' : 'north';
+      if (_checkIsValidWallLocation(selectedInteriorWall!, Point(selectedInteriorWall!.gridX, selectedInteriorWall!.gridY), orientation: targetOrientation)) {
+        selectedInteriorWall!.toggleOrientation();
+        _recalculateObstacles();
+      }
     }
   }
 
@@ -641,6 +707,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     for (final w in walls) {
       w.style = styleOption.id;
       w.plasterSprite = _backgroundComponent?._wallpaperSprites['solid_plaster'];
+      w.tilesSprite = _backgroundComponent?._wallpaperSprites['solid_tiles'];
     }
     return walls.length;
   }
@@ -652,6 +719,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     for (final w in walls) {
       w.style = targetStyle;
       w.plasterSprite = _backgroundComponent?._wallpaperSprites['solid_plaster'];
+      w.tilesSprite = _backgroundComponent?._wallpaperSprites['solid_tiles'];
     }
     return walls.length;
   }
@@ -765,8 +833,82 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       }
     }
 
+    // 5. Collision check against interior dividing walls:
+    // Multi-tile furniture cannot span across or be crossed by an interior wall.
+    if (item.type != FurnitureType.carpet && !item.isSurfaceItem && !item.isWallNorth && !item.isWallWest) {
+      final interiorWalls = world.children.whereType<IsometricInteriorWallComponent>().toList();
+
+      // Check vertical crossings (West walls at target.x + ix for ix in 1..item.gridWidth-1)
+      if (item.gridWidth > 1) {
+        for (int ix = 1; ix < item.gridWidth; ix++) {
+          final crossX = target.x + ix;
+          for (int iy = 0; iy < item.gridHeight; iy++) {
+            final crossY = target.y + iy;
+            if (interiorWalls.any((w) => w.gridX == crossX && w.gridY == crossY && w.orientation == 'west')) {
+              return false;
+            }
+          }
+        }
+      }
+
+      // Check horizontal crossings (North walls at target.y + iy for iy in 1..item.gridHeight-1)
+      if (item.gridHeight > 1) {
+        for (int iy = 1; iy < item.gridHeight; iy++) {
+          final crossY = target.y + iy;
+          for (int ix = 0; ix < item.gridWidth; ix++) {
+            final crossX = target.x + ix;
+            if (interiorWalls.any((w) => w.gridX == crossX && w.gridY == crossY && w.orientation == 'north')) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+
     return true;
   }
+
+  bool _checkIsValidWallLocation(IsometricInteriorWallComponent wall, Point<int> target, {String? orientation}) {
+    final orient = orientation ?? wall.orientation;
+    if (target.x < 0 || target.x >= gridSize || target.y < 0 || target.y >= gridSize) {
+      return false;
+    }
+
+    // Check collision with other interior walls at the exact same boundary
+    final otherWalls = world.children.whereType<IsometricInteriorWallComponent>().where((w) => w != wall);
+    if (otherWalls.any((w) => w.gridX == target.x && w.gridY == target.y && w.orientation == orient)) {
+      return false;
+    }
+
+    // Check if placing this wall would cross any existing multi-tile furniture
+    final allFurniture = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.type != FurnitureType.carpet && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
+    for (final f in allFurniture) {
+      if (orient == 'west') {
+        // West wall at (target.x, target.y) lies on boundary between (target.x - 1, target.y) and (target.x, target.y).
+        // It crosses furniture f if target.x is strictly inside f's columns (f.gridX < target.x < f.gridX + f.gridWidth)
+        // and target.y is within f's rows (f.gridY <= target.y < f.gridY + f.gridHeight).
+        if (target.x > f.gridX && target.x < f.gridX + f.gridWidth && target.y >= f.gridY && target.y < f.gridY + f.gridHeight) {
+          return false;
+        }
+      } else if (orient == 'north') {
+        // North wall at (target.x, target.y) lies on boundary between (target.x, target.y - 1) and (target.x, target.y).
+        // It crosses furniture f if target.y is strictly inside f's rows (f.gridY < target.y < f.gridY + f.gridHeight)
+        // and target.x is within f's columns (f.gridX <= target.x < f.gridX + f.gridWidth).
+        if (target.y > f.gridY && target.y < f.gridY + f.gridHeight && target.x >= f.gridX && target.x < f.gridX + f.gridWidth) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  @visibleForTesting
+  bool checkIsValidLocationForTesting(IsometricFurnitureComponent item, Point<int> target) => _checkIsValidLocation(item, target);
+
+  @visibleForTesting
+  bool checkIsValidWallLocationForTesting(IsometricInteriorWallComponent wall, Point<int> target, {String? orientation}) =>
+      _checkIsValidWallLocation(wall, target, orientation: orientation);
 
   void _handleDestinationReached(Point<int> dest) {
     if (isDecorateMode) return;
@@ -820,9 +962,115 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void setFloorBrush(String? floorBrushId) {
     activeFloorBrushId = floorBrushId;
     if (floorBrushId != null) {
+      activeWallBrushId = null;
       selectFurniture(null);
       selectInteriorWall(null);
     }
+  }
+
+  void setWallBrush(String? wallBrushId) {
+    activeWallBrushId = wallBrushId;
+    if (wallBrushId != null) {
+      activeFloorBrushId = null;
+      selectFurniture(null);
+      selectInteriorWall(null);
+    }
+  }
+
+  void paintWallSegment(String wallSide, int index, String wallpaperId) {
+    if (index < 0 || index >= gridSize) return;
+    final side = wallSide.toLowerCase().startsWith('n') ? 'n' : 'w';
+    final key = '$side,$index';
+    if (roomConfig.wallOverrides[key] == wallpaperId) return;
+
+    final newOverrides = Map<String, String>.from(roomConfig.wallOverrides);
+    newOverrides[key] = wallpaperId;
+    roomConfig = roomConfig.copyWith(wallOverrides: newOverrides);
+    _backgroundComponent?.roomConfig = roomConfig;
+  }
+
+  void eraseWallSegment(String wallSide, int index) {
+    if (index < 0 || index >= gridSize) return;
+    final side = wallSide.toLowerCase().startsWith('n') ? 'n' : 'w';
+    final key = '$side,$index';
+    if (!roomConfig.wallOverrides.containsKey(key)) return;
+
+    final newOverrides = Map<String, String>.from(roomConfig.wallOverrides);
+    newOverrides.remove(key);
+    roomConfig = roomConfig.copyWith(wallOverrides: newOverrides);
+    _backgroundComponent?.roomConfig = roomConfig;
+  }
+
+  void clearAllWallOverrides() {
+    if (roomConfig.wallOverrides.isEmpty) return;
+    roomConfig = roomConfig.copyWith(wallOverrides: const {});
+    _backgroundComponent?.roomConfig = roomConfig;
+  }
+
+  /// Returns a record (side: 'n' | 'w', index: 0..7) if worldPos hits a perimeter wall panel, or null otherwise.
+  ({String side, int index})? hitTestPerimeterWall(Vector2 worldPos) {
+    const wallHeight = 70.0;
+    const halfTileH = IsometricCoords.tileHeight / 2.0;
+
+    // Check North Wall segments (x = 0..gridSize-1, y = 0)
+    for (int x = 0; x < gridSize; x++) {
+      final p1 = IsometricCoords.gridToScreen(x.toDouble(), 0.0);
+      final p2 = IsometricCoords.gridToScreen((x + 1).toDouble(), 0.0);
+
+      final bX1 = p1.x;
+      final bY1 = p1.y - halfTileH;
+      final bX2 = p2.x;
+      final bY2 = p2.y - halfTileH;
+
+      final tX1 = bX1;
+      final tY1 = bY1 - wallHeight;
+      final tX2 = bX2;
+      final tY2 = bY2 - wallHeight;
+
+      if (_pointInQuad(worldPos, Vector2(bX1, bY1), Vector2(tX1, tY1), Vector2(tX2, tY2), Vector2(bX2, bY2))) {
+        return (side: 'n', index: x);
+      }
+    }
+
+    // Check West Wall segments (x = 0, y = 0..gridSize-1)
+    for (int y = 0; y < gridSize; y++) {
+      final p1 = IsometricCoords.gridToScreen(0.0, (y + 1).toDouble());
+      final p2 = IsometricCoords.gridToScreen(0.0, y.toDouble());
+
+      final bX1 = p1.x;
+      final bY1 = p1.y - halfTileH;
+      final bX2 = p2.x;
+      final bY2 = p2.y - halfTileH;
+
+      final tX1 = bX1;
+      final tY1 = bY1 - wallHeight;
+      final tX2 = bX2;
+      final tY2 = bY2 - wallHeight;
+
+      if (_pointInQuad(worldPos, Vector2(bX1, bY1), Vector2(tX1, tY1), Vector2(tX2, tY2), Vector2(bX2, bY2))) {
+        return (side: 'w', index: y);
+      }
+    }
+
+    return null;
+  }
+
+  bool _pointInQuad(Vector2 p, Vector2 a, Vector2 b, Vector2 c, Vector2 d) {
+    final pts = [a, b, c, d];
+    double? sign;
+    for (int i = 0; i < 4; i++) {
+      final edge = pts[(i + 1) % 4] - pts[i];
+      final toPoint = p - pts[i];
+      final cross = edge.x * toPoint.y - edge.y * toPoint.x;
+      if (cross.abs() < 1e-6) continue;
+      final s = cross.sign;
+      if (sign == null) {
+        sign = s;
+      } else if (sign != s) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void paintFloorTile(int gx, int gy, String floorId) {
@@ -892,6 +1140,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       furniture: list,
       interiorWalls: wallList,
       floorOverrides: roomConfig.floorOverrides,
+      wallOverrides: roomConfig.wallOverrides,
     );
   }
 
@@ -1067,7 +1316,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final targetGrid = Point(clX, clY);
 
     _currentHoverGrid = targetGrid;
-    _isValidDropLocation = true;
+    _isValidDropLocation = _checkIsValidWallLocation(_draggedInteriorWall!, targetGrid);
 
     final targetScreenPos = IsometricCoords.gridToScreen(clX.toDouble(), clY.toDouble());
     final currentScreenPos = IsometricCoords.gridToScreen(_draggedInteriorWall!.gridX.toDouble(), _draggedInteriorWall!.gridY.toDouble());
@@ -1131,6 +1380,36 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
           } else {
             paintFloorTile(gridPos.x, gridPos.y, activeFloorBrushId!);
             world.add(_TapWaveComponent(grid: gridPos));
+          }
+          return;
+        }
+      }
+
+      // Pass -0.5: Wall Brush Mode (Paints/Erases wall segments or interior walls by touch & dragging)
+      if (activeWallBrushId != null) {
+        final allInteriorWalls = world.children.whereType<IsometricInteriorWallComponent>().toList();
+        allInteriorWalls.sort((a, b) => b.priority.compareTo(a.priority));
+        for (final w in allInteriorWalls) {
+          if (w.hitTestWorld(worldPos)) {
+            if (activeWallBrushId == '__eraser__') {
+              w.style = 'solid_white_plaster';
+            } else {
+              w.style = activeWallBrushId!;
+              w.plasterSprite = _backgroundComponent?._wallpaperSprites['solid_plaster'];
+              w.tilesSprite = _backgroundComponent?._wallpaperSprites['solid_tiles'];
+            }
+            _recalculateObstacles();
+            return;
+          }
+        }
+
+        final hitWall = hitTestPerimeterWall(worldPos);
+        if (hitWall != null) {
+          _isWallBrushDragging = true;
+          if (activeWallBrushId == '__eraser__') {
+            eraseWallSegment(hitWall.side, hitWall.index);
+          } else {
+            paintWallSegment(hitWall.side, hitWall.index, activeWallBrushId!);
           }
           return;
         }
@@ -1272,6 +1551,24 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       return;
     }
 
+    if (_isWallBrushDragging && activeWallBrushId != null) {
+      final worldPos = camera.viewfinder.transform.globalToLocal(event.localEndPosition);
+      final hitWall = hitTestPerimeterWall(worldPos);
+      if (hitWall != null) {
+        final key = '${hitWall.side},${hitWall.index}';
+        if (activeWallBrushId == '__eraser__') {
+          if (roomConfig.wallOverrides.containsKey(key)) {
+            eraseWallSegment(hitWall.side, hitWall.index);
+          }
+        } else {
+          if (roomConfig.wallOverrides[key] != activeWallBrushId) {
+            paintWallSegment(hitWall.side, hitWall.index, activeWallBrushId!);
+          }
+        }
+      }
+      return;
+    }
+
     if (_isPanningCamera) {
       panCamera(event.localDelta);
       return;
@@ -1321,6 +1618,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
     _isFloorBrushDragging = false;
+    _isWallBrushDragging = false;
     _wallGrabTimer?.cancel();
     _wallGrabTimer = null;
     _pendingWallGrab = null;
@@ -1339,6 +1637,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
     _isFloorBrushDragging = false;
+    _isWallBrushDragging = false;
     _wallGrabTimer?.cancel();
     _wallGrabTimer = null;
     _pendingWallGrab = null;
@@ -1356,7 +1655,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void _finishDrag() {
     if (_draggedInteriorWall != null) {
       _draggedInteriorWall!.isBeingDragged = false;
-      if (_currentHoverGrid != null) {
+      if (_isValidDropLocation && _currentHoverGrid != null) {
         _draggedInteriorWall!.updateGridPosition(
           _currentHoverGrid!.x,
           _currentHoverGrid!.y,
@@ -1514,6 +1813,35 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
           } else {
             paintFloorTile(gridPos.x, gridPos.y, activeFloorBrushId!);
             world.add(_TapWaveComponent(grid: gridPos));
+          }
+          return;
+        }
+      }
+
+      // Pass -0.5: Wall Brush Mode (Paints/Erases wall segments or interior walls on tap)
+      if (activeWallBrushId != null) {
+        final allInteriorWalls = world.children.whereType<IsometricInteriorWallComponent>().toList();
+        allInteriorWalls.sort((a, b) => b.priority.compareTo(a.priority));
+        for (final w in allInteriorWalls) {
+          if (w.hitTestWorld(worldPos)) {
+            if (activeWallBrushId == '__eraser__') {
+              w.style = 'solid_white_plaster';
+            } else {
+              w.style = activeWallBrushId!;
+              w.plasterSprite = _backgroundComponent?._wallpaperSprites['solid_plaster'];
+              w.tilesSprite = _backgroundComponent?._wallpaperSprites['solid_tiles'];
+            }
+            _recalculateObstacles();
+            return;
+          }
+        }
+
+        final hitWall = hitTestPerimeterWall(worldPos);
+        if (hitWall != null) {
+          if (activeWallBrushId == '__eraser__') {
+            eraseWallSegment(hitWall.side, hitWall.index);
+          } else {
+            paintWallSegment(hitWall.side, hitWall.index, activeWallBrushId!);
           }
           return;
         }
@@ -1870,6 +2198,7 @@ class _IsometricRoomBackgroundComponent extends Component {
       'terracotta_tiles',
       'tatami_mat',
       'solid_tiles',
+      'solid_carpet',
     ];
     for (final key in floorKeys) {
       try {
@@ -1886,6 +2215,7 @@ class _IsometricRoomBackgroundComponent extends Component {
       'starry_night',
       'pastel_floral',
       'solid_plaster',
+      'solid_tiles',
     ];
     for (final key in wallpaperKeys) {
       try {
@@ -1904,10 +2234,7 @@ class _IsometricRoomBackgroundComponent extends Component {
   }
 
   void _renderFloor(Canvas canvas) {
-    final floorOpt = RoomThemes.floors.firstWhere(
-      (o) => o.id == roomConfig.floor,
-      orElse: () => RoomThemes.floors.first,
-    );
+    final floorOpt = RoomThemes.getFloorOption(roomConfig.floor);
 
     final totalGridSize = gridSize * 32.0;
 
@@ -1936,8 +2263,11 @@ class _IsometricRoomBackgroundComponent extends Component {
     canvas.transform(matrixFloor.storage);
 
     if (floorOpt.color != null) {
-      // Solid color with subtle ceramic tile texture
-      final baseTileSprite = _floorSprites['solid_tiles'];
+      final isCarpet = floorOpt.textureType == 'carpet' || roomConfig.floor.contains('carpet');
+      final baseTileSprite = isCarpet
+          ? (_floorSprites['solid_carpet'] ?? _floorSprites['solid_tiles'])
+          : (_floorSprites['solid_tiles'] ?? _floorSprites['solid_carpet']);
+
       if (baseTileSprite != null) {
         final tintPaint = Paint()
           ..colorFilter = ColorFilter.mode(floorOpt.color!, BlendMode.modulate);
@@ -1984,10 +2314,7 @@ class _IsometricRoomBackgroundComponent extends Component {
       for (final group in floorGroups.entries) {
         final tileFloorId = group.key;
         final tiles = group.value;
-        final tileFloorOpt = RoomThemes.floors.firstWhere(
-          (o) => o.id == tileFloorId,
-          orElse: () => RoomThemes.floors.first,
-        );
+        final tileFloorOpt = RoomThemes.getFloorOption(tileFloorId);
 
         final groupPath = Path();
         for (final p in tiles) {
@@ -1998,7 +2325,11 @@ class _IsometricRoomBackgroundComponent extends Component {
         canvas.clipPath(groupPath);
 
         if (tileFloorOpt.color != null) {
-          final baseTileSprite = _floorSprites['solid_tiles'];
+          final isCarpet = tileFloorOpt.textureType == 'carpet' || tileFloorId.contains('carpet');
+          final baseTileSprite = isCarpet
+              ? (_floorSprites['solid_carpet'] ?? _floorSprites['solid_tiles'])
+              : (_floorSprites['solid_tiles'] ?? _floorSprites['solid_carpet']);
+
           if (baseTileSprite != null) {
             final tintPaint = Paint()
               ..colorFilter = ColorFilter.mode(tileFloorOpt.color!, BlendMode.modulate);
@@ -2034,29 +2365,28 @@ class _IsometricRoomBackgroundComponent extends Component {
   void _renderWalls(Canvas canvas) {
     final wallHeight = 70.0;
     final totalWallWidth = gridSize * 32.0;
+    const segWidth = 32.0;
 
-    final wpOpt = RoomThemes.wallpapers.firstWhere(
-      (o) => o.id == roomConfig.wallpaper,
-      orElse: () => RoomThemes.wallpapers.first,
-    );
+    final wpOpt = RoomThemes.getWallpaperOption(roomConfig.wallpaper);
 
     final isSolidColor = wpOpt.color != null;
+    final isTiles = wpOpt.textureType == 'tiles' || roomConfig.wallpaper.contains('tiles');
     final Sprite? wpSprite = isSolidColor
-        ? _wallpaperSprites['solid_plaster']
+        ? (isTiles ? _wallpaperSprites['solid_tiles'] : _wallpaperSprites['solid_plaster'])
         : _wallpaperSprites[roomConfig.wallpaper];
     final Paint? wpPaint = isSolidColor
         ? (Paint()..colorFilter = ColorFilter.mode(wpOpt.color!, BlendMode.modulate))
         : null;
 
-    // NW Wall
-    final pNW_start = IsometricCoords.gridToScreen(0.0, 0.0);
+    // 1. North Wall (Pared Norte: extends Down-Right along X >= 0, gx = 0..gridSize-1, gy = 0)
+    final pNorth_start = IsometricCoords.gridToScreen(0.0, 0.0);
 
     canvas.save();
-    final matrixNW = vmath.Matrix4.identity()
-      ..translate(pNW_start.x, pNW_start.y - (IsometricCoords.tileHeight / 2) - wallHeight)
+    final matrixNorth = vmath.Matrix4.identity()
+      ..translate(pNorth_start.x, pNorth_start.y - (IsometricCoords.tileHeight / 2) - wallHeight)
       ..setEntry(1, 0, 0.5);
 
-    canvas.transform(matrixNW.storage);
+    canvas.transform(matrixNorth.storage);
 
     if (wpSprite != null) {
       wpSprite.render(
@@ -2066,18 +2396,47 @@ class _IsometricRoomBackgroundComponent extends Component {
         overridePaint: wpPaint,
       );
     }
+
+    // Render North Wall Overrides ('n,0', 'n,1' ... 'n,7')
+    for (int x = 0; x < gridSize; x++) {
+      final key = 'n,$x';
+      final segWpId = roomConfig.wallOverrides[key];
+      if (segWpId != null) {
+        final segOpt = RoomThemes.getWallpaperOption(segWpId);
+        final segIsSolid = segOpt.color != null;
+        final segIsTiles = segOpt.textureType == 'tiles' || segWpId.contains('tiles');
+        final segSprite = segIsSolid
+            ? (segIsTiles ? _wallpaperSprites['solid_tiles'] : _wallpaperSprites['solid_plaster'])
+            : _wallpaperSprites[segWpId];
+        final segPaint = segIsSolid
+            ? (Paint()..colorFilter = ColorFilter.mode(segOpt.color!, BlendMode.modulate))
+            : null;
+
+        if (segSprite != null) {
+          canvas.save();
+          canvas.clipRect(Rect.fromLTWH(x * segWidth, 0, segWidth, wallHeight));
+          segSprite.render(
+            canvas,
+            position: Vector2.zero(),
+            size: Vector2(totalWallWidth, wallHeight),
+            overridePaint: segPaint,
+          );
+          canvas.restore();
+        }
+      }
+    }
     canvas.restore();
 
-    // NE Wall
-    final pNE_start = IsometricCoords.gridToScreen(0.0, 0.0);
+    // 2. West Wall (Pared Oeste: extends Down-Left along Y >= 0, gx = 0, gy = 0..gridSize-1)
+    final pWest_start = IsometricCoords.gridToScreen(0.0, 0.0);
 
     canvas.save();
-    final matrixNE = vmath.Matrix4.identity()
-      ..translate(pNE_start.x, pNE_start.y - (IsometricCoords.tileHeight / 2) - wallHeight)
+    final matrixWest = vmath.Matrix4.identity()
+      ..translate(pWest_start.x, pWest_start.y - (IsometricCoords.tileHeight / 2) - wallHeight)
       ..setEntry(0, 0, -1.0)
       ..setEntry(1, 0, 0.5);
 
-    canvas.transform(matrixNE.storage);
+    canvas.transform(matrixWest.storage);
 
     if (wpSprite != null) {
       wpSprite.render(
@@ -2086,6 +2445,35 @@ class _IsometricRoomBackgroundComponent extends Component {
         size: Vector2(totalWallWidth, wallHeight),
         overridePaint: wpPaint,
       );
+    }
+
+    // Render West Wall Overrides ('w,0', 'w,1' ... 'w,7')
+    for (int y = 0; y < gridSize; y++) {
+      final key = 'w,$y';
+      final segWpId = roomConfig.wallOverrides[key];
+      if (segWpId != null) {
+        final segOpt = RoomThemes.getWallpaperOption(segWpId);
+        final segIsSolid = segOpt.color != null;
+        final segIsTiles = segOpt.textureType == 'tiles' || segWpId.contains('tiles');
+        final segSprite = segIsSolid
+            ? (segIsTiles ? _wallpaperSprites['solid_tiles'] : _wallpaperSprites['solid_plaster'])
+            : _wallpaperSprites[segWpId];
+        final segPaint = segIsSolid
+            ? (Paint()..colorFilter = ColorFilter.mode(segOpt.color!, BlendMode.modulate))
+            : null;
+
+        if (segSprite != null) {
+          canvas.save();
+          canvas.clipRect(Rect.fromLTWH(y * segWidth, 0, segWidth, wallHeight));
+          segSprite.render(
+            canvas,
+            position: Vector2.zero(),
+            size: Vector2(totalWallWidth, wallHeight),
+            overridePaint: segPaint,
+          );
+          canvas.restore();
+        }
+      }
     }
     canvas.restore();
   }
