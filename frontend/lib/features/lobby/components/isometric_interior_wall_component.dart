@@ -47,9 +47,7 @@ class IsometricInteriorWallComponent extends Component {
   }
 
   void _updatePriority() {
-    priority = _isBeingDragged
-        ? 9999
-        : IsometricCoords.getInteriorWallZOrder(gridX, gridY, orientation);
+    priority = IsometricCoords.getInteriorWallZOrder(gridX, gridY, orientation);
   }
 
   void updateGridPosition(int newGx, int newGy, {String? newOrientation}) {
@@ -59,6 +57,16 @@ class IsometricInteriorWallComponent extends Component {
       orientation = newOrientation;
     }
     _updatePriority();
+  }
+
+  /// Live depth preview while being dragged: same idea as furniture's hover-priority update —
+  /// render at the z-order this wall WOULD have if dropped at [hoverGx]/[hoverGy] right now,
+  /// instead of pinning it to a fixed top priority for the whole drag. `gridX`/`gridY` themselves
+  /// stay at the wall's original spot until drop (`dragVisualOffset` carries the visual move), so
+  /// this only touches `priority`, exactly like `_draggedFurniture!.priority = hoverPriority` does
+  /// in cozy_room_game.dart.
+  void updateDragHoverPriority(int hoverGx, int hoverGy) {
+    priority = IsometricCoords.getInteriorWallZOrder(hoverGx, hoverGy, orientation);
   }
 
   void toggleOrientation() {

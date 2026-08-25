@@ -73,10 +73,10 @@ class IsometricCoords {
       return -100 + (v ~/ 2) * 5 + layer;
     }
 
-    final int gx = u ~/ 2;
-    final int gy = v ~/ 2;
     final int intraX = u % 2;
     final int intraY = v % 2;
+    final int gx = u ~/ 2;
+    final int gy = v ~/ 2;
     final int wSub = width;
     final int dSub = depth;
 
@@ -87,6 +87,93 @@ class IsometricCoords {
       return base + 500 + layer;
     }
     return base + layer;
+  }
+
+  /// Extra whole-tile depth steps a floor item's RENDERED SPRITE needs added to its z-order so it
+  /// clears a neighboring wall panel it visually overlaps ONLY WITHIN ITS OWN ROW (north) or
+  /// OWN COLUMN (west) — never a panel in a different row/column.
+  ///
+  /// A floor item's drawn sprite can be wider than the 32px wall panel it's centered over — from
+  /// a half-integer grid snap (see cozy_room_game.dart: all floor furniture snaps to 0.5 subgrid
+  /// increments), OR simply from an off-center catalog `spriteOffset` even at an exact integer
+  /// grid position (e.g. `kitchen_fridge_sm`'s `[-16, -56]`). When that spillover lands on another
+  /// panel of the SAME continuous wall — i.e. still within the item's own row for a north wall, or
+  /// own column for a west wall — that neighboring panel is geometrically flat with the item's own
+  /// wall (no real depth difference) yet still draws with a full tile-step higher priority (see
+  /// `getInteriorWallZOrder`), splitting the sprite in two. That's the only case this corrects.
+  ///
+  /// Crucially, a panel in a DIFFERENT row (north) or column (west) is not "the same wall" — it's
+  /// the boundary into a genuinely different, farther room, and the unmodified `(gx + gy)` depth
+  /// order in `getSubZOrder`/`getInteriorWallZOrder` already resolves that correctly: furniture
+  /// that actually belongs behind such a wall (a different room's item) is SUPPOSED to be
+  /// occluded by it. An earlier version of this function computed the bump using the sprite's
+  /// nearest row/column (`gridY.round()`/`gridX.round()`) instead of its own home row/column
+  /// (`gridY.floor()`/`gridX.floor()`), which let it reach across into an adjacent, legitimately
+  /// occluding room's wall and incorrectly force the item in front of it — e.g. a fridge or bed
+  /// that should stay tucked behind the north wall of an adjacent room started popping out in
+  /// front of it. Anchoring both checks to the item's own floored row/column fixes that: see
+  /// subcell-furniture-wall-zorder-fix memory.
+  ///
+  /// [spriteLeft]/[spriteRight] are the sprite's drawn screen-space X extent (world/room space,
+  /// same origin as `gridToScreen`/`subGridToScreen`). Only forward (higher-priority, more
+  /// "in front") overlap matters — overlapping a lower-priority neighbor is harmless since that
+  /// neighbor already draws first — so the result is never negative.
+  ///
+  /// This returns the DESIRED bump for same-wall clearance only. It does NOT know which wall
+  /// tiles actually exist in the room (a pure function over grid coordinates can't), so it cannot
+  /// by itself tell "the panel one row over that I'd also need to clear" apart from "a panel one
+  /// row over that doesn't even exist, so there's nothing to worry about." A real level can have a
+  /// genuinely different, nearer room's wall there that this bump would incorrectly pop the item
+  /// in front of. Callers that have access to the room's actual wall list — see
+  /// `IsometricFurnitureComponent.updateGridPosition` and its `_capWallClearanceBump` — MUST cap
+  /// this value against those real walls before using it; see subcell-furniture-wall-zorder-fix
+  /// memory for why a blind, wall-list-agnostic ceiling (tried and reverted) was too conservative.
+  static int getWallClearanceBump({
+    required double gridX,
+    required double gridY,
+    required double spriteLeft,
+    required double spriteRight,
+  }) {
+    if (spriteRight <= spriteLeft) return 0;
+
+    // The bucket `getSubZOrder` actually uses for this item's OWN base priority — gx.floor()/
+    // gy.floor(), matching `u ~/ 2` / `v ~/ 2` there exactly.
+    final int homeGx = gridX.floor();
+    final int homeGy = gridY.floor();
+
+    // North-wall panels within the item's OWN row only: panel gx spans
+    // sx ∈ [(gx-homeGy)*32, (gx-homeGy)*32+32]. The sprite reaches its highest-priority (max gx)
+    // overlapping panel at its RIGHT edge.
+    final int northMaxPanel = homeGy + ((spriteRight - 0.01) / subTileWidth).floor();
+    final int northBump = (northMaxPanel - homeGx).clamp(0, 4);
+
+    // West-wall panels within the item's OWN column only: panel gy spans
+    // sx ∈ [(homeGx-gy)*32-32, (homeGx-gy)*32]. Screen X decreases as gy increases, so the sprite
+    // reaches its highest-priority (max gy) overlapping panel at its LEFT edge.
+    // `+ 0.01` mirrors the `- 0.01` above but in the opposite direction: for west panels the
+    // forward (higher-priority) edge is the LEFT one, so pulling it back toward home means
+    // nudging sx up slightly, not down. Without this, any sprite whose left edge lands exactly
+    // on a 32px panel seam — the common case for ordinary integer-grid-positioned furniture with
+    // a symmetric spriteOffset, since `position.x` is then itself an exact multiple of 32 — got
+    // `ceil()`'d into the NEXT (higher-priority) panel it was only just touching, not actually
+    // overlapping.
+    final int westMaxPanel = homeGx - ((spriteLeft + 0.01) / subTileWidth).ceil();
+    final int westBump = (westMaxPanel - homeGy).clamp(0, 4);
+
+    return northBump > westBump ? northBump : westBump;
+  }
+
+  /// Screen-space X span of an interior wall panel at [gx]/[gy] — [isNorth] picks the orientation.
+  /// Shared by `IsometricFurnitureComponent`'s real-wall-list clearance cap and (for reference)
+  /// mirrors the panel math `getWallClearanceBump` uses internally; see
+  /// isometric-wall-panel-geometry memory for the underlying geometry.
+  static (double left, double right) getWallPanelScreenSpan(int gx, int gy, bool isNorth) {
+    if (isNorth) {
+      final left = (gx - gy) * subTileWidth;
+      return (left, left + subTileWidth);
+    }
+    final right = (gx - gy) * subTileWidth;
+    return (right - subTileWidth, right);
   }
 
   /// Calculates dynamic isometric depth priority for z-sorting (full tile)

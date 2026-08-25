@@ -5,6 +5,7 @@ import '../../../core/models/furniture_item.dart';
 import '../../../core/services/furniture_catalog_service.dart';
 import '../utils/isometric_coords.dart';
 import '../utils/sprite_alpha_cache.dart';
+import 'isometric_interior_wall_component.dart';
 
 enum FurnitureType { wardrobe, portal, bed, plant, table, carpet, custom }
 
@@ -111,14 +112,77 @@ class IsometricFurnitureComponent extends PositionComponent {
     final subY = (gy * 2).round();
     final targetX = (isSurfaceItem && parentFurthestX != null) ? (parentFurthestX * 2).round() : subX;
     final targetY = (isSurfaceItem && parentFurthestY != null) ? (parentFurthestY * 2).round() : subY;
+
+    // A floor item's rendered sprite can visually spill past its own anchor tile onto a
+    // neighboring interior wall panel's screen column — from a half-grid snap, or simply an
+    // off-center catalog spriteOffset even at an exact integer grid position (e.g.
+    // kitchen_fridge_sm). Measure the sprite's real screen span to find out by how much, and
+    // fold that into the priority so it clears the panel instead of being split by it (see
+    // subcell-furniture-wall-zorder-fix memory).
+    int wallClearanceBump = 0;
+    if (!isWallItem && !isSurfaceItem && type != FurnitureType.carpet && sprite != null) {
+      final off = spriteOffset;
+      final size = renderSize;
+      final spriteLeft = position.x + off.x;
+      final spriteRight = spriteLeft + size.x;
+      final desiredBump = IsometricCoords.getWallClearanceBump(
+        gridX: gx,
+        gridY: gy,
+        spriteLeft: spriteLeft,
+        spriteRight: spriteRight,
+      );
+      wallClearanceBump = desiredBump == 0 ? 0 : _capWallClearanceBump(gx, gy, spriteLeft, spriteRight, desiredBump);
+    }
+
     priority = IsometricCoords.getSubZOrder(
-      targetX,
-      targetY,
-      width: isSurfaceItem ? 2 : (footprint == '0.5x0.5' ? 1 : (gridWidth * 2).round()),
-      depth: isSurfaceItem ? 2 : (footprint == '0.5x0.5' ? 1 : (gridHeight * 2).round()),
-      layer: layer,
-      footprint: isSurfaceItem ? 'surface' : footprint,
-    );
+          targetX,
+          targetY,
+          width: isSurfaceItem ? 2 : (footprint == '0.5x0.5' ? 1 : (gridWidth * 2).round()),
+          depth: isSurfaceItem ? 2 : (footprint == '0.5x0.5' ? 1 : (gridHeight * 2).round()),
+          layer: layer,
+          footprint: isSurfaceItem ? 'surface' : footprint,
+        ) +
+        wallClearanceBump * 10000;
+  }
+
+  /// Caps [desiredBump] against the room's ACTUAL interior walls so it never pops this item in
+  /// front of a wall in a genuinely different, nearer row (north) / column (west) — only the real
+  /// wall list (available once mounted, via `parent`) can tell a real occluding wall apart from an
+  /// empty tile that happens to share the same coordinates. See `getWallClearanceBump`'s doc and
+  /// subcell-furniture-wall-zorder-fix memory: an earlier version tried to guess this from grid
+  /// math alone (assuming a wall could exist at any coordinate) and ended up suppressing the fix
+  /// almost everywhere, since most nearby tiles don't actually have a wall on them.
+  int _capWallClearanceBump(double gx, double gy, double spriteLeft, double spriteRight, int desiredBump) {
+    final walls = (parent as World?)?.children.whereType<IsometricInteriorWallComponent>();
+    if (walls == null) return desiredBump; // Not mounted yet — best effort until onMount refreshes it.
+
+    final homeGx = gx.floor();
+    final homeGy = gy.floor();
+    final homeSum = homeGx + homeGy;
+
+    int ceiling = desiredBump;
+    for (final w in walls) {
+      final wallSum = w.gridX + w.gridY;
+      if (wallSum <= homeSum) continue; // Not a "nearer room" boundary — no conflict possible.
+      final isNorth = w.orientation == 'north';
+      // A panel in the item's OWN row (north) / OWN column (west) is exactly what the bump is
+      // meant to clear, not something to be capped by.
+      if (isNorth ? w.gridY == homeGy : w.gridX == homeGx) continue;
+      final (panelLeft, panelRight) = IsometricCoords.getWallPanelScreenSpan(w.gridX, w.gridY, isNorth);
+      final overlaps = spriteLeft < panelRight - 0.01 && spriteRight > panelLeft + 0.01;
+      if (!overlaps) continue;
+      final allowed = wallSum - homeSum - 1;
+      if (allowed < ceiling) ceiling = allowed;
+    }
+    return ceiling < 0 ? 0 : ceiling;
+  }
+
+  @override
+  void onMount() {
+    super.onMount();
+    // The real-wall-list cap above needs `parent` to enumerate sibling walls, which isn't set yet
+    // during construction — recompute once actually mounted into the room.
+    updateGridPosition(gridX, gridY, parentId: parentId, parentSurfaceHeight: parentSurfaceHeight, wallHeightLevel: wallHeightLevel);
   }
 
   /// Returns the list of sub-grid points (u, v) occupied by this furniture item

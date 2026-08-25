@@ -1391,14 +1391,60 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final subX = (clampedGrid.x * 2).round();
     final subY = (clampedGrid.y * 2).round();
     final layer = (_draggedFurniture!.type == FurnitureType.carpet ? -1 : (_draggedFurniture!.isSurfaceItem ? 2 : 1));
+
+    // Same wall-clearance measurement updateGridPosition applies at rest — keeps the drag preview
+    // from popping to a different depth the instant the item is dropped (see
+    // subcell-furniture-wall-zorder-fix memory).
+    int hoverWallClearanceBump = 0;
+    if (!_draggedFurniture!.isWallItem && !_draggedFurniture!.isSurfaceItem && _draggedFurniture!.type != FurnitureType.carpet && _draggedFurniture!.sprite != null) {
+      final hoverIsHalf = (_draggedFurniture!.footprint == '0.5x0.5' || _draggedFurniture!.gridWidth <= 0.5);
+      final hoverScreenPos = hoverIsHalf
+          ? IsometricCoords.subGridToScreen(clampedGrid.x * 2.0, clampedGrid.y * 2.0)
+          : IsometricCoords.gridToScreen(clampedGrid.x.toDouble(), clampedGrid.y.toDouble());
+      final off = _draggedFurniture!.spriteOffset;
+      final size = _draggedFurniture!.renderSize;
+      final spriteLeft = hoverScreenPos.x + off.x;
+      final hoverGx = clampedGrid.x.toDouble();
+      final hoverGy = clampedGrid.y.toDouble();
+      final spriteRight = spriteLeft + size.x;
+      final desiredBump = IsometricCoords.getWallClearanceBump(
+        gridX: hoverGx,
+        gridY: hoverGy,
+        spriteLeft: spriteLeft,
+        spriteRight: spriteRight,
+      );
+      if (desiredBump > 0) {
+        // Cap against the room's ACTUAL walls, same as updateGridPosition at rest — never pop the
+        // preview in front of a wall in a genuinely different, nearer room (see
+        // subcell-furniture-wall-zorder-fix memory).
+        final homeGx = hoverGx.floor();
+        final homeGy = hoverGy.floor();
+        final homeSum = homeGx + homeGy;
+        int ceiling = desiredBump;
+        for (final w in world.children.whereType<IsometricInteriorWallComponent>()) {
+          final wallSum = w.gridX + w.gridY;
+          if (wallSum <= homeSum) continue;
+          final isNorth = w.orientation == 'north';
+          if (isNorth ? w.gridY == homeGy : w.gridX == homeGx) continue;
+          final (panelLeft, panelRight) = IsometricCoords.getWallPanelScreenSpan(w.gridX, w.gridY, isNorth);
+          final overlaps = spriteLeft < panelRight - 0.01 && spriteRight > panelLeft + 0.01;
+          if (!overlaps) continue;
+          final allowed = wallSum - homeSum - 1;
+          if (allowed < ceiling) ceiling = allowed;
+        }
+        hoverWallClearanceBump = ceiling < 0 ? 0 : ceiling;
+      }
+    }
+
     final hoverPriority = IsometricCoords.getSubZOrder(
-      subX,
-      subY,
-      width: _draggedFurniture!.isSurfaceItem ? 1 : (_draggedFurniture!.footprint == '0.5x0.5' ? 1 : (_draggedFurniture!.gridWidth * 2).round()),
-      depth: _draggedFurniture!.isSurfaceItem ? 1 : (_draggedFurniture!.footprint == '0.5x0.5' ? 1 : (_draggedFurniture!.gridHeight * 2).round()),
-      layer: layer,
-      footprint: _draggedFurniture!.footprint,
-    );
+          subX,
+          subY,
+          width: _draggedFurniture!.isSurfaceItem ? 1 : (_draggedFurniture!.footprint == '0.5x0.5' ? 1 : (_draggedFurniture!.gridWidth * 2).round()),
+          depth: _draggedFurniture!.isSurfaceItem ? 1 : (_draggedFurniture!.footprint == '0.5x0.5' ? 1 : (_draggedFurniture!.gridHeight * 2).round()),
+          layer: layer,
+          footprint: _draggedFurniture!.footprint,
+        ) +
+        hoverWallClearanceBump * 10000;
     _draggedFurniture!.priority = hoverPriority;
 
     // If surface item, update dynamic elevation, parent linkage and priority for magnetic preview
@@ -1465,6 +1511,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final targetScreenPos = IsometricCoords.gridToScreen(clX.toDouble(), clY.toDouble());
     final currentScreenPos = IsometricCoords.gridToScreen(_draggedInteriorWall!.gridX.toDouble(), _draggedInteriorWall!.gridY.toDouble());
     _draggedInteriorWall!.dragVisualOffset = targetScreenPos - currentScreenPos;
+
+    // Live depth preview: render at the z-order this wall would have if dropped here right now,
+    // same as furniture's hoverPriority — instead of staying pinned to a fixed top priority for
+    // the whole drag regardless of where it's hovering.
+    _draggedInteriorWall!.updateDragHoverPriority(clX.toInt(), clY.toInt());
   }
 
   /// Arms [hit] for dragging: records its original placement (for cancel/restore) and
@@ -1573,7 +1624,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
             _currentHoverGrid = Point(w.gridX, w.gridY);
             _isValidDropLocation = true;
             w.isBeingDragged = true;
-            w.priority = 9999;
+            // Start the live depth preview at the wall's own current spot — updateWallDragHoverPosition
+            // takes over from the first move onward (see updateDragHoverPriority doc).
+            w.updateDragHoverPriority(w.gridX, w.gridY);
             return;
           }
 
@@ -1597,7 +1650,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
             _isValidDropLocation = true;
 
             w.isBeingDragged = true;
-            w.priority = 9999;
+            // Start the live depth preview at the wall's own current spot — updateWallDragHoverPosition
+            // takes over from the first move onward (see updateDragHoverPriority doc).
+            w.updateDragHoverPriority(w.gridX, w.gridY);
           });
           return;
         }
