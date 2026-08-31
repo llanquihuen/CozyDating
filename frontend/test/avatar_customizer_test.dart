@@ -2,66 +2,79 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/services/avatar_storage_service.dart';
+import 'package:frontend/features/avatar/components/modular_avatar_component.dart';
 import 'package:frontend/features/avatar/screens/character_creator_screen.dart';
 
 void main() {
   group('AvatarConfig Model & Storage Tests', () {
-    test('AvatarConfig default instantiation & JSON serialization with 12 layers & resolution', () {
+    test('AvatarConfig default instantiation & JSON serialization with OCTOPLAYER 8-dir options', () {
       const config = AvatarConfig(
-        spriteResolution: '32x64',
-        faceShape: 'sharp_v',
+        spriteResolution: '64x128',
+        faceShape: 'oval',
         skinColor: Color(0xFFFCD5B5),
-        eyeStyle: 'jrpg_classic',
+        eyeStyle: 'cateyes',
         eyeColor: Color(0xFF059669),
-        eyebrowStyle: 'serious',
+        eyebrowStyle: 'none',
         eyebrowColor: Color(0xFF1E293B),
-        noseStyle: 'pointed',
-        mouthStyle: 'smirk',
-        faceDetail: 'scar',
-        faceDetailColor: Color(0xFF8B0000),
-        hairStyle: 'adventurer_spiky',
+        noseStyle: 'standard',
+        mouthStyle: 'catmouth',
+        faceDetail: 'none',
+        faceDetailColor: Color(0xFFFF7777),
+        hairStyle: 'long_flow',
         hairColor: Color(0xFF1E293B),
-        topStyle: 'traveler_tunic',
+        topStyle: 'jacket',
         topColor: Color(0xFF059669),
-        bottomStyle: 'adventurer_pants',
+        bottomStyle: 'jeans',
         bottomColor: Color(0xFF78350F),
-        shoeStyle: 'adventurer_boots',
+        shoeStyle: 'none',
         shoeColor: Color(0xFF451A03),
-        accessoryStyle: 'scholar_glasses',
+        accessoryStyle: 'none',
         accessoryColor: Color(0xFFEAB308),
       );
 
       final json = config.toJson();
       final deserialized = AvatarConfig.fromJson(json);
 
-      expect(deserialized.spriteResolution, equals('32x64'));
-      expect(deserialized.faceShape, equals('sharp_v'));
-      expect(deserialized.eyeStyle, equals('jrpg_classic'));
-      expect(deserialized.eyebrowStyle, equals('serious'));
-      expect(deserialized.noseStyle, equals('pointed'));
-      expect(deserialized.mouthStyle, equals('smirk'));
-      expect(deserialized.faceDetail, equals('scar'));
-      expect(deserialized.hairStyle, equals('adventurer_spiky'));
-      expect(deserialized.topStyle, equals('traveler_tunic'));
-      expect(deserialized.bottomStyle, equals('adventurer_pants'));
-      expect(deserialized.shoeStyle, equals('adventurer_boots'));
-      expect(deserialized.accessoryStyle, equals('scholar_glasses'));
+      expect(deserialized.spriteResolution, equals('64x128'));
+      expect(deserialized.faceShape, equals('oval'));
+      expect(deserialized.eyeStyle, equals('cateyes'));
+      expect(deserialized.eyebrowStyle, equals('none'));
+      expect(deserialized.noseStyle, equals('standard'));
+      expect(deserialized.mouthStyle, equals('catmouth'));
+      expect(deserialized.faceDetail, equals('none'));
+      expect(deserialized.hairStyle, equals('long_flow'));
+      expect(deserialized.topStyle, equals('jacket'));
+      expect(deserialized.bottomStyle, equals('jeans'));
+      expect(deserialized.shoeStyle, equals('none'));
+      expect(deserialized.accessoryStyle, equals('none'));
       expect(deserialized, equals(config));
     });
 
     test('AvatarStorageService saves and retrieves current avatar config', () {
       const customConfig = AvatarConfig(
-        spriteResolution: '32x64',
-        hairStyle: 'high_ponytail',
-        topStyle: 'hoodie',
+        spriteResolution: '64x128',
+        hairStyle: 'bangs',
+        topStyle: 'jacket',
       );
 
       AvatarStorageService.saveConfig(customConfig);
       final retrieved = AvatarStorageService.loadConfig();
 
-      expect(retrieved.spriteResolution, equals('32x64'));
-      expect(retrieved.hairStyle, equals('high_ponytail'));
-      expect(retrieved.topStyle, equals('hoodie'));
+      expect(retrieved.spriteResolution, equals('64x128'));
+      expect(retrieved.hairStyle, equals('bangs'));
+      expect(retrieved.topStyle, equals('jacket'));
+    });
+
+    test('AvatarDirection supports 8 directions with 1..8 numbering', () {
+      expect(AvatarDirection.values.length, equals(8));
+      expect(AvatarDirection.south.dirNumber, equals(1));
+      expect(AvatarDirection.southEast.dirNumber, equals(2));
+      expect(AvatarDirection.east.dirNumber, equals(3));
+      expect(AvatarDirection.northEast.dirNumber, equals(4));
+      expect(AvatarDirection.north.dirNumber, equals(5));
+      expect(AvatarDirection.northWest.dirNumber, equals(6));
+      expect(AvatarDirection.west.dirNumber, equals(7));
+      expect(AvatarDirection.southWest.dirNumber, equals(8));
     });
   });
 
@@ -100,9 +113,10 @@ void main() {
       expect(find.widgetWithText(Tab, 'Calzado'), findsOneWidget);
       expect(find.widgetWithText(Tab, 'Accesorios'), findsOneWidget);
 
-      // Verify Resolution Toggles
-      expect(find.textContaining('64x128'), findsOneWidget);
-      expect(find.textContaining('32x64'), findsWidgets);
+      // Verify Rotate and Swipe Hints
+      expect(find.textContaining('Desliza para girar'), findsOneWidget);
+      expect(find.byIcon(Icons.rotate_left), findsWidgets);
+      expect(find.byIcon(Icons.rotate_right), findsWidgets);
 
       // Verify Controls
       expect(find.textContaining('Caminar'), findsOneWidget);

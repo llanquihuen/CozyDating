@@ -65,16 +65,32 @@ class GuideDungeonGame extends DungeonGame with TapCallbacks, DragCallbacks {
     if (direction != null) {
       switch (direction.toLowerCase()) {
         case 'up':
-          explorer.avatarRenderer.direction = AvatarDirection.up;
+        case 'north':
+          explorer.avatarRenderer.direction = AvatarDirection.north;
           break;
         case 'down':
-          explorer.avatarRenderer.direction = AvatarDirection.down;
+        case 'south':
+          explorer.avatarRenderer.direction = AvatarDirection.south;
           break;
         case 'left':
-          explorer.avatarRenderer.direction = AvatarDirection.left;
+        case 'west':
+          explorer.avatarRenderer.direction = AvatarDirection.west;
           break;
         case 'right':
-          explorer.avatarRenderer.direction = AvatarDirection.right;
+        case 'east':
+          explorer.avatarRenderer.direction = AvatarDirection.east;
+          break;
+        case 'southeast':
+          explorer.avatarRenderer.direction = AvatarDirection.southEast;
+          break;
+        case 'northeast':
+          explorer.avatarRenderer.direction = AvatarDirection.northEast;
+          break;
+        case 'northwest':
+          explorer.avatarRenderer.direction = AvatarDirection.northWest;
+          break;
+        case 'southwest':
+          explorer.avatarRenderer.direction = AvatarDirection.southWest;
           break;
       }
     }

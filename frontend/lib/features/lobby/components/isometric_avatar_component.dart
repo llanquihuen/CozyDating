@@ -102,18 +102,39 @@ class IsometricAvatarComponent extends PositionComponent {
       final dy = targetY - gridY;
       final dist = sqrt(dx * dx + dy * dy);
 
-      // Determine Facing Direction based on dominant movement axis in isometric space
-      if (dx.abs() >= dy.abs()) {
-        if (dx > 0.05) {
-          avatarRenderer.direction = AvatarDirection.right; // Moving Down-Right
-        } else if (dx < -0.05) {
-          avatarRenderer.direction = AvatarDirection.left;  // Moving Up-Left
-        }
-      } else {
-        if (dy > 0.05) {
-          avatarRenderer.direction = AvatarDirection.down;  // Moving Down-Left (towards screen)
-        } else if (dy < -0.05) {
-          avatarRenderer.direction = AvatarDirection.up;    // Moving Up-Right (away from screen)
+      // Determine Facing Direction across all 8 directions based on screen-space velocity
+      if (dist > 0.001) {
+        final sx = (dx - dy) * IsometricCoords.subStepX;
+        final sy = (dx + dy) * IsometricCoords.subStepY;
+        final angle = atan2(sy, sx); // -pi to +pi radians
+        final normAngle = (angle + 2 * pi) % (2 * pi);
+        final sector = ((normAngle + pi / 8) / (pi / 4)).floor() % 8;
+
+        switch (sector) {
+          case 0:
+            avatarRenderer.direction = AvatarDirection.east; // 3
+            break;
+          case 1:
+            avatarRenderer.direction = AvatarDirection.southEast; // 2
+            break;
+          case 2:
+            avatarRenderer.direction = AvatarDirection.south; // 1
+            break;
+          case 3:
+            avatarRenderer.direction = AvatarDirection.southWest; // 8
+            break;
+          case 4:
+            avatarRenderer.direction = AvatarDirection.west; // 7
+            break;
+          case 5:
+            avatarRenderer.direction = AvatarDirection.northWest; // 6
+            break;
+          case 6:
+            avatarRenderer.direction = AvatarDirection.north; // 5
+            break;
+          case 7:
+            avatarRenderer.direction = AvatarDirection.northEast; // 4
+            break;
         }
       }
 

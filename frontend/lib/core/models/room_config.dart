@@ -232,6 +232,7 @@ class RoomConfig extends Equatable {
       gridY: 4,
       gridWidth: 0.5,
       gridHeight: 0.5,
+      rotation: 0,
     ),
     PlacedFurnitureConfig(
       id: 'kitchen_stove',
@@ -240,6 +241,7 @@ class RoomConfig extends Equatable {
       gridY: 5,
       gridWidth: 1,
       gridHeight: 1,
+      rotation: 1,
     ),
     PlacedFurnitureConfig(
       id: 'kitchen_sink',
@@ -248,14 +250,16 @@ class RoomConfig extends Equatable {
       gridY: 6,
       gridWidth: 1,
       gridHeight: 1,
+      rotation: 1,
     ),
     PlacedFurnitureConfig(
       id: 'kitchen_counter',
       typeName: 'kitchen_counter',
-      gridX: 1,
-      gridY: 6,
+      gridX: 0,
+      gridY: 7,
       gridWidth: 1,
       gridHeight: 1,
+      rotation: 1,
     ),
     PlacedFurnitureConfig(
       id: 'pan_rack_wall',
@@ -347,7 +351,10 @@ class RoomConfig extends Equatable {
     this.resolution = '64x128',
     this.interiorWalls = defaultInteriorWalls,
     this.furniture = defaultFurniture,
+    this.wallsCut = false,
   });
+
+  final bool wallsCut;
 
   RoomConfig copyWith({
     String? wallpaper,
@@ -357,6 +364,7 @@ class RoomConfig extends Equatable {
     String? resolution,
     List<PlacedFurnitureConfig>? furniture,
     List<InteriorWallConfig>? interiorWalls,
+    bool? wallsCut,
   }) {
     return RoomConfig(
       wallpaper: wallpaper ?? this.wallpaper,
@@ -366,6 +374,7 @@ class RoomConfig extends Equatable {
       resolution: resolution ?? this.resolution,
       furniture: furniture ?? this.furniture,
       interiorWalls: interiorWalls ?? this.interiorWalls,
+      wallsCut: wallsCut ?? this.wallsCut,
     );
   }
 
@@ -379,6 +388,7 @@ class RoomConfig extends Equatable {
       'furniture': furniture.map((f) => f.toMap()).toList(),
       if (interiorWalls.isNotEmpty)
         'interiorWalls': interiorWalls.map((w) => w.toMap()).toList(),
+      if (wallsCut) 'wallsCut': true,
     };
   }
 
@@ -401,6 +411,7 @@ class RoomConfig extends Equatable {
           ? List<PlacedFurnitureConfig>.from(
               (map['furniture'] as List).map((x) => PlacedFurnitureConfig.fromMap(x)))
           : defaultFurniture,
+      wallsCut: map['wallsCut'] ?? false,
     );
   }
 
@@ -409,7 +420,7 @@ class RoomConfig extends Equatable {
   factory RoomConfig.fromJson(String source) => RoomConfig.fromMap(json.decode(source));
 
   @override
-  List<Object?> get props => [wallpaper, floor, floorOverrides, wallOverrides, resolution, furniture, interiorWalls];
+  List<Object?> get props => [wallpaper, floor, floorOverrides, wallOverrides, resolution, furniture, interiorWalls, wallsCut];
 }
 
 class InteriorWallConfig extends Equatable {

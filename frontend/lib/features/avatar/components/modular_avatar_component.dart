@@ -1,40 +1,44 @@
+import 'dart:async';
+import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import '../../../core/models/avatar_config.dart';
 
-enum AvatarDirection { down, up, left, right }
+enum AvatarDirection {
+  south,     // 1: Facing down / screen bottom
+  southEast, // 2: Facing down-right
+  east,      // 3: Facing right
+  northEast, // 4: Facing up-right
+  north,     // 5: Facing up / screen top
+  northWest, // 6: Facing up-left
+  west,      // 7: Facing left
+  southWest; // 8: Facing down-left
+
+  static const AvatarDirection down = AvatarDirection.south;
+  static const AvatarDirection up = AvatarDirection.north;
+  static const AvatarDirection left = AvatarDirection.west;
+  static const AvatarDirection right = AvatarDirection.east;
+
+  int get dirNumber => index + 1;
+}
 
 class ModularAvatarComponent extends PositionComponent {
   AvatarConfig config;
   AvatarDirection direction;
   bool isMoving;
 
-  Image? _bodyImage;
-  Image? _faceShapeImage;
-  Image? _noseImage;
-  Image? _mouthImage;
-  Image? _eyesImage;
-  Image? _eyebrowsImage;
-  Image? _faceDetailImage;
-  Image? _shoesImage;
-  Image? _bottomImage;
-  Image? _topImage;
-  Image? _hairImage;
-  Image? _accImage;
+  // Cached OCTOPLAYER 8-direction individual frames
+  final Map<String, Image> _octoImageCache = {};
 
   double _animTimer = 0.0;
   int _currentFrame = 0;
   static const double _frameDuration = 0.16;
 
-  bool get is32x64 => config.spriteResolution == '32x64';
-  double get srcFrameWidth => is32x64 ? 32.0 : 64.0;
-  double get srcFrameHeight => is32x64 ? 64.0 : 128.0;
-  String get assetPrefix => is32x64 ? 'avatar/32x64' : 'avatar/64x128';
-
   ModularAvatarComponent({
     required this.config,
-    this.direction = AvatarDirection.down,
+    this.direction = AvatarDirection.south,
     this.isMoving = false,
     Vector2? position,
     Vector2? size,
@@ -55,13 +59,19 @@ class ModularAvatarComponent extends PositionComponent {
         config.noseStyle != newConfig.noseStyle ||
         config.mouthStyle != newConfig.mouthStyle ||
         config.eyeStyle != newConfig.eyeStyle ||
-        config.eyebrowStyle != newConfig.eyebrowStyle ||
-        config.faceDetail != newConfig.faceDetail ||
-        config.shoeStyle != newConfig.shoeStyle ||
-        config.bottomStyle != newConfig.bottomStyle ||
-        config.topStyle != newConfig.topStyle ||
+        config.eyeColor != newConfig.eyeColor ||
+        config.eyebrowColor != newConfig.eyebrowColor ||
         config.hairStyle != newConfig.hairStyle ||
-        config.accessoryStyle != newConfig.accessoryStyle;
+        config.hairColor != newConfig.hairColor ||
+        config.topStyle != newConfig.topStyle ||
+        config.topColor != newConfig.topColor ||
+        config.bottomStyle != newConfig.bottomStyle ||
+        config.bottomColor != newConfig.bottomColor ||
+        config.skinColor != newConfig.skinColor ||
+        config.shoeStyle != newConfig.shoeStyle ||
+        config.shoeColor != newConfig.shoeColor ||
+        config.accessoryStyle != newConfig.accessoryStyle ||
+        config.accessoryColor != newConfig.accessoryColor;
 
     config = newConfig;
     if (needsReload) {
@@ -69,152 +79,151 @@ class ModularAvatarComponent extends PositionComponent {
     }
   }
 
+  Future<void> _loadOctoFrame(String layerKey, String relativePath, String cacheKey) async {
+    try {
+      final img = await Flame.images.load('OCTOPLAYER/Avatar/$relativePath');
+      _octoImageCache['$layerKey:$cacheKey'] = img;
+    } catch (_) {
+      // Ignored if specific file doesn't exist
+    }
+  }
+
+  Future<void> _loadOctoEyesFrame(String relativePath, String cacheKey) async {
+    try {
+      final baseImg = await Flame.images.load('OCTOPLAYER/Avatar/$relativePath');
+      final byteData = await baseImg.toByteData(format: ImageByteFormat.rawRgba);
+      if (byteData == null) {
+        _octoImageCache['eyes:$cacheKey'] = baseImg;
+        return;
+      }
+
+      final buffer = byteData.buffer.asUint8List();
+      final length = buffer.length;
+
+      final eyeR = config.eyeColor.red;
+      final eyeG = config.eyeColor.green;
+      final eyeB = config.eyeColor.blue;
+
+      final browR = config.eyebrowColor.red;
+      final browG = config.eyebrowColor.green;
+      final browB = config.eyebrowColor.blue;
+
+      for (int i = 0; i < length; i += 4) {
+        final a = buffer[i + 3];
+        if (a == 0) continue;
+
+        final r = buffer[i];
+        final g = buffer[i + 1];
+        final b = buffer[i + 2];
+
+        // Red-dominant: Iris / Eye Color (red tint)
+        if (r > g + 15 && r > b + 15) {
+          final factor = r / 255.0;
+          buffer[i] = (eyeR * factor).round().clamp(0, 255);
+          buffer[i + 1] = (eyeG * factor).round().clamp(0, 255);
+          buffer[i + 2] = (eyeB * factor).round().clamp(0, 255);
+        }
+        // Green-dominant: Eyebrows (green tint)
+        else if (g > r + 15 && g > b + 15) {
+          final factor = g / 255.0;
+          buffer[i] = (browR * factor).round().clamp(0, 255);
+          buffer[i + 1] = (browG * factor).round().clamp(0, 255);
+          buffer[i + 2] = (browB * factor).round().clamp(0, 255);
+        }
+        // Other pixels (black eyeliner/lashes, white sclera) remain unchanged
+      }
+
+      final completer = Completer<Image>();
+      decodeImageFromPixels(
+        buffer,
+        baseImg.width,
+        baseImg.height,
+        PixelFormat.rgba8888,
+        completer.complete,
+      );
+      _octoImageCache['eyes:$cacheKey'] = await completer.future;
+    } catch (_) {
+      // Ignored if specific file doesn't exist
+    }
+  }
+
   Future<void> reloadSprites() async {
-    final prefix = assetPrefix;
+    _octoImageCache.clear();
+    final futures = <Future<void>>[];
 
-    try {
-      _bodyImage = await Flame.images.load('$prefix/body/base.png');
-    } catch (_) {
-      try {
-        _bodyImage = await Flame.images.load('avatar/body/base.png');
-      } catch (_) {
-        _bodyImage = null;
-      }
-    }
+    final hair = (config.hairStyle != 'none') ? config.hairStyle : 'long_flow';
+    final top = (config.topStyle != 'none') ? config.topStyle : 'jacket';
+    final bottom = (config.bottomStyle != 'none') ? config.bottomStyle : 'jeans';
+    final eye = config.eyeStyle;
+    final mouth = config.mouthStyle;
+    final nose = config.noseStyle;
+    final head = config.faceShape;
 
-    try {
-      _faceShapeImage = await Flame.images.load('$prefix/face_shape/${config.faceShape}.png');
-    } catch (_) {
-      try {
-        _faceShapeImage = await Flame.images.load('avatar/face_shape/${config.faceShape}.png');
-      } catch (_) {
-        _faceShapeImage = null;
-      }
-    }
+    for (int d = 1; d <= 8; d++) {
+      final frameKeys = ['$d', '${d}_walk_f1', '${d}_walk_f2', '${d}_walk_f3', '${d}_walk_f4'];
+      for (final k in frameKeys) {
+        // Body (female)
+        futures.add(_loadOctoFrame('body', 'body/female$k.png', k));
 
-    try {
-      _noseImage = await Flame.images.load('$prefix/nose/${config.noseStyle}.png');
-    } catch (_) {
-      try {
-        _noseImage = await Flame.images.load('avatar/nose/${config.noseStyle}.png');
-      } catch (_) {
-        _noseImage = null;
-      }
-    }
+        // Head (face shape with oval fallback)
+        futures.add(_loadOctoFrame('head', 'head/$head$k.png', k).then((_) {
+          if (!_octoImageCache.containsKey('head:$k')) {
+            return _loadOctoFrame('head', 'head/oval$k.png', k);
+          }
+        }));
 
-    try {
-      _mouthImage = await Flame.images.load('$prefix/mouth/${config.mouthStyle}.png');
-    } catch (_) {
-      try {
-        _mouthImage = await Flame.images.load('avatar/mouth/${config.mouthStyle}.png');
-      } catch (_) {
-        _mouthImage = null;
-      }
-    }
+        // Nose (with standard fallback)
+        futures.add(_loadOctoFrame('nose', 'nose/$nose$k.png', k).then((_) {
+          if (!_octoImageCache.containsKey('nose:$k')) {
+            return _loadOctoFrame('nose', 'nose/standard$k.png', k);
+          }
+        }));
 
-    try {
-      _eyesImage = await Flame.images.load('$prefix/eyes/${config.eyeStyle}.png');
-    } catch (_) {
-      try {
-        _eyesImage = await Flame.images.load('avatar/eyes/${config.eyeStyle}.png');
-      } catch (_) {
-        _eyesImage = null;
-      }
-    }
+        // Mouth (with catmouth fallback)
+        futures.add(_loadOctoFrame('mouth', 'mouth/$mouth$k.png', k).then((_) {
+          if (!_octoImageCache.containsKey('mouth:$k')) {
+            return _loadOctoFrame('mouth', 'mouth/catmouth$k.png', k);
+          }
+        }));
 
-    try {
-      _eyebrowsImage = await Flame.images.load('$prefix/eyebrows/${config.eyebrowStyle}.png');
-    } catch (_) {
-      try {
-        _eyebrowsImage = await Flame.images.load('avatar/eyebrows/${config.eyebrowStyle}.png');
-      } catch (_) {
-        _eyebrowsImage = null;
-      }
-    }
+        // Eyes (pixel-level dual tint for iris red & eyebrows green)
+        futures.add(_loadOctoEyesFrame('eyes/$eye$k.png', k).then((_) {
+          if (!_octoImageCache.containsKey('eyes:$k')) {
+            return _loadOctoEyesFrame('eyes/cateyes$k.png', k);
+          }
+        }));
 
-    if (config.faceDetail != 'none') {
-      try {
-        _faceDetailImage = await Flame.images.load('$prefix/face_details/${config.faceDetail}.png');
-      } catch (_) {
-        try {
-          _faceDetailImage = await Flame.images.load('avatar/face_details/${config.faceDetail}.png');
-        } catch (_) {
-          _faceDetailImage = null;
+        // Hair Back & Front
+        if (config.hairStyle != 'none') {
+          if (hair == 'long_flow') {
+            futures.add(_loadOctoFrame('hair_back', 'hair/$hair/back/$hair$k.png', k));
+          }
+          futures.add(_loadOctoFrame('hair_front', 'hair/$hair/front/$hair$k.png', k));
+        }
+
+        // Tops
+        if (config.topStyle != 'none') {
+          futures.add(_loadOctoFrame('tops', 'tops/$top$k.png', k));
+        }
+
+        // Bottoms
+        if (config.bottomStyle != 'none') {
+          futures.add(_loadOctoFrame('bottoms', 'bottoms/$bottom$k.png', k));
+        }
+
+        // Shoes (if present)
+        if (config.shoeStyle != 'none') {
+          futures.add(_loadOctoFrame('shoes', 'shoes/${config.shoeStyle}$k.png', k));
+        }
+
+        // Accessories (if present)
+        if (config.accessoryStyle != 'none') {
+          futures.add(_loadOctoFrame('accessories', 'accessories/${config.accessoryStyle}$k.png', k));
         }
       }
-    } else {
-      _faceDetailImage = null;
     }
 
-    if (config.shoeStyle != 'none') {
-      try {
-        _shoesImage = await Flame.images.load('$prefix/shoes/${config.shoeStyle}.png');
-      } catch (_) {
-        try {
-          _shoesImage = await Flame.images.load('avatar/shoes/${config.shoeStyle}.png');
-        } catch (_) {
-          _shoesImage = null;
-        }
-      }
-    } else {
-      _shoesImage = null;
-    }
-
-    if (config.bottomStyle != 'none') {
-      try {
-        _bottomImage = await Flame.images.load('$prefix/bottoms/${config.bottomStyle}.png');
-      } catch (_) {
-        try {
-          _bottomImage = await Flame.images.load('avatar/bottoms/${config.bottomStyle}.png');
-        } catch (_) {
-          _bottomImage = null;
-        }
-      }
-    } else {
-      _bottomImage = null;
-    }
-
-    if (config.topStyle != 'none') {
-      try {
-        _topImage = await Flame.images.load('$prefix/tops/${config.topStyle}.png');
-      } catch (_) {
-        try {
-          _topImage = await Flame.images.load('avatar/tops/${config.topStyle}.png');
-        } catch (_) {
-          _topImage = null;
-        }
-      }
-    } else {
-      _topImage = null;
-    }
-
-    if (config.hairStyle != 'none') {
-      try {
-        _hairImage = await Flame.images.load('$prefix/hair/${config.hairStyle}.png');
-      } catch (_) {
-        try {
-          _hairImage = await Flame.images.load('avatar/hair/${config.hairStyle}.png');
-        } catch (_) {
-          _hairImage = null;
-        }
-      }
-    } else {
-      _hairImage = null;
-    }
-
-    if (config.accessoryStyle != 'none') {
-      try {
-        _accImage = await Flame.images.load('$prefix/accessories/${config.accessoryStyle}.png');
-      } catch (_) {
-        try {
-          _accImage = await Flame.images.load('avatar/accessories/${config.accessoryStyle}.png');
-        } catch (_) {
-          _accImage = null;
-        }
-      }
-    } else {
-      _accImage = null;
-    }
+    await Future.wait(futures);
   }
 
   @override
@@ -236,102 +245,65 @@ class ModularAvatarComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
 
-    final int row = direction.index; // 0: down, 1: up, 2: left, 3: right
-    final int col = _currentFrame;
-
-    final srcW = srcFrameWidth;
-    final srcH = srcFrameHeight;
-
-    final srcRect = Rect.fromLTWH(
-      col * srcW,
-      row * srcH,
-      srcW,
-      srcH,
-    );
-
+    final int dirNum = direction.dirNumber;
+    final String frameKey = isMoving ? '${dirNum}_walk_f${_currentFrame + 1}' : '$dirNum';
     final dstRect = Rect.fromLTWH(0, 0, size.x, size.y);
 
-    // Layer 1: Body Base (Skin Color)
-    if (_bodyImage != null) {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.skinColor, BlendMode.modulate);
-      canvas.drawImageRect(_bodyImage!, srcRect, dstRect, paint);
+    void drawLayer(String layerKey, Color? tintColor) {
+      final img = _octoImageCache['$layerKey:$frameKey'] ?? _octoImageCache['$layerKey:$dirNum'];
+      if (img != null) {
+        final srcRect = Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
+        final paint = Paint();
+        if (tintColor != null) {
+          paint.colorFilter = ColorFilter.mode(tintColor, BlendMode.modulate);
+        }
+        canvas.drawImageRect(img, srcRect, dstRect, paint);
+      }
     }
 
-    // Layer 2: Face Shape (Skin Color)
-    if (_faceShapeImage != null) {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.skinColor, BlendMode.modulate);
-      canvas.drawImageRect(_faceShapeImage!, srcRect, dstRect, paint);
+    // Layer 1: Hair Back (Behind body/head)
+    if (config.hairStyle != 'none') {
+      drawLayer('hair_back', config.hairColor);
     }
 
-    // Layer 3: Nose (Natural / Skin outline)
-    if (_noseImage != null) {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.skinColor, BlendMode.modulate);
-      canvas.drawImageRect(_noseImage!, srcRect, dstRect, paint);
+    // Layer 2: Body (Base Skin)
+    drawLayer('body', config.skinColor);
+
+    // Layer 3: Bottoms / Pants / Jeans
+    if (config.bottomStyle != 'none') {
+      drawLayer('bottoms', config.bottomColor);
     }
 
-    // Layer 4: Mouth
-    if (_mouthImage != null) {
-      final paint = Paint();
-      canvas.drawImageRect(_mouthImage!, srcRect, dstRect, paint);
+    // Layer 4: Shoes / Boots
+    if (config.shoeStyle != 'none') {
+      drawLayer('shoes', config.shoeColor);
     }
 
-    // Layer 5: Eyes (Iris Color)
-    if (_eyesImage != null) {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.eyeColor, BlendMode.modulate);
-      canvas.drawImageRect(_eyesImage!, srcRect, dstRect, paint);
+    // Layer 5: Tops / Jacket / Shirt
+    if (config.topStyle != 'none') {
+      drawLayer('tops', config.topColor);
     }
 
-    // Layer 6: Eyebrows
-    if (_eyebrowsImage != null) {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.eyebrowColor, BlendMode.modulate);
-      canvas.drawImageRect(_eyebrowsImage!, srcRect, dstRect, paint);
+    // Layer 6: Head / Face Shape (Skin Color, rendered over clothes)
+    drawLayer('head', config.skinColor);
+
+    // Layer 7: Nose (Skin Color outline)
+    drawLayer('nose', config.skinColor);
+
+    // Layer 8: Mouth
+    drawLayer('mouth', null);
+
+    // Layer 9: Eyes (Iris & Eyebrows are dual-tinted at pixel level)
+    drawLayer('eyes', null);
+
+    // Layer 10: Hair Front (Front locks / bangs)
+    if (config.hairStyle != 'none') {
+      drawLayer('hair_front', config.hairColor);
     }
 
-    // Layer 7: Face Details (Blush / Freckles / Scar)
-    if (_faceDetailImage != null && config.faceDetail != 'none') {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.faceDetailColor, BlendMode.modulate);
-      canvas.drawImageRect(_faceDetailImage!, srcRect, dstRect, paint);
-    }
-
-    // Layer 8: Shoes / Boots
-    if (_shoesImage != null && config.shoeStyle != 'none') {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.shoeColor, BlendMode.modulate);
-      canvas.drawImageRect(_shoesImage!, srcRect, dstRect, paint);
-    }
-
-    // Layer 9: Bottoms / Pants / Skirt
-    if (_bottomImage != null && config.bottomStyle != 'none') {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.bottomColor, BlendMode.modulate);
-      canvas.drawImageRect(_bottomImage!, srcRect, dstRect, paint);
-    }
-
-    // Layer 10: Tops / Shirt / Jacket
-    if (_topImage != null && config.topStyle != 'none') {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.topColor, BlendMode.modulate);
-      canvas.drawImageRect(_topImage!, srcRect, dstRect, paint);
-    }
-
-    // Layer 11: Hair
-    if (_hairImage != null && config.hairStyle != 'none') {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.hairColor, BlendMode.modulate);
-      canvas.drawImageRect(_hairImage!, srcRect, dstRect, paint);
-    }
-
-    // Layer 12: Accessories
-    if (_accImage != null && config.accessoryStyle != 'none') {
-      final paint = Paint()
-        ..colorFilter = ColorFilter.mode(config.accessoryColor, BlendMode.modulate);
-      canvas.drawImageRect(_accImage!, srcRect, dstRect, paint);
+    // Layer 11: Accessories
+    if (config.accessoryStyle != 'none') {
+      drawLayer('accessories', config.accessoryColor);
     }
   }
 }

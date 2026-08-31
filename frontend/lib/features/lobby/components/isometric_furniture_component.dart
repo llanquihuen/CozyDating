@@ -54,10 +54,20 @@ class IsometricFurnitureComponent extends PositionComponent {
   bool get isWardrobe => type == FurnitureType.wardrobe || id.contains('wardrobe') || typeName.contains('wardrobe');
   bool get isPortal => type == FurnitureType.portal || id.contains('portal') || typeName.contains('portal');
   bool get isSurfaceItem => footprint == 'surface' || id == 'table_lamp' || id == 'coffee_mug' || id == 'open_book' || id == 'cooking_pot' || id == 'cutting_board' || id == 'soap_bottles' || id == 'plush_teddy' || typeName == 'table_lamp' || typeName == 'coffee_mug' || typeName == 'open_book' || typeName == 'cooking_pot' || typeName == 'cutting_board' || typeName == 'soap_bottles' || typeName == 'plush_teddy';
-  bool get isWallNorth => footprint == 'wall_n' || id.endsWith('_wall_n') || id.endsWith('_n') || typeName.endsWith('_wall_n') || typeName.endsWith('_n');
-  bool get isWallWest => footprint == 'wall_w' || id.endsWith('_wall_w') || id.endsWith('_w') || typeName.endsWith('_wall_w') || typeName.endsWith('_w');
-  bool get isWallItem => isWallNorth || isWallWest;
-  bool get is32x64 => resolution == '32x64';
+  bool get isWallItem {
+    if (footprint == 'wall_n' || footprint == 'wall_w' || footprint == 'wall') return true;
+    final cat = FurnitureCatalogService.getItem(typeName) ?? FurnitureCatalogService.getItem(id);
+    if (cat != null && cat.isWallItem) return true;
+    return id.contains('wall') || typeName.contains('wall') ||
+        id.endsWith('_n') || id.endsWith('_w') ||
+        typeName.endsWith('_n') || typeName.endsWith('_w') ||
+        id.startsWith('window_yellow') || typeName.startsWith('window_yellow') ||
+        id.startsWith('art_painting') || typeName.startsWith('art_painting') ||
+        id.startsWith('wall_clock') || typeName.startsWith('wall_clock') ||
+        id.startsWith('curtained_window') || typeName.startsWith('curtained_window');
+  }
+  bool get isWallWest => isWallItem && (footprint == 'wall_w' || typeName.endsWith('_w') || (id.endsWith('_w') && !id.endsWith('_wall_n') && !id.endsWith('_n')));
+  bool get isWallNorth => isWallItem && !isWallWest;
 
   IsometricFurnitureComponent({
     String? id,
@@ -263,6 +273,27 @@ class IsometricFurnitureComponent extends PositionComponent {
 
   /// Rotates the furniture clockwise by 90 degrees (rotations 0, 1, 2, 3)
   void rotateClockwise() {
+    if (isWallItem) {
+      final wasNorth = isWallNorth;
+      footprint = wasNorth ? 'wall_w' : 'wall_n';
+      rotation = wasNorth ? 1 : 0;
+      typeName = FurnitureCatalogItem.getWallVariantFor(typeName, !wasNorth);
+      if (wasNorth) {
+        final oldX = gridX;
+        gridX = 0.0;
+        gridY = oldX;
+      } else {
+        final oldY = gridY;
+        gridX = oldY;
+        gridY = 0.0;
+      }
+      if (rotationSprites.containsKey(rotation)) {
+        sprite = rotationSprites[rotation];
+      }
+      updateGridPosition(gridX, gridY);
+      return;
+    }
+
     rotation = (rotation + 1) % 4;
 
     // Swap footprint dimensions if non-square (e.g. 1x2 <-> 2x1)
@@ -399,11 +430,7 @@ class IsometricFurnitureComponent extends PositionComponent {
 
   Vector2 get renderSize {
     if (sprite == null) return Vector2(32, 32);
-    if (is32x64) {
-      // Retro Mode: 64x128 assets at 1.0x scale (fits 64x32 tile with pixel art)
-      return sprite!.srcSize * 1.0;
-    }
-    // HD Mode: 128x256 assets rendered at 0.5x scale (half size, crisp double-density pixels fitting 64x32 tiles)
+    // HD Mode: 128x256 and 64x128 assets rendered at 0.5x scale (crisp double-density pixels fitting 64x32 tiles)
     return sprite!.srcSize * 0.5;
   }
 

@@ -61,7 +61,7 @@ class FurnitureCatalogService {
       case 'bedroom':
         return _catalog.values.where((i) => (i.zone == 'bedroom' || i.id == 'single_bed' || i.id == 'closet' || i.id == 'king_bed') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'kitchen_bath':
-        return _catalog.values.where((i) => (i.zone == 'kitchen' || i.zone == 'bathroom' || i.id == 'kitchen_fridge_sm' || i.id == 'kitchen_stove' || i.id == 'kitchen_sink' || i.id == 'kitchen_counter' || i.id == 'bathtub_1x2' || i.id == 'bathroom_toilet') && !i.isSurfaceItem && !i.isWallItem).toList();
+        return _catalog.values.where((i) => (i.zone == 'kitchen_bath' || i.zone == 'kitchen' || i.zone == 'bathroom' || i.id == 'kitchen_fridge_sm' || i.id == 'kitchen_stove' || i.id == 'kitchen_sink' || i.id == 'kitchen_counter' || i.id == 'bathtub_1x2' || i.id == 'bathtub_regular_1x2' || i.id == 'bathroom_toilet') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'surface':
         return _catalog.values.where((i) => i.isSurfaceItem).toList();
       case 'walls':
@@ -114,7 +114,7 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'kitchen_counter', name: 'Encimera de Cocina', zone: 'kitchen', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'kitchen_stove', name: 'Cocina con Fogones', zone: 'kitchen', footprint: '1x1', surfaceHeight: 22, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'kitchen_sink', name: 'Fregadero Inox', zone: 'kitchen', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'kitchen_fridge_sm', name: 'Refrigerador Compacto', zone: 'kitchen', footprint: '0.5x0.5', spriteOffset: [-16, -56]),
+      const FurnitureCatalogItem(id: 'kitchen_fridge_sm', name: 'Refrigerador Compacto', zone: 'kitchen', footprint: '0.5x0.5', spriteOffset: [-64, -136]),
       const FurnitureCatalogItem(id: 'bathtub_1x2', name: 'Bañera Clásica (1x2)', zone: 'bathroom', footprint: '1x2', spriteOffset: [-64, -36]),
       const FurnitureCatalogItem(id: 'bathroom_toilet', name: 'Inodoro Cerámica', zone: 'bathroom', footprint: '1x1', spriteOffset: [-32, -48]),
 

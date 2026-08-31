@@ -1,3 +1,13 @@
+"""
+sync_new_furniture.py - Sincronizador de Muebles a 'established_furniture'
+
+FUNCIONAMIENTO:
+1. Lee los muebles desde 'frontend/assets/images/furniture/new_added/' (100% SOLO LECTURA, no modifica tus originales).
+2. Copia y centraliza todos los PNGs en una carpeta plana: 'frontend/assets/images/furniture/established_furniture/'.
+3. Actualiza 'furniture_catalog.json' con rutas directas a 'furniture/established_furniture/...'.
+De esta forma Flutter Web encuentra siempre todos los muebles en un solo lugar sin errores 404 ni confusión de rutas.
+"""
+
 import os
 import re
 import json
@@ -5,12 +15,13 @@ import shutil
 from PIL import Image
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-NEW_ADDED_DIR = os.path.join(BASE_DIR, "frontend", "assets", "images", "furniture", "new_added")
 FURNITURE_BASE = os.path.join(BASE_DIR, "frontend", "assets", "images", "furniture")
+NEW_ADDED_DIR = os.path.join(FURNITURE_BASE, "new_added")
+ESTABLISHED_DIR = os.path.join(FURNITURE_BASE, "established_furniture")
 CATALOG_PATH = os.path.join(FURNITURE_BASE, "furniture_catalog.json")
 PUBSPEC_PATH = os.path.join(BASE_DIR, "frontend", "pubspec.yaml")
 
-# Spanish display names dictionary for common furniture terms
+# Diccionario de nombres en español para la UI
 NAME_TRANSLATIONS = {
     "bookshelf": "Estantería de Libros",
     "tall_bookshelf": "Estantería Alta",
@@ -27,7 +38,7 @@ NAME_TRANSLATIONS = {
     "plant": "Planta Decorativa",
     "mirror": "Espejo",
     "art_painting": "Cuadro de Paisaje",
-    "window_yellow": "Window Yellow",
+    "window_yellow": "Ventana Amarilla",
     "wall_clock": "Reloj de Pared",
     "hanging_shelf_wall": "Repisa Colgante",
     "pan_rack_wall": "Colgador de Sartenes",
@@ -52,7 +63,9 @@ NAME_TRANSLATIONS = {
     "kitchen_stove": "Cocina con Fogones",
     "kitchen_sink": "Fregadero Inox",
     "kitchen_fridge": "Refrigerador Inox",
+    "kitchen_fridge_sm": "Refrigerador Inox (0.5x0.5)",
     "bathtub_1x2": "Bañera Clásica (1x2)",
+    "bathtub_regular_1x2": "Bañera Regular (1x2)",
     "bathroom_toilet": "Inodoro Cerámica",
 }
 
@@ -113,6 +126,8 @@ def guess_surface_height(item_id, footprint):
     return 0
 
 def get_sprite_offset(footprint, is_tall=False, item_id=""):
+    if footprint == "0.5x0.5" or "05x05" in item_id or item_id.endswith("_sm"):
+        return [-32, -44]
     if footprint in ["wall_n", "wall_w", "wall"]:
         return [-32, -48]
     if footprint == "surface":
@@ -128,39 +143,28 @@ def get_sprite_offset(footprint, is_tall=False, item_id=""):
     return [-32, -48]
 
 def sync_new_furniture():
-    print("=== Auto-Sync Furniture and Wall Items (new_added) ===")
+    print("=== Sincronizador de Muebles -> established_furniture ===")
     if not os.path.exists(NEW_ADDED_DIR):
-        print(f"Directory {NEW_ADDED_DIR} not found.")
+        print(f"Directorio origen no encontrado: {NEW_ADDED_DIR}")
         return
 
+    os.makedirs(ESTABLISHED_DIR, exist_ok=True)
+
     catalog = {}
-    if os.path.exists(CATALOG_PATH):
-        try:
-            with open(CATALOG_PATH, "r", encoding="utf-8") as f:
-                catalog = json.load(f)
-        except Exception as e:
-            print(f"Error loading {CATALOG_PATH}: {e}")
-
-    dirs_to_copy = {
-        "128x256": os.path.join(FURNITURE_BASE, "128x256"),
-        "64x128": os.path.join(FURNITURE_BASE, "64x128"),
-        "32x64": os.path.join(FURNITURE_BASE, "32x64"),
-        "root": FURNITURE_BASE,
-    }
-    for d in dirs_to_copy.values():
-        os.makedirs(d, exist_ok=True)
-
     discovered_items = {}
 
+    # 1. Escaneo SOLO LECTURA de new_added
     for root, dirs, files in os.walk(NEW_ADDED_DIR):
         rel_path = os.path.relpath(root, NEW_ADDED_DIR).replace("\\", "/").lower()
         parts = rel_path.split("/")
-        
+
         footprint = "1x1"
         is_tall = ("tall" in parts or "tall" in root.lower())
         is_wall = ("wall" in parts or "walls" in parts or "wall" in rel_path)
-        
-        if is_wall or any("wall" in p for p in parts):
+
+        if "05x05" in parts or "05x05" in rel_path:
+            footprint = "0.5x0.5"
+        elif is_wall or any("wall" in p for p in parts):
             footprint = "wall_n"
             is_wall = True
         elif any("1x2" in p for p in parts):
@@ -175,9 +179,13 @@ def sync_new_furniture():
         for file in files:
             if not file.endswith(".png"):
                 continue
+
+            full_path = os.path.join(root, file)
             stem = os.path.splitext(file)[0]
             item_id = clean_id(stem, is_wall=is_wall)
-            full_path = os.path.join(root, file)
+
+            if footprint == "0.5x0.5" and not item_id.endswith("_sm"):
+                item_id = f"{item_id}_sm"
 
             if item_id not in discovered_items:
                 discovered_items[item_id] = {
@@ -190,13 +198,22 @@ def sync_new_furniture():
                 }
 
             if is_wall:
-                if stem.endswith("_n") or stem.endswith("_wall_n"):
-                    discovered_items[item_id]["wall_variants"]["n"] = full_path
-                elif stem.endswith("_w") or stem.endswith("_wall_w"):
-                    discovered_items[item_id]["wall_variants"]["w"] = full_path
+                clean_wall_stem = re.sub(r'_rot\d$', '', stem).lower()
+                is_explicit_rot = bool(re.search(r'_rot\d$', stem))
+
+                if clean_wall_stem.endswith("_n") or clean_wall_stem.endswith("_wall_n"):
+                    # Prioritize direct _n over _n_rotX
+                    if "n" not in discovered_items[item_id]["wall_variants"] or not is_explicit_rot:
+                        discovered_items[item_id]["wall_variants"]["n"] = full_path
+                elif clean_wall_stem.endswith("_w") or clean_wall_stem.endswith("_wall_w"):
+                    # Prioritize direct _w over _w_rotX
+                    if "w" not in discovered_items[item_id]["wall_variants"] or not is_explicit_rot:
+                        discovered_items[item_id]["wall_variants"]["w"] = full_path
                 else:
-                    discovered_items[item_id]["wall_variants"]["n"] = full_path
-                    discovered_items[item_id]["wall_variants"]["w"] = full_path
+                    if "n" not in discovered_items[item_id]["wall_variants"]:
+                        discovered_items[item_id]["wall_variants"]["n"] = full_path
+                    if "w" not in discovered_items[item_id]["wall_variants"]:
+                        discovered_items[item_id]["wall_variants"]["w"] = full_path
             else:
                 rot_match = re.search(r'_rot([0-3])$', stem)
                 if rot_match:
@@ -205,9 +222,9 @@ def sync_new_furniture():
                 else:
                     discovered_items[item_id]["base_file"] = full_path
 
-    print(f"Found {len(discovered_items)} distinct items in new_added.")
+    print(f"Escaneados {len(discovered_items)} muebles en 'new_added/'.")
 
-    added_count = 0
+    # 2. Copia centralizada a 'established_furniture' y generación del catálogo JSON
     for item_id, data in discovered_items.items():
         footprint = data["footprint"]
         is_tall = data["is_tall"]
@@ -224,180 +241,88 @@ def sync_new_furniture():
         if orig_h >= 170 and not is_wall:
             is_tall = True
 
-        # Copy & resize images to target resolutions
-        if is_wall:
-            variants = data["wall_variants"]
-            src_n = variants.get("n", base_fp)
-            src_w = variants.get("w", base_fp)
-
-            for suffix, src_path in [("n", src_n), ("w", src_w)]:
-                variant_name = f"{item_id}_{suffix}"
-                try:
-                    with Image.open(src_path) as im:
-                        cur_w, cur_h = im.size
-                        shutil.copy2(src_path, os.path.join(dirs_to_copy["128x256"], f"{variant_name}.png"))
-                        im_64 = im.resize((max(1, cur_w // 2), max(1, cur_h // 2)), Image.Resampling.NEAREST)
-                        im_64.save(os.path.join(dirs_to_copy["64x128"], f"{variant_name}.png"))
-                        im_64.save(os.path.join(dirs_to_copy["root"], f"{variant_name}.png"))
-                        im_32 = im.resize((max(1, cur_w // 4), max(1, cur_h // 4)), Image.Resampling.NEAREST)
-                        im_32.save(os.path.join(dirs_to_copy["32x64"], f"{variant_name}.png"))
-                except Exception as e:
-                    print(f"Error processing wall image {src_path}: {e}")
-
-        else:
-            rot_files = {}
-            for r in range(4):
-                if r in data["rotations"]:
-                    rot_files[r] = data["rotations"][r]
-                else:
-                    rot_files[r] = base_fp
-
-            for rot, src_img_path in rot_files.items():
-                try:
-                    with Image.open(src_img_path) as im:
-                        cur_w, cur_h = im.size
-                        dst_hd = os.path.join(dirs_to_copy["128x256"], f"{item_id}_rot{rot}.png")
-                        shutil.copy2(src_img_path, dst_hd)
-                        if rot == 0:
-                            shutil.copy2(src_img_path, os.path.join(dirs_to_copy["128x256"], f"{item_id}.png"))
-
-                        im_64 = im.resize((max(1, cur_w // 2), max(1, cur_h // 2)), Image.Resampling.NEAREST)
-                        dst_64 = os.path.join(dirs_to_copy["64x128"], f"{item_id}_rot{rot}.png")
-                        im_64.save(dst_64)
-                        if rot == 0:
-                            im_64.save(os.path.join(dirs_to_copy["64x128"], f"{item_id}.png"))
-                            im_64.save(os.path.join(dirs_to_copy["root"], f"{item_id}.png"))
-
-                        im_32 = im.resize((max(1, cur_w // 4), max(1, cur_h // 4)), Image.Resampling.NEAREST)
-                        dst_32 = os.path.join(dirs_to_copy["32x64"], f"{item_id}_rot{rot}.png")
-                        im_32.save(dst_32)
-                        if rot == 0:
-                            im_32.save(os.path.join(dirs_to_copy["32x64"], f"{item_id}.png"))
-                except Exception as e:
-                    print(f"Error processing image {src_img_path}: {e}")
-
-        # IMPORTANT: If the item is already registered in the catalog, PRESERVE all its offsets and customizations!
-        if item_id in catalog:
-            print(f"  [*] Preserved existing offsets & metadata for '{item_id}'")
-            continue
-
-        # ONLY for brand new items: initialize catalog entry
-        zone = guess_zone(item_id, footprint)
         name = guess_name(item_id, is_tall=is_tall)
+        zone = guess_zone(item_id, footprint)
         surf_h = guess_surface_height(item_id, footprint)
-        sup_surf = (surf_h > 0)
-        surf_off = [0, 0]
+        def_offset = get_sprite_offset(footprint, is_tall=is_tall, item_id=item_id)
+
+        # Copiar base file
+        base_target_name = f"{item_id}.png"
+        shutil.copy2(base_fp, os.path.join(ESTABLISHED_DIR, base_target_name))
+
+        item_entry = {
+            "name": name,
+            "zone": zone,
+            "footprint": footprint,
+            "surface_height": surf_h,
+            "supports_surface": (surf_h > 0),
+            "surface_offset": [0, 0],
+            "canvas_size": [orig_w, orig_h],
+            "sprite_offset": def_offset,
+            "rotations": {}
+        }
 
         if is_wall:
-            wall_offset = [-32, -48]
-            rotations_dict = {}
-            for r in range(4):
-                rotations_dict[str(r)] = {
-                    "id": item_id,
-                    "name": name,
-                    "zone": zone,
-                    "footprint": "wall_n",
-                    "rot": r,
+            for rot_idx, variant in [(0, "n"), (1, "w")]:
+                w_fp = f"wall_{variant}"
+                w_src = data["wall_variants"].get(variant, base_fp)
+                w_target_file = f"{item_id}_{variant}.png"
+                shutil.copy2(w_src, os.path.join(ESTABLISHED_DIR, w_target_file))
+
+                item_entry["rotations"][str(rot_idx)] = {
+                    "id": f"{item_id}_{variant}",
+                    "name": f"{name} ({'Norte' if variant == 'n' else 'Oeste'})",
+                    "footprint": w_fp,
+                    "rot": rot_idx,
                     "canvas_size": [orig_w, orig_h],
-                    "sprite_offset": wall_offset,
-                    "surface_height": surf_h,
-                    "supports_surface": sup_surf,
-                    "surface_offset": surf_off,
+                    "sprite_offset": [-32, -48],
+                    "surface_height": 0,
+                    "supports_surface": False,
+                    "surface_offset": [0, 0],
+                    "asset_path": f"furniture/established_furniture/{w_target_file}"
                 }
-
-            catalog[item_id] = {
-                "rotations": rotations_dict,
-                "id": item_id,
-                "name": name,
-                "zone": zone,
-                "footprint": "wall_n",
-                "surface_height": surf_h,
-                "supports_surface": sup_surf,
-                "surface_offset": surf_off,
-                "sprite_offset": wall_offset,
-            }
-            catalog.pop(f"{item_id}_n", None)
-            catalog.pop(f"{item_id}_w", None)
-
         else:
-            rotations_dict = {}
             for r in range(4):
-                r_footprint = footprint
-                if footprint == "1x2" and (r == 1 or r == 3):
-                    r_footprint = "2x1"
-                elif footprint == "2x1" and (r == 1 or r == 3):
-                    r_footprint = "1x2"
+                rot_fp = footprint
+                if footprint == "1x2" and r in [1, 3]:
+                    rot_fp = "2x1"
+                elif footprint == "2x1" and r in [1, 3]:
+                    rot_fp = "1x2"
 
-                offset = get_sprite_offset(r_footprint, is_tall=is_tall, item_id=item_id)
-                rotations_dict[str(r)] = {
-                    "id": item_id,
-                    "name": name,
-                    "zone": zone,
-                    "footprint": r_footprint,
+                r_offset = get_sprite_offset(rot_fp, is_tall=is_tall, item_id=item_id)
+
+                if r in data["rotations"]:
+                    r_src = data["rotations"][r]
+                    rot_target_file = f"{item_id}_rot{r}.png"
+                    shutil.copy2(r_src, os.path.join(ESTABLISHED_DIR, rot_target_file))
+                else:
+                    # Copia archivo base como rotación si no se dibujó rot específica
+                    rot_target_file = f"{item_id}_rot{r}.png"
+                    shutil.copy2(base_fp, os.path.join(ESTABLISHED_DIR, rot_target_file))
+
+                item_entry["rotations"][str(r)] = {
+                    "id": f"{item_id}_rot{r}",
+                    "name": f"{name} Rot {r}",
+                    "footprint": rot_fp,
                     "rot": r,
                     "canvas_size": [orig_w, orig_h],
-                    "sprite_offset": offset,
+                    "sprite_offset": r_offset,
                     "surface_height": surf_h,
-                    "supports_surface": sup_surf,
-                    "surface_offset": surf_off,
+                    "supports_surface": (surf_h > 0),
+                    "surface_offset": [0, 0],
+                    "asset_path": f"furniture/established_furniture/{rot_target_file}"
                 }
 
-            base_offset = get_sprite_offset(footprint, is_tall=is_tall, item_id=item_id)
-            catalog[item_id] = {
-                "rotations": rotations_dict,
-                "id": item_id,
-                "name": name,
-                "zone": zone,
-                "footprint": footprint,
-                "surface_height": surf_h,
-                "supports_surface": sup_surf,
-                "surface_offset": surf_off,
-                "sprite_offset": base_offset,
-            }
+        catalog[item_id] = item_entry
 
-        added_count += 1
-        print(f"  [+] Registered new item '{item_id}' ({name}) -> Footprint: {footprint}, SurfaceH: {surf_h}")
-
-    for cat_dest in [
-        CATALOG_PATH,
-        os.path.join(FURNITURE_BASE, "128x256", "furniture_catalog.json"),
-        os.path.join(FURNITURE_BASE, "64x128", "furniture_catalog.json"),
-        os.path.join(FURNITURE_BASE, "32x64", "furniture_catalog.json"),
-    ]:
-        with open(cat_dest, "w", encoding="utf-8") as f:
-            json.dump(catalog, f, indent=4, ensure_ascii=False)
-
-    _update_pubspec()
-    print(f"\nSuccessfully synchronized {added_count} items into catalog and all resolution folders!")
-
-def _update_pubspec():
-    if not os.path.exists(PUBSPEC_PATH):
-        return
-    with open(PUBSPEC_PATH, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    new_assets = [
-        "    - assets/images/furniture/new_added/",
-        "    - assets/images/furniture/new_added/1x1/",
-        "    - assets/images/furniture/new_added/1x1/normal/",
-        "    - assets/images/furniture/new_added/1x1/tall/",
-        "    - assets/images/furniture/new_added/1x2/",
-        "    - assets/images/furniture/new_added/2x1/",
-        "    - assets/images/furniture/new_added/2x2/",
-        "    - assets/images/furniture/new_added/surface/",
-        "    - assets/images/furniture/new_added/walls/",
-    ]
-    modified = False
-    for asset in new_assets:
-        if asset.strip() not in content:
-            if "assets:" in content:
-                content = content.replace("assets:\n", f"assets:\n{asset}\n")
-                modified = True
-
-    if modified:
-        with open(PUBSPEC_PATH, "w", encoding="utf-8") as f:
-            f.write(content)
-        print("Updated pubspec.yaml with new asset paths.")
+    # 3. Guardar el catálogo JSON
+    try:
+        with open(CATALOG_PATH, "w", encoding="utf-8") as f:
+            json.dump(catalog, f, indent=2, ensure_ascii=False)
+        print(f"[OK] Catálogo actualizado con {len(catalog)} muebles.")
+        print(f"[OK] Todos los assets consolidados en: {ESTABLISHED_DIR}")
+    except Exception as e:
+        print(f"Error al guardar {CATALOG_PATH}: {e}")
 
 if __name__ == "__main__":
     sync_new_furniture()

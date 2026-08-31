@@ -100,7 +100,7 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
         return (item.zone == 'bedroom' || item.id == 'single_bed' || item.id == 'closet' || item.id == 'king_bed') && !item.isSurfaceItem && !item.isWallItem;
       }
       if (_selectedCategory == 'kitchen_bath') {
-        return (item.zone == 'kitchen' || item.zone == 'bathroom' || item.id == 'kitchen_fridge_sm' || item.id == 'kitchen_stove' || item.id == 'kitchen_sink' || item.id == 'kitchen_counter' || item.id == 'bathtub_1x2' || item.id == 'bathroom_toilet') && !item.isSurfaceItem && !item.isWallItem;
+        return (item.zone == 'kitchen_bath' || item.zone == 'kitchen' || item.zone == 'bathroom' || item.id == 'kitchen_fridge_sm' || item.id == 'kitchen_stove' || item.id == 'kitchen_sink' || item.id == 'kitchen_counter' || item.id == 'bathtub_1x2' || item.id == 'bathtub_regular_1x2' || item.id == 'bathroom_toilet') && !item.isSurfaceItem && !item.isWallItem;
       }
       if (_selectedCategory == 'patio') {
         return (item.zone == 'patio' || item.id == 'bbq_grill' || item.id == 'stone_fountain') && !item.isSurfaceItem && !item.isWallItem;
@@ -178,26 +178,6 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Resolution Pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _currentConfig.resolution == '32x64' ? const Color(0xFF8B5CF6).withOpacity(0.3) : const Color(0xFF2563EB).withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: _currentConfig.resolution == '32x64' ? const Color(0xFF8B5CF6) : const Color(0xFF2563EB),
-                        ),
-                      ),
-                      child: Text(
-                        _currentConfig.resolution == '32x64' ? '32x64 Retro' : '64x128 HD',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: _currentConfig.resolution == '32x64' ? const Color(0xFFA78BFA) : const Color(0xFF60A5FA),
-                        ),
                       ),
                     ),
                   ],
@@ -278,39 +258,32 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
 
   Widget _buildPreviewImage(FurnitureCatalogItem item) {
     final assetName = item.isWallItem ? (item.id.endsWith('_n') || item.id.endsWith('_w') ? item.id : '${item.id}_n') : item.id;
-    final candidatePaths = [
-      'assets/images/furniture/64x128/$assetName.png',
-      'assets/images/furniture/128x256/$assetName.png',
-      'assets/images/furniture/new_added/05x05/$assetName.png',
-      'assets/images/furniture/new_added/1x1/$assetName.png',
-      'assets/images/furniture/new_added/1x2/$assetName.png',
-      'assets/images/furniture/new_added/2x1/$assetName.png',
-      'assets/images/furniture/new_added/2x2/$assetName.png',
-      'assets/images/furniture/new_added/surface/$assetName.png',
-      'assets/images/furniture/new_added/walls/$assetName.png',
-      'assets/images/furniture/new_added/$assetName.png',
-      'assets/images/furniture/$assetName.png',
-    ];
+    final r0Asset = item.rotations[0]?.assetPath;
+    final primaryPath = (r0Asset != null && r0Asset.isNotEmpty)
+        ? 'assets/$r0Asset'
+        : 'assets/images/furniture/established_furniture/$assetName.png';
 
-    Widget buildCandidate(int index) {
-      if (index >= candidatePaths.length) {
-        return Icon(
-          item.isSurfaceItem ? Icons.local_cafe : (item.isWallItem ? Icons.wallpaper : Icons.chair),
-          color: Colors.white24,
-          size: 22,
+    return Image.asset(
+      primaryPath,
+      cacheWidth: 80,
+      cacheHeight: 80,
+      filterQuality: FilterQuality.medium,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return Image.asset(
+          'assets/images/furniture/established_furniture/$assetName.png',
+          cacheWidth: 80,
+          cacheHeight: 80,
+          filterQuality: FilterQuality.medium,
+          fit: BoxFit.contain,
+          errorBuilder: (context, err2, st2) => Icon(
+            item.isSurfaceItem ? Icons.local_cafe : (item.isWallItem ? Icons.wallpaper : Icons.chair),
+            color: Colors.white24,
+            size: 22,
+          ),
         );
-      }
-      return Image.asset(
-        candidatePaths[index],
-        cacheWidth: 80,
-        cacheHeight: 80,
-        filterQuality: FilterQuality.medium,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) => buildCandidate(index + 1),
-      );
-    }
-
-    return buildCandidate(0);
+      },
+    );
   }
 
   Widget _buildFurnitureItemCard(FurnitureCatalogItem item) {

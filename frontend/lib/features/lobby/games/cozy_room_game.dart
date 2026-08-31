@@ -137,6 +137,19 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     world.add(av);
   }
 
+  bool get wallsCut => roomConfig.wallsCut;
+
+  void toggleWallsCut() {
+    setWallsCut(!wallsCut);
+  }
+
+  void setWallsCut(bool enabled) {
+    roomConfig = roomConfig.copyWith(wallsCut: enabled);
+    for (final w in world.children.whereType<IsometricInteriorWallComponent>()) {
+      w.wallsCut = enabled;
+    }
+  }
+
   /// Finds a guaranteed free and walkable sub-grid position for the avatar,
   /// searching outward from the central living area (around subgrid 8, 8).
   Point<int> findSafeSpawnSubGrid() {
@@ -221,6 +234,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         orientation: w.orientation,
         style: w.style,
         hasDoorway: w.hasDoorway,
+        wallsCut: config.wallsCut,
         plasterSprite: _backgroundComponent?._wallpaperSprites['solid_plaster'],
         tilesSprite: _backgroundComponent?._wallpaperSprites['solid_tiles'],
       ));
@@ -242,6 +256,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       }
 
       final rotSprites = await _loadRotationSprites(targetTypeName);
+      final isNorth = !isWall || (footprint == 'wall_n');
 
       final comp = IsometricFurnitureComponent(
         id: item.id.isNotEmpty ? item.id : '${targetTypeName}_${created.length}',
@@ -250,13 +265,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         gridY: item.gridY,
         gridWidth: item.gridWidth,
         gridHeight: item.gridHeight,
-        rotation: item.rotation,
+        rotation: isWall ? (isNorth ? 0 : 1) : item.rotation,
         footprint: footprint,
         parentId: item.parentId,
         wallHeightLevel: item.wallHeightLevel.isNotEmpty ? item.wallHeightLevel : 'high',
         resolution: config.resolution,
         type: targetTypeName.contains('wardrobe') ? FurnitureType.wardrobe : (targetTypeName.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
-        sprite: rotSprites[item.rotation] ?? rotSprites[0],
+        sprite: isWall ? (isNorth ? rotSprites[0] : (rotSprites[1] ?? rotSprites[0])) : (rotSprites[item.rotation] ?? rotSprites[0]),
         rotationSprites: rotSprites,
         onInteract: targetTypeName.contains('wardrobe') ? onOpenWardrobe : null,
       );
@@ -317,135 +332,53 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
   Future<Map<int, Sprite>> _loadRotationSprites(String id) async {
     final Map<int, Sprite> map = {};
-    final isHD = (roomConfig.resolution == '64x128');
+    final catalogItem = FurnitureCatalogService.getItem(id);
+    final isWall = catalogItem?.isWallItem ?? (id.contains('wall') || id.endsWith('_n') || id.endsWith('_w'));
 
-    final candidateIds = [
-      id,
-      if (!id.endsWith('_n') && !id.endsWith('_w')) '${id}_n',
-    ];
+    final maxRots = isWall ? 2 : 4;
+    for (int rot = 0; rot < maxRots; rot++) {
+      final rotMeta = catalogItem?.rotations[rot];
+      if (rotMeta != null && rotMeta.assetPath.isNotEmpty) {
+        try {
+          map[rot] = await loadSprite(rotMeta.assetPath);
+          continue;
+        } catch (_) {}
+      }
 
-    for (int rot = 0; rot < 4; rot++) {
-      for (final cid in candidateIds) {
-        if (map.containsKey(rot)) break;
-        if (isHD) {
-          // HD Mode: Use 128x256 detailed furniture
+      // Fallback directo a established_furniture
+      if (isWall) {
+        final variant = (rot == 0) ? 'n' : 'w';
+        final cleanBase = id.replaceAll(RegExp(r'_(n|w)$'), '');
+        try {
+          map[rot] = await loadSprite('furniture/established_furniture/${cleanBase}_$variant.png');
+        } catch (_) {
           try {
-            map[rot] = await loadSprite('furniture/128x256/${cid}_rot$rot.png');
-            break;
-          } catch (_) {}
-          try {
-            map[rot] = await loadSprite('furniture/128x256/$cid.png');
-            break;
-          } catch (_) {}
-          try {
-            map[rot] = await loadSprite('furniture/64x128/${cid}_rot$rot.png');
-            break;
-          } catch (_) {}
-          try {
-            map[rot] = await loadSprite('furniture/64x128/$cid.png');
-            break;
-          } catch (_) {}
-        } else {
-          // Retro Mode: Use 64x128 furniture (rendered with 2x scale)
-          try {
-            map[rot] = await loadSprite('furniture/64x128/${cid}_rot$rot.png');
-            break;
-          } catch (_) {}
-          try {
-            map[rot] = await loadSprite('furniture/64x128/$cid.png');
-            break;
-          } catch (_) {}
-          try {
-            map[rot] = await loadSprite('furniture/32x64/${cid}_rot$rot.png');
-            break;
-          } catch (_) {}
-          try {
-            map[rot] = await loadSprite('furniture/32x64/$cid.png');
-            break;
+            map[rot] = await loadSprite('furniture/established_furniture/$id.png');
           } catch (_) {}
         }
-
-        // new_added folder fallbacks (05x05, 1x1, 1x2, 2x1, 2x2, surface, walls)
+      } else {
         try {
-          map[rot] = await loadSprite('furniture/new_added/05x05/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/05x05/$cid.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/1x1/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/1x1/$cid.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/1x2/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/1x2/$cid.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/2x1/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/2x1/$cid.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/2x2/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/2x2/$cid.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/surface/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/surface/$cid.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/walls/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/walls/$cid.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/new_added/$cid.png');
-          break;
-        } catch (_) {}
-
-        // Root fallbacks
-        try {
-          map[rot] = await loadSprite('furniture/${cid}_rot$rot.png');
-          break;
-        } catch (_) {}
-        try {
-          map[rot] = await loadSprite('furniture/$cid.png');
-          break;
-        } catch (_) {}
+          map[rot] = await loadSprite('furniture/established_furniture/${id}_rot$rot.png');
+        } catch (_) {
+          try {
+            map[rot] = await loadSprite('furniture/established_furniture/$id.png');
+          } catch (_) {}
+        }
       }
     }
 
-    // Kick off alpha-channel decoding for these sprites now, well before any tap needs it,
-    // so pixel-exact hit-testing (see IsometricFurnitureComponent.hitTestWorld) is ready by
-    // the time the player actually interacts with the placed furniture.
+    if (isWall) {
+      if (map.containsKey(0) && !map.containsKey(2)) map[2] = map[0]!;
+      if (map.containsKey(1) && !map.containsKey(3)) map[3] = map[1]!;
+    } else {
+      for (int rot = 0; rot < 4; rot++) {
+        if (!map.containsKey(rot) && map.containsKey(0)) {
+          map[rot] = map[0]!;
+        }
+      }
+    }
+
+    // Warm alpha-channel cache
     for (final sprite in map.values) {
       SpriteAlphaCache.warm(sprite.image);
     }
@@ -459,11 +392,12 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     comp.typeName = targetTypeName;
     comp.footprint = isNorth ? 'wall_n' : 'wall_w';
+    comp.rotation = isNorth ? 0 : 1;
 
     final rotSprites = await _loadRotationSprites(targetTypeName);
     comp.rotationSprites.clear();
     comp.rotationSprites.addAll(rotSprites);
-    comp.sprite = rotSprites[0];
+    comp.sprite = isNorth ? rotSprites[0] : (rotSprites[1] ?? rotSprites[0]);
     comp.updateGridPosition(comp.gridX, comp.gridY);
   }
 
@@ -748,6 +682,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       orientation: spawnOrientation,
       style: styleOption.id,
       hasDoorway: styleOption.isDoorway,
+      wallsCut: wallsCut,
       plasterSprite: _backgroundComponent?._wallpaperSprites['solid_plaster'],
       tilesSprite: _backgroundComponent?._wallpaperSprites['solid_tiles'],
     );
@@ -1215,6 +1150,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void updateRoomConfig(RoomConfig newConfig, {bool reloadFurniture = true}) async {
     roomConfig = newConfig;
     _backgroundComponent?.roomConfig = newConfig;
+    for (final w in world.children.whereType<IsometricInteriorWallComponent>()) {
+      w.wallsCut = newConfig.wallsCut;
+    }
     if (reloadFurniture) {
       await _loadFurnitureFromConfig(newConfig);
       _recalculateObstacles();
@@ -1919,7 +1857,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         world.add(_TapWaveComponent(grid: _currentHoverGrid!, isSnap: true));
       } else if (_originalGridPos != null) {
         if (_draggedFurniture!.isWallItem && _draggedFurniture!.typeName != _originalWallId) {
-          _switchWallVariant(_draggedFurniture!, _originalWallId.endsWith('_n'));
+          final isOrigNorth = !_originalWallId.endsWith('_w');
+          _switchWallVariant(_draggedFurniture!, isOrigNorth);
         }
         _draggedFurniture!.updateGridPosition(
           _originalGridPos!.x.toDouble(),
@@ -1967,7 +1906,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     if (_draggedFurniture != null && _originalGridPos != null) {
       if (_draggedFurniture!.isWallItem && _draggedFurniture!.typeName != _originalWallId) {
-        _switchWallVariant(_draggedFurniture!, _originalWallId.endsWith('_n'));
+        final isOrigNorth = !_originalWallId.endsWith('_w');
+        _switchWallVariant(_draggedFurniture!, isOrigNorth);
       }
       _draggedFurniture!.updateGridPosition(
         _originalGridPos!.x.toDouble(),

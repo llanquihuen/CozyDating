@@ -28,21 +28,21 @@ class AvatarConfig extends Equatable {
     this.spriteResolution = '64x128',
     this.faceShape = 'oval',
     this.skinColor = const Color(0xFFFCD5B5),
-    this.eyeStyle = 'jrpg_classic',
+    this.eyeStyle = 'cateyes',
     this.eyeColor = const Color(0xFF059669),
-    this.eyebrowStyle = 'normal',
+    this.eyebrowStyle = 'none',
     this.eyebrowColor = const Color(0xFFC85A2A),
-    this.noseStyle = 'subtle',
-    this.mouthStyle = 'smile',
+    this.noseStyle = 'standard',
+    this.mouthStyle = 'catmouth',
     this.faceDetail = 'none',
     this.faceDetailColor = const Color(0xFFFF7777),
-    this.hairStyle = 'farm_braids',
+    this.hairStyle = 'long_flow',
     this.hairColor = const Color(0xFFC85A2A),
-    this.topStyle = 'flannel_shirt',
+    this.topStyle = 'jacket',
     this.topColor = const Color(0xFFDC2626),
-    this.bottomStyle = 'farmer_overalls',
+    this.bottomStyle = 'jeans',
     this.bottomColor = const Color(0xFF2563EB),
-    this.shoeStyle = 'farmer_boots',
+    this.shoeStyle = 'none',
     this.shoeColor = const Color(0xFF78350F),
     this.accessoryStyle = 'none',
     this.accessoryColor = const Color(0xFFEAB308),
@@ -113,217 +113,112 @@ class AvatarConfig extends Equatable {
 
   static const List<String> availableResolutions = [
     '64x128',
-    '32x64',
   ];
 
   static const List<String> availableFaceShapes = [
     'oval',
-    'round',
-    'sharp_v',
-    'square_jaw',
-    'heart',
   ];
 
   static const List<String> availableEyeStyles = [
-    'shoujo_sparkle',
-    'stardew_cute',
-    'jrpg_classic',
-    'adventurer_serious',
-    'sleepy_calm',
-    'cateye_sly',
-    'mystic_glow',
-    'happy_closed',
-    'dot_chibi',
-    'wink',
+    'cateyes',
+    'relax',
   ];
 
   static const List<String> availableEyebrowStyles = [
-    'normal',
-    'thick',
-    'serious',
-    'arched',
+    'none',
   ];
 
   static const List<String> availableNoseStyles = [
-    'subtle',
-    'pointed',
-    'button',
+    'standard',
+    'small',
   ];
 
   static const List<String> availableMouthStyles = [
+    'catmouth',
     'smile',
-    'neutral',
-    'open_smile',
     'smirk',
-    'lipstick',
   ];
 
   static const List<String> availableFaceDetails = [
     'none',
-    'blush',
-    'freckles',
-    'scar',
   ];
 
   static const List<String> availableHairStyles = [
-    'farm_braids',
-    'adventurer_spiky',
-    'long_flowing',
-    'bob_bangs',
-    'curly_locks',
-    'high_ponytail',
-    'twintails',
-    'messy_wanderer',
+    'long_flow',
+    'bangs',
+    'braids',
     'none',
   ];
 
   static const List<String> availableTopStyles = [
-    'flannel_shirt',
-    'overalls_bib',
-    'traveler_tunic',
-    'adventurer_coat',
-    'tshirt',
-    'hoodie',
-    'crop_top',
-    'bikini',
+    'jacket',
     'none',
   ];
 
   static const List<String> availableBottomStyles = [
-    'farmer_overalls',
-    'adventurer_pants',
-    'rustic_skirt',
-    'skirt_pleated',
-    'shorts',
-    'underwear',
-    'bikini',
+    'jeans',
     'none',
   ];
 
   static const List<String> availableShoeStyles = [
-    'farmer_boots',
-    'adventurer_boots',
-    'sneakers',
-    'sandals',
     'none',
   ];
 
   static const List<String> availableAccessoryStyles = [
-    'straw_hat',
-    'traveler_hood',
-    'hair_flower',
-    'scholar_glasses',
-    'neck_bandana',
-    'satchel_bag',
-    'headphones',
-    'sunglasses_cool',
     'none',
   ];
 
   static String formatName(String id) {
     switch (id) {
       // Resolutions
-      case '64x128': return '64x128 (Detallado)';
+      case '64x128': return '64x128 (OCTOPLAYER 8-Dir)';
       case '32x64': return '32x64 (Pixel Chibi)';
 
       // Face Shapes
-      case 'oval': return 'Ovalada Clásica';
+      case 'oval': return 'Ovalada';
       case 'round': return 'Redonda Tierna';
       case 'sharp_v': return 'Afilada en V';
       case 'square_jaw': return 'Mandíbula Firme';
       case 'heart': return 'Forma de Corazón';
 
       // Eyes
-      case 'shoujo_sparkle': return 'Shoujo Brillante ✨';
-      case 'stardew_cute': return 'Stardew Cute 🌾';
-      case 'jrpg_classic': return 'JRPG Clásico ⚔️';
-      case 'adventurer_serious': return 'Aventurero Decidido 🛡️';
-      case 'sleepy_calm': return 'Calmado / Serena 🍃';
-      case 'cateye_sly': return 'Pícaro Kitsune 😸';
-      case 'mystic_glow': return 'Místico Hechicero 🔮';
-      case 'happy_closed': return 'Feliz Cerrado 😊';
-      case 'dot_chibi': return 'Dot Chibi ⚫';
-      case 'wink': return 'Guiño Pícaro 😉';
+      case 'cateyes': return 'Ojos Felinos 🐱';
+      case 'relax': return 'Ojos Relajados 🍃';
 
       // Brows
       case 'normal': return 'Normales';
-      case 'thick': return 'Gruesas';
-      case 'serious': return 'Serias';
-      case 'arched': return 'Arqueadas';
+      case 'none': return 'Ninguno';
 
       // Nose
-      case 'subtle': return 'Sutil (1-Pixel)';
-      case 'pointed': return 'Perfilada';
-      case 'button': return 'Botón Redonda';
+      case 'standard': return 'Nariz Estándar';
+      case 'small': return 'Nariz Pequeña';
+      case 'subtle': return 'Sutil';
 
       // Mouth
-      case 'smile': return 'Sonrisa Dulce';
-      case 'neutral': return 'Neutra';
-      case 'open_smile': return 'Sonrisa Alegre';
-      case 'smirk': return 'Sonrisa Pícara';
-      case 'lipstick': return 'Labial Elegante';
+      case 'catmouth': return 'Boca Gatito 🐱';
+      case 'smile': return 'Sonrisa Dulce 😊';
+      case 'smirk': return 'Sonrisa Pícara 😏';
 
       // Face Details
-      case 'none': return 'Ninguno';
       case 'blush': return 'Rubor Suave';
-      case 'freckles': return 'Pecas Campestres';
-      case 'scar': return 'Cicatriz de Batalla';
+      case 'freckles': return 'Pecas';
+      case 'scar': return 'Cicatriz';
 
       // Hair
-      case 'farm_braids': return 'Trenzas Leah';
-      case 'adventurer_spiky': return 'Corto Puntiagudo';
-      case 'long_flowing': return 'Melena Larga';
-      case 'bob_bangs': return 'Corte Bob';
-      case 'curly_locks': return 'Rizos Campestres';
-      case 'high_ponytail': return 'Coleta Alta';
-      case 'twintails': return 'Coletas Dobles';
-      case 'messy_wanderer': return 'Trotamundos';
+      case 'long_flow': return 'Melena Fluida';
+      case 'bangs': return 'Flequillo / Bangs';
+      case 'braids': return 'Trenzas / Braids';
 
       // Tops
-      case 'flannel_shirt': return 'Camisa Franela';
-      case 'overalls_bib': return 'Peto Overalls';
-      case 'traveler_tunic': return 'Túnica de Viajero';
-      case 'adventurer_coat': return 'Abrigo Aventurero';
-      case 'tshirt': return 'Polera Algodón';
-      case 'hoodie': return 'Sudadera / Hoodie';
-      case 'crop_top': return 'Crop Top';
-      case 'bikini': return 'Bikini Top';
+      case 'jacket': return 'Chaqueta';
 
       // Bottoms
-      case 'farmer_overalls': return 'Overalls Granjero';
-      case 'adventurer_pants': return 'Pantalón Cuero';
-      case 'rustic_skirt': return 'Falda Rústica';
-      case 'skirt_pleated': return 'Falda Plisada';
-      case 'shorts': return 'Shorts Explorador';
-      case 'underwear': return 'Ropa Interior';
+      case 'jeans': return 'Jeans Clásicos';
 
-      // Shoes
-      case 'farmer_boots': return 'Botas de Trabajo';
-      case 'adventurer_boots': return 'Botas de Cuero';
-      case 'sneakers': return 'Zapatillas Urbanas';
-      case 'sandals': return 'Sandalias';
-
-      // Accessories
-      case 'straw_hat': return 'Sombrero de Paja';
-      case 'traveler_hood': return 'Capucha Viajero';
-      case 'hair_flower': return 'Flor Silvestre';
-      case 'scholar_glasses': return 'Gafas de Erudito';
-      case 'neck_bandana': return 'Bandana / Pañuelo';
-      case 'satchel_bag': return 'Bolso Cruzado';
-      case 'headphones': return 'Audífonos';
-      case 'sunglasses_cool': return 'Gafas de Sol';
-
-      // Fallbacks for legacy ids
-      case 'short': return 'Corto';
-      case 'long': return 'Largo';
-      case 'curly': return 'Rizado';
-      case 'cap': return 'Gorra';
-      case 'jacket': return 'Chaqueta';
-      case 'shirt': return 'Camisa';
-      case 'cargo': return 'Cargo';
-      case 'jeans': return 'Jeans';
-      case 'goggles': return 'Gafas';
-      case 'scarf': return 'Bufanda';
+      // Fallbacks
+      case 'farmer_boots': return 'Botas';
+      case 'straw_hat': return 'Sombrero';
+      case 'none': return 'Ninguno';
 
       default:
         return id.replaceAll('_', ' ');
@@ -406,43 +301,49 @@ class AvatarConfig extends Equatable {
 
   factory AvatarConfig.fromJson(Map<String, dynamic> json) {
     String mapHair(String? h) {
-      if (h == 'short') return 'adventurer_spiky';
-      if (h == 'long') return 'long_flowing';
-      if (h == 'curly') return 'curly_locks';
-      if (h == 'cap') return 'bob_bangs';
-      return h ?? 'farm_braids';
+      if (h == 'bangs') return 'bangs';
+      if (h == 'braids') return 'braids';
+      if (h == 'none') return 'none';
+      return 'long_flow';
     }
 
     String mapTop(String? t) {
-      if (t == 'jacket') return 'adventurer_coat';
-      if (t == 'shirt') return 'flannel_shirt';
-      if (t == 'hoodie') return 'hoodie';
-      return t ?? 'flannel_shirt';
+      if (t == 'none') return 'none';
+      return 'jacket';
     }
 
     String mapBottom(String? b) {
-      if (b == 'cargo') return 'adventurer_pants';
-      if (b == 'jeans') return 'farmer_overalls';
-      return b ?? 'farmer_overalls';
+      if (b == 'none') return 'none';
+      return 'jeans';
     }
 
-    String mapAcc(String? a) {
-      if (a == 'goggles') return 'scholar_glasses';
-      if (a == 'scarf') return 'neck_bandana';
-      return a ?? 'none';
+    String mapEyes(String? e) {
+      if (e == 'relax') return 'relax';
+      return 'cateyes';
+    }
+
+    String mapNose(String? n) {
+      if (n == 'small') return 'small';
+      return 'standard';
+    }
+
+    String mapMouth(String? m) {
+      if (m == 'smile') return 'smile';
+      if (m == 'smirk') return 'smirk';
+      return 'catmouth';
     }
 
     return AvatarConfig(
-      spriteResolution: json['spriteResolution'] as String? ?? '64x128',
-      faceShape: json['faceShape'] as String? ?? 'oval',
+      spriteResolution: '64x128',
+      faceShape: 'oval',
       skinColor: json['skinColor'] != null ? Color(json['skinColor'] as int) : const Color(0xFFFCD5B5),
-      eyeStyle: json['eyeStyle'] as String? ?? 'jrpg_classic',
+      eyeStyle: mapEyes(json['eyeStyle'] as String?),
       eyeColor: json['eyeColor'] != null ? Color(json['eyeColor'] as int) : const Color(0xFF059669),
-      eyebrowStyle: json['eyebrowStyle'] as String? ?? 'normal',
+      eyebrowStyle: 'none',
       eyebrowColor: json['eyebrowColor'] != null ? Color(json['eyebrowColor'] as int) : const Color(0xFFC85A2A),
-      noseStyle: json['noseStyle'] as String? ?? 'subtle',
-      mouthStyle: json['mouthStyle'] as String? ?? 'smile',
-      faceDetail: json['faceDetail'] as String? ?? 'none',
+      noseStyle: mapNose(json['noseStyle'] as String?),
+      mouthStyle: mapMouth(json['mouthStyle'] as String?),
+      faceDetail: 'none',
       faceDetailColor: json['faceDetailColor'] != null ? Color(json['faceDetailColor'] as int) : const Color(0xFFFF7777),
       hairStyle: mapHair(json['hairStyle'] as String?),
       hairColor: json['hairColor'] != null ? Color(json['hairColor'] as int) : const Color(0xFFC85A2A),
@@ -450,9 +351,9 @@ class AvatarConfig extends Equatable {
       topColor: json['topColor'] != null ? Color(json['topColor'] as int) : const Color(0xFFDC2626),
       bottomStyle: mapBottom(json['bottomStyle'] as String?),
       bottomColor: json['bottomColor'] != null ? Color(json['bottomColor'] as int) : const Color(0xFF2563EB),
-      shoeStyle: json['shoeStyle'] as String? ?? 'farmer_boots',
+      shoeStyle: 'none',
       shoeColor: json['shoeColor'] != null ? Color(json['shoeColor'] as int) : const Color(0xFF78350F),
-      accessoryStyle: mapAcc(json['accessoryStyle'] as String?),
+      accessoryStyle: 'none',
       accessoryColor: json['accessoryColor'] != null ? Color(json['accessoryColor'] as int) : const Color(0xFFEAB308),
     );
   }

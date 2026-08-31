@@ -62,7 +62,7 @@ def interpolate_color(c1, c2, factor):
         clamp(c1[2] + (c2[2] - c1[2]) * factor)
     )
 
-def colorize_sprite(img, base_rgb, category="clothing", preserve_whites=False):
+def colorize_sprite(img, base_rgb, category="clothing", preserve_whites=False, eyebrow_rgb=None):
     if img is None:
         return None
     
@@ -80,23 +80,33 @@ def colorize_sprite(img, base_rgb, category="clothing", preserve_whites=False):
             if a == 0:
                 continue
             
-            # Tratamiento especial de ojos
+            # Tratamiento especial de ojos (Rojo = Iris, Verde = Cejas, Resto = 100% Intacto)
             if category == "eyes":
-                if r > 120 and g < 45 and b < 45:
+                # 1. Pupila / Iris (Píxeles predominantemente Rojos)
+                if r > g + 20 and r > b + 20 and r >= 50:
                     lum = r
-                    if lum >= 200:
-                        cr, cg, cb = ramp["hl"]
-                    elif lum >= 150:
-                        cr, cg, cb = ramp["mid"]
-                    else:
-                        cr, cg, cb = ramp["shadow"]
+                    if lum >= 200: cr, cg, cb = ramp["hl"]
+                    elif lum >= 150: cr, cg, cb = ramp["light"]
+                    elif lum >= 100: cr, cg, cb = ramp["mid"]
+                    else: cr, cg, cb = ramp["shadow"]
                     out_pixels[x, y] = (cr, cg, cb, a)
                     continue
-                elif r > 240 and g > 240 and b > 240:
-                    out_pixels[x, y] = (255, 255, 255, a)
+
+                # 2. Cejas (Píxeles predominantemente Verdes)
+                elif g > r + 20 and g > b + 20 and g >= 50:
+                    target_brow_rgb = eyebrow_rgb if eyebrow_rgb else base_rgb
+                    brow_ramp = generate_snes_palette_ramp(target_brow_rgb, category="hair")
+                    lum = g
+                    if lum >= 200: cr, cg, cb = brow_ramp["hl"]
+                    elif lum >= 150: cr, cg, cb = brow_ramp["light"]
+                    elif lum >= 100: cr, cg, cb = brow_ramp["mid"]
+                    else: cr, cg, cb = brow_ramp["shadow"]
+                    out_pixels[x, y] = (cr, cg, cb, a)
                     continue
-                elif r < 60 and g < 60 and b < 60:
-                    out_pixels[x, y] = (30, 25, 35, a)
+
+                # 3. Todo lo demás (Pestañas negras, blanco de ojos, brillos, contornos) se queda INTACTO
+                else:
+                    out_pixels[x, y] = (r, g, b, a)
                     continue
             
             if preserve_whites and r > 240 and g > 240 and b > 240:

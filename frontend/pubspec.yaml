@@ -23,56 +23,22 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/furniture/new_added/05x05/
-    - assets/images/furniture/new_added/walls/
-    - assets/images/furniture/new_added/surface/
-    - assets/images/furniture/new_added/2x1/
-    - assets/images/furniture/new_added/1x1/tall/
-    - assets/images/furniture/new_added/1x1/normal/
-    - assets/images/furniture/new_added/2x2/
-    - assets/images/furniture/new_added/1x2/
-    - assets/images/furniture/new_added/1x1/
-    - assets/images/furniture/new_added/
-    - assets/images/
+    - assets/images/furniture/established_furniture/
     - assets/images/furniture/
-    - assets/images/furniture/128x256/
-    - assets/images/furniture/64x128/
-    - assets/images/furniture/32x64/
     - assets/images/wallpaper/
     - assets/images/floors/
-    - assets/images/avatar/body/
-    - assets/images/avatar/face_shape/
-    - assets/images/avatar/eyes/
-    - assets/images/avatar/eyebrows/
-    - assets/images/avatar/mouth/
-    - assets/images/avatar/nose/
-    - assets/images/avatar/face_details/
-    - assets/images/avatar/hair/
-    - assets/images/avatar/tops/
-    - assets/images/avatar/bottoms/
-    - assets/images/avatar/shoes/
-    - assets/images/avatar/accessories/
-    - assets/images/avatar/64x128/body/
-    - assets/images/avatar/64x128/face_shape/
-    - assets/images/avatar/64x128/eyes/
-    - assets/images/avatar/64x128/eyebrows/
-    - assets/images/avatar/64x128/mouth/
-    - assets/images/avatar/64x128/nose/
-    - assets/images/avatar/64x128/face_details/
-    - assets/images/avatar/64x128/hair/
-    - assets/images/avatar/64x128/tops/
-    - assets/images/avatar/64x128/bottoms/
-    - assets/images/avatar/64x128/shoes/
-    - assets/images/avatar/64x128/accessories/
-    - assets/images/avatar/32x64/body/
-    - assets/images/avatar/32x64/face_shape/
-    - assets/images/avatar/32x64/eyes/
-    - assets/images/avatar/32x64/eyebrows/
-    - assets/images/avatar/32x64/mouth/
-    - assets/images/avatar/32x64/nose/
-    - assets/images/avatar/32x64/face_details/
-    - assets/images/avatar/32x64/hair/
-    - assets/images/avatar/32x64/tops/
-    - assets/images/avatar/32x64/bottoms/
-    - assets/images/avatar/32x64/shoes/
-    - assets/images/avatar/32x64/accessories/
+    - assets/images/OCTOPLAYER/Avatar/body/
+    - assets/images/OCTOPLAYER/Avatar/head/
+    - assets/images/OCTOPLAYER/Avatar/eyes/
+    - assets/images/OCTOPLAYER/Avatar/nose/
+    - assets/images/OCTOPLAYER/Avatar/mouth/
+    - assets/images/OCTOPLAYER/Avatar/hair/long_flow/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/long_flow/back/
+    - assets/images/OCTOPLAYER/Avatar/hair/bangs/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/bangs/back/
+    - assets/images/OCTOPLAYER/Avatar/hair/braids/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/braids/back/
+    - assets/images/OCTOPLAYER/Avatar/tops/
+    - assets/images/OCTOPLAYER/Avatar/bottoms/
+    - assets/images/OCTOPLAYER/Avatar/shoes/
+    - assets/images/OCTOPLAYER/Avatar/accessories/

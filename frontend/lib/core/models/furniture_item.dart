@@ -17,6 +17,7 @@ class FurnitureRotationMeta extends Equatable {
   final int surfaceHeight;
   final bool supportsSurface;
   final List<int> surfaceOffset;
+  final String assetPath;
 
   const FurnitureRotationMeta({
     required this.id,
@@ -28,6 +29,7 @@ class FurnitureRotationMeta extends Equatable {
     this.surfaceHeight = 0,
     this.supportsSurface = false,
     this.surfaceOffset = const [0, 0],
+    this.assetPath = '',
   });
 
   factory FurnitureRotationMeta.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class FurnitureRotationMeta extends Equatable {
       surfaceHeight: sH,
       supportsSurface: supSurf,
       surfaceOffset: (json['surface_offset'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? const [0, 0],
+      assetPath: json['asset_path'] as String? ?? '',
     );
   }
 
@@ -57,11 +60,12 @@ class FurnitureRotationMeta extends Equatable {
       'surface_height': surfaceHeight,
       'supports_surface': supportsSurface,
       'surface_offset': surfaceOffset,
+      'asset_path': assetPath,
     };
   }
 
   @override
-  List<Object?> get props => [id, name, footprint, rot, canvasSize, spriteOffset, surfaceHeight, supportsSurface, surfaceOffset];
+  List<Object?> get props => [id, name, footprint, rot, canvasSize, spriteOffset, surfaceHeight, supportsSurface, surfaceOffset, assetPath];
 }
 
 class FurnitureCatalogItem extends Equatable {
@@ -96,7 +100,7 @@ class FurnitureCatalogItem extends Equatable {
     if (footprint == 'wall_w' || id.endsWith('_wall_w') || id.endsWith('_w')) {
       return FurniturePlacementType.wallWest;
     }
-    if (footprint == 'wall_n' || footprint == 'wall' || id.endsWith('_wall_n') || id.endsWith('_n') || id.contains('wall') || id == 'window_yellow' || id == 'art_painting' || id == 'wall_clock') {
+    if (footprint == 'wall_n' || footprint == 'wall' || id.endsWith('_wall_n') || id.endsWith('_n') || id.contains('wall') || id.startsWith('window_yellow') || id.startsWith('art_painting') || id.startsWith('wall_clock') || id.startsWith('curtained_window')) {
       return FurniturePlacementType.wallNorth;
     }
     return FurniturePlacementType.floor;

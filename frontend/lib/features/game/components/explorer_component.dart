@@ -23,14 +23,22 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
 
   String get directionName {
     switch (avatarRenderer.direction) {
-      case AvatarDirection.up:
-        return 'up';
-      case AvatarDirection.down:
+      case AvatarDirection.south:
         return 'down';
-      case AvatarDirection.left:
-        return 'left';
-      case AvatarDirection.right:
+      case AvatarDirection.southEast:
+        return 'southeast';
+      case AvatarDirection.east:
         return 'right';
+      case AvatarDirection.northEast:
+        return 'northeast';
+      case AvatarDirection.north:
+        return 'up';
+      case AvatarDirection.northWest:
+        return 'northwest';
+      case AvatarDirection.west:
+        return 'left';
+      case AvatarDirection.southWest:
+        return 'southwest';
     }
   }
 

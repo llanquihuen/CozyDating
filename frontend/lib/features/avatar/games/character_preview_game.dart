@@ -82,13 +82,13 @@ class CharacterPreviewGame extends FlameGame {
   }
 
   void rotateRight() {
-    final nextIndex = (currentDirection.index + 1) % 4;
+    final nextIndex = (currentDirection.index + 1) % 8;
     currentDirection = AvatarDirection.values[nextIndex];
     avatar.direction = currentDirection;
   }
 
   void rotateLeft() {
-    final prevIndex = (currentDirection.index + 3) % 4;
+    final prevIndex = (currentDirection.index + 7) % 8;
     currentDirection = AvatarDirection.values[prevIndex];
     avatar.direction = currentDirection;
   }

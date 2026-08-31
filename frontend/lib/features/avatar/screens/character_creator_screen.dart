@@ -31,6 +31,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   late TabController _faceTabController;
   late TabController _clothesTabController;
   bool _syncBrowsWithHair = true;
+  double _dragDeltaAccumulator = 0.0;
 
   @override
   void initState() {
@@ -74,19 +75,17 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     final randomHairColor = AvatarConfig.hairColors[rand.nextInt(AvatarConfig.hairColors.length)];
     final randomTopColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
     final randomBottomColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
-    final randomShoeColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
-    final randomAccColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
 
     final newConfig = AvatarConfig(
       faceShape: AvatarConfig.availableFaceShapes[rand.nextInt(AvatarConfig.availableFaceShapes.length)],
       skinColor: randomSkin,
       eyeStyle: AvatarConfig.availableEyeStyles[rand.nextInt(AvatarConfig.availableEyeStyles.length)],
       eyeColor: randomEyeColor,
-      eyebrowStyle: AvatarConfig.availableEyebrowStyles[rand.nextInt(AvatarConfig.availableEyebrowStyles.length)],
-      eyebrowColor: _syncBrowsWithHair ? randomHairColor : randomHairColor,
+      eyebrowStyle: 'none',
+      eyebrowColor: randomHairColor,
       noseStyle: AvatarConfig.availableNoseStyles[rand.nextInt(AvatarConfig.availableNoseStyles.length)],
       mouthStyle: AvatarConfig.availableMouthStyles[rand.nextInt(AvatarConfig.availableMouthStyles.length)],
-      faceDetail: AvatarConfig.availableFaceDetails[rand.nextInt(AvatarConfig.availableFaceDetails.length)],
+      faceDetail: 'none',
       faceDetailColor: const Color(0xFFFF7777),
       hairStyle: AvatarConfig.availableHairStyles[rand.nextInt(AvatarConfig.availableHairStyles.length)],
       hairColor: randomHairColor,
@@ -94,10 +93,10 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       topColor: randomTopColor,
       bottomStyle: AvatarConfig.availableBottomStyles[rand.nextInt(AvatarConfig.availableBottomStyles.length)],
       bottomColor: randomBottomColor,
-      shoeStyle: AvatarConfig.availableShoeStyles[rand.nextInt(AvatarConfig.availableShoeStyles.length)],
-      shoeColor: randomShoeColor,
-      accessoryStyle: AvatarConfig.availableAccessoryStyles[rand.nextInt(AvatarConfig.availableAccessoryStyles.length)],
-      accessoryColor: randomAccColor,
+      shoeStyle: 'none',
+      shoeColor: const Color(0xFF78350F),
+      accessoryStyle: 'none',
+      accessoryColor: const Color(0xFFEAB308),
     );
 
     _updateConfig(newConfig);
@@ -271,7 +270,28 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          child: GameWidget(game: _previewGame),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragUpdate: (details) {
+              _dragDeltaAccumulator += details.delta.dx;
+              const double stepThreshold = 18.0;
+              if (_dragDeltaAccumulator >= stepThreshold) {
+                setState(() {
+                  _previewGame.rotateRight();
+                });
+                _dragDeltaAccumulator -= stepThreshold;
+              } else if (_dragDeltaAccumulator <= -stepThreshold) {
+                setState(() {
+                  _previewGame.rotateLeft();
+                });
+                _dragDeltaAccumulator += stepThreshold;
+              }
+            },
+            onHorizontalDragEnd: (_) {
+              _dragDeltaAccumulator = 0.0;
+            },
+            child: GameWidget(game: _previewGame),
+          ),
         ),
         // Camera Mode Badge (clickable toggle)
         Positioned(
@@ -349,73 +369,50 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Resolution Selector Bar
+        // Rotation & Swipe Interactive Bar
         Container(
-          padding: const EdgeInsets.all(3),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
           decoration: BoxDecoration(
             color: const Color(0xFF0B1120),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: const Color(0xFF334155)),
           ),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: _buildResolutionButton(
-                  label: '64x128 Detalle',
-                  resolution: '64x128',
-                  icon: Icons.hd,
-                ),
+              const Row(
+                children: [
+                  Icon(Icons.swipe, size: 14, color: Color(0xFF38BDF8)),
+                  SizedBox(width: 5),
+                  Text(
+                    'Desliza para girar',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 2),
-              Expanded(
-                child: _buildResolutionButton(
-                  label: '32x64 Chibi',
-                  resolution: '32x64',
-                  icon: Icons.grid_view,
-                ),
+              Row(
+                children: [
+                  _buildQuickRotateBtn(Icons.rotate_left, () {
+                    setState(() {
+                      _previewGame.rotateLeft();
+                    });
+                  }),
+                  const SizedBox(width: 6),
+                  _buildQuickRotateBtn(Icons.rotate_right, () {
+                    setState(() {
+                      _previewGame.rotateRight();
+                    });
+                  }),
+                ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 4),
-        // Direction Controls
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Girar / Vista:',
-              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8)),
-            ),
-            Row(
-              children: [
-                _buildQuickRotateBtn(Icons.rotate_left, () {
-                  setState(() {
-                    _previewGame.rotateLeft();
-                  });
-                }),
-                const SizedBox(width: 4),
-                _buildQuickRotateBtn(Icons.rotate_right, () {
-                  setState(() {
-                    _previewGame.rotateRight();
-                  });
-                }),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            Expanded(child: _buildDirButton('⬇️', 'Frente', AvatarDirection.down)),
-            const SizedBox(width: 3),
-            Expanded(child: _buildDirButton('⬅️', 'Izq', AvatarDirection.left)),
-            const SizedBox(width: 3),
-            Expanded(child: _buildDirButton('➡️', 'Der', AvatarDirection.right)),
-            const SizedBox(width: 3),
-            Expanded(child: _buildDirButton('⬆️', 'Atrás', AvatarDirection.up)),
-          ],
-        ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         // Walk toggle button
         InkWell(
           onTap: () {
@@ -425,7 +422,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           },
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 7),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               color: _previewGame.isWalking
                   ? const Color(0xFFDC2626).withOpacity(0.2)
@@ -500,92 +497,13 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           color: const Color(0xFF0F172A).withOpacity(0.85),
           shape: BoxShape.circle,
           border: Border.all(color: const Color(0xFF475569)),
         ),
-        child: Icon(icon, size: 13, color: const Color(0xFFE2E8F0)),
-      ),
-    );
-  }
-
-  Widget _buildResolutionButton({
-    required String label,
-    required String resolution,
-    required IconData icon,
-  }) {
-    final isSelected = _currentConfig.spriteResolution == resolution;
-    return GestureDetector(
-      onTap: () => _updateConfig(_currentConfig.copyWith(spriteResolution: resolution)),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (resolution == '64x128' ? const Color(0xFF0284C7) : const Color(0xFF7C3AED))
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(7),
-        ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 12, color: isSelected ? Colors.white : const Color(0xFF64748B)),
-            const SizedBox(width: 3),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-                ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDirButton(String emoji, String label, AvatarDirection dir) {
-    final isSelected = _previewGame.currentDirection == dir;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _previewGame.currentDirection = dir;
-          _previewGame.avatar.direction = dir;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0284C7) : const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF334155),
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 10)),
-            const SizedBox(width: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-              ),
-            ),
-          ],
-        ),
+        child: Icon(icon, size: 14, color: const Color(0xFFE2E8F0)),
       ),
     );
   }
@@ -850,20 +768,9 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       padding: const EdgeInsets.all(16),
       children: [
         _buildSectionHeader(
-          icon: Icons.aspect_ratio,
-          title: 'Resolución & Estilo Pixel Art',
-          subtitle: 'Define el nivel de detalle y tamaño de los sprites',
-        ),
-        _buildOptionList(
-          options: AvatarConfig.availableResolutions,
-          selected: _currentConfig.spriteResolution,
-          onSelected: (val) => _updateConfig(_currentConfig.copyWith(spriteResolution: val)),
-        ),
-        const SizedBox(height: 24),
-        _buildSectionHeader(
           icon: Icons.face_6,
-          title: 'Forma del Rostro / Mandíbula',
-          subtitle: 'Estructura ósea y contorno del personaje',
+          title: 'Forma del Rostro / Cabeza',
+          subtitle: 'Contorno base del personaje (OCTOPLAYER 8-Dir)',
         ),
         _buildOptionList(
           options: AvatarConfig.availableFaceShapes,
@@ -891,8 +798,8 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       children: [
         _buildSectionHeader(
           icon: Icons.remove_red_eye,
-          title: 'Estilo de Ojos (10 Diseños Expresivos)',
-          subtitle: 'Expresión visual de la mirada del personaje',
+          title: 'Estilo de Ojos',
+          subtitle: 'Expresión visual de la mirada (8 Direcciones)',
         ),
         _buildOptionList(
           options: AvatarConfig.availableEyeStyles,
@@ -903,63 +810,29 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
         _buildSectionHeader(
           icon: Icons.color_lens,
           title: 'Color del Iris',
-          subtitle: 'Tonalidad mágica o natural de los ojos',
+          subtitle: 'Tonalidad de los ojos',
         ),
         _buildColorPalette(
           colors: AvatarConfig.eyeColors,
           selectedColor: _currentConfig.eyeColor,
           onColorSelected: (color) => _updateConfig(_currentConfig.copyWith(eyeColor: color)),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
         _buildSectionHeader(
-          icon: Icons.waves,
-          title: 'Cejas',
-          subtitle: 'Define el carácter y estado de ánimo',
+          icon: Icons.brush,
+          title: 'Color de Cejas',
+          subtitle: 'Tonalidad de las cejas',
         ),
-        _buildOptionList(
-          options: AvatarConfig.availableEyebrowStyles,
-          selected: _currentConfig.eyebrowStyle,
-          onSelected: (val) => _updateConfig(_currentConfig.copyWith(eyebrowStyle: val)),
+        _buildColorPalette(
+          colors: AvatarConfig.hairColors,
+          selectedColor: _currentConfig.eyebrowColor,
+          onColorSelected: (color) => _updateConfig(_currentConfig.copyWith(eyebrowColor: color)),
         ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF334155)),
-          ),
-          child: CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Sincronizar color de cejas con el cabello',
-              style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12.5, fontWeight: FontWeight.w500),
-            ),
-            value: _syncBrowsWithHair,
-            activeColor: const Color(0xFF0284C7),
-            onChanged: (val) {
-              setState(() {
-                _syncBrowsWithHair = val ?? true;
-                if (_syncBrowsWithHair) {
-                  _updateConfig(_currentConfig.copyWith(eyebrowColor: _currentConfig.hairColor));
-                }
-              });
-            },
-          ),
-        ),
-        if (!_syncBrowsWithHair) ...[
-          const SizedBox(height: 10),
-          _buildColorPalette(
-            colors: AvatarConfig.hairColors,
-            selectedColor: _currentConfig.eyebrowColor,
-            onColorSelected: (color) => _updateConfig(_currentConfig.copyWith(eyebrowColor: color)),
-          ),
-        ],
         const SizedBox(height: 24),
         _buildSectionHeader(
           icon: Icons.arrow_drop_down_circle,
           title: 'Nariz',
-          subtitle: 'Estilo sutil o definido',
+          subtitle: 'Estilo de nariz (8 Direcciones)',
         ),
         _buildOptionList(
           options: AvatarConfig.availableNoseStyles,
@@ -970,23 +843,12 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
         _buildSectionHeader(
           icon: Icons.sentiment_satisfied_alt,
           title: 'Boca & Expresión',
-          subtitle: 'Sonrisa, calma o actitud del avatar',
+          subtitle: 'Sonrisa o actitud del avatar (8 Direcciones)',
         ),
         _buildOptionList(
           options: AvatarConfig.availableMouthStyles,
           selected: _currentConfig.mouthStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(mouthStyle: val)),
-        ),
-        const SizedBox(height: 24),
-        _buildSectionHeader(
-          icon: Icons.star_border,
-          title: 'Detalles Faciales',
-          subtitle: 'Pecas, rubor, cicatriz o marcas distintivas',
-        ),
-        _buildOptionList(
-          options: AvatarConfig.availableFaceDetails,
-          selected: _currentConfig.faceDetail,
-          onSelected: (val) => _updateConfig(_currentConfig.copyWith(faceDetail: val)),
         ),
       ],
     );

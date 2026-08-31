@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/models/room_config.dart';
 import 'package:frontend/core/network/websocket_client.dart';
 import 'package:frontend/core/services/avatar_storage_service.dart';
@@ -140,27 +141,27 @@ void main() {
   group('Multi-user Avatar & Room Storage Tests', () {
     test('Independent avatar configs per user (userA, userB, userC, userD)', () {
       AvatarStorageService.setActiveUser('userA');
-      expect(AvatarStorageService.currentConfig.topStyle, equals('flannel_shirt'));
-      expect(AvatarStorageService.currentConfig.hairStyle, equals('farm_braids'));
+      expect(AvatarStorageService.currentConfig.topStyle, equals('jacket'));
+      expect(AvatarStorageService.currentConfig.hairStyle, equals('long_flow'));
 
       AvatarStorageService.setActiveUser('userB');
-      expect(AvatarStorageService.currentConfig.topStyle, equals('hoodie'));
-      expect(AvatarStorageService.currentConfig.hairStyle, equals('long_flowing'));
+      expect(AvatarStorageService.currentConfig.topStyle, equals('jacket'));
+      expect(AvatarStorageService.currentConfig.hairStyle, equals('long_flow'));
 
       AvatarStorageService.setActiveUser('userC');
-      expect(AvatarStorageService.currentConfig.topStyle, equals('traveler_tunic'));
+      expect(AvatarStorageService.currentConfig.topStyle, equals('jacket'));
 
       AvatarStorageService.setActiveUser('userD');
-      expect(AvatarStorageService.currentConfig.hairStyle, equals('messy_wanderer'));
+      expect(AvatarStorageService.currentConfig.hairStyle, equals('long_flow'));
 
       // Modifying userB does not change userA
       AvatarStorageService.saveUserConfig(
         'userB',
-        AvatarStorageService.getUserConfig('userB').copyWith(topStyle: 'tshirt'),
+        AvatarStorageService.getUserConfig('userB').copyWith(topStyle: 'none'),
       );
 
-      expect(AvatarStorageService.getUserConfig('userB').topStyle, equals('tshirt'));
-      expect(AvatarStorageService.getUserConfig('userA').topStyle, equals('flannel_shirt'));
+      expect(AvatarStorageService.getUserConfig('userB').topStyle, equals('none'));
+      expect(AvatarStorageService.getUserConfig('userA').topStyle, equals('jacket'));
     });
 
     test('Independent RoomConfig wallpaper and floors per user', () {
@@ -866,6 +867,56 @@ void main() {
         final spawnPos = game.findSafeSpawnSubGrid();
         expect(game.obstacles.contains(spawnPos), isFalse, reason: 'User $uid spawnPos $spawnPos should not be in obstacles');
       }
+    });
+  });
+
+  group('Cutaway Low Walls / Modo Zócalo Tests', () {
+    test('RoomConfig serializes and deserializes wallsCut property', () {
+      const configWithFullWalls = RoomConfig(wallsCut: false);
+      expect(configWithFullWalls.wallsCut, isFalse);
+      final jsonFull = configWithFullWalls.toJson();
+      final decodedFull = RoomConfig.fromJson(jsonFull);
+      expect(decodedFull.wallsCut, isFalse);
+
+      final configWithLowWalls = configWithFullWalls.copyWith(wallsCut: true);
+      expect(configWithLowWalls.wallsCut, isTrue);
+      final jsonLow = configWithLowWalls.toJson();
+      final decodedLow = RoomConfig.fromJson(jsonLow);
+      expect(decodedLow.wallsCut, isTrue);
+    });
+
+    test('CozyRoomGame toggleWallsCut and setWallsCut updates game and interior wall heights', () {
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+        roomConfig: const RoomConfig(wallsCut: false),
+      );
+
+      final interiorWall = IsometricInteriorWallComponent(
+        id: 'test_wall',
+        gridX: 2,
+        gridY: 2,
+        orientation: 'north',
+        wallsCut: false,
+      );
+      game.world.add(interiorWall);
+
+      expect(game.wallsCut, isFalse);
+      expect(interiorWall.wallsCut, isFalse);
+      expect(interiorWall.effectiveWallHeight, equals(IsometricInteriorWallComponent.fullWallHeight));
+
+      // Toggle to Low Walls (Zócalo)
+      game.toggleWallsCut();
+      expect(game.wallsCut, isTrue);
+      expect(game.roomConfig.wallsCut, isTrue);
+      expect(interiorWall.wallsCut, isTrue);
+      expect(interiorWall.effectiveWallHeight, equals(IsometricInteriorWallComponent.lowWallHeight));
+
+      // Toggle back to Full Walls
+      game.toggleWallsCut();
+      expect(game.wallsCut, isFalse);
+      expect(game.roomConfig.wallsCut, isFalse);
+      expect(interiorWall.wallsCut, isFalse);
+      expect(interiorWall.effectiveWallHeight, equals(IsometricInteriorWallComponent.fullWallHeight));
     });
   });
 }

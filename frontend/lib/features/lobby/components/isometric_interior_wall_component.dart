@@ -27,6 +27,10 @@ class IsometricInteriorWallComponent extends Component {
   double currentOpacity = 1.0;
   double targetOpacity = 1.0;
 
+  bool wallsCut = false;
+  static const double fullWallHeight = 68.0;
+  static const double lowWallHeight = 14.0;
+  double get effectiveWallHeight => wallsCut ? lowWallHeight : fullWallHeight;
   static const double wallHeight = 68.0;
   static const double halfTileW = IsometricCoords.tileWidth / 2.0; // 32
   static const double halfTileH = IsometricCoords.tileHeight / 2.0; // 16
@@ -41,6 +45,7 @@ class IsometricInteriorWallComponent extends Component {
     this.isSelected = false,
     this.plasterSprite,
     this.tilesSprite,
+    this.wallsCut = false,
     bool isBeingDragged = false,
   }) : _isBeingDragged = isBeingDragged {
     _updatePriority();
@@ -97,7 +102,7 @@ class IsometricInteriorWallComponent extends Component {
       bY2 = basePos.y - halfTileH;
     }
 
-    return Vector2((bX1 + bX2) / 2.0, (bY1 + bY2) / 2.0 - wallHeight);
+    return Vector2((bX1 + bX2) / 2.0, (bY1 + bY2) / 2.0 - effectiveWallHeight);
   }
 
   InteriorWallConfig toConfig() {
@@ -130,8 +135,8 @@ class IsometricInteriorWallComponent extends Component {
       bX2 = basePos.x;
       bY2 = basePos.y - halfTileH;
     }
-    final tX1 = bX1, tY1 = bY1 - wallHeight;
-    final tX2 = bX2, tY2 = bY2 - wallHeight;
+    final tX1 = bX1, tY1 = bY1 - effectiveWallHeight;
+    final tX2 = bX2, tY2 = bY2 - effectiveWallHeight;
 
     return _pointInQuad(
       worldPos,
@@ -188,7 +193,7 @@ class IsometricInteriorWallComponent extends Component {
 
       final minX = min(bX1, bX2) - 8.0;
       final maxX = max(bX1, bX2) + 8.0;
-      final minY = min(bY1, bY2) - wallHeight - 6.0;
+      final minY = min(bY1, bY2) - effectiveWallHeight - 6.0;
       final maxY = max(bY1, bY2) + 4.0;
       final wallRect = Rect.fromLTRB(minX, minY, maxX, maxY);
 
@@ -239,11 +244,11 @@ class IsometricInteriorWallComponent extends Component {
       bY2 = basePos.y - halfTileH;
     }
 
-    // Top edge anchor points (elevated by wallHeight)
+    // Top edge anchor points (elevated by effectiveWallHeight)
     final tX1 = bX1;
-    final tY1 = bY1 - wallHeight;
+    final tY1 = bY1 - effectiveWallHeight;
     final tX2 = bX2;
-    final tY2 = bY2 - wallHeight;
+    final tY2 = bY2 - effectiveWallHeight;
 
     final wallQuad = Path()
       ..moveTo(bX1, bY1)
@@ -385,14 +390,14 @@ class IsometricInteriorWallComponent extends Component {
       canvas.save();
       canvas.clipPath(quad);
       final matrix = vmath.Matrix4.identity()
-        ..translate(bX1, bY1 - wallHeight)
+        ..translate(bX1, bY1 - effectiveWallHeight)
         ..setEntry(0, 0, (bX2 - bX1) / halfTileW)
         ..setEntry(1, 0, (bY2 - bY1) / halfTileW);
       canvas.transform(matrix.storage);
       sprite.render(
         canvas,
         position: Vector2.zero(),
-        size: Vector2(halfTileW, wallHeight),
+        size: Vector2(halfTileW, effectiveWallHeight),
         overridePaint: Paint()..colorFilter = ColorFilter.mode(faceColor, BlendMode.modulate),
       );
       canvas.restore();
@@ -473,14 +478,16 @@ class IsometricInteriorWallComponent extends Component {
     }
 
     // Top beam / trim
-    final topBeam = Path()
-      ..moveTo(tX1, tY1)
-      ..lineTo(tX2, tY2)
-      ..lineTo(tX2, tY2 + 5)
-      ..lineTo(tX1, tY1 + 5)
-      ..close();
-    final topPaint = Paint()..color = isNorth ? const Color(0xFF8D6E63) : const Color(0xFF795548);
-    canvas.drawPath(topBeam, topPaint);
+    if (!wallsCut) {
+      final topBeam = Path()
+        ..moveTo(tX1, tY1)
+        ..lineTo(tX2, tY2)
+        ..lineTo(tX2, tY2 + 5)
+        ..lineTo(tX1, tY1 + 5)
+        ..close();
+      final topPaint = Paint()..color = isNorth ? const Color(0xFF8D6E63) : const Color(0xFF795548);
+      canvas.drawPath(topBeam, topPaint);
+    }
 
     // Baseboard trim
     final baseTrim = Path()
@@ -601,7 +608,7 @@ class IsometricInteriorWallComponent extends Component {
 
     for (int r = 1; r <= 5; r++) {
       final t = r / 6.0;
-      final dy = -wallHeight * t;
+      final dy = -effectiveWallHeight * t;
       canvas.drawLine(Offset(bX1, bY1 + dy), Offset(bX2, bY2 + dy), mortarPaint);
     }
 
@@ -721,7 +728,7 @@ class IsometricInteriorWallComponent extends Component {
     // Horizontal bars
     for (int r = 1; r <= 4; r++) {
       final t = r / 5.0;
-      final dy = -wallHeight * t;
+      final dy = -effectiveWallHeight * t;
       canvas.drawLine(Offset(bX1, bY1 + dy), Offset(bX2, bY2 + dy), latticePaint);
     }
 
@@ -757,20 +764,32 @@ class IsometricInteriorWallComponent extends Component {
     double tY2,
     bool isNorth,
   ) {
+    if (wallsCut) {
+      // In low walls mode (modo zócalo), a doorway / paso libre is completely open.
+      // There are no top beams, no top lines, and no vertical posts sticking up.
+      // We only draw a subtle 2px wooden floor threshold transition on the ground:
+      final threshold = Path()
+        ..moveTo(bX1, bY1 - 2)
+        ..lineTo(bX2, bY2 - 2)
+        ..lineTo(bX2, bY2)
+        ..lineTo(bX1, bY1)
+        ..close();
+      canvas.drawPath(threshold, Paint()..color = const Color(0xFF5D4037));
+      canvas.drawPath(
+        threshold,
+        Paint()
+          ..color = const Color(0xFF3E2723)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8,
+      );
+      return;
+    }
+
     final capDx = isNorth ? -3.0 : 3.0;
     final capDy = -1.5;
-
-    // Top Beam 3D Cap
-    final topCap = Path()
-      ..moveTo(tX1, tY1)
-      ..lineTo(tX2, tY2)
-      ..lineTo(tX2 + capDx, tY2 + capDy)
-      ..lineTo(tX1 + capDx, tY1 + capDy)
-      ..close();
-    canvas.drawPath(topCap, Paint()..color = const Color(0xFF795548));
+    const postWidthFraction = 0.18;
 
     // Left post
-    const postWidthFraction = 0.18;
     final post1BX = bX1 + (bX2 - bX1) * postWidthFraction;
     final post1BY = bY1 + (bY2 - bY1) * postWidthFraction;
     final post1TX = tX1 + (tX2 - tX1) * postWidthFraction;
@@ -796,7 +815,21 @@ class IsometricInteriorWallComponent extends Component {
       ..lineTo(bX2, bY2)
       ..close();
 
-    // Top header beam
+    final woodPaint = Paint()..color = const Color(0xFF5D4037);
+    final borderPaint = Paint()
+      ..color = const Color(0xFF271711)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    // Full height: draw left post, right post, 3D top cap and top header beam across the doorway
+    final topCap = Path()
+      ..moveTo(tX1, tY1)
+      ..lineTo(tX2, tY2)
+      ..lineTo(tX2 + capDx, tY2 + capDy)
+      ..lineTo(tX1 + capDx, tY1 + capDy)
+      ..close();
+    canvas.drawPath(topCap, Paint()..color = const Color(0xFF795548));
+
     const headerHeight = 12.0;
     final topBeam = Path()
       ..moveTo(tX1, tY1)
@@ -804,12 +837,6 @@ class IsometricInteriorWallComponent extends Component {
       ..lineTo(tX2, tY2 + headerHeight)
       ..lineTo(tX1, tY1 + headerHeight)
       ..close();
-
-    final woodPaint = Paint()..color = const Color(0xFF5D4037);
-    final borderPaint = Paint()
-      ..color = const Color(0xFF271711)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
 
     canvas.drawPath(leftPost, woodPaint);
     canvas.drawPath(leftPost, borderPaint);

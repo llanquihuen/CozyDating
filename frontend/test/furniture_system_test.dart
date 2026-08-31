@@ -285,7 +285,7 @@ void main() {
   group('RoomConfig with Resolution & Surface Placed Items', () {
     test('JSON serialization preserves resolution, parentId, wallHeightLevel, and placement data', () {
       const room = RoomConfig(
-        resolution: '32x64',
+        resolution: '64x128',
         wallpaper: 'starry_night',
         floor: 'checker_marble',
         furniture: [
@@ -317,7 +317,7 @@ void main() {
       final jsonStr = room.toJson();
       final deserialized = RoomConfig.fromJson(jsonStr);
 
-      expect(deserialized.resolution, equals('32x64'));
+      expect(deserialized.resolution, equals('64x128'));
       expect(deserialized.wallpaper, equals('starry_night'));
       expect(deserialized.furniture.length, equals(3));
       expect(deserialized.furniture[1].parentId, equals('table_1'));

@@ -434,10 +434,10 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                 ),
               ),
 
-              // Top Discreet Notification Toast (Clean, subtle, non-intrusive text)
+              // 2. Top Discreet Notification Toast (Clean, subtle, non-intrusive text)
               Positioned(
                 top: MediaQuery.of(context).padding.top + 54,
-                left: 20,
+                left: 60,
                 right: 20,
                 child: IgnorePointer(
                   child: ValueListenableBuilder<String?>(
@@ -479,7 +479,51 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                 ),
               ),
 
-              // 3. Floating Selected Furniture Action Toolbar — hovers right above the
+              // 3. Floating Icon-Only Button: Bajar / Subir Muros Interiores (Modo Zócalo)
+              // Located in the upper left, below the top menus
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 56,
+                left: 16,
+                child: Tooltip(
+                  message: _roomGame.wallsCut
+                      ? 'Muros interiores bajos (zócalo). Tocar para ver muros completos'
+                      : 'Muros interiores completos. Tocar para ver solo los primeros píxeles (zócalo)',
+                  child: Material(
+                    color: _roomGame.wallsCut
+                        ? const Color(0xFF00E5FF).withOpacity(0.25)
+                        : const Color(0xFF1E1C27).withOpacity(0.85),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: BorderSide(
+                        color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : const Color(0xFF453F58),
+                        width: 1.2,
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 3,
+                    child: InkWell(
+                      onTap: () {
+                        _roomGame.toggleWallsCut();
+                        AvatarStorageService.saveUserRoomConfig(widget.activeUserId, _roomGame.roomConfig);
+                        setState(() {});
+                        _showTopNotification(_roomGame.wallsCut
+                            ? '🚪 Muros interiores bajos: mostrando solo el zócalo'
+                            : '🚪 Muros interiores completos');
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(7),
+                        child: Icon(
+                          _roomGame.wallsCut ? Icons.border_bottom_rounded : Icons.apartment_rounded,
+                          color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : Colors.white70,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // 4. Floating Selected Furniture Action Toolbar — hovers right above the
               // selected object in the isometric world (Only in Decorate Mode)
               if (_isDecorating && _selectedFurniture != null && _selectedFurniture!.type != FurnitureType.portal)
                 _FollowingOverlay(
@@ -487,7 +531,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                   child: _buildSelectedFurnitureToolbar(),
                 ),
 
-              // 4. Floating Selected Interior Wall Action Toolbar — hovers right above
+              // 5. Floating Selected Interior Wall Action Toolbar — hovers right above
               // the selected wall (Only in Decorate Mode)
               if (_isDecorating && _selectedInteriorWall != null)
                 _FollowingOverlay(
@@ -495,7 +539,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                   child: _buildSelectedInteriorWallToolbar(),
                 ),
 
-              // 5. Bottom Docked Overlay (Normal Mode, Decorator Toolbar or Constructor Toolbar)
+              // 6. Bottom Docked Overlay (Normal Mode, Decorator Toolbar or Constructor Toolbar)
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -506,9 +550,9 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                         ? _buildConstructorBottomBar(context)
                         : Padding(
                             padding: EdgeInsets.only(
-                              left: 16,
-                              right: 16,
-                              bottom: MediaQuery.of(context).padding.bottom + 12,
+                                left: 16,
+                                right: 16,
+                                bottom: MediaQuery.of(context).padding.bottom + 12,
                             ),
                             child: isQueued ? _buildQueuedCard() : _buildIdleActionCard(),
                           )),
@@ -643,64 +687,6 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                   fontWeight: FontWeight.bold,
                   fontSize: 11,
                   letterSpacing: 1.0,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-
-        // Resolution Switcher (64x128 HD / 32x64 Retro Pixel)
-        Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1C27),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF453F58)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  _roomGame.updateResolution('64x128');
-                  setState(() {});
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: currentRes == '64x128' ? const Color(0xFF2563EB) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '64x128 HD',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: currentRes == '64x128' ? Colors.white : Colors.white60,
-                    ),
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  _roomGame.updateResolution('32x64');
-                  setState(() {});
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: currentRes == '32x64' ? const Color(0xFF8B5CF6) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '32x64 Retro',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: currentRes == '32x64' ? Colors.white : Colors.white60,
-                    ),
-                  ),
                 ),
               ),
             ],
