@@ -94,13 +94,13 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
     final allItems = FurnitureCatalogService.items.values.toList();
     final filteredItems = allItems.where((item) {
       if (_selectedCategory == 'living') {
-        return (item.zone == 'living' || item.id == 'table' || item.id == 'bookshelf' || item.id == 'tall_bookshelf' || item.id == 'dining_table_2x2' || item.id == 'side_table' || item.id == 'plush_armchair' || item.id == 'wooden_chair' || item.id == 'potted_plant') && !item.isSurfaceItem && !item.isWallItem;
+        return (item.zone == 'living' || item.id == 'table' || item.id == 'bookshelf' || item.id == 'tall_bookshelf' || item.id == 'dining_table_2x2' || item.id == 'side_table_sm' || item.id == 'plush_armchair' || item.id == 'simple_chair_sm' || item.id == 'floor_plant_sm') && !item.isSurfaceItem && !item.isWallItem;
       }
       if (_selectedCategory == 'bedroom') {
-        return (item.zone == 'bedroom' || item.id == 'single_bed' || item.id == 'closet' || item.id == 'king_bed') && !item.isSurfaceItem && !item.isWallItem;
+        return (item.zone == 'bedroom' || item.id == 'single_bed' || item.id == 'single_high_bed' || item.id == 'closet' || item.id == 'king_bed') && !item.isSurfaceItem && !item.isWallItem;
       }
       if (_selectedCategory == 'kitchen_bath') {
-        return (item.zone == 'kitchen_bath' || item.zone == 'kitchen' || item.zone == 'bathroom' || item.id == 'kitchen_fridge_sm' || item.id == 'kitchen_stove' || item.id == 'kitchen_sink' || item.id == 'kitchen_counter' || item.id == 'bathtub_1x2' || item.id == 'bathtub_regular_1x2' || item.id == 'bathroom_toilet') && !item.isSurfaceItem && !item.isWallItem;
+        return (item.zone == 'kitchen_bath' || item.zone == 'kitchen' || item.zone == 'bathroom' || item.id == 'kitchen_fridge_sm' || item.id == 'kitchen_stove' || item.id == 'kitchen_sink' || item.id == 'bathtub_classic' || item.id == 'bathtub_regular_1x2' || item.id == 'bathtub_2x2' || item.id == 'bathroom_toilet') && !item.isSurfaceItem && !item.isWallItem;
       }
       if (_selectedCategory == 'patio') {
         return (item.zone == 'patio' || item.id == 'bbq_grill' || item.id == 'stone_fountain') && !item.isSurfaceItem && !item.isWallItem;

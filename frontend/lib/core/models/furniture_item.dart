@@ -79,6 +79,7 @@ class FurnitureCatalogItem extends Equatable {
   final List<int> canvasSize;
   final List<int> spriteOffset;
   final Map<int, FurnitureRotationMeta> rotations;
+  final bool hasTableMagnet;
 
   const FurnitureCatalogItem({
     required this.id,
@@ -91,7 +92,10 @@ class FurnitureCatalogItem extends Equatable {
     this.canvasSize = const [64, 64],
     this.spriteOffset = const [-32, -48],
     this.rotations = const {},
+    this.hasTableMagnet = false,
   });
+
+  bool get canSnapToTable => hasTableMagnet || id == 'simple_chair_sm' || id == 'simple_chair';
 
   FurniturePlacementType get placementType {
     if (footprint == 'surface' || id == 'table_lamp' || id == 'coffee_mug' || id == 'open_book' || id == 'soap_bottles' || id == 'cooking_pot' || id == 'cutting_board' || id == 'plush_teddy') {
@@ -140,12 +144,14 @@ class FurnitureCatalogItem extends Equatable {
       case 'dining_table_2x2': return 22;
       case 'table': return 18;
       case 'side_table': return 18;
+      case 'side_table_sm': return 18;
       case 'kitchen_counter': return 20;
       case 'kitchen_stove': return 22;
       case 'kitchen_sink': return 20;
       case 'nightstand_drawer': return 16;
       case 'vanity_table': return 18;
       case 'single_bed': return 14;
+      case 'single_high_bed': return 16;
       case 'king_bed': return 16;
       default: return 0;
     }
@@ -211,6 +217,8 @@ class FurnitureCatalogItem extends Equatable {
       });
     }
 
+    final hasMagnet = (json['has_table_magnet'] as bool?) ?? (id == 'simple_chair_sm' || id == 'simple_chair');
+
     return FurnitureCatalogItem(
       id: id,
       name: name,
@@ -222,11 +230,12 @@ class FurnitureCatalogItem extends Equatable {
       canvasSize: canvasS,
       spriteOffset: spriteOff,
       rotations: rots,
+      hasTableMagnet: hasMagnet,
     );
   }
 
   @override
-  List<Object?> get props => [id, name, zone, footprint, surfaceHeight, supportsSurface, surfaceOffset, canvasSize, spriteOffset, rotations];
+  List<Object?> get props => [id, name, zone, footprint, surfaceHeight, supportsSurface, surfaceOffset, canvasSize, spriteOffset, rotations, hasTableMagnet];
 }
 
 class PlacedFurniture extends Equatable {

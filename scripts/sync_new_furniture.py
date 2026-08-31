@@ -28,17 +28,20 @@ NAME_TRANSLATIONS = {
     "closet": "Armario Ropero Alto",
     "table": "Mesa Rústica",
     "single_bed": "Cama Individual (1x2)",
-    "double_bed": "Cama Doble",
+    "single_high_bed": "Cama Alta (1x2)",
+    "king_bed": "Cama King Size (2x2)",
     "chair": "Silla",
-    "sofa": "Sofá",
-    "lamp": "Lámpara",
-    "nightstand": "Mesa de Noche",
-    "drawer": "Cajonera",
-    "desk": "Escritorio",
-    "plant": "Planta Decorativa",
-    "mirror": "Espejo",
+    "simple_chair_sm": "Silla de Madera (0.5x0.5)",
+    "plush_armchair": "Sillón Acolchado",
+    "floor_plant_sm": "Planta Decorativa (0.5x0.5)",
+    "side_table_sm": "Mesa de Noche / Velador (0.5x0.5)",
+    "dining_table_2x2": "Mesa de Comedor Roble (2x2)",
+    "table_lamp": "Lámpara de Noche",
+    "coffee_mug": "Taza de Café Caliente",
+    "open_book": "Libro Abierto",
     "art_painting": "Cuadro de Paisaje",
     "window_yellow": "Ventana Amarilla",
+    "curtained_window": "Ventana con Cortinas",
     "wall_clock": "Reloj de Pared",
     "hanging_shelf_wall": "Repisa Colgante",
     "pan_rack_wall": "Colgador de Sartenes",
@@ -49,23 +52,14 @@ NAME_TRANSLATIONS = {
     "cube_1x2": "Paralelepípedo 1x2",
     "cube_2x1": "Paralelepípedo 2x1",
     "cube_2x2": "Paralelepípedo 2x2",
+    "cube_subcell_sm": "Guía Subcelda (0.5x0.5)",
     "cube_wall": "Guía de Pared",
-    "table_lamp": "Lámpara de Noche",
-    "coffee_mug": "Taza de Café Caliente",
-    "open_book": "Libro Abierto",
-    "dining_table_2x2": "Mesa de Comedor Roble (2x2)",
-    "side_table": "Mesa de Noche / Velador",
-    "wooden_chair": "Silla de Madera",
-    "plush_armchair": "Sillón Acolchado",
-    "potted_plant": "Planta en Maceta",
-    "king_bed": "Cama King Size (2x2)",
-    "kitchen_counter": "Encimera de Cocina",
     "kitchen_stove": "Cocina con Fogones",
     "kitchen_sink": "Fregadero Inox",
-    "kitchen_fridge": "Refrigerador Inox",
     "kitchen_fridge_sm": "Refrigerador Inox (0.5x0.5)",
-    "bathtub_1x2": "Bañera Clásica (1x2)",
+    "bathtub_classic": "Bathtub Classic",
     "bathtub_regular_1x2": "Bañera Regular (1x2)",
+    "bathtub_2x2": "Bañera Jacuzzi (2x2)",
     "bathroom_toilet": "Inodoro Cerámica",
 }
 
@@ -148,7 +142,23 @@ def sync_new_furniture():
         print(f"Directorio origen no encontrado: {NEW_ADDED_DIR}")
         return
 
+    # Limpiar ESTABLISHED_DIR para eliminar PNGs de items borrados
+    if os.path.exists(ESTABLISHED_DIR):
+        for f in os.listdir(ESTABLISHED_DIR):
+            f_path = os.path.join(ESTABLISHED_DIR, f)
+            if os.path.isfile(f_path):
+                os.remove(f_path)
     os.makedirs(ESTABLISHED_DIR, exist_ok=True)
+
+    # Cargar catálogo existente para preservar ediciones personalizadas (surface_height, sprite_offset, etc.)
+    existing_catalog = {}
+    if os.path.exists(CATALOG_PATH):
+        try:
+            with open(CATALOG_PATH, "r", encoding="utf-8") as f:
+                existing_catalog = json.load(f)
+            print(f"Catálogo existente cargado: {len(existing_catalog)} muebles para preservar personalizaciones.")
+        except Exception as e:
+            print(f"Aviso: No se pudo cargar catálogo existente ({e}), se generará uno nuevo.")
 
     catalog = {}
     discovered_items = {}
@@ -250,15 +260,29 @@ def sync_new_furniture():
         base_target_name = f"{item_id}.png"
         shutil.copy2(base_fp, os.path.join(ESTABLISHED_DIR, base_target_name))
 
+        # Preservar propiedades personalizadas del padre si existen
+        old_item = existing_catalog.get(item_id, {})
+        final_name = old_item.get("name", name)
+        final_zone = old_item.get("zone", zone)
+        final_footprint = old_item.get("footprint", footprint)
+        final_surf_h = old_item.get("surface_height", surf_h)
+        final_supports_surf = old_item.get("supports_surface", (final_surf_h > 0))
+        final_surf_off = old_item.get("surface_offset", [0, 0])
+        final_canvas_size = old_item.get("canvas_size", [orig_w, orig_h])
+        final_sprite_offset = old_item.get("sprite_offset", def_offset)
+        has_table_magnet = old_item.get("has_table_magnet", (item_id in ["simple_chair_sm", "simple_chair"]))
+        old_rotations = old_item.get("rotations", {})
+
         item_entry = {
-            "name": name,
-            "zone": zone,
-            "footprint": footprint,
-            "surface_height": surf_h,
-            "supports_surface": (surf_h > 0),
-            "surface_offset": [0, 0],
-            "canvas_size": [orig_w, orig_h],
-            "sprite_offset": def_offset,
+            "name": final_name,
+            "zone": final_zone,
+            "footprint": final_footprint,
+            "surface_height": final_surf_h,
+            "supports_surface": final_supports_surf,
+            "surface_offset": final_surf_off,
+            "canvas_size": final_canvas_size,
+            "sprite_offset": final_sprite_offset,
+            "has_table_magnet": has_table_magnet,
             "rotations": {}
         }
 
@@ -269,16 +293,25 @@ def sync_new_furniture():
                 w_target_file = f"{item_id}_{variant}.png"
                 shutil.copy2(w_src, os.path.join(ESTABLISHED_DIR, w_target_file))
 
+                old_rot = old_rotations.get(str(rot_idx), {})
+                rot_name = old_rot.get("name", f"{final_name} ({'Norte' if variant == 'n' else 'Oeste'})")
+                rot_fp_val = old_rot.get("footprint", w_fp)
+                rot_canvas = old_rot.get("canvas_size", [orig_w, orig_h])
+                rot_sprite_off = old_rot.get("sprite_offset", [-32, -48])
+                rot_surf_h = old_rot.get("surface_height", 0)
+                rot_supports = old_rot.get("supports_surface", False)
+                rot_surf_off = old_rot.get("surface_offset", [0, 0])
+
                 item_entry["rotations"][str(rot_idx)] = {
                     "id": f"{item_id}_{variant}",
-                    "name": f"{name} ({'Norte' if variant == 'n' else 'Oeste'})",
-                    "footprint": w_fp,
+                    "name": rot_name,
+                    "footprint": rot_fp_val,
                     "rot": rot_idx,
-                    "canvas_size": [orig_w, orig_h],
-                    "sprite_offset": [-32, -48],
-                    "surface_height": 0,
-                    "supports_surface": False,
-                    "surface_offset": [0, 0],
+                    "canvas_size": rot_canvas,
+                    "sprite_offset": rot_sprite_off,
+                    "surface_height": rot_surf_h,
+                    "supports_surface": rot_supports,
+                    "surface_offset": rot_surf_off,
                     "asset_path": f"furniture/established_furniture/{w_target_file}"
                 }
         else:
@@ -300,18 +333,37 @@ def sync_new_furniture():
                     rot_target_file = f"{item_id}_rot{r}.png"
                     shutil.copy2(base_fp, os.path.join(ESTABLISHED_DIR, rot_target_file))
 
+                old_rot = old_rotations.get(str(r), {})
+                rot_name = old_rot.get("name", f"{final_name} Rot {r}")
+                rot_fp_val = old_rot.get("footprint", rot_fp)
+                rot_canvas = old_rot.get("canvas_size", [orig_w, orig_h])
+                rot_sprite_off = old_rot.get("sprite_offset", r_offset)
+                rot_surf_h = old_rot.get("surface_height", final_surf_h)
+                rot_supports = old_rot.get("supports_surface", final_supports_surf)
+                rot_surf_off = old_rot.get("surface_offset", final_surf_off)
+
                 item_entry["rotations"][str(r)] = {
                     "id": f"{item_id}_rot{r}",
-                    "name": f"{name} Rot {r}",
-                    "footprint": rot_fp,
+                    "name": rot_name,
+                    "footprint": rot_fp_val,
                     "rot": r,
-                    "canvas_size": [orig_w, orig_h],
-                    "sprite_offset": r_offset,
-                    "surface_height": surf_h,
-                    "supports_surface": (surf_h > 0),
-                    "surface_offset": [0, 0],
+                    "canvas_size": rot_canvas,
+                    "sprite_offset": rot_sprite_off,
+                    "surface_height": rot_surf_h,
+                    "supports_surface": rot_supports,
+                    "surface_offset": rot_surf_off,
                     "asset_path": f"furniture/established_furniture/{rot_target_file}"
                 }
+
+                # Copy layer split files (_base, _back) if present
+                base_dir = os.path.dirname(data.get("base_file", ""))
+                base_stem = clean_id(os.path.splitext(os.path.basename(data.get("base_file", "")))[0])
+                for suffix in ["_base", "_back"]:
+                    for cand_name in [f"{base_stem}_rot{r}{suffix}.png", f"{item_id}_rot{r}{suffix}.png"]:
+                        cand_path = os.path.join(base_dir, cand_name)
+                        if os.path.exists(cand_path):
+                            shutil.copy2(cand_path, os.path.join(ESTABLISHED_DIR, f"{item_id}_rot{r}{suffix}.png"))
+                            break
 
         catalog[item_id] = item_entry
 

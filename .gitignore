@@ -19,3 +19,4 @@ __pycache__/
 # OS / IDE
 .DS_Store
 Thumbs.db
+CreateSprites/gemini_config.json

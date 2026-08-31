@@ -43,6 +43,10 @@ class FurnitureCatalogService {
       _loadFallbackCatalog();
     }
     if (_catalog.containsKey(id)) return _catalog[id];
+    if (id == 'side_table' && _catalog.containsKey('side_table_sm')) return _catalog['side_table_sm'];
+    if (id == 'wooden_chair' && _catalog.containsKey('simple_chair_sm')) return _catalog['simple_chair_sm'];
+    if (id == 'potted_plant' && _catalog.containsKey('floor_plant_sm')) return _catalog['floor_plant_sm'];
+    if (id == 'bathtub_1x2' && _catalog.containsKey('bathtub_classic')) return _catalog['bathtub_classic'];
     // If querying variant e.g. art_painting_n or art_painting_w, resolve to base item
     final baseId = id.endsWith('_wall_n') || id.endsWith('_wall_w')
         ? '${id.substring(0, id.length - 7)}_wall'
@@ -57,11 +61,11 @@ class FurnitureCatalogService {
     }
     switch (category) {
       case 'living':
-        return _catalog.values.where((i) => (i.zone == 'living' || i.id == 'table' || i.id == 'bookshelf' || i.id == 'tall_bookshelf' || i.id == 'dining_table_2x2' || i.id == 'side_table' || i.id == 'plush_armchair' || i.id == 'wooden_chair' || i.id == 'potted_plant') && !i.isSurfaceItem && !i.isWallItem).toList();
+        return _catalog.values.where((i) => (i.zone == 'living' || i.id == 'table' || i.id == 'bookshelf' || i.id == 'tall_bookshelf' || i.id == 'dining_table_2x2' || i.id == 'side_table_sm' || i.id == 'plush_armchair' || i.id == 'simple_chair_sm' || i.id == 'floor_plant_sm') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'bedroom':
-        return _catalog.values.where((i) => (i.zone == 'bedroom' || i.id == 'single_bed' || i.id == 'closet' || i.id == 'king_bed') && !i.isSurfaceItem && !i.isWallItem).toList();
+        return _catalog.values.where((i) => (i.zone == 'bedroom' || i.id == 'single_bed' || i.id == 'single_high_bed' || i.id == 'closet' || i.id == 'king_bed') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'kitchen_bath':
-        return _catalog.values.where((i) => (i.zone == 'kitchen_bath' || i.zone == 'kitchen' || i.zone == 'bathroom' || i.id == 'kitchen_fridge_sm' || i.id == 'kitchen_stove' || i.id == 'kitchen_sink' || i.id == 'kitchen_counter' || i.id == 'bathtub_1x2' || i.id == 'bathtub_regular_1x2' || i.id == 'bathroom_toilet') && !i.isSurfaceItem && !i.isWallItem).toList();
+        return _catalog.values.where((i) => (i.zone == 'kitchen_bath' || i.zone == 'kitchen' || i.zone == 'bathroom' || i.id == 'kitchen_fridge_sm' || i.id == 'kitchen_stove' || i.id == 'kitchen_sink' || i.id == 'bathtub_classic' || i.id == 'bathtub_regular_1x2' || i.id == 'bathtub_2x2' || i.id == 'bathroom_toilet') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'surface':
         return _catalog.values.where((i) => i.isSurfaceItem).toList();
       case 'walls':
@@ -86,6 +90,7 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'bookshelf', name: 'Estantería de Libros', zone: 'living', footprint: '1x1', surfaceHeight: 14, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'tall_bookshelf', name: 'Estantería Alta', zone: 'living', footprint: '1x1', surfaceHeight: 14, spriteOffset: [-32, -73]),
       const FurnitureCatalogItem(id: 'single_bed', name: 'Cama Individual (1x2)', zone: 'bedroom', footprint: '1x2', surfaceHeight: 14, spriteOffset: [-64, -36]),
+      const FurnitureCatalogItem(id: 'single_high_bed', name: 'Cama Alta (1x2)', zone: 'bedroom', footprint: '1x2', surfaceHeight: 16, spriteOffset: [-64, -36]),
       const FurnitureCatalogItem(id: 'closet', name: 'Armario Ropero Alto', zone: 'bedroom', footprint: '1x1', spriteOffset: [-32, -73]),
 
       // Guías & Paralelepípedos (Surface Supporting)
@@ -93,6 +98,7 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'cube_1x2', name: 'Paralelepípedo 1x2', zone: 'guide', footprint: '1x2', surfaceHeight: 20, spriteOffset: [-64, -36]),
       const FurnitureCatalogItem(id: 'cube_2x1', name: 'Paralelepípedo 2x1', zone: 'guide', footprint: '2x1', surfaceHeight: 20, spriteOffset: [-32, -36]),
       const FurnitureCatalogItem(id: 'cube_2x2', name: 'Paralelepípedo 2x2', zone: 'guide', footprint: '2x2', surfaceHeight: 28, spriteOffset: [-64, -44]),
+      const FurnitureCatalogItem(id: 'cube_subcell_sm', name: 'Guía Subcelda (0.5x0.5)', zone: 'guide', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
       const FurnitureCatalogItem(id: 'cube_wall', name: 'Guía de Pared', zone: 'guide', footprint: 'wall_n', spriteOffset: [-32, -48]),
 
       // Surface items (Tabletop)
@@ -102,29 +108,31 @@ class FurnitureCatalogService {
 
       // Living & Tables (Surface Supporting)
       const FurnitureCatalogItem(id: 'dining_table_2x2', name: 'Mesa de Comedor Roble (2x2)', zone: 'living', footprint: '2x2', surfaceHeight: 22, spriteOffset: [-64, -44]),
-      const FurnitureCatalogItem(id: 'side_table', name: 'Mesa de Noche / Velador', zone: 'living', footprint: '1x1', surfaceHeight: 18, spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'wooden_chair', name: 'Silla de Madera', zone: 'living', footprint: '1x1', surfaceHeight: 14, spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'side_table_sm', name: 'Mesa de Noche / Velador (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', surfaceHeight: 18, spriteOffset: [-32, -44]),
+      const FurnitureCatalogItem(id: 'simple_chair_sm', name: 'Silla de Madera (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', surfaceHeight: 14, spriteOffset: [-32, -44]),
       const FurnitureCatalogItem(id: 'plush_armchair', name: 'Sillón Acolchado', zone: 'living', footprint: '1x1', surfaceHeight: 16, spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'potted_plant', name: 'Planta en Maceta', zone: 'living', footprint: '1x1', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'floor_plant_sm', name: 'Planta Decorativa (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
 
       // Bedroom (Surface Supporting)
       const FurnitureCatalogItem(id: 'king_bed', name: 'Cama King Size (2x2)', zone: 'bedroom', footprint: '2x2', surfaceHeight: 16, spriteOffset: [-64, -44]),
 
       // Kitchen & Bath
-      const FurnitureCatalogItem(id: 'kitchen_counter', name: 'Encimera de Cocina', zone: 'kitchen', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'kitchen_stove', name: 'Cocina con Fogones', zone: 'kitchen', footprint: '1x1', surfaceHeight: 22, spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'kitchen_sink', name: 'Fregadero Inox', zone: 'kitchen', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'kitchen_fridge_sm', name: 'Refrigerador Compacto', zone: 'kitchen', footprint: '0.5x0.5', spriteOffset: [-64, -136]),
-      const FurnitureCatalogItem(id: 'bathtub_1x2', name: 'Bañera Clásica (1x2)', zone: 'bathroom', footprint: '1x2', spriteOffset: [-64, -36]),
-      const FurnitureCatalogItem(id: 'bathroom_toilet', name: 'Inodoro Cerámica', zone: 'bathroom', footprint: '1x1', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'kitchen_stove', name: 'Cocina con Fogones', zone: 'kitchen_bath', footprint: '1x1', surfaceHeight: 22, spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'kitchen_sink', name: 'Fregadero Inox', zone: 'kitchen_bath', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'kitchen_fridge_sm', name: 'Refrigerador Inox (0.5x0.5)', zone: 'kitchen_bath', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
+      const FurnitureCatalogItem(id: 'bathtub_classic', name: 'Bathtub Classic', zone: 'kitchen_bath', footprint: '1x2', spriteOffset: [-64, -36]),
+      const FurnitureCatalogItem(id: 'bathtub_regular_1x2', name: 'Bañera Regular (1x2)', zone: 'kitchen_bath', footprint: '1x2', spriteOffset: [-64, -36]),
+      const FurnitureCatalogItem(id: 'bathtub_2x2', name: 'Bañera Jacuzzi (2x2)', zone: 'kitchen_bath', footprint: '2x2', spriteOffset: [-64, -44]),
+      const FurnitureCatalogItem(id: 'bathroom_toilet', name: 'Inodoro Cerámica', zone: 'kitchen_bath', footprint: '1x1', spriteOffset: [-32, -48]),
 
       // Walls (Unified single entry per wall item)
-      const FurnitureCatalogItem(id: 'window_yellow', name: 'Window Yellow', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'window_yellow', name: 'Ventana Amarilla', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'curtained_window', name: 'Ventana con Cortinas', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'art_painting', name: 'Cuadro de Paisaje', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'hanging_shelf_wall', name: 'Repisa Colgante', zone: 'decor', footprint: 'wall_n', surfaceHeight: 12, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'wall_clock', name: 'Reloj de Pared', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'pan_rack_wall', name: 'Colgador de Sartenes', zone: 'kitchen', footprint: 'wall_n', spriteOffset: [-32, -48]),
-      const FurnitureCatalogItem(id: 'towel_rack_wall', name: 'Toallero', zone: 'bathroom', footprint: 'wall_n', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'pan_rack_wall', name: 'Colgador de Sartenes', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'towel_rack_wall', name: 'Toallero', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
 
       // Patio
       const FurnitureCatalogItem(id: 'stone_fountain', name: 'Fuente de Piedra (2x2)', zone: 'patio', footprint: '2x2', spriteOffset: [-64, -44]),

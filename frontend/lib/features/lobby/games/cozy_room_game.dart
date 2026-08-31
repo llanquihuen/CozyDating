@@ -16,6 +16,20 @@ import '../utils/isometric_coords.dart';
 import '../utils/isometric_pathfinder.dart';
 import '../utils/sprite_alpha_cache.dart';
 
+class ChairSnapSlot {
+  final double gx;
+  final double gy;
+  final int autoRotation; // 0: Norte (mira al Sur), 2: Sur (mira al Norte), 1: Oeste (mira al Este), 3: Este (mira al Oeste)
+  final String tableId;
+
+  const ChairSnapSlot({
+    required this.gx,
+    required this.gy,
+    required this.autoRotation,
+    required this.tableId,
+  });
+}
+
 class CozyRoomGame extends FlameGame with DragCallbacks {
   AvatarConfig avatarConfig;
   RoomConfig roomConfig;
@@ -109,17 +123,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     // 3. Load Placed Furniture from roomConfig
     await _loadFurnitureFromConfig(roomConfig);
 
-    // 4. Adventure Portal (Fixed interactive portal)
-    world.add(IsometricFurnitureComponent(
-      id: 'portal',
-      gridX: 6,
-      gridY: 6,
-      type: FurnitureType.portal,
-      onInteract: onOpenMatchmaking,
-      resolution: roomConfig.resolution,
-    ));
-
-    // 5. Register Initial Obstacles for all solid furniture
+    // 4. Register Initial Obstacles for all solid furniture
     _recalculateObstacles();
 
     // 6. Add Player Avatar inside world (guaranteed safe, unobstructed spawn location)
@@ -258,6 +262,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       final rotSprites = await _loadRotationSprites(targetTypeName);
       final isNorth = !isWall || (footprint == 'wall_n');
 
+      Map<int, Sprite> chairBaseMap = {};
+      Map<int, Sprite> chairBackMap = {};
+      if (targetTypeName.contains('chair') || targetTypeName.contains('armchair') || item.id.contains('chair')) {
+        final pair = await _loadChairLayerSprites(targetTypeName);
+        chairBaseMap = pair.$1;
+        chairBackMap = pair.$2;
+      }
+
       final comp = IsometricFurnitureComponent(
         id: item.id.isNotEmpty ? item.id : '${targetTypeName}_${created.length}',
         typeName: targetTypeName,
@@ -273,6 +285,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         type: targetTypeName.contains('wardrobe') ? FurnitureType.wardrobe : (targetTypeName.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
         sprite: isWall ? (isNorth ? rotSprites[0] : (rotSprites[1] ?? rotSprites[0])) : (rotSprites[item.rotation] ?? rotSprites[0]),
         rotationSprites: rotSprites,
+        chairBaseSprites: chairBaseMap,
+        chairBackrestSprites: chairBackMap,
+        hasTableMagnet: catalogItem?.hasTableMagnet ?? (targetTypeName == 'simple_chair_sm' || targetTypeName == 'simple_chair'),
         onInteract: targetTypeName.contains('wardrobe') ? onOpenWardrobe : null,
       );
       created[item] = comp;
@@ -280,14 +295,16 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
 
     // Second pass: Link parent surface heights and furthest depth priority for surface items
-    _recalculateSurfacePriorities();
+    recalculateSurfacePriorities(created.values.toList());
   }
 
-  void _recalculateSurfacePriorities() {
-    final allComps = world.children.whereType<IsometricFurnitureComponent>().toList();
+  void _recalculateSurfacePriorities([List<IsometricFurnitureComponent>? customList]) => recalculateSurfacePriorities(customList);
+
+  void recalculateSurfacePriorities([List<IsometricFurnitureComponent>? customList]) {
+    final allComps = customList ?? world.children.whereType<IsometricFurnitureComponent>().toList();
     for (final comp in allComps) {
       if (comp.isSurfaceItem) {
-        final parent = _findSurfaceParentAt(comp.gridX, comp.gridY, exclude: comp);
+        final parent = _findSurfaceParentAt(comp.gridX, comp.gridY, exclude: comp, candidatesList: allComps);
         if (parent != null) {
           final pMeta = FurnitureCatalogService.getItem(parent.typeName) ?? FurnitureCatalogService.getItem(parent.id);
           final sH = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
@@ -311,10 +328,42 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         }
       }
     }
+
+    // Third pass: Las bases de TODAS las sillas adyacentes a una mesa van SIEMPRE debajo del tablero
+    for (final comp in allComps) {
+      if (comp.isChair) {
+        final table = findAdjacentTableForChair(comp, comp.gridX, comp.gridY, candidateTables: allComps);
+        if (table != null) {
+          comp.priority = table.priority - 10;
+        }
+      }
+    }
   }
 
-  IsometricFurnitureComponent? _findSurfaceParentAt(num gx, num gy, {IsometricFurnitureComponent? exclude}) {
-    final candidates = world.children.whereType<IsometricFurnitureComponent>().where((f) => f != exclude && f.type != FurnitureType.portal && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
+  IsometricFurnitureComponent? findAdjacentTableForChair(IsometricFurnitureComponent chair, num gx, num gy, {List<IsometricFurnitureComponent>? candidateTables}) {
+    final tables = (candidateTables ?? world.children.whereType<IsometricFurnitureComponent>()).where((t) =>
+      t != chair && !t.isChair && !t.isWallItem && !t.isSurfaceItem &&
+      (t.id.contains('table') || t.typeName.contains('table') || t.footprint == '2x2' || t.isSurfaceSupporting)
+    );
+
+    for (final table in tables) {
+      final tx = table.gridX;
+      final ty = table.gridY;
+      final tw = table.gridWidth;
+      final th = table.gridHeight;
+
+      // Verifica si la silla está adyacente al perímetro de la mesa
+      final nearX = gx >= tx - 0.75 && gx <= tx + tw + 0.25;
+      final nearY = gy >= ty - 0.75 && gy <= ty + th + 0.25;
+      if (nearX && nearY) {
+        return table;
+      }
+    }
+    return null;
+  }
+
+  IsometricFurnitureComponent? _findSurfaceParentAt(num gx, num gy, {IsometricFurnitureComponent? exclude, List<IsometricFurnitureComponent>? candidatesList}) {
+    final candidates = (candidatesList ?? world.children.whereType<IsometricFurnitureComponent>()).where((f) => f != exclude && f.type != FurnitureType.portal && !f.isSurfaceItem && !f.isWallNorth && !f.isWallWest);
     for (final f in candidates) {
       if (gx >= f.gridX && gx < f.gridX + f.gridWidth && gy >= f.gridY && gy < f.gridY + f.gridHeight) {
         final meta = FurnitureCatalogService.getItem(f.typeName) ?? FurnitureCatalogService.getItem(f.id);
@@ -384,6 +433,74 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
 
     return map;
+  }
+
+  Future<(Map<int, Sprite>, Map<int, Sprite>)> _loadChairLayerSprites(String id) async {
+    final Map<int, Sprite> baseMap = {};
+    final Map<int, Sprite> backMap = {};
+    final cleanId = id.replaceAll(RegExp(r'_rot\d$'), '');
+
+    for (int rot = 0; rot < 4; rot++) {
+      try {
+        baseMap[rot] = await loadSprite('furniture/established_furniture/${cleanId}_rot${rot}_base.png');
+      } catch (_) {
+        try {
+          baseMap[rot] = await loadSprite('furniture/established_furniture/${cleanId}_rot$rot.png');
+        } catch (_) {}
+      }
+
+      try {
+        backMap[rot] = await loadSprite('furniture/established_furniture/${cleanId}_rot${rot}_back.png');
+      } catch (_) {
+        try {
+          backMap[rot] = await loadSprite('furniture/established_furniture/${cleanId}_rot$rot.png');
+        } catch (_) {}
+      }
+    }
+
+    for (final s in baseMap.values) SpriteAlphaCache.warm(s.image);
+    for (final s in backMap.values) SpriteAlphaCache.warm(s.image);
+
+    return (baseMap, backMap);
+  }
+
+  List<ChairSnapSlot> getChairSnapSlotsForTable(IsometricFurnitureComponent table) {
+    final slots = <ChairSnapSlot>[];
+    final tx = table.gridX;
+    final ty = table.gridY;
+    final tw = table.gridWidth;
+    final th = table.gridHeight;
+
+    if (tw >= 2.0 && th >= 2.0) {
+      // Mesa de Comedor 2x2: Centrado exacto en cada baldosa y en el punto medio entre las 2 baldosas
+      // Norte (mirando al Sur -> rot 0)
+      slots.add(ChairSnapSlot(gx: tx + 0.25, gy: ty - 0.5, autoRotation: 0, tableId: table.id));
+      slots.add(ChairSnapSlot(gx: tx + 1.25, gy: ty - 0.5, autoRotation: 0, tableId: table.id));
+      slots.add(ChairSnapSlot(gx: tx + 0.75, gy: ty - 0.5, autoRotation: 0, tableId: table.id));
+      // Sur (mirando al Norte -> rot 2)
+      slots.add(ChairSnapSlot(gx: tx + 0.25, gy: ty + 2.0, autoRotation: 2, tableId: table.id));
+      slots.add(ChairSnapSlot(gx: tx + 1.25, gy: ty + 2.0, autoRotation: 2, tableId: table.id));
+      slots.add(ChairSnapSlot(gx: tx + 0.75, gy: ty + 2.0, autoRotation: 2, tableId: table.id));
+      // Oeste (mirando al Este -> rot 1)
+      slots.add(ChairSnapSlot(gx: tx - 0.5, gy: ty + 0.25, autoRotation: 1, tableId: table.id));
+      slots.add(ChairSnapSlot(gx: tx - 0.5, gy: ty + 1.25, autoRotation: 1, tableId: table.id));
+      slots.add(ChairSnapSlot(gx: tx - 0.5, gy: ty + 0.75, autoRotation: 1, tableId: table.id));
+      // Este (mirando al Oeste -> rot 3)
+      slots.add(ChairSnapSlot(gx: tx + 2.0, gy: ty + 0.25, autoRotation: 3, tableId: table.id));
+      slots.add(ChairSnapSlot(gx: tx + 2.0, gy: ty + 1.25, autoRotation: 3, tableId: table.id));
+      slots.add(ChairSnapSlot(gx: tx + 2.0, gy: ty + 0.75, autoRotation: 3, tableId: table.id));
+    } else {
+      // Mesa 1x1: Centrado exacto entre las 2 sub-baldosas (gx + 0.25 / gy + 0.25)
+      // Norte (mirando al Sur -> rot 0)
+      slots.add(ChairSnapSlot(gx: tx + 0.25, gy: ty - 0.5, autoRotation: 0, tableId: table.id));
+      // Sur (mirando al Norte -> rot 2)
+      slots.add(ChairSnapSlot(gx: tx + 0.25, gy: ty + 1.0, autoRotation: 2, tableId: table.id));
+      // Oeste (mirando al Este -> rot 1)
+      slots.add(ChairSnapSlot(gx: tx - 0.5, gy: ty + 0.25, autoRotation: 1, tableId: table.id));
+      // Este (mirando al Oeste -> rot 3)
+      slots.add(ChairSnapSlot(gx: tx + 1.0, gy: ty + 0.25, autoRotation: 3, tableId: table.id));
+    }
+    return slots;
   }
 
   Future<void> _switchWallVariant(IsometricFurnitureComponent comp, bool isNorth) async {
@@ -519,6 +636,15 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
 
     final uniqueId = '${catalogItem.id}_${DateTime.now().microsecondsSinceEpoch}';
+
+    Map<int, Sprite> chairBaseMap = {};
+    Map<int, Sprite> chairBackMap = {};
+    if (catalogItem.id.contains('chair') || catalogItem.id.contains('armchair') || initialTypeName.contains('chair')) {
+      final pair = await _loadChairLayerSprites(initialTypeName);
+      chairBaseMap = pair.$1;
+      chairBackMap = pair.$2;
+    }
+
     final comp = IsometricFurnitureComponent(
       id: uniqueId,
       typeName: initialTypeName,
@@ -535,6 +661,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       type: catalogItem.id.contains('wardrobe') ? FurnitureType.wardrobe : (catalogItem.id.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
       sprite: rotSprites[0],
       rotationSprites: rotSprites,
+      chairBaseSprites: chairBaseMap,
+      chairBackrestSprites: chairBackMap,
+      hasTableMagnet: catalogItem.hasTableMagnet,
       onInteract: catalogItem.id.contains('wardrobe') ? onOpenWardrobe : null,
     );
     world.add(comp);
@@ -1319,6 +1448,34 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       final clU = subPoint.x.clamp(0, maxSubX);
       final clV = subPoint.y.clamp(0, maxSubY);
       clampedGrid = Point(clU / 2.0, clV / 2.0);
+
+      // Smart magnetic snap for chairs to tables (only items with canSnapToTable)
+      if (_draggedFurniture!.canSnapToTable) {
+        ChairSnapSlot? bestSlot;
+        double minDistance = 0.85; // Snapping attraction radius
+
+        for (final table in world.children.whereType<IsometricFurnitureComponent>()) {
+          if (table == _draggedFurniture || table.isChair || table.isWallItem || table.isSurfaceItem) continue;
+          final isTable = table.id.contains('table') || table.typeName.contains('table') || table.footprint == '2x2';
+          if (!isTable) continue;
+
+          final slots = getChairSnapSlotsForTable(table);
+          for (final slot in slots) {
+            final dist = sqrt(pow(clampedGrid.x - slot.gx, 2) + pow(clampedGrid.y - slot.gy, 2));
+            if (dist < minDistance) {
+              minDistance = dist;
+              bestSlot = slot;
+            }
+          }
+        }
+
+        if (bestSlot != null) {
+          clampedGrid = Point(bestSlot.gx, bestSlot.gy);
+          if (_draggedFurniture!.rotation != bestSlot.autoRotation) {
+            _draggedFurniture!.setRotation(bestSlot.autoRotation);
+          }
+        }
+      }
     }
 
     _currentHoverGrid = clampedGrid;
@@ -1374,7 +1531,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       }
     }
 
-    final hoverPriority = IsometricCoords.getSubZOrder(
+    int hoverPriority = IsometricCoords.getSubZOrder(
           subX,
           subY,
           width: _draggedFurniture!.isSurfaceItem ? 1 : (_draggedFurniture!.footprint == '0.5x0.5' ? 1 : (_draggedFurniture!.gridWidth * 2).round()),
@@ -1383,6 +1540,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
           footprint: _draggedFurniture!.footprint,
         ) +
         hoverWallClearanceBump * 10000;
+
+    // If dragged chair is adjacent to a table, preview base UNDER the table in all rotations
+    if (_draggedFurniture!.isChair) {
+      final table = findAdjacentTableForChair(_draggedFurniture!, clampedGrid.x, clampedGrid.y);
+      if (table != null) {
+        hoverPriority = table.priority - 10;
+      }
+    }
     _draggedFurniture!.priority = hoverPriority;
 
     // If surface item, update dynamic elevation, parent linkage and priority for magnetic preview

@@ -110,10 +110,10 @@ class RoomConfig extends Equatable {
   final List<InteriorWallConfig> interiorWalls;
 
   static const List<PlacedFurnitureConfig> defaultFurniture = [
-    // --- Salón / Común ---
+    // --- Salón / Comedor Central ---
     PlacedFurnitureConfig(
       id: 'window_yellow_n',
-      typeName: 'window_yellow_n',
+      typeName: 'window_yellow',
       gridX: 3,
       gridY: 0,
       gridWidth: 1,
@@ -121,8 +121,8 @@ class RoomConfig extends Equatable {
       wallHeightLevel: 'high',
     ),
     PlacedFurnitureConfig(
-      id: 'bookshelf',
-      typeName: 'bookshelf',
+      id: 'tall_bookshelf',
+      typeName: 'tall_bookshelf',
       gridX: 4,
       gridY: 0,
       gridWidth: 1,
@@ -131,7 +131,7 @@ class RoomConfig extends Equatable {
     PlacedFurnitureConfig(
       id: 'table',
       typeName: 'table',
-      gridX: 3,
+      gridX: 4,
       gridY: 4,
       gridWidth: 1,
       gridHeight: 1,
@@ -139,7 +139,7 @@ class RoomConfig extends Equatable {
     PlacedFurnitureConfig(
       id: 'coffee_mug',
       typeName: 'coffee_mug',
-      gridX: 3,
+      gridX: 4,
       gridY: 4,
       gridWidth: 1,
       gridHeight: 1,
@@ -147,25 +147,44 @@ class RoomConfig extends Equatable {
     ),
     PlacedFurnitureConfig(
       id: 'wooden_chair',
-      typeName: 'wooden_chair',
-      gridX: 4,
-      gridY: 4,
-      gridWidth: 1,
-      gridHeight: 1,
+      typeName: 'simple_chair_sm',
+      gridX: 4.25,
+      gridY: 3.5,
+      gridWidth: 0.5,
+      gridHeight: 0.5,
+      rotation: 0, // Mirando hacia la mesa (Sur)
     ),
     PlacedFurnitureConfig(
-      id: 'potted_plant',
-      typeName: 'potted_plant',
-      gridX: 4,
-      gridY: 3,
+      id: 'chair_south',
+      typeName: 'simple_chair_sm',
+      gridX: 4.25,
+      gridY: 5.0,
+      gridWidth: 0.5,
+      gridHeight: 0.5,
+      rotation: 2, // Mirando hacia la mesa (Norte)
+    ),
+    PlacedFurnitureConfig(
+      id: 'plush_armchair',
+      typeName: 'plush_armchair',
+      gridX: 6,
+      gridY: 4.5,
       gridWidth: 1,
       gridHeight: 1,
+      rotation: 1,
+    ),
+    PlacedFurnitureConfig(
+      id: 'floor_plant_sm',
+      typeName: 'floor_plant_sm',
+      gridX: 7,
+      gridY: 6,
+      gridWidth: 0.5,
+      gridHeight: 0.5,
     ),
 
     // --- Dormitorio (NE: gridX 5..7, gridY 0..2) ---
     PlacedFurnitureConfig(
       id: 'single_bed',
-      typeName: 'single_bed',
+      typeName: 'single_high_bed',
       gridX: 7,
       gridY: 0,
       gridWidth: 1,
@@ -173,11 +192,11 @@ class RoomConfig extends Equatable {
     ),
     PlacedFurnitureConfig(
       id: 'side_table',
-      typeName: 'side_table',
+      typeName: 'side_table_sm',
       gridX: 6,
       gridY: 0,
-      gridWidth: 1,
-      gridHeight: 1,
+      gridWidth: 0.5,
+      gridHeight: 0.5,
     ),
     PlacedFurnitureConfig(
       id: 'table_lamp',
@@ -199,8 +218,8 @@ class RoomConfig extends Equatable {
 
     // --- Baño (NW: gridX 0..2, gridY 0..2) ---
     PlacedFurnitureConfig(
-      id: 'bathtub_1x2',
-      typeName: 'bathtub_1x2',
+      id: 'bathtub_classic',
+      typeName: 'bathtub_classic',
       gridX: 0,
       gridY: 0,
       gridWidth: 1,
@@ -244,24 +263,6 @@ class RoomConfig extends Equatable {
       rotation: 1,
     ),
     PlacedFurnitureConfig(
-      id: 'kitchen_sink',
-      typeName: 'kitchen_sink',
-      gridX: 0,
-      gridY: 6,
-      gridWidth: 1,
-      gridHeight: 1,
-      rotation: 1,
-    ),
-    PlacedFurnitureConfig(
-      id: 'kitchen_counter',
-      typeName: 'kitchen_counter',
-      gridX: 0,
-      gridY: 7,
-      gridWidth: 1,
-      gridHeight: 1,
-      rotation: 1,
-    ),
-    PlacedFurnitureConfig(
       id: 'pan_rack_wall',
       typeName: 'pan_rack_wall',
       gridX: 0,
@@ -269,6 +270,15 @@ class RoomConfig extends Equatable {
       gridWidth: 1,
       gridHeight: 1,
       wallHeightLevel: 'high',
+    ),
+    PlacedFurnitureConfig(
+      id: 'kitchen_sink',
+      typeName: 'kitchen_sink',
+      gridX: 0,
+      gridY: 6,
+      gridWidth: 1,
+      gridHeight: 1,
+      rotation: 1,
     ),
   ];
 

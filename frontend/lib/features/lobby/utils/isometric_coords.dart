@@ -77,10 +77,8 @@ class IsometricCoords {
     final int intraY = v % 2;
     final int gx = u ~/ 2;
     final int gy = v ~/ 2;
-    final int wSub = width;
-    final int dSub = depth;
 
-    final int subOffset = 1000 + (intraX + intraY + wSub - 1 + dSub - 1) * 1000 + intraY * 200 + intraX * 50;
+    final int subOffset = 1000 + (intraX + intraY) * 1000 + intraY * 200 + intraX * 50;
     final int base = (gx + gy) * 10000 + subOffset;
 
     if (footprint == 'surface') {

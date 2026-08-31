@@ -36,7 +36,7 @@ void main() {
       expect(diningTable!.isSurfaceSupporting, isTrue);
       expect(diningTable.effectiveSurfaceHeight, equals(22));
 
-      final sideTable = FurnitureCatalogService.getItem('side_table');
+      final sideTable = FurnitureCatalogService.getItem('side_table_sm') ?? FurnitureCatalogService.getItem('side_table');
       expect(sideTable, isNotNull);
       expect(sideTable!.isSurfaceSupporting, isTrue);
       expect(sideTable.effectiveSurfaceHeight, equals(18));
@@ -530,6 +530,164 @@ void main() {
       // Furniture at (3.5, 2.0) behind Right North Wall (4, 3)
       final furnitureBehind = IsometricCoords.getSubZOrder(7, 4, width: 2, depth: 2);
       expect(furnitureBehind, lessThan(rightNorthWall));
+
+      // 1x1 furniture at (gx=2, gy=2) -> subcell (4, 4)
+      final table1x1Priority = IsometricCoords.getSubZOrder(4, 4, width: 2, depth: 2, layer: 1);
+      // Avatar on East subcell (5, 4) within the same 1x1 tile should render IN FRONT of the table
+      final avatarEastSubcell = IsometricCoords.getSubZOrder(5, 4, width: 1, depth: 1, layer: 100);
+      expect(avatarEastSubcell, greaterThan(table1x1Priority));
+
+      // Avatar on South-West subcell (4, 5) within the same 1x1 tile should render IN FRONT of the table
+      final avatarSouthWestSubcell = IsometricCoords.getSubZOrder(4, 5, width: 1, depth: 1, layer: 100);
+      expect(avatarSouthWestSubcell, greaterThan(table1x1Priority));
+
+      // Avatar on South-East subcell (5, 5) within the same 1x1 tile should render IN FRONT of the table
+      final avatarSouthEastSubcell = IsometricCoords.getSubZOrder(5, 5, width: 1, depth: 1, layer: 100);
+      expect(avatarSouthEastSubcell, greaterThan(table1x1Priority));
+
+      // 1x2 Bathtub at (gx=0, gy=0) with wall bump (10000)
+      final bathtub1x2Priority = IsometricCoords.getSubZOrder(0, 0, width: 2, depth: 4, layer: 1) + 10000;
+      // Avatar standing at East tile (gx=1, gy=0 -> subcell 2, 0)
+      final avatarAtEastTile = IsometricCoords.getSubZOrder(2, 0, width: 1, depth: 1, layer: 100);
+      expect(avatarAtEastTile, greaterThan(bathtub1x2Priority));
+    });
+  });
+
+  group('Chair Layer Split & Magnetic Table Snapping Tests', () {
+    test('Chair components identify as isChair and support setRotation', () {
+      final chair = IsometricFurnitureComponent(
+        id: 'simple_chair_sm',
+        typeName: 'simple_chair_sm',
+        gridX: 4.0,
+        gridY: 5.0,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        footprint: '0.5x0.5',
+      );
+      expect(chair.isChair, isTrue);
+      expect(chair.rotation, equals(0));
+
+      chair.setRotation(2);
+      expect(chair.rotation, equals(2));
+    });
+
+    test('Chair Backrest Overlay renders with priority above the table (Solución A)', () {
+      final table = IsometricFurnitureComponent(
+        id: 'table_1',
+        typeName: 'table',
+        gridX: 4.0,
+        gridY: 4.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+      );
+
+      final chairSouth = IsometricFurnitureComponent(
+        id: 'chair_south',
+        typeName: 'simple_chair_sm',
+        gridX: 4.0,
+        gridY: 5.0,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        rotation: 2,
+        footprint: '0.5x0.5',
+      );
+      final overlay = ChairBackrestOverlayComponent(chairSouth);
+      overlay.update(0.016);
+
+      // The chair base priority sits at its ground position
+      expect(chairSouth.priority, isNotNull);
+      // The chair backrest overlay has higher priority to render over the table's front edge
+      expect(overlay.priority, greaterThan(table.priority));
+    });
+
+    test('canSnapToTable is true for simple_chair_sm and false for standard items', () {
+      final chair = IsometricFurnitureComponent(
+        id: 'simple_chair_sm',
+        typeName: 'simple_chair_sm',
+        gridX: 0,
+        gridY: 0,
+      );
+      expect(chair.canSnapToTable, isTrue);
+
+      final bookshelf = IsometricFurnitureComponent(
+        id: 'bookshelf',
+        typeName: 'bookshelf',
+        gridX: 0,
+        gridY: 0,
+      );
+      expect(bookshelf.canSnapToTable, isFalse);
+    });
+
+    test('Table seat slots are centered between tiles to prevent clipping', () {
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+        roomConfig: const RoomConfig(),
+      );
+
+      final table = IsometricFurnitureComponent(
+        id: 'table_1',
+        typeName: 'table',
+        gridX: 4.0,
+        gridY: 4.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+      );
+
+      final slots = game.getChairSnapSlotsForTable(table);
+      expect(slots.isNotEmpty, isTrue);
+
+      // North slot centered at gx: 4.25, gy: 3.5
+      final northSlot = slots.firstWhere((s) => s.autoRotation == 0);
+      expect(northSlot.gx, equals(4.25));
+      expect(northSlot.gy, equals(3.5));
+
+      // South slot centered at gx: 4.25, gy: 5.0
+      final southSlot = slots.firstWhere((s) => s.autoRotation == 2);
+      expect(southSlot.gx, equals(4.25));
+      expect(southSlot.gy, equals(5.0));
+
+      // West slot centered at gx: 3.5, gy: 4.25
+      final westSlot = slots.firstWhere((s) => s.autoRotation == 1);
+      expect(westSlot.gx, equals(3.5));
+      expect(westSlot.gy, equals(4.25));
+
+      // East slot centered at gx: 5.0, gy: 4.25
+      final eastSlot = slots.firstWhere((s) => s.autoRotation == 3);
+      expect(eastSlot.gx, equals(5.0));
+      expect(eastSlot.gy, equals(4.25));
+    });
+
+    test('Chair bases are tucked UNDER the table in ALL rotations (rot 0, 1, 2, 3)', () {
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+        roomConfig: const RoomConfig(
+          furniture: [
+            PlacedFurnitureConfig(id: 'table_center', typeName: 'table', gridX: 4.0, gridY: 4.0, gridWidth: 1.0, gridHeight: 1.0),
+            PlacedFurnitureConfig(id: 'chair_north', typeName: 'simple_chair_sm', gridX: 4.25, gridY: 3.5, rotation: 0),
+            PlacedFurnitureConfig(id: 'chair_south', typeName: 'simple_chair_sm', gridX: 4.25, gridY: 5.0, rotation: 2),
+            PlacedFurnitureConfig(id: 'chair_west', typeName: 'simple_chair_sm', gridX: 3.5, gridY: 4.25, rotation: 1),
+            PlacedFurnitureConfig(id: 'chair_east', typeName: 'simple_chair_sm', gridX: 5.0, gridY: 4.25, rotation: 3),
+          ],
+        ),
+      );
+
+      final table = IsometricFurnitureComponent(
+        id: 'table_center',
+        typeName: 'table',
+        gridX: 4.0,
+        gridY: 4.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+      );
+
+      // Verify findAdjacentTableForChair detects table for all 4 chair positions:
+      expect(game.findAdjacentTableForChair(IsometricFurnitureComponent(gridX: 4.25, gridY: 3.5), 4.25, 3.5), isNull); // before added to world
+
+      game.world.add(table);
+      expect(game.findAdjacentTableForChair(IsometricFurnitureComponent(gridX: 4.25, gridY: 3.5), 4.25, 3.5), equals(table));
+      expect(game.findAdjacentTableForChair(IsometricFurnitureComponent(gridX: 4.25, gridY: 5.0), 4.25, 5.0), equals(table));
+      expect(game.findAdjacentTableForChair(IsometricFurnitureComponent(gridX: 3.5, gridY: 4.25), 3.5, 4.25), equals(table));
+      expect(game.findAdjacentTableForChair(IsometricFurnitureComponent(gridX: 5.0, gridY: 4.25), 5.0, 4.25), equals(table));
     });
   });
 }

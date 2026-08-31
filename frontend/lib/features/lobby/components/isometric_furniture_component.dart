@@ -53,6 +53,23 @@ class IsometricFurnitureComponent extends PositionComponent {
 
   bool get isWardrobe => type == FurnitureType.wardrobe || id.contains('wardrobe') || typeName.contains('wardrobe');
   bool get isPortal => type == FurnitureType.portal || id.contains('portal') || typeName.contains('portal');
+  bool get isChair => id.contains('chair') || typeName.contains('chair') || id.contains('armchair') || typeName.contains('armchair');
+  final bool hasTableMagnet;
+  bool get canSnapToTable {
+    if (hasTableMagnet) return true;
+    final cat = FurnitureCatalogService.getItem(typeName) ?? FurnitureCatalogService.getItem(id);
+    if (cat != null) return cat.canSnapToTable;
+    return id == 'simple_chair_sm' || typeName == 'simple_chair_sm' || id == 'simple_chair' || typeName == 'simple_chair';
+  }
+  bool get isSurfaceSupporting {
+    final cat = FurnitureCatalogService.getItem(typeName) ?? FurnitureCatalogService.getItem(id);
+    if (cat != null) return cat.isSurfaceSupporting;
+    return id.contains('table') || id.contains('counter') || id.contains('stove') || id.contains('sink') || id.contains('bed') || id.contains('nightstand') || id.contains('drawer') || id.contains('vanity');
+  }
+
+  final Map<int, Sprite> chairBaseSprites;
+  final Map<int, Sprite> chairBackrestSprites;
+  ChairBackrestOverlayComponent? _backrestOverlay;
   bool get isSurfaceItem => footprint == 'surface' || id == 'table_lamp' || id == 'coffee_mug' || id == 'open_book' || id == 'cooking_pot' || id == 'cutting_board' || id == 'soap_bottles' || id == 'plush_teddy' || typeName == 'table_lamp' || typeName == 'coffee_mug' || typeName == 'open_book' || typeName == 'cooking_pot' || typeName == 'cutting_board' || typeName == 'soap_bottles' || typeName == 'plush_teddy';
   bool get isWallItem {
     if (footprint == 'wall_n' || footprint == 'wall_w' || footprint == 'wall') return true;
@@ -86,14 +103,28 @@ class IsometricFurnitureComponent extends PositionComponent {
     this.onInteract,
     this.baseAssetPath,
     this.sprite,
+    this.hasTableMagnet = false,
+    Map<int, Sprite>? chairBaseSprites,
+    Map<int, Sprite>? chairBackrestSprites,
     Map<int, Sprite>? rotationSprites,
   })  : id = id ?? (type == FurnitureType.portal ? 'portal' : (type == FurnitureType.wardrobe ? 'closet' : 'furniture_${gridX}_$gridY')),
         typeName = typeName ?? id ?? (type == FurnitureType.portal ? 'portal' : (type == FurnitureType.wardrobe ? 'closet' : 'furniture_${gridX}_$gridY')),
+        chairBaseSprites = chairBaseSprites ?? {},
+        chairBackrestSprites = chairBackrestSprites ?? {},
         rotationSprites = rotationSprites ?? {} {
     if (sprite != null && !this.rotationSprites.containsKey(0)) {
       this.rotationSprites[0] = sprite!;
     }
     updateGridPosition(gridX, gridY, parentId: parentId, parentSurfaceHeight: parentSurfaceHeight, wallHeightLevel: wallHeightLevel);
+  }
+
+
+
+  @override
+  void onRemove() {
+    _backrestOverlay?.removeFromParent();
+    _backrestOverlay = null;
+    super.onRemove();
   }
 
   /// Updates the component's position and Z-order based on grid coordinates and surface/wall placement
@@ -193,6 +224,18 @@ class IsometricFurnitureComponent extends PositionComponent {
     // The real-wall-list cap above needs `parent` to enumerate sibling walls, which isn't set yet
     // during construction — recompute once actually mounted into the room.
     updateGridPosition(gridX, gridY, parentId: parentId, parentSurfaceHeight: parentSurfaceHeight, wallHeightLevel: wallHeightLevel);
+    if (isChair && parent != null) {
+      _backrestOverlay ??= ChairBackrestOverlayComponent(this);
+      if (!_backrestOverlay!.isMounted) {
+        parent?.add(_backrestOverlay!);
+      }
+    }
+    final game = findGame();
+    if (game != null) {
+      try {
+        (game as dynamic).recalculateSurfacePriorities();
+      } catch (_) {}
+    }
   }
 
   /// Returns the list of sub-grid points (u, v) occupied by this furniture item
@@ -550,7 +593,43 @@ class IsometricFurnitureComponent extends PositionComponent {
       }
     }
 
-    if (sprite != null) {
+    if (isChair) {
+      if (rotation == 0 || rotation == 1) {
+        // En Rot 0 (Sur) y Rot 1 (Este):
+        // 1. Respaldo al fondo de la silla (detrás de la base)
+        final back = chairBackrestSprites[rotation];
+        if (back != null) {
+          back.render(
+            canvas,
+            position: spriteOffset,
+            size: renderSize,
+          );
+        }
+        // 2. Base (asiento y patas) encima del respaldo de la silla
+        final base = chairBaseSprites[rotation] ?? sprite;
+        if (base != null) {
+          base.render(
+            canvas,
+            position: spriteOffset,
+            size: renderSize,
+          );
+        }
+      } else if (chairBaseSprites.containsKey(rotation)) {
+        // En Rot 2 (Norte) y Rot 3 (Oeste):
+        // La base se dibuja aquí (bajo la mesa) y el respaldo en ChairBackrestOverlayComponent
+        chairBaseSprites[rotation]!.render(
+          canvas,
+          position: spriteOffset,
+          size: renderSize,
+        );
+      } else if (sprite != null) {
+        sprite!.render(
+          canvas,
+          position: spriteOffset,
+          size: renderSize,
+        );
+      }
+    } else if (sprite != null) {
       sprite!.render(
         canvas,
         position: spriteOffset,
@@ -780,5 +859,52 @@ class IsometricFurnitureComponent extends PositionComponent {
     canvas.drawRect(Rect.fromLTWH(-w / 2 + 2, -h + 2, 3, h - 2), _woodDarkPaint);
     canvas.drawRect(Rect.fromLTWH(w / 2 - 5, -h + 2, 3, h - 2), _woodDarkPaint);
     canvas.drawCircle(const Offset(0, -h - 6), 2, _candleFlamePaint);
+  }
+
+  /// Sets the chair/furniture rotation explicitly (e.g. for magnetic snapping to tables)
+  void setRotation(int newRot) {
+    if (rotation == newRot) return;
+    rotation = newRot % 4;
+    if (rotationSprites.containsKey(rotation)) {
+      sprite = rotationSprites[rotation];
+    }
+    updateGridPosition(gridX, gridY);
+  }
+}
+
+/// Solución A: Overlay component que renderiza el respaldo de la silla por encima de la mesa
+class ChairBackrestOverlayComponent extends PositionComponent {
+  final IsometricFurnitureComponent chair;
+
+  ChairBackrestOverlayComponent(this.chair);
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    position = chair.position;
+    // Solución A: El respaldo se renderiza con prioridad sobre el tablero de la mesa
+    priority = chair.priority + 5000;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (!chair.isMounted || !chair.isChair) return;
+    // En Rot 0 y Rot 1, el respaldo ya se dibuja en el fondo dentro de chair.render()
+    if (chair.rotation != 2 && chair.rotation != 3) return;
+
+    final backrest = chair.chairBackrestSprites[chair.rotation] ?? (chair.rotationSprites[chair.rotation] ?? chair.sprite);
+    if (backrest == null) return;
+
+    canvas.save();
+    if (chair.isBeingDragged) {
+      final floatY = -14.0 + sin(chair._dragFloatTimer * 6.0) * 2.0;
+      canvas.translate(chair.dragVisualOffset.x, chair.dragVisualOffset.y + floatY);
+    }
+    backrest.render(
+      canvas,
+      position: chair.spriteOffset,
+      size: chair.renderSize,
+    );
+    canvas.restore();
   }
 }
