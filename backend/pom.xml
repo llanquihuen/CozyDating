@@ -61,6 +61,12 @@
             <version>4.4.0</version>
         </dependency>
 
+        <!-- Spring Security Crypto for BCrypt Password Hashing -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <!-- Spring Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

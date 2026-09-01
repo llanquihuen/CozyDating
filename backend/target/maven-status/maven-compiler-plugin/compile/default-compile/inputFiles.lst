@@ -6,5 +6,7 @@ C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\ut
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\model\GameRoom.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\ServerApplication.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\service\GameSessionService.java
+C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\controller\RoomController.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\service\DatabaseService.java
+C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\model\User.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\service\MatchmakingService.java

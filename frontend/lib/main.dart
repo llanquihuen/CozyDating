@@ -6,8 +6,9 @@ import 'package:http/http.dart' as http;
 import 'core/config/app_config.dart';
 import 'core/models/game_models.dart';
 import 'core/network/websocket_client.dart';
+import 'core/services/auth_service.dart';
 import 'core/services/avatar_storage_service.dart';
-import 'features/avatar/screens/character_creator_screen.dart';
+import 'features/auth/screens/welcome_screen.dart';
 import 'features/game/bloc/game_bloc.dart';
 import 'features/game/game_view.dart';
 import 'features/game/guide_game_view.dart';
@@ -53,18 +54,6 @@ class GameLauncherScreen extends StatefulWidget {
 
 class _GameLauncherScreenState extends State<GameLauncherScreen> {
   String _selectedUserId = 'alice';
-  int _currentTicketBalance = 5;
-  bool _isFetchingBalance = false;
-
-  final List<Map<String, String>> _users = const [
-    {'id': 'alice', 'name': 'Alice (Explorer)'},
-    {'id': 'bob', 'name': 'Bob (Explorer)'},
-    {'id': 'charlie', 'name': 'Charlie (Guide)'},
-    {'id': 'david', 'name': 'David (Guide)'},
-  ];
-
-  bool _isAuthenticating = false;
-  String? _jwtToken;
 
   String get _baseUrl => AppConfig.baseUrl;
   String get _wsUrl => AppConfig.wsUrl;
@@ -72,94 +61,48 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchUserBalance(_selectedUserId);
-  }
-
-  Future<void> _fetchUserBalance(String userId) async {
-    setState(() {
-      _isFetchingBalance = true;
-    });
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/auth/balance?userId=$userId'),
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (mounted) {
-          setState(() {
-            _currentTicketBalance = data['ticketsBalance'] ?? 0;
-          });
-        }
-      }
-    } catch (e) {
-      print('[BALANCE FETCH ERROR] Could not fetch balance for $userId: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isFetchingBalance = false;
-        });
-      }
+    if (AuthService.isAuthenticated) {
+      _selectedUserId = AuthService.currentUser!.id;
     }
   }
 
-  Future<void> _resetAllVoiceTickets(BuildContext context) async {
+  Future<void> _startMatchmaking(BuildContext context) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/auth/unblock-all'),
-      );
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ ¡Partidas de voz restablecidas para todos los usuarios!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _fetchUserBalance(_selectedUserId);
-      }
-    } catch (e) {
-      _showErrorSnackBar(context, 'Error resetting tickets: $e');
-    }
-  }
+      String token;
+      String userId;
 
-  Future<void> _loginAndAuthenticate(BuildContext context) async {
-    setState(() {
-      _isAuthenticating = true;
-    });
-
-    try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/auth/token?userId=$_selectedUserId'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _jwtToken = data['token'];
-        if (data['ticketsBalance'] != null) {
-          setState(() {
-            _currentTicketBalance = data['ticketsBalance'];
-          });
-        }
-        print('[AUTH SUCCESS] Obtained JWT for $_selectedUserId: $_jwtToken');
-
-        if (mounted && _jwtToken != null) {
-          context.read<GameBloc>().add(JoinQueueEvent(
-                socketUrl: _wsUrl,
-                token: _jwtToken!,
-                commune: 'PROVINCIA',
-                timeSlot: 'SLOT_2000',
-                mode: 'STANDARD',
-              ));
-        }
+      if (AuthService.isAuthenticated && AuthService.token != null) {
+        token = AuthService.token!;
+        userId = AuthService.currentUser!.id;
       } else {
-        _showErrorSnackBar(context, 'Auth Failed (${response.statusCode}): ${response.body}');
+        final response = await http.get(
+          Uri.parse('$_baseUrl/auth/token?userId=$_selectedUserId'),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          token = data['token'];
+          userId = data['userId'] ?? _selectedUserId;
+        } else {
+          if (mounted) {
+            _showErrorSnackBar(context, 'Error de autenticación (${response.statusCode})');
+          }
+          return;
+        }
+      }
+
+      if (mounted) {
+        context.read<GameBloc>().add(JoinQueueEvent(
+              socketUrl: _wsUrl,
+              token: token,
+              commune: AuthService.currentUser?.commune ?? 'PROVINCIA',
+              timeSlot: 'SLOT_2000',
+              mode: 'STANDARD',
+            ));
       }
     } catch (e) {
-      _showErrorSnackBar(context, 'Error connecting to backend auth: $e');
-    } finally {
       if (mounted) {
-        setState(() {
-          _isAuthenticating = false;
-        });
+        _showErrorSnackBar(context, 'Error al conectar con matchmaking: $e');
       }
     }
   }
@@ -194,18 +137,33 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
           }
         }
 
+        // If not authenticated and in initial state, show Welcome Screen
+        if (!AuthService.isAuthenticated && state is GameInitialState) {
+          return WelcomeScreen(
+            onAuthenticated: () {
+              setState(() {
+                _selectedUserId = AuthService.currentUser!.id;
+              });
+            },
+          );
+        }
+
         if (state is GameInitialState || state is MatchmakingQueueState) {
           return CozyLobbyView(
-            key: ValueKey('lobby_$_selectedUserId'),
-            activeUserId: _selectedUserId,
+            key: ValueKey('lobby_${AuthService.currentUser?.id ?? _selectedUserId}'),
+            activeUserId: AuthService.currentUser?.id ?? _selectedUserId,
             onUserChanged: (newId) {
               setState(() {
                 _selectedUserId = newId;
                 AvatarStorageService.setActiveUser(newId);
-                _fetchUserBalance(newId);
               });
             },
-            onStartMatchmaking: () => _loginAndAuthenticate(context),
+            onLogout: () {
+              setState(() {
+                AuthService.logout();
+              });
+            },
+            onStartMatchmaking: () => _startMatchmaking(context),
           );
         }
 
@@ -226,10 +184,6 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
   }
 
   Widget _buildBody(BuildContext context, GameState state) {
-    if (state is GameInitialState) {
-      return _buildLoginSelector(context);
-    }
-
     if (state is MatchmakingQueueState) {
       return _buildQueueCard(context, state);
     }
@@ -245,168 +199,21 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
     return const SizedBox.shrink();
   }
 
-  Widget _buildLoginSelector(BuildContext context) {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.favorite_rounded, color: Colors.deepOrange, size: 48),
-            const SizedBox(height: 12),
-            const Text(
-              'Cozy Dungeon Dating',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Selecciona un usuario de prueba para autenticarte e ingresar a la cola de matchmaking.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-            // User Dropdown Selection
-            DropdownButtonFormField<String>(
-              value: _selectedUserId,
-              decoration: const InputDecoration(
-                labelText: 'Usuario de prueba',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
-              items: _users.map((u) {
-                return DropdownMenuItem<String>(
-                  value: u['id'],
-                  child: Text(u['name']!),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _selectedUserId = val;
-                  });
-                  _fetchUserBalance(val);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            // Voice Match Ticket Balance Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: _currentTicketBalance > 0
-                    ? Colors.teal.withOpacity(0.2)
-                    : Colors.red.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _currentTicketBalance > 0 ? Colors.tealAccent : Colors.redAccent,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.mic,
-                        color: _currentTicketBalance > 0 ? Colors.tealAccent : Colors.redAccent,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Partidas de Voz:',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                  _isFetchingBalance
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          '$_currentTicketBalance Disponibles',
-                          style: TextStyle(
-                            color: _currentTicketBalance > 0 ? Colors.tealAccent : Colors.redAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Button to Reset All Voice Matches
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                side: BorderSide(color: Colors.amber.shade700),
-              ),
-              onPressed: () => _resetAllVoiceTickets(context),
-              icon: const Icon(Icons.refresh, color: Colors.amberAccent, size: 18),
-              label: const Text(
-                '🔄 Restablecer Partidas de Voz de Todos',
-                style: TextStyle(color: Colors.amberAccent, fontSize: 12),
-              ),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                foregroundColor: const Color(0xFFFFD54F),
-                side: const BorderSide(color: Color(0xFFFFD54F), width: 1.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const CharacterCreatorScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.face_retouching_natural),
-              label: const Text('Personalizar Avatar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.deepOrange,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: _isAuthenticating ? null : () => _loginAndAuthenticate(context),
-              icon: _isAuthenticating
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.play_arrow),
-              label: Text(_isAuthenticating ? 'Conectando...' : 'Iniciar Matchmaking'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildQueueCard(BuildContext context, MatchmakingQueueState state) {
     return Card(
       elevation: 4,
+      color: const Color(0xFF1E1C27),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Colors.deepOrange),
+            const CircularProgressIndicator(color: Color(0xFFFFB300)),
             const SizedBox(height: 16),
             const Text(
               'Buscando Pareja...',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 8),
             Text(
@@ -429,6 +236,8 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
   Widget _buildTerminatedCard(BuildContext context, String reason) {
     return Card(
       elevation: 4,
+      color: const Color(0xFF1E1C27),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -438,7 +247,7 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
             const SizedBox(height: 16),
             const Text(
               'Partida Finalizada',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 12),
             Text(

@@ -7,6 +7,7 @@ import 'package:flame/game.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/room_config.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
@@ -19,12 +20,14 @@ class CozyLobbyView extends StatefulWidget {
   final String activeUserId;
   final ValueChanged<String> onUserChanged;
   final VoidCallback? onStartMatchmaking;
+  final VoidCallback? onLogout;
 
   const CozyLobbyView({
     super.key,
     required this.activeUserId,
     required this.onUserChanged,
     this.onStartMatchmaking,
+    this.onLogout,
   });
 
   static const List<Map<String, String>> defaultUsers = [
@@ -179,10 +182,12 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
           initialConfig: _currentAvatarConfig,
           onSaved: (newConfig) {
             AvatarStorageService.saveUserConfig(widget.activeUserId, newConfig);
+            AuthService.saveAvatarConfig(newConfig);
             _roomGame.updateAvatarConfig(newConfig);
             setState(() {
               _currentAvatarConfig = newConfig;
             });
+            _showTopNotification('✨ Avatar guardado en la nube');
           },
         ),
       ),
@@ -245,6 +250,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     _roomGame.setFloorBrush(null);
     final updatedConfig = _roomGame.exportCurrentRoomConfig();
     AvatarStorageService.saveUserRoomConfig(widget.activeUserId, updatedConfig);
+    AuthService.saveRoomConfig(updatedConfig);
     final wasConstructor = (_editMode == LobbyEditMode.construct);
     setState(() {
       _currentRoomConfig = updatedConfig;
@@ -254,7 +260,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
       _selectedInteriorWall = null;
     });
 
-    _showTopNotification(wasConstructor ? '✨ Construcción guardada' : '✨ Decoración guardada');
+    _showTopNotification(wasConstructor ? '✨ Construcción guardada en la nube' : '✨ Decoración guardada en la nube');
   }
 
   void _cancelDecorateMode() {
@@ -565,46 +571,101 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   Widget _buildNormalTopBar(String selectedDropdownValue) {
+    final user = AuthService.currentUser;
+
     return Row(
       children: [
-        // User Profile Mocking Dropdown (Flexible with isExpanded so it never overflows)
+        // User Profile Badge or Mock Dropdown
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFF282531).withOpacity(0.9),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF453F58)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: selectedDropdownValue,
-                dropdownColor: const Color(0xFF282531),
-                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFFD54F), size: 18),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-                items: CozyLobbyView.defaultUsers.map((user) {
-                  return DropdownMenuItem<String>(
-                    value: user['id'],
-                    child: Text(
-                      user['name']!,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+          child: user != null
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF282531).withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.6)),
+                  ),
+                  child: Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Color(0xFFFFB300),
+                        child: Icon(Icons.person, size: 16, color: Colors.black),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              user.username,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '${user.commune} • ${user.ticketsBalance} 🎟️',
+                              style: const TextStyle(
+                                color: Color(0xFFFFD54F),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (widget.onLogout != null)
+                        InkWell(
+                          onTap: widget.onLogout,
+                          child: const Padding(
+                            padding: EdgeInsets.all(4.0),
+                            child: Icon(Icons.logout, color: Colors.redAccent, size: 16),
+                          ),
+                        ),
+                    ],
+                  ),
+                )
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF282531).withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF453F58)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: selectedDropdownValue,
+                      dropdownColor: const Color(0xFF282531),
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFFD54F), size: 18),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      items: CozyLobbyView.defaultUsers.map((u) {
+                        return DropdownMenuItem<String>(
+                          value: u['id'],
+                          child: Text(
+                            u['name']!,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          widget.onUserChanged(val);
+                        }
+                      },
                     ),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    widget.onUserChanged(val);
-                  }
-                },
-              ),
-            ),
-          ),
+                  ),
+                ),
         ),
         const SizedBox(width: 8),
 

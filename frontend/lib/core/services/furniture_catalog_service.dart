@@ -113,6 +113,24 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'plush_armchair', name: 'Sillón Acolchado', zone: 'living', footprint: '1x1', surfaceHeight: 16, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'floor_plant_sm', name: 'Planta Decorativa (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
 
+      // Gustos & Hobbies (Starter Packs)
+      const FurnitureCatalogItem(id: 'gaming_pc_desk', name: 'Escritorio PC Gamer RGB', zone: 'living', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'home_theater_tv', name: 'Mueble con TV Cine', zone: 'living', footprint: '1x1', surfaceHeight: 18, spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'vinyl_record_player', name: 'Tocadiscos Vinilo Retro', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'acoustic_guitar_stand', name: 'Guitarra Acústica', zone: 'living', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
+      const FurnitureCatalogItem(id: 'manga_shelf', name: 'Estantería Manga & Figuras', zone: 'living', footprint: '1x1', surfaceHeight: 14, spriteOffset: [-32, -73]),
+      const FurnitureCatalogItem(id: 'espresso_machine', name: 'Cafetera Espresso Barista', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'tea_set_table', name: 'Juego de Té y Matcha', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'polaroid_camera_table', name: 'Cámara Polaroid Vintage', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'monstera_plant_pot', name: 'Planta Monstera Deliciosa', zone: 'living', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
+      const FurnitureCatalogItem(id: 'cat_tree_tower', name: 'Árbol Rascador para Gato', zone: 'living', footprint: '1x1', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'pet_dog_bed', name: 'Cama Acolchada para Perro', zone: 'living', footprint: '1x1', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'yoga_mat_floor', name: 'Colchoneta de Yoga & Fitness', zone: 'living', footprint: '1x1', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'boardgame_box_set', name: 'Caja Juegos de Rol & D20', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'wall_world_map', name: 'Mapa de Viajes y Recuerdos', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'wall_poster_anime', name: 'Póster Anime Clásico', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'wall_poster_cinema', name: 'Póster de Cine de Culto', zone: 'decor', footprint: 'wall_n', spriteOffset: [-32, -48]),
+
       // Bedroom (Surface Supporting)
       const FurnitureCatalogItem(id: 'king_bed', name: 'Cama King Size (2x2)', zone: 'bedroom', footprint: '2x2', surfaceHeight: 16, spriteOffset: [-64, -44]),
 
