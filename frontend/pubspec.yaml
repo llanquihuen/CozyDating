@@ -34,6 +34,9 @@ flutter:
     - assets/images/OCTOPLAYER/Avatar/mouth/
     - assets/images/OCTOPLAYER/Avatar/hair/long_flow/front/
     - assets/images/OCTOPLAYER/Avatar/hair/long_flow/back/
+    - assets/images/OCTOPLAYER/Avatar/hair/flow/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/flow/back/
+    - assets/images/OCTOPLAYER/Avatar/hair/comb_over/front/
     - assets/images/OCTOPLAYER/Avatar/hair/bangs/front/
     - assets/images/OCTOPLAYER/Avatar/hair/bangs/back/
     - assets/images/OCTOPLAYER/Avatar/hair/braids/front/

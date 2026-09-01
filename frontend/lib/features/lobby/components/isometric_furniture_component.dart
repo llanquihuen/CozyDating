@@ -883,7 +883,16 @@ class ChairBackrestOverlayComponent extends PositionComponent {
     super.update(dt);
     position = chair.position;
     // Solución A: El respaldo se renderiza con prioridad sobre el tablero de la mesa
-    priority = chair.priority + 5000;
+    // y por encima del avatar cuando este se ubica al oeste o en la misma fila
+    final naturalPriority = IsometricCoords.getSubZOrder(
+      (chair.gridX * 2).round(),
+      (chair.gridY * 2).round(),
+      width: (chair.gridWidth * 2).round(),
+      depth: (chair.gridHeight * 2).round(),
+      layer: 100,
+      footprint: chair.footprint,
+    );
+    priority = max(chair.priority + 5000, naturalPriority + 10);
   }
 
   @override

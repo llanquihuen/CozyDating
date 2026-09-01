@@ -9,6 +9,7 @@ void main() {
   group('AvatarConfig Model & Storage Tests', () {
     test('AvatarConfig default instantiation & JSON serialization with OCTOPLAYER 8-dir options', () {
       const config = AvatarConfig(
+        bodyType: 'male',
         spriteResolution: '64x128',
         faceShape: 'oval',
         skinColor: Color(0xFFFCD5B5),
@@ -35,6 +36,7 @@ void main() {
       final json = config.toJson();
       final deserialized = AvatarConfig.fromJson(json);
 
+      expect(deserialized.bodyType, equals('male'));
       expect(deserialized.spriteResolution, equals('64x128'));
       expect(deserialized.faceShape, equals('oval'));
       expect(deserialized.eyeStyle, equals('cateyes'));

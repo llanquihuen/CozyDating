@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:equatable/equatable.dart';
 
 class AvatarConfig extends Equatable {
+  final String bodyType; // 'female' or 'male'
   final String spriteResolution; // '64x128' (Detailed) or '32x64' (Pixel Chibi)
   final String faceShape;
   final Color skinColor;
@@ -25,6 +26,7 @@ class AvatarConfig extends Equatable {
   final Color accessoryColor;
 
   const AvatarConfig({
+    this.bodyType = 'female',
     this.spriteResolution = '64x128',
     this.faceShape = 'oval',
     this.skinColor = const Color(0xFFFCD5B5),
@@ -111,6 +113,11 @@ class AvatarConfig extends Equatable {
     Color(0xFFF8FAFC), // Blanco Marfil
   ];
 
+  static const List<String> availableBodyTypes = [
+    'female',
+    'male',
+  ];
+
   static const List<String> availableResolutions = [
     '64x128',
   ];
@@ -145,6 +152,8 @@ class AvatarConfig extends Equatable {
 
   static const List<String> availableHairStyles = [
     'long_flow',
+    'flow',
+    'comb_over',
     'bangs',
     'braids',
     'none',
@@ -170,6 +179,10 @@ class AvatarConfig extends Equatable {
 
   static String formatName(String id) {
     switch (id) {
+      // Body Type / Gender
+      case 'female': return 'Femenino ♀';
+      case 'male': return 'Masculino ♂';
+
       // Resolutions
       case '64x128': return '64x128 (OCTOPLAYER 8-Dir)';
       case '32x64': return '32x64 (Pixel Chibi)';
@@ -206,6 +219,8 @@ class AvatarConfig extends Equatable {
 
       // Hair
       case 'long_flow': return 'Melena Fluida';
+      case 'flow': return 'Cabello Flow';
+      case 'comb_over': return 'Raya al Lado / Comb Over';
       case 'bangs': return 'Flequillo / Bangs';
       case 'braids': return 'Trenzas / Braids';
 
@@ -226,6 +241,7 @@ class AvatarConfig extends Equatable {
   }
 
   AvatarConfig copyWith({
+    String? bodyType,
     String? spriteResolution,
     String? faceShape,
     Color? skinColor,
@@ -249,6 +265,7 @@ class AvatarConfig extends Equatable {
     Color? accessoryColor,
   }) {
     return AvatarConfig(
+      bodyType: bodyType ?? this.bodyType,
       spriteResolution: spriteResolution ?? this.spriteResolution,
       faceShape: faceShape ?? this.faceShape,
       skinColor: skinColor ?? this.skinColor,
@@ -275,6 +292,7 @@ class AvatarConfig extends Equatable {
 
   Map<String, dynamic> toJson() {
     return {
+      'bodyType': bodyType,
       'spriteResolution': spriteResolution,
       'faceShape': faceShape,
       'skinColor': skinColor.value,
@@ -301,6 +319,8 @@ class AvatarConfig extends Equatable {
 
   factory AvatarConfig.fromJson(Map<String, dynamic> json) {
     String mapHair(String? h) {
+      if (h == 'flow') return 'flow';
+      if (h == 'comb_over') return 'comb_over';
       if (h == 'bangs') return 'bangs';
       if (h == 'braids') return 'braids';
       if (h == 'none') return 'none';
@@ -334,6 +354,7 @@ class AvatarConfig extends Equatable {
     }
 
     return AvatarConfig(
+      bodyType: (json['bodyType'] == 'male') ? 'male' : 'female',
       spriteResolution: '64x128',
       faceShape: 'oval',
       skinColor: json['skinColor'] != null ? Color(json['skinColor'] as int) : const Color(0xFFFCD5B5),
@@ -360,6 +381,7 @@ class AvatarConfig extends Equatable {
 
   @override
   List<Object?> get props => [
+        bodyType,
         spriteResolution,
         faceShape,
         skinColor,

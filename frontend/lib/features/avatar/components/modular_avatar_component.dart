@@ -54,7 +54,8 @@ class ModularAvatarComponent extends PositionComponent {
   }
 
   Future<void> updateConfig(AvatarConfig newConfig) async {
-    final needsReload = config.spriteResolution != newConfig.spriteResolution ||
+    final needsReload = config.bodyType != newConfig.bodyType ||
+        config.spriteResolution != newConfig.spriteResolution ||
         config.faceShape != newConfig.faceShape ||
         config.noseStyle != newConfig.noseStyle ||
         config.mouthStyle != newConfig.mouthStyle ||
@@ -151,6 +152,7 @@ class ModularAvatarComponent extends PositionComponent {
     _octoImageCache.clear();
     final futures = <Future<void>>[];
 
+    final bodyType = (config.bodyType == 'male') ? 'male' : 'female';
     final hair = (config.hairStyle != 'none') ? config.hairStyle : 'long_flow';
     final top = (config.topStyle != 'none') ? config.topStyle : 'jacket';
     final bottom = (config.bottomStyle != 'none') ? config.bottomStyle : 'jeans';
@@ -162,8 +164,8 @@ class ModularAvatarComponent extends PositionComponent {
     for (int d = 1; d <= 8; d++) {
       final frameKeys = ['$d', '${d}_walk_f1', '${d}_walk_f2', '${d}_walk_f3', '${d}_walk_f4'];
       for (final k in frameKeys) {
-        // Body (female)
-        futures.add(_loadOctoFrame('body', 'body/female$k.png', k));
+        // Body (female / male)
+        futures.add(_loadOctoFrame('body', 'body/$bodyType$k.png', k));
 
         // Head (face shape with oval fallback)
         futures.add(_loadOctoFrame('head', 'head/$head$k.png', k).then((_) {
@@ -195,7 +197,7 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Hair Back & Front
         if (config.hairStyle != 'none') {
-          if (hair == 'long_flow') {
+          if (hair == 'long_flow' || hair == 'flow') {
             futures.add(_loadOctoFrame('hair_back', 'hair/$hair/back/$hair$k.png', k));
           }
           futures.add(_loadOctoFrame('hair_front', 'hair/$hair/front/$hair$k.png', k));

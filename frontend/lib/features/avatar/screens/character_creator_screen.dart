@@ -77,6 +77,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     final randomBottomColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
 
     final newConfig = AvatarConfig(
+      bodyType: AvatarConfig.availableBodyTypes[rand.nextInt(AvatarConfig.availableBodyTypes.length)],
       faceShape: AvatarConfig.availableFaceShapes[rand.nextInt(AvatarConfig.availableFaceShapes.length)],
       skinColor: randomSkin,
       eyeStyle: AvatarConfig.availableEyeStyles[rand.nextInt(AvatarConfig.availableEyeStyles.length)],
@@ -767,6 +768,17 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        _buildSectionHeader(
+          icon: Icons.wc,
+          title: 'Tipo de Cuerpo / Género',
+          subtitle: 'Selecciona la complexión base femenina o masculina',
+        ),
+        _buildOptionList(
+          options: AvatarConfig.availableBodyTypes,
+          selected: _currentConfig.bodyType,
+          onSelected: (val) => _updateConfig(_currentConfig.copyWith(bodyType: val)),
+        ),
+        const SizedBox(height: 24),
         _buildSectionHeader(
           icon: Icons.face_6,
           title: 'Forma del Rostro / Cabeza',
