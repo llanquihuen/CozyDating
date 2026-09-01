@@ -4049,70 +4049,6 @@
       }
     }
   },
-  "curtained_window": {
-    "name": "Curtained Window",
-    "zone": "decor",
-    "footprint": "wall_n",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      128
-    ],
-    "sprite_offset": [
-      -32,
-      -48
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "curtained_window_n",
-        "name": "Curtained Window (Norte)",
-        "footprint": "wall_n",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          128
-        ],
-        "sprite_offset": [
-          -32,
-          -48
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/curtained_window_n.png"
-      },
-      "1": {
-        "id": "curtained_window_w",
-        "name": "Curtained Window (Oeste)",
-        "footprint": "wall_w",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          128
-        ],
-        "sprite_offset": [
-          -32,
-          -48
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/curtained_window_w.png"
-      }
-    }
-  },
   "hanging_shelf_wall": {
     "name": "Repisa Colgante",
     "zone": "decor",
@@ -4366,6 +4302,134 @@
           0
         ],
         "asset_path": "furniture/established_furniture/wall_clock_w.png"
+      }
+    }
+  },
+  "wall_poster_anime": {
+    "name": "Wall Poster Anime",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_poster_anime_n",
+        "name": "Wall Poster Anime (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_anime_n.png"
+      },
+      "1": {
+        "id": "wall_poster_anime_w",
+        "name": "Wall Poster Anime (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_anime_w.png"
+      }
+    }
+  },
+  "wall_poster_anime2": {
+    "name": "Wall Poster Anime2",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_poster_anime2_n",
+        "name": "Wall Poster Anime2 (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_anime2_n.png"
+      },
+      "1": {
+        "id": "wall_poster_anime2_w",
+        "name": "Wall Poster Anime2 (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_anime2_w.png"
       }
     }
   },

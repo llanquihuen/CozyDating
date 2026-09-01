@@ -665,6 +665,7 @@ class OctoStudioApp:
             generate_face_walk_frames.generate_walk_frames_for_category("nose")
             generate_face_walk_frames.generate_walk_frames_for_category("mouth")
             generate_face_walk_frames.generate_walk_frames_for_category("head")
+            generate_face_walk_frames.generate_walk_frames_for_category("accessories")
             generate_face_walk_frames.generate_walk_frames_for_hair()
         except Exception as e:
             print("Error al regenerar frames de caminata facial:", e)
