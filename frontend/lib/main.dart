@@ -12,6 +12,7 @@ import 'features/auth/screens/welcome_screen.dart';
 import 'features/game/bloc/game_bloc.dart';
 import 'features/game/game_view.dart';
 import 'features/game/guide_game_view.dart';
+import 'features/game/screens/dungeon_match_intro_view.dart';
 import 'features/lobby/screens/cozy_lobby_view.dart';
 
 void main() {
@@ -54,6 +55,7 @@ class GameLauncherScreen extends StatefulWidget {
 
 class _GameLauncherScreenState extends State<GameLauncherScreen> {
   String _selectedUserId = 'alice';
+  String? _introCompletedRoomId;
 
   String get _baseUrl => AppConfig.baseUrl;
   String get _wsUrl => AppConfig.wsUrl;
@@ -120,9 +122,25 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
         if (state is ErrorGameState) {
           _showErrorSnackBar(context, state.message);
         }
+        if (state is GameInitialState || state is TerminatedGameState) {
+          _introCompletedRoomId = null;
+        }
       },
       builder: (context, state) {
         if (state is ActiveGameState) {
+          // Si no ha completado la pantalla de match intro para esta sala, mostrarla
+          if (_introCompletedRoomId != state.session.roomId) {
+            return DungeonMatchIntroView(
+              key: ValueKey('match_intro_${state.session.roomId}_act${state.session.act}'),
+              state: state,
+              onStartGame: () {
+                setState(() {
+                  _introCompletedRoomId = state.session.roomId;
+                });
+              },
+            );
+          }
+
           final isExplorer = state.session.role == 'EXPLORER';
           if (isExplorer) {
             return GameView(

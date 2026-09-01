@@ -77,6 +77,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "RUNE_GATE_UNLOCKED":
                 case "PING_SENT":
                 case "SANCTUARY_DECISION":
+                case "PROFILE_SYNC":
                     handleForwardMessage(session, data);
                     break;
                 case "PING":
@@ -116,6 +117,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String commune = (String) data.get("commune");
         String timeSlot = (String) data.get("timeSlot");
         String mode = (String) data.get("mode");
+        String username = (String) data.get("username");
+        Object avatarConfig = data.get("avatarConfig");
+        Object roomConfig = data.get("roomConfig");
 
         logger.info("[SOCKET AUTH] Verifying SESSION_INIT token signature...");
         String userId = jwtUtil.verifyTokenAndGetUserId(token);
@@ -126,10 +130,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        logger.info("[SOCKET AUTH SUCCESS] Identity verified! UserId: {}", userId);
+        logger.info("[SOCKET AUTH SUCCESS] Identity verified! UserId: {} (Username: {})", userId, username);
         sessionToUserMap.put(session, userId);
 
-        boolean queued = matchmakingService.joinQueue(userId, commune, timeSlot, mode, session);
+        boolean queued = matchmakingService.joinQueue(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username);
         if (!queued) {
             logger.warn("[SOCKET QUEUE FAIL] Could not queue user {}. Ticket balance or duplicate queue state.", userId);
             Map<String, Object> errorResp = new HashMap<>();

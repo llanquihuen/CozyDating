@@ -320,7 +320,16 @@ class AvatarStorageService {
   static AvatarConfig get currentConfig => getUserConfig(_activeUserId);
 
   static AvatarConfig getUserConfig(String userId) {
-    return _userConfigs[userId] ?? const AvatarConfig();
+    if (_userConfigs.containsKey(userId)) {
+      return _userConfigs[userId]!;
+    }
+    if (userId.isEmpty) {
+      return _userConfigs['bob'] ?? const AvatarConfig();
+    }
+    // Si no existe, mapear determinísticamente a uno de los perfiles para variedad visual
+    const fallbackKeys = ['bob', 'charlie', 'david', 'alice'];
+    final index = userId.hashCode.abs() % fallbackKeys.length;
+    return _userConfigs[fallbackKeys[index]] ?? const AvatarConfig();
   }
 
   static void saveUserConfig(String userId, AvatarConfig config) {
@@ -339,7 +348,15 @@ class AvatarStorageService {
   static RoomConfig get currentRoomConfig => getUserRoomConfig(_activeUserId);
 
   static RoomConfig getUserRoomConfig(String userId) {
-    return _userRoomConfigs[userId] ?? const RoomConfig();
+    if (_userRoomConfigs.containsKey(userId)) {
+      return _userRoomConfigs[userId]!;
+    }
+    if (userId.isEmpty) {
+      return _userRoomConfigs['bob'] ?? const RoomConfig();
+    }
+    const fallbackKeys = ['bob', 'charlie', 'david', 'alice'];
+    final index = userId.hashCode.abs() % fallbackKeys.length;
+    return _userRoomConfigs[fallbackKeys[index]] ?? const RoomConfig();
   }
 
   static void saveUserRoomConfig(String userId, RoomConfig config) {

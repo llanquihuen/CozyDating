@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import 'bloc/game_bloc.dart';
 import 'guide_dungeon_game.dart';
@@ -27,7 +28,21 @@ class _GuideGameViewState extends State<GuideGameView> {
     // Use deterministic shared seed from server or fallback to deterministic room hash
     final sharedSeed = widget.state.session.seed ??
         DungeonGenerator.deterministicStringSeed(widget.state.session.roomId);
-    final partnerAvatar = AvatarStorageService.getUserConfig(widget.state.session.partnerId);
+
+    final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    var partnerCandidate = widget.state.session.partnerId;
+    if (partnerCandidate.isEmpty || partnerCandidate == localUserId) {
+      if (localUserId == 'alice') {
+        partnerCandidate = 'bob';
+      } else if (localUserId == 'bob') {
+        partnerCandidate = 'alice';
+      } else if (localUserId == 'charlie') {
+        partnerCandidate = 'david';
+      } else {
+        partnerCandidate = 'bob';
+      }
+    }
+    final partnerAvatar = widget.state.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(partnerCandidate);
 
     _guideGame = GuideDungeonGame(
       dungeonMapData: DungeonGenerator.generateMap(

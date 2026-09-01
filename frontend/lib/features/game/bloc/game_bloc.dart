@@ -2,8 +2,12 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flame/game.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/models/avatar_config.dart';
 import '../../../core/models/game_models.dart';
+import '../../../core/models/room_config.dart';
 import '../../../core/network/websocket_client.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/avatar_storage_service.dart';
 
 // =========================================================================
 // Game Events
@@ -79,6 +83,25 @@ class SendUnlockRuneGateEvent extends GameEvent {
   const SendUnlockRuneGateEvent();
 }
 
+class SendBlockPushedEvent extends GameEvent {
+  final String blockId;
+  final double x;
+  final double y;
+
+  const SendBlockPushedEvent({
+    required this.blockId,
+    required this.x,
+    required this.y,
+  });
+
+  @override
+  List<Object?> get props => [blockId, x, y];
+}
+
+class SendRoleSwapRequestEvent extends GameEvent {
+  const SendRoleSwapRequestEvent();
+}
+
 class SendSanctuaryReachedEvent extends GameEvent {
   const SendSanctuaryReachedEvent();
 }
@@ -146,6 +169,9 @@ class ActiveGameState extends GameState {
   final Vector2? latestPingPos;
   final int? trapsDisarmedTrigger;
   final int? runeGateUnlockedTrigger;
+  final AvatarConfig? partnerAvatarConfig;
+  final RoomConfig? partnerRoomConfig;
+  final String? partnerUsername;
 
   const ActiveGameState({
     required this.session,
@@ -155,6 +181,9 @@ class ActiveGameState extends GameState {
     this.latestPingPos,
     this.trapsDisarmedTrigger,
     this.runeGateUnlockedTrigger,
+    this.partnerAvatarConfig,
+    this.partnerRoomConfig,
+    this.partnerUsername,
   });
 
   ActiveGameState copyWith({
@@ -165,6 +194,9 @@ class ActiveGameState extends GameState {
     Vector2? latestPingPos,
     int? trapsDisarmedTrigger,
     int? runeGateUnlockedTrigger,
+    AvatarConfig? partnerAvatarConfig,
+    RoomConfig? partnerRoomConfig,
+    String? partnerUsername,
   }) {
     return ActiveGameState(
       session: session ?? this.session,
@@ -174,11 +206,25 @@ class ActiveGameState extends GameState {
       latestPingPos: latestPingPos ?? this.latestPingPos,
       trapsDisarmedTrigger: trapsDisarmedTrigger ?? this.trapsDisarmedTrigger,
       runeGateUnlockedTrigger: runeGateUnlockedTrigger ?? this.runeGateUnlockedTrigger,
+      partnerAvatarConfig: partnerAvatarConfig ?? this.partnerAvatarConfig,
+      partnerRoomConfig: partnerRoomConfig ?? this.partnerRoomConfig,
+      partnerUsername: partnerUsername ?? this.partnerUsername,
     );
   }
 
   @override
-  List<Object?> get props => [session, partnerReady, localReady, latestDungeonState, latestPingPos, trapsDisarmedTrigger, runeGateUnlockedTrigger];
+  List<Object?> get props => [
+    session,
+    partnerReady,
+    localReady,
+    latestDungeonState,
+    latestPingPos,
+    trapsDisarmedTrigger,
+    runeGateUnlockedTrigger,
+    partnerAvatarConfig,
+    partnerRoomConfig,
+    partnerUsername,
+  ];
 }
 
 class PausedGameState extends GameState {
@@ -250,13 +296,21 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     try {
       await webSocketClient.connect(event.socketUrl, event.token);
       
-      print('[BLOC OUT] Submitting SESSION_INIT command over WebSocket...');
+      final myId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+      final myUsername = AuthService.currentUser?.username ?? myId;
+      final myAvatar = AvatarStorageService.getUserConfig(myId);
+      final myRoom = AvatarStorageService.getUserRoomConfig(myId);
+
+      print('[BLOC OUT] Submitting SESSION_INIT command with profile over WebSocket...');
       webSocketClient.sendMessage({
         'type': 'SESSION_INIT',
         'token': event.token,
         'commune': event.commune,
         'timeSlot': event.timeSlot,
         'mode': event.mode,
+        'username': myUsername,
+        'avatarConfig': myAvatar.toJson(),
+        'roomConfig': myRoom.toMap(),
       });
 
       print('[BLOC STATE] Emitting MatchmakingQueueState');
@@ -370,9 +424,62 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     if (type == 'SESSION_INIT') {
       final payload = SessionInitPayload.fromJson(msg);
-      print('[BLOC IN] Received SESSION_INIT match! RoomId: ${payload.roomId}, Role: ${payload.role}, Partner: ${payload.partnerId}');
+      print('[BLOC IN] Received SESSION_INIT match! RoomId: ${payload.roomId}, Role: ${payload.role}, Partner: ${payload.partnerId} (${payload.partnerUsername})');
       webSocketClient.setSessionActive(true);
-      emit(ActiveGameState(session: payload));
+
+      // Si el backend envió el avatar/cuarto real del partner, guardarlo en AvatarStorageService
+      if (payload.partnerAvatarConfig != null && payload.partnerId.isNotEmpty) {
+        AvatarStorageService.saveUserConfig(payload.partnerId, payload.partnerAvatarConfig!);
+      }
+      if (payload.partnerRoomConfig != null && payload.partnerId.isNotEmpty) {
+        AvatarStorageService.saveUserRoomConfig(payload.partnerId, payload.partnerRoomConfig!);
+      }
+
+      final resolvedAvatar = payload.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(payload.partnerId);
+      final resolvedRoom = payload.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(payload.partnerId);
+
+      emit(ActiveGameState(
+        session: payload,
+        partnerAvatarConfig: resolvedAvatar,
+        partnerRoomConfig: resolvedRoom,
+        partnerUsername: payload.partnerUsername ?? payload.partnerId,
+      ));
+      return;
+    }
+
+    if (type == 'PROFILE_SYNC') {
+      final senderUserId = msg['userId'] as String? ?? '';
+      final senderUsername = msg['username'] as String?;
+      final avatarData = msg['avatarConfig'] as Map<String, dynamic>?;
+      final roomData = msg['roomConfig'] as Map<String, dynamic>?;
+
+      AvatarConfig? partnerAvatar;
+      RoomConfig? partnerRoom;
+
+      if (avatarData != null) {
+        partnerAvatar = AvatarConfig.fromJson(avatarData);
+        if (senderUserId.isNotEmpty) {
+          AvatarStorageService.saveUserConfig(senderUserId, partnerAvatar);
+        }
+      }
+
+      if (roomData != null) {
+        partnerRoom = RoomConfig.fromMap(roomData);
+        if (senderUserId.isNotEmpty) {
+          AvatarStorageService.saveUserRoomConfig(senderUserId, partnerRoom);
+        }
+      }
+
+      print('[BLOC IN] Received PROFILE_SYNC from partner $senderUserId (${senderUsername ?? "unknown"})');
+
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          partnerAvatarConfig: partnerAvatar ?? active.partnerAvatarConfig,
+          partnerRoomConfig: partnerRoom ?? active.partnerRoomConfig,
+          partnerUsername: senderUsername ?? active.partnerUsername,
+        ));
+      }
       return;
     }
 

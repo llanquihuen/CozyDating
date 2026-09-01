@@ -37,8 +37,17 @@ public class GameSessionService {
 
     public void createRoom(String roomId, String explorerId, WebSocketSession explorerSession,
                            String guideId, WebSocketSession guideSession, String mode) {
+        createRoom(roomId, explorerId, explorerSession, null, null, explorerId,
+                   guideId, guideSession, null, null, guideId, mode);
+    }
+
+    public void createRoom(String roomId,
+                           String explorerId, WebSocketSession explorerSession, Object explorerAvatar, Object explorerRoom, String explorerName,
+                           String guideId, WebSocketSession guideSession, Object guideAvatar, Object guideRoom, String guideName,
+                           String mode) {
         
-        logger.info("[GAME SESSION INIT] Building room {} [Explorer: {}, Guide: {}, Mode: {}]", roomId, explorerId, guideId, mode);
+        logger.info("[GAME SESSION INIT] Building room {} [Explorer: {} ({}), Guide: {} ({}), Mode: {}]",
+                roomId, explorerId, explorerName, guideId, guideName, mode);
 
         String livekitTokenExplorer = "";
         String livekitTokenGuide = "";
@@ -65,8 +74,8 @@ public class GameSessionService {
         userToRoomMap.put(explorerId, roomId);
         userToRoomMap.put(guideId, roomId);
 
-        // Send SESSION_INIT to Explorer
-        logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer ({}) with seed {}", explorerId, dungeonSeed);
+        // Send SESSION_INIT to Explorer (Partner is Guide)
+        logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer ({}) with partner data ({})", explorerId, guideId);
         Map<String, Object> explorerInit = new HashMap<>();
         explorerInit.put("type", "SESSION_INIT");
         explorerInit.put("roomId", roomId);
@@ -74,12 +83,15 @@ public class GameSessionService {
         explorerInit.put("mode", mode);
         explorerInit.put("livekitToken", livekitTokenExplorer);
         explorerInit.put("partnerId", guideId);
+        explorerInit.put("partnerUsername", guideName);
+        if (guideAvatar != null) explorerInit.put("partnerAvatarConfig", guideAvatar);
+        if (guideRoom != null) explorerInit.put("partnerRoomConfig", guideRoom);
         explorerInit.put("seed", dungeonSeed);
         explorerInit.put("act", 1);
         sendJsonMessage(explorerSession, explorerInit);
 
-        // Send SESSION_INIT to Guide
-        logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide ({}) with seed {}", guideId, dungeonSeed);
+        // Send SESSION_INIT to Guide (Partner is Explorer)
+        logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide ({}) with partner data ({})", guideId, explorerId);
         Map<String, Object> guideInit = new HashMap<>();
         guideInit.put("type", "SESSION_INIT");
         guideInit.put("roomId", roomId);
@@ -87,6 +99,9 @@ public class GameSessionService {
         guideInit.put("mode", mode);
         guideInit.put("livekitToken", livekitTokenGuide);
         guideInit.put("partnerId", explorerId);
+        guideInit.put("partnerUsername", explorerName);
+        if (explorerAvatar != null) guideInit.put("partnerAvatarConfig", explorerAvatar);
+        if (explorerRoom != null) guideInit.put("partnerRoomConfig", explorerRoom);
         guideInit.put("seed", dungeonSeed);
         guideInit.put("act", 1);
         sendJsonMessage(guideSession, guideInit);

@@ -30,20 +30,32 @@ public class MatchmakingService {
         public final String timeSlot;
         public final String mode;
         public final WebSocketSession session;
+        public final Object avatarConfig;
+        public final Object roomConfig;
+        public final String username;
         public final long timestamp;
 
-        public QueueEntry(String userId, String commune, String timeSlot, String mode, WebSocketSession session) {
+        public QueueEntry(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
+                          Object avatarConfig, Object roomConfig, String username) {
             this.userId = userId;
             this.commune = commune;
             this.timeSlot = timeSlot;
             this.mode = mode;
             this.session = session;
+            this.avatarConfig = avatarConfig;
+            this.roomConfig = roomConfig;
+            this.username = username != null ? username : userId;
             this.timestamp = System.currentTimeMillis();
         }
     }
 
     public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session) {
-        logger.info("[MATCHMAKING REQUEST] User {} requesting to join queue [Commune: {}, TimeSlot: {}, Mode: {}]", userId, commune, timeSlot, mode);
+        return joinQueue(userId, commune, timeSlot, mode, session, null, null, null);
+    }
+
+    public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
+                                          Object avatarConfig, Object roomConfig, String username) {
+        logger.info("[MATCHMAKING REQUEST] User {} ({}) requesting to join queue [Commune: {}, TimeSlot: {}, Mode: {}]", userId, username, commune, timeSlot, mode);
 
         for (QueueEntry entry : queue) {
             if (entry.userId.equals(userId)) {
@@ -61,7 +73,7 @@ public class MatchmakingService {
             }
         }
 
-        QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session);
+        QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username);
         queue.add(newEntry);
         logger.info("[MATCHMAKING QUEUED] User {} successfully added to queue. Current Queue Size: {}", userId, queue.size());
 
@@ -149,12 +161,13 @@ public class MatchmakingService {
         queue.remove(entryB);
 
         String roomId = "room_" + UUID.randomUUID().toString().substring(0, 8);
-        logger.info("[MATCHMAKING ROOM INIT] Creating room {} for Explorer {} and Guide {} [Mode: {}]", roomId, entryA.userId, entryB.userId, entryA.mode);
+        logger.info("[MATCHMAKING ROOM INIT] Creating room {} for Explorer {} ({}) and Guide {} ({}) [Mode: {}]",
+                roomId, entryA.userId, entryA.username, entryB.userId, entryB.username, entryA.mode);
 
         gameSessionService.createRoom(
             roomId, 
-            entryA.userId, entryA.session, 
-            entryB.userId, entryB.session, 
+            entryA.userId, entryA.session, entryA.avatarConfig, entryA.roomConfig, entryA.username,
+            entryB.userId, entryB.session, entryB.avatarConfig, entryB.roomConfig, entryB.username,
             entryA.mode
         );
     }

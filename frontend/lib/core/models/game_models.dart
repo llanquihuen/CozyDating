@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:equatable/equatable.dart';
+import 'avatar_config.dart';
+import 'room_config.dart';
 
 class PlayerProfileMini extends Equatable {
   final String userId;
@@ -19,7 +21,7 @@ class PlayerProfileMini extends Equatable {
       userId: json['userId'] as String? ?? '',
       username: json['username'] as String? ?? '',
       commune: json['commune'] as String? ?? '',
-      age: json['age'] as int? ?? 0,
+      age: (json['age'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -40,10 +42,7 @@ class GameMessage extends Equatable {
   final String type;
   final Map<String, dynamic> payload;
 
-  const GameMessage({
-    required this.type,
-    required this.payload,
-  });
+  const GameMessage({required this.type, required this.payload});
 
   factory GameMessage.fromJson(Map<String, dynamic> json) {
     final type = json['type'] as String? ?? '';
@@ -70,6 +69,9 @@ class SessionInitPayload extends Equatable {
   final String mode;
   final String? livekitToken;
   final String partnerId;
+  final String? partnerUsername;
+  final AvatarConfig? partnerAvatarConfig;
+  final RoomConfig? partnerRoomConfig;
   final int act;
   final int? seed;
 
@@ -79,17 +81,37 @@ class SessionInitPayload extends Equatable {
     required this.mode,
     this.livekitToken,
     required this.partnerId,
+    this.partnerUsername,
+    this.partnerAvatarConfig,
+    this.partnerRoomConfig,
     this.act = 1,
     this.seed,
   });
 
   factory SessionInitPayload.fromJson(Map<String, dynamic> json) {
+    AvatarConfig? avatar;
+    if (json['partnerAvatarConfig'] != null) {
+      if (json['partnerAvatarConfig'] is Map) {
+        avatar = AvatarConfig.fromJson(Map<String, dynamic>.from(json['partnerAvatarConfig'] as Map));
+      }
+    }
+
+    RoomConfig? room;
+    if (json['partnerRoomConfig'] != null) {
+      if (json['partnerRoomConfig'] is Map) {
+        room = RoomConfig.fromMap(Map<String, dynamic>.from(json['partnerRoomConfig'] as Map));
+      }
+    }
+
     return SessionInitPayload(
       roomId: json['roomId'] as String? ?? '',
       role: json['role'] as String? ?? '',
       mode: json['mode'] as String? ?? '',
       livekitToken: json['livekitToken'] as String?,
       partnerId: json['partnerId'] as String? ?? '',
+      partnerUsername: json['partnerUsername'] as String?,
+      partnerAvatarConfig: avatar,
+      partnerRoomConfig: room,
       act: (json['act'] as num?)?.toInt() ?? 1,
       seed: (json['seed'] as num?)?.toInt(),
     );
@@ -102,13 +124,27 @@ class SessionInitPayload extends Equatable {
       'mode': mode,
       'livekitToken': livekitToken,
       'partnerId': partnerId,
+      if (partnerUsername != null) 'partnerUsername': partnerUsername,
+      if (partnerAvatarConfig != null) 'partnerAvatarConfig': partnerAvatarConfig!.toJson(),
+      if (partnerRoomConfig != null) 'partnerRoomConfig': partnerRoomConfig!.toMap(),
       'act': act,
       'seed': seed,
     };
   }
 
   @override
-  List<Object?> get props => [roomId, role, mode, livekitToken, partnerId, act, seed];
+  List<Object?> get props => [
+    roomId,
+    role,
+    mode,
+    livekitToken,
+    partnerId,
+    partnerUsername,
+    partnerAvatarConfig,
+    partnerRoomConfig,
+    act,
+    seed,
+  ];
 }
 
 class DungeonStatePayload extends Equatable {

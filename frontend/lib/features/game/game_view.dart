@@ -4,6 +4,8 @@ import 'package:flutter/widget_previews.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/game_models.dart';
 import '../../../core/network/websocket_client.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/avatar_storage_service.dart';
 import 'bloc/game_bloc.dart';
 import 'dungeon_game.dart';
 import 'guide_game_view.dart';
@@ -35,11 +37,15 @@ class _GameViewState extends State<GameView> {
     // Use deterministic shared seed from server or fallback to deterministic room hash
     final sharedSeed = widget.state.session.seed ??
         DungeonGenerator.deterministicStringSeed(widget.state.session.roomId);
+    final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    final explorerAvatar = AvatarStorageService.getUserConfig(localUserId);
+
     _dungeonGame = DungeonGame(
       dungeonMapData: DungeonGenerator.generateMap(
         seed: sharedSeed,
         act: widget.state.session.act,
       ),
+      explorerAvatarConfig: explorerAvatar,
       onSanctuaryReached: () {
         if (!mounted) return;
         context.read<GameBloc>().add(const SendSanctuaryReachedEvent());
