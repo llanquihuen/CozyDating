@@ -10,7 +10,10 @@ import '../dungeon_game.dart';
 class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, CollisionCallbacks {
   Vector2 targetPosition = Vector2.zero();
   Vector2 direction = Vector2.zero();
+  late Vector2 lastSafePosition;
   bool isMoving = false;
+  bool isTrappedInPitfall = false;
+  double _stunTimer = 0.0;
   final double stepSpeed = 220.0;
 
   double _damageShakeTimer = 0.0;
@@ -53,6 +56,7 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     anchor = Anchor.topLeft;
     priority = 3; // Renders in front of floors, traps, and back walls
     targetPosition = position.clone();
+    lastSafePosition = position.clone();
 
     // Hitbox situated strictly at the feet (bottom ground contact area)
     add(RectangleHitbox(
@@ -83,7 +87,7 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
 
   /// Initiates a discrete 1-tile grid step towards [dir]
   void setMovementDirection(Vector2 dir) {
-    if (isMoving) return;
+    if (isMoving || isTrappedInPitfall || _stunTimer > 0) return;
 
     final tileSize = gameRef.tileSize;
     final marginX = (tileSize - size.x) / 2;
@@ -117,9 +121,10 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     // 4. Check collision against walls or obstacles at target grid cell
     if (gameRef.isTileOccupied(targetCellTopLeft)) {
       if (gameRef.isActiveSpikeAt(targetCellTopLeft)) {
-        takeDamageAnimation();
+        softStumbleFromSpike();
+      } else {
+        print('[EXPLORER LOG] Movement blocked by obstacle at grid cell ($targetCol, $targetRow)');
       }
-      print('[EXPLORER LOG] Movement blocked by obstacle at grid cell ($targetCol, $targetRow)');
       return;
     }
 
@@ -139,6 +144,50 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     _damageShakeTimer = _shakeDuration;
   }
 
+  /// Traps explorer in the pitfall until Guide rescues them
+  void triggerTrappedInPitfall(Vector2 pitfallTilePos) {
+    isTrappedInPitfall = true;
+    isMoving = false;
+    direction = Vector2.zero();
+    avatarRenderer.isMoving = false;
+    takeDamageAnimation();
+
+    final tileSize = gameRef.tileSize;
+    final col = (pitfallTilePos.x / tileSize).round();
+    final row = (pitfallTilePos.y / tileSize).round();
+    final centeredPos = getCenteredTilePosition(col, row, tileSize, size);
+    position = centeredPos.clone();
+    targetPosition = centeredPos.clone();
+    onPositionChanged?.call(position);
+    onPositionChangedFull?.call(position, avatarRenderer.direction, false);
+  }
+
+  /// Releases explorer from pitfall trap after Guide assistance
+  void releaseFromPitfall() {
+    isTrappedInPitfall = false;
+    _stunTimer = 0.4;
+    takeDamageAnimation();
+    lastSafePosition = position.clone();
+    print('[EXPLORER LOG] Rescued from pitfall! Free to move.');
+  }
+
+  /// Soft stumble when touching an active spike trap: push back to last safe tile with brief 0.6s stun
+  void softStumbleFromSpike() {
+    takeDamageAnimation();
+    _stunTimer = 0.6;
+    isMoving = false;
+    direction = Vector2.zero();
+    avatarRenderer.isMoving = false;
+
+    // Reset back to last safe position
+    position = lastSafePosition.clone();
+    targetPosition = lastSafePosition.clone();
+    onPositionChanged?.call(position);
+    onPositionChangedFull?.call(position, avatarRenderer.direction, false);
+
+    gameRef.handleExplorerSpikeHit();
+  }
+
   /// Resets position and snaps 100% centered inside discrete grid cell
   void resetPosition(Vector2 cellTopLeft) {
     final tileSize = gameRef.tileSize;
@@ -148,8 +197,10 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
 
     position = centeredPos.clone();
     targetPosition = centeredPos.clone();
+    lastSafePosition = centeredPos.clone();
     direction = Vector2.zero();
     isMoving = false;
+    isTrappedInPitfall = false;
     avatarRenderer.isMoving = false;
     onPositionChanged?.call(position);
     onPositionChangedFull?.call(position, avatarRenderer.direction, false);
@@ -162,6 +213,9 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     if (_damageShakeTimer > 0) {
       _damageShakeTimer -= dt;
     }
+    if (_stunTimer > 0) {
+      _stunTimer -= dt;
+    }
 
     if (isMoving) {
       final distanceToTarget = (targetPosition - position).length;
@@ -169,6 +223,7 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
 
       if (moveDistance >= distanceToTarget) {
         position = targetPosition.clone();
+        lastSafePosition = position.clone(); // Safely arrived!
         isMoving = false;
         avatarRenderer.isMoving = false;
         direction = Vector2.zero();
@@ -190,5 +245,31 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
       );
     }
     super.render(canvas);
+
+    // If trapped in a pitfall, render a distress call bubble above head
+    if (isTrappedInPitfall) {
+      final bubbleCenter = Offset(size.x / 2, -14);
+      final bgPaint = Paint()..color = Colors.black87;
+      final borderPaint = Paint()
+        ..color = Colors.orangeAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+
+      canvas.drawCircle(bubbleCenter, 12, bgPaint);
+      canvas.drawCircle(bubbleCenter, 12, borderPaint);
+
+      final textPainter = TextPainter(
+        text: const TextSpan(
+          text: '🆘',
+          style: TextStyle(fontSize: 14),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        bubbleCenter - Offset(textPainter.width / 2, textPainter.height / 2),
+      );
+    }
   }
 }

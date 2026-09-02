@@ -1,3 +1,4 @@
+import 'dart:async' as async;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,10 @@ import '../../../core/services/avatar_storage_service.dart';
 import 'bloc/game_bloc.dart';
 import 'guide_dungeon_game.dart';
 import 'services/dungeon_generator.dart';
+import 'widgets/dungeon_mission_hud.dart';
+import 'widgets/emote_wheel_widget.dart';
+import 'widgets/role_swap_transition_dialog.dart';
+import 'screens/role_swap_cinematic_view.dart';
 
 class GuideGameView extends StatefulWidget {
   final ActiveGameState state;
@@ -21,6 +26,11 @@ class _GuideGameViewState extends State<GuideGameView> {
   late GuideDungeonGame _guideGame;
   int? _lastHandledDisarmTrigger;
   int? _lastHandledGateTrigger;
+  int? _lastHandledEmoteTrigger;
+  int? _lastHandledSpikeAlertTrigger;
+  bool _showSpikeAlert = false;
+  async.Timer? _spikeAlertTimer;
+  bool _isShowingRoleSwapDialog = false;
 
   @override
   void initState() {
@@ -55,6 +65,12 @@ class _GuideGameViewState extends State<GuideGameView> {
         context.read<GameBloc>().add(SendPingEvent(pingPos.x, pingPos.y));
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _spikeAlertTimer?.cancel();
+    super.dispose();
   }
 
   void _showExitDialog(BuildContext context) {
@@ -122,102 +138,101 @@ class _GuideGameViewState extends State<GuideGameView> {
             _lastHandledGateTrigger = state.runeGateUnlockedTrigger;
             _guideGame.unlockRuneGate();
           }
+          if (state.latestEmote != null && state.emoteTrigger != _lastHandledEmoteTrigger) {
+            _lastHandledEmoteTrigger = state.emoteTrigger;
+            _guideGame.showFloatingEmote(state.latestEmote!);
+          }
+          if (state.spikeAlertTrigger != null && state.spikeAlertTrigger != _lastHandledSpikeAlertTrigger) {
+            _lastHandledSpikeAlertTrigger = state.spikeAlertTrigger;
+            setState(() {
+              _showSpikeAlert = true;
+            });
+            _spikeAlertTimer?.cancel();
+            _spikeAlertTimer = async.Timer(const Duration(seconds: 4), () {
+              if (mounted) {
+                setState(() => _showSpikeAlert = false);
+              }
+            });
+          }
+          if (state.pendingRoleSwapSession != null && !_isShowingRoleSwapDialog) {
+            _isShowingRoleSwapDialog = true;
+            final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+            final localAvatar = AvatarStorageService.getUserConfig(localUserId);
+            Navigator.of(context).push(
+              PageRouteBuilder(
+                opaque: true,
+                pageBuilder: (cinematicContext, _, __) => RoleSwapCinematicView(
+                  newRole: state.pendingRoleSwapSession!.role,
+                  localAvatarConfig: localAvatar,
+                  partnerAvatarConfig: state.partnerAvatarConfig,
+                  partnerName: state.partnerUsername ?? 'Compañero',
+                  onProceed: () {
+                    Navigator.of(cinematicContext).pop();
+                    _isShowingRoleSwapDialog = false;
+                    context.read<GameBloc>().add(const ApplyRoleSwapEvent());
+                  },
+                ),
+                transitionsBuilder: (_, animation, __, child) =>
+                    FadeTransition(opacity: animation, child: child),
+                transitionDuration: const Duration(milliseconds: 500),
+              ),
+            );
+          }
         }
       },
-      child: Scaffold(
-        backgroundColor: const Color(0xFF121212),
-        appBar: AppBar(
-          backgroundColor: Colors.black87,
-          elevation: 0,
-          centerTitle: true,
-          title: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.teal.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.tealAccent),
+      child: ValueListenableBuilder<int>(
+        valueListenable: _guideGame.portalRemainingSeconds,
+        builder: (context, seconds, child) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF121212),
+            appBar: DungeonMissionHud(
+              isGuide: true,
+              targetRuneSequence: secretRunes,
+              currentActivatedCount: widget.state.runeActivatedCount,
+              portalSecondsRemaining: seconds,
+              onExitPressed: () => _showExitDialog(context),
             ),
-            child: const Text(
-              'GUIDE CONSOLE',
-              style: TextStyle(
-                color: Colors.tealAccent,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.redAccent, size: 24),
-              tooltip: 'Exit Game',
-              onPressed: () => _showExitDialog(context),
-            ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            // 1. Fully Illuminated Guide Map Canvas
-            Positioned.fill(
-              child: GameWidget(
-                game: _guideGame,
-              ),
-            ),
+            body: Stack(
+              children: [
+                // 1. Fully Illuminated Guide Map Canvas (100% stable, NEVER moves or shifts)
+                Positioned.fill(
+                  child: GameWidget(
+                    game: _guideGame,
+                  ),
+                ),
 
-            // 2. Portal Open Countdown Banner (top center)
-            Positioned(
-              top: 16,
-              left: 24,
-              right: 24,
-              child: ValueListenableBuilder<int>(
-                valueListenable: _guideGame.portalRemainingSeconds,
-                builder: (context, seconds, child) {
-                  if (seconds <= 0) return const SizedBox.shrink();
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
-                        width: 2.0,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (seconds <= 3 ? Colors.redAccent : Colors.cyanAccent).withOpacity(0.35),
-                          blurRadius: 16,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.cyclone,
-                          color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            '¡PORTAL ABIERTO! Cierra en: ${seconds}s',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
+                // 2. Floating Alert Overlay (Floats OVER the canvas without shifting the map)
+                Positioned(
+                  top: 8,
+                  left: 16,
+                  right: 16,
+                  child: DungeonAlertOverlay(
+                    isGuide: true,
+                    isTrapped: widget.state.trappedPitfallPos != null,
+                    showSpikeAlert: _showSpikeAlert,
+                    onRescuePressed: () {
+                      final trapPos = widget.state.trappedPitfallPos;
+                      if (trapPos != null) {
+                        _guideGame.rescueExplorerFromPitfall(trapPos);
+                        context.read<GameBloc>().add(SendPitfallRescueEvent(trapPos.x, trapPos.y));
+                      }
+                    },
+                  ),
+                ),
 
-            // 3. Tactical Controls & Secret Combination Banner (bottom center)
+                // 2. Floating Emote Wheel (right side above bottom panel)
+                Positioned(
+                  bottom: 80,
+                  right: 16,
+                  child: EmoteWheelWidget(
+                    onEmoteSelected: (emote) {
+                      _guideGame.showFloatingEmote(emote);
+                      context.read<GameBloc>().add(SendEmoteEvent(emote));
+                    },
+                  ),
+                ),
+
+            // 4. Tactical Controls & Secret Combination Banner (bottom center)
             Positioned(
               bottom: 16,
               left: 16,
@@ -272,7 +287,9 @@ class _GuideGameViewState extends State<GuideGameView> {
             ),
           ],
         ),
-      ),
-    );
+      );
+    },
+  ),
+);
   }
 }

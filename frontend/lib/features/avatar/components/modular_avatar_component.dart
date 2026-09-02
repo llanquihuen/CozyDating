@@ -215,7 +215,18 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Shoes (if present)
         if (config.shoeStyle != 'none') {
-          futures.add(_loadOctoFrame('shoes', 'shoes/${config.shoeStyle}$k.png', k));
+          final cardinal = _dirToCardinal(d);
+          final isWalk = k.contains('_walk_f');
+          final walkFrame = isWalk ? k.split('_walk_f').last : '';
+          final shoeFileName = isWalk
+              ? '${config.shoeStyle}_${cardinal}_walk$walkFrame.png'
+              : '${config.shoeStyle}_$cardinal.png';
+
+          futures.add(_loadOctoFrame('shoes', 'shoes/$shoeFileName', k).then((_) {
+            if (!_octoImageCache.containsKey('shoes:$k')) {
+              return _loadOctoFrame('shoes', 'shoes/${config.shoeStyle}$k.png', k);
+            }
+          }));
         }
 
         // Accessories (if present)
@@ -226,6 +237,20 @@ class ModularAvatarComponent extends PositionComponent {
     }
 
     await Future.wait(futures);
+  }
+
+  String _dirToCardinal(int d) {
+    switch (d) {
+      case 1: return 'S';
+      case 2: return 'SE';
+      case 3: return 'E';
+      case 4: return 'NE';
+      case 5: return 'N';
+      case 6: return 'NW';
+      case 7: return 'W';
+      case 8: return 'SW';
+      default: return 'S';
+    }
   }
 
   @override

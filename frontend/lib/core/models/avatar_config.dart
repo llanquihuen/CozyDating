@@ -171,10 +171,13 @@ class AvatarConfig extends Equatable {
 
   static const List<String> availableShoeStyles = [
     'none',
+    'boots',
   ];
 
   static const List<String> availableAccessoryStyles = [
     'none',
+    'nice_lenses',
+    'normal_lenses',
   ];
 
   static String formatName(String id) {
@@ -230,8 +233,13 @@ class AvatarConfig extends Equatable {
       // Bottoms
       case 'jeans': return 'Jeans Clásicos';
 
-      // Fallbacks
+      // Calzado
+      case 'boots': return 'Botas de Cuero 🥾';
       case 'farmer_boots': return 'Botas';
+
+      // Accesorios
+      case 'nice_lenses': return 'Gafas Modernas 🕶️';
+      case 'normal_lenses': return 'Lentes Clásicos 👓';
       case 'straw_hat': return 'Sombrero';
       case 'none': return 'Ninguno';
 

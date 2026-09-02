@@ -115,6 +115,60 @@ class SendEmergencyDisconnectEvent extends GameEvent {
   List<Object?> get props => [shouldBlock];
 }
 
+class SendEmoteEvent extends GameEvent {
+  final String emote;
+
+  const SendEmoteEvent(this.emote);
+
+  @override
+  List<Object?> get props => [emote];
+}
+
+class SendPitfallTrappedEvent extends GameEvent {
+  final double tileX;
+  final double tileY;
+
+  const SendPitfallTrappedEvent(this.tileX, this.tileY);
+
+  @override
+  List<Object?> get props => [tileX, tileY];
+}
+
+class SendPitfallRescueEvent extends GameEvent {
+  final double tileX;
+  final double tileY;
+
+  const SendPitfallRescueEvent(this.tileX, this.tileY);
+
+  @override
+  List<Object?> get props => [tileX, tileY];
+}
+
+class SendSpikeAlertEvent extends GameEvent {
+  const SendSpikeAlertEvent();
+}
+
+class SendRuneProgressEvent extends GameEvent {
+  final int correctCount;
+  final int totalCount;
+  final String? rune;
+  final bool isCorrect;
+
+  const SendRuneProgressEvent({
+    required this.correctCount,
+    required this.totalCount,
+    this.rune,
+    required this.isCorrect,
+  });
+
+  @override
+  List<Object?> get props => [correctCount, totalCount, rune, isCorrect];
+}
+
+class ApplyRoleSwapEvent extends GameEvent {
+  const ApplyRoleSwapEvent();
+}
+
 class ResetGameEvent extends GameEvent {
   const ResetGameEvent();
 }
@@ -172,6 +226,14 @@ class ActiveGameState extends GameState {
   final AvatarConfig? partnerAvatarConfig;
   final RoomConfig? partnerRoomConfig;
   final String? partnerUsername;
+  final String? latestEmote;
+  final int? emoteTrigger;
+  final Vector2? trappedPitfallPos;
+  final Vector2? rescuedPitfallPos;
+  final int? pitfallRescueTrigger;
+  final int? spikeAlertTrigger;
+  final int runeActivatedCount;
+  final SessionInitPayload? pendingRoleSwapSession;
 
   const ActiveGameState({
     required this.session,
@@ -184,6 +246,14 @@ class ActiveGameState extends GameState {
     this.partnerAvatarConfig,
     this.partnerRoomConfig,
     this.partnerUsername,
+    this.latestEmote,
+    this.emoteTrigger,
+    this.trappedPitfallPos,
+    this.rescuedPitfallPos,
+    this.pitfallRescueTrigger,
+    this.spikeAlertTrigger,
+    this.runeActivatedCount = 0,
+    this.pendingRoleSwapSession,
   });
 
   ActiveGameState copyWith({
@@ -197,6 +267,16 @@ class ActiveGameState extends GameState {
     AvatarConfig? partnerAvatarConfig,
     RoomConfig? partnerRoomConfig,
     String? partnerUsername,
+    String? latestEmote,
+    int? emoteTrigger,
+    Vector2? trappedPitfallPos,
+    Vector2? rescuedPitfallPos,
+    int? pitfallRescueTrigger,
+    int? spikeAlertTrigger,
+    int? runeActivatedCount,
+    SessionInitPayload? pendingRoleSwapSession,
+    bool clearTrappedPitfall = false,
+    bool clearPendingRoleSwap = false,
   }) {
     return ActiveGameState(
       session: session ?? this.session,
@@ -209,6 +289,14 @@ class ActiveGameState extends GameState {
       partnerAvatarConfig: partnerAvatarConfig ?? this.partnerAvatarConfig,
       partnerRoomConfig: partnerRoomConfig ?? this.partnerRoomConfig,
       partnerUsername: partnerUsername ?? this.partnerUsername,
+      latestEmote: latestEmote ?? this.latestEmote,
+      emoteTrigger: emoteTrigger ?? this.emoteTrigger,
+      trappedPitfallPos: clearTrappedPitfall ? null : (trappedPitfallPos ?? this.trappedPitfallPos),
+      rescuedPitfallPos: rescuedPitfallPos ?? this.rescuedPitfallPos,
+      pitfallRescueTrigger: pitfallRescueTrigger ?? this.pitfallRescueTrigger,
+      spikeAlertTrigger: spikeAlertTrigger ?? this.spikeAlertTrigger,
+      runeActivatedCount: runeActivatedCount ?? this.runeActivatedCount,
+      pendingRoleSwapSession: clearPendingRoleSwap ? null : (pendingRoleSwapSession ?? this.pendingRoleSwapSession),
     );
   }
 
@@ -224,6 +312,14 @@ class ActiveGameState extends GameState {
     partnerAvatarConfig,
     partnerRoomConfig,
     partnerUsername,
+    latestEmote,
+    emoteTrigger,
+    trappedPitfallPos,
+    rescuedPitfallPos,
+    pitfallRescueTrigger,
+    spikeAlertTrigger,
+    runeActivatedCount,
+    pendingRoleSwapSession,
   ];
 }
 
@@ -277,6 +373,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<SendUnlockRuneGateEvent>(_onSendUnlockRuneGate);
     on<SendSanctuaryReachedEvent>(_onSendSanctuaryReached);
     on<SendEmergencyDisconnectEvent>(_onSendEmergencyDisconnect);
+    on<SendEmoteEvent>(_onSendEmote);
+    on<SendPitfallTrappedEvent>(_onSendPitfallTrapped);
+    on<SendPitfallRescueEvent>(_onSendPitfallRescue);
+    on<SendSpikeAlertEvent>(_onSendSpikeAlert);
+    on<SendRuneProgressEvent>(_onSendRuneProgress);
+    on<ApplyRoleSwapEvent>(_onApplyRoleSwap);
     on<ResetGameEvent>(_onResetGame);
     on<_OnSocketMessageEvent>(_onSocketMessage);
     on<_OnSocketStateChangedEvent>(_onSocketStateChanged);
@@ -386,6 +488,93 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   void _onSendSanctuaryReached(SendSanctuaryReachedEvent event, Emitter<GameState> emit) {
     print('[BLOC EVENT] SendSanctuaryReachedEvent triggered - sending ROLE_SWAP packet to server');
     webSocketClient.sendMessage({'type': 'ROLE_SWAP'});
+  }
+
+  void _onSendEmote(SendEmoteEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending EMOTE_TRIGGERED: ${event.emote}');
+    webSocketClient.sendMessage({
+      'type': 'EMOTE_TRIGGERED',
+      'emote': event.emote,
+    });
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      emit(active.copyWith(
+        latestEmote: event.emote,
+        emoteTrigger: DateTime.now().millisecondsSinceEpoch,
+      ));
+    }
+  }
+
+  void _onSendPitfallTrapped(SendPitfallTrappedEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending PITFALL_TRAPPED at (${event.tileX}, ${event.tileY})');
+    webSocketClient.sendMessage({
+      'type': 'PITFALL_TRAPPED',
+      'tileX': event.tileX,
+      'tileY': event.tileY,
+    });
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      emit(active.copyWith(trappedPitfallPos: Vector2(event.tileX, event.tileY)));
+    }
+  }
+
+  void _onSendPitfallRescue(SendPitfallRescueEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending PITFALL_RESCUED at (${event.tileX}, ${event.tileY})');
+    webSocketClient.sendMessage({
+      'type': 'PITFALL_RESCUED',
+      'tileX': event.tileX,
+      'tileY': event.tileY,
+    });
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      emit(active.copyWith(
+        clearTrappedPitfall: true,
+        rescuedPitfallPos: Vector2(event.tileX, event.tileY),
+        pitfallRescueTrigger: DateTime.now().millisecondsSinceEpoch,
+      ));
+    }
+  }
+
+  void _onSendSpikeAlert(SendSpikeAlertEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending TRAP_TRIGGERED (SPIKE)');
+    webSocketClient.sendMessage({
+      'type': 'TRAP_TRIGGERED',
+      'trapType': 'SPIKE',
+    });
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      emit(active.copyWith(spikeAlertTrigger: DateTime.now().millisecondsSinceEpoch));
+    }
+  }
+
+  void _onSendRuneProgress(SendRuneProgressEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending RUNE_STEPPED: ${event.correctCount}/${event.totalCount}');
+    webSocketClient.sendMessage({
+      'type': 'RUNE_STEPPED',
+      'correctCount': event.correctCount,
+      'totalCount': event.totalCount,
+      'rune': event.rune,
+      'isCorrect': event.isCorrect,
+    });
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      emit(active.copyWith(runeActivatedCount: event.correctCount));
+    }
+  }
+
+  void _onApplyRoleSwap(ApplyRoleSwapEvent event, Emitter<GameState> emit) {
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      if (active.pendingRoleSwapSession != null) {
+        print('[BLOC] Applying pending role swap session: ${active.pendingRoleSwapSession!.role}');
+        emit(ActiveGameState(
+          session: active.pendingRoleSwapSession!,
+          partnerAvatarConfig: active.partnerAvatarConfig,
+          partnerRoomConfig: active.partnerRoomConfig,
+          partnerUsername: active.partnerUsername,
+        ));
+      }
+    }
   }
 
   Future<void> _onSendEmergencyDisconnect(SendEmergencyDisconnectEvent event, Emitter<GameState> emit) async {
@@ -512,6 +701,64 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
 
+    if (type == 'EMOTE_TRIGGERED') {
+      final emote = msg['emote'] as String? ?? '❤️';
+      print('[BLOC IN] Received EMOTE_TRIGGERED from partner: $emote');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          latestEmote: emote,
+          emoteTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'PITFALL_TRAPPED') {
+      final tx = (msg['tileX'] as num?)?.toDouble() ?? 0.0;
+      final ty = (msg['tileY'] as num?)?.toDouble() ?? 0.0;
+      print('[BLOC IN] Received PITFALL_TRAPPED at ($tx, $ty)');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(trappedPitfallPos: Vector2(tx, ty)));
+      }
+      return;
+    }
+
+    if (type == 'PITFALL_RESCUED') {
+      final rx = (msg['tileX'] as num?)?.toDouble() ?? 0.0;
+      final ry = (msg['tileY'] as num?)?.toDouble() ?? 0.0;
+      print('[BLOC IN] Received PITFALL_RESCUED at ($rx, $ry)');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          clearTrappedPitfall: true,
+          rescuedPitfallPos: Vector2(rx, ry),
+          pitfallRescueTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'TRAP_TRIGGERED') {
+      print('[BLOC IN] Received TRAP_TRIGGERED (Spike Alert) from partner');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(spikeAlertTrigger: DateTime.now().millisecondsSinceEpoch));
+      }
+      return;
+    }
+
+    if (type == 'RUNE_STEPPED') {
+      final correctCount = (msg['correctCount'] as num?)?.toInt() ?? 0;
+      print('[BLOC IN] Received RUNE_STEPPED from partner: $correctCount');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(runeActivatedCount: correctCount));
+      }
+      return;
+    }
+
     if (type == 'ROLE_SWAP') {
       print('[BLOC IN] Received authoritative ROLE_SWAP from server: $msg');
       if (state is ActiveGameState) {
@@ -545,8 +792,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           act: newAct,
           seed: newSeed,
         );
-        print('[BLOC IN] Roles swapped for Act $newAct: $currentRole -> $newRole (Seed: $newSeed, Partner: ${active.session.partnerId})');
-        emit(ActiveGameState(session: updatedSession));
+        print('[BLOC IN] Storing pendingRoleSwapSession for Act $newAct: $currentRole -> $newRole (Seed: $newSeed, Partner: ${active.session.partnerId})');
+        emit(active.copyWith(pendingRoleSwapSession: updatedSession));
       }
       return;
     }

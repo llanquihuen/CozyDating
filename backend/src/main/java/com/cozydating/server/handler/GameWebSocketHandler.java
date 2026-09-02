@@ -78,6 +78,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "PING_SENT":
                 case "SANCTUARY_DECISION":
                 case "PROFILE_SYNC":
+                case "EMOTE_TRIGGERED":
+                case "PITFALL_TRAPPED":
+                case "PITFALL_RESCUED":
+                case "RUNE_STEPPED":
                     handleForwardMessage(session, data);
                     break;
                 case "PING":

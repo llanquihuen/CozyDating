@@ -11,6 +11,10 @@ import 'dungeon_game.dart';
 import 'guide_game_view.dart';
 import 'services/dungeon_generator.dart';
 import 'widgets/dpad_widget.dart';
+import 'widgets/dungeon_mission_hud.dart';
+import 'widgets/emote_wheel_widget.dart';
+import 'widgets/role_swap_transition_dialog.dart';
+import 'screens/role_swap_cinematic_view.dart';
 import 'dart:async';
 
 class GameView extends StatefulWidget {
@@ -25,11 +29,14 @@ class GameView extends StatefulWidget {
 class _GameViewState extends State<GameView> {
   late DungeonGame _dungeonGame;
   bool _hasKey = false;
+  bool _isShowingRoleSwapDialog = false;
 
   Vector2? _lastExplorerPos;
   Vector2? _lastHandledPingPos;
   int? _lastHandledDisarmTrigger;
   int? _lastHandledGateTrigger;
+  int? _lastHandledEmoteTrigger;
+  int? _lastHandledRescueTrigger;
 
   @override
   void initState() {
@@ -64,23 +71,27 @@ class _GameViewState extends State<GameView> {
         setState(() {
           _hasKey = hasKey;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🔑 Golden Key Collected! Head to the Exit Door!'),
-            backgroundColor: Colors.amber,
-          ),
-        );
+      },
+      onExplorerTrapped: (tilePos) {
+        if (!mounted) return;
+        context.read<GameBloc>().add(SendPitfallTrappedEvent(tilePos.x, tilePos.y));
+      },
+      onExplorerSpikeHit: () {
+        if (!mounted) return;
+        context.read<GameBloc>().add(const SendSpikeAlertEvent());
+      },
+      onRuneProgress: (correct, total, rune, isCorrect) {
+        if (!mounted) return;
+        context.read<GameBloc>().add(SendRuneProgressEvent(
+          correctCount: correct,
+          totalCount: total,
+          rune: rune,
+          isCorrect: isCorrect,
+        ));
       },
       onRuneFeedback: (message) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: message.contains('❌') ? Colors.red.shade900 : Colors.cyan.shade900,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        // Logging feedback cleanly without intrusive snackbars over D-Pad
+        print('[EXPLORER FEEDBACK] $message');
       },
     );
   }
@@ -168,145 +179,111 @@ class _GameViewState extends State<GameView> {
             _lastHandledGateTrigger = state.runeGateUnlockedTrigger;
             _dungeonGame.unlockRuneGate();
           }
+          if (state.latestEmote != null && state.emoteTrigger != _lastHandledEmoteTrigger) {
+            _lastHandledEmoteTrigger = state.emoteTrigger;
+            _dungeonGame.showFloatingEmote(state.latestEmote!);
+          }
+          if (state.pitfallRescueTrigger != null && state.pitfallRescueTrigger != _lastHandledRescueTrigger) {
+            _lastHandledRescueTrigger = state.pitfallRescueTrigger;
+            if (state.rescuedPitfallPos != null) {
+              _dungeonGame.rescueExplorerFromPitfall(state.rescuedPitfallPos!);
+            }
+          }
+          if (state.pendingRoleSwapSession != null && !_isShowingRoleSwapDialog) {
+            _isShowingRoleSwapDialog = true;
+            final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+            final localAvatar = AvatarStorageService.getUserConfig(localUserId);
+            Navigator.of(context).push(
+              PageRouteBuilder(
+                opaque: true,
+                pageBuilder: (cinematicContext, _, __) => RoleSwapCinematicView(
+                  newRole: state.pendingRoleSwapSession!.role,
+                  localAvatarConfig: localAvatar,
+                  partnerAvatarConfig: state.partnerAvatarConfig,
+                  partnerName: state.partnerUsername ?? 'Compañero',
+                  onProceed: () {
+                    Navigator.of(cinematicContext).pop();
+                    _isShowingRoleSwapDialog = false;
+                    context.read<GameBloc>().add(const ApplyRoleSwapEvent());
+                  },
+                ),
+                transitionsBuilder: (_, animation, __, child) =>
+                    FadeTransition(opacity: animation, child: child),
+                transitionDuration: const Duration(milliseconds: 500),
+              ),
+            );
+          }
         }
       },
-      child: Scaffold(
-        backgroundColor: const Color(0xFF121212),
-        appBar: AppBar(
-          backgroundColor: Colors.black87,
-          elevation: 0,
-          centerTitle: true,
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.deepOrange.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.deepOrangeAccent),
-                ),
-                child: const Text(
-                  'EXPLORER',
-                  style: TextStyle(
-                    color: Colors.deepOrangeAccent,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+      child: ValueListenableBuilder<int>(
+        valueListenable: _dungeonGame.portalRemainingSeconds,
+        builder: (context, seconds, child) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF121212),
+            appBar: DungeonMissionHud(
+              isGuide: false,
+              targetRuneSequence: _dungeonGame.dungeonMapData?.secretRuneSequence ?? const ['SOL', 'MOON', 'SNAKE'],
+              currentActivatedCount: _dungeonGame.currentSteppedSequence.length,
+              portalSecondsRemaining: seconds,
+              hasKey: _hasKey,
+              onExitPressed: () => _showExitDialog(context),
+            ),
+            body: Stack(
+              children: [
+                // 1. Flame 2D Game Canvas (Fixed, 100% stable)
+                Positioned.fill(
+                  child: GameWidget(
+                    game: _dungeonGame,
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _hasKey ? Colors.amber.withOpacity(0.25) : Colors.white10,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _hasKey ? Colors.amber : Colors.white24),
-                ),
-                child: Text(
-                  _hasKey ? '🔑 KEY HELD' : '🔑 NEED KEY',
-                  style: TextStyle(
-                    color: _hasKey ? Colors.amberAccent : Colors.white54,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.redAccent, size: 24),
-              tooltip: 'Exit Game',
-              onPressed: () => _showExitDialog(context),
-            ),
-          ],
-        ),
-        body: Stack(
-          children: [
-            // 1. Flame 2D Game Canvas
-            Positioned.fill(
-              child: GameWidget(
-                game: _dungeonGame,
-              ),
-            ),
 
-            // 2. Touch D-Pad Overlay & Debug Footer (bottom left)
-            Positioned(
-              bottom: 24,
-              left: 20,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DPadWidget(game: _dungeonGame),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Text(
-                      'Room: ${session.roomId}\nPartner: ${session.partnerId}',
-                      style: const TextStyle(color: Colors.white38, fontSize: 10, height: 1.2),
-                    ),
+                // 2. Floating Alert Overlay (Floats OVER the canvas without shifting the map)
+                Positioned(
+                  top: 8,
+                  left: 16,
+                  right: 16,
+                  child: DungeonAlertOverlay(
+                    isGuide: false,
+                    isTrapped: widget.state.trappedPitfallPos != null || _dungeonGame.isExplorerTrapped,
                   ),
-                ],
-              ),
-            ),
+                ),
 
-            // 3. Portal Open Countdown Banner (top center)
-            Positioned(
-              top: 16,
-              left: 24,
-              right: 24,
-              child: ValueListenableBuilder<int>(
-                valueListenable: _dungeonGame.portalRemainingSeconds,
-                builder: (context, seconds, child) {
-                  if (seconds <= 0) return const SizedBox.shrink();
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
-                        width: 2.0,
+                // 2. Touch D-Pad Overlay & Debug Footer (bottom left)
+                Positioned(
+                  bottom: 24,
+                  left: 20,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DPadWidget(game: _dungeonGame),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Text(
+                          'Room: ${session.roomId}\nPartner: ${session.partnerId}',
+                          style: const TextStyle(color: Colors.white38, fontSize: 10, height: 1.2),
+                        ),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (seconds <= 3 ? Colors.redAccent : Colors.cyanAccent).withOpacity(0.35),
-                          blurRadius: 16,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.cyclone,
-                          color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: Text(
-                            '¡PORTAL ABIERTO! Cierra en: ${seconds}s',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: seconds <= 3 ? Colors.redAccent : Colors.cyanAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                    ],
+                  ),
+                ),
+
+                // 3. Floating Emote Wheel (bottom right)
+                Positioned(
+                  bottom: 24,
+                  right: 20,
+                  child: EmoteWheelWidget(
+                    onEmoteSelected: (emote) {
+                      _dungeonGame.showFloatingEmote(emote);
+                      context.read<GameBloc>().add(SendEmoteEvent(emote));
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

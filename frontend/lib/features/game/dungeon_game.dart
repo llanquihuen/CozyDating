@@ -9,6 +9,7 @@ import 'package:flutter/widget_previews.dart';
 import '../../../core/models/avatar_config.dart';
 import 'components/darkness_overlay_component.dart';
 import 'components/explorer_component.dart';
+import 'components/floating_emote_component.dart';
 import 'components/floor_component.dart';
 import 'components/floor_switch_component.dart';
 import 'components/light_trail_component.dart';
@@ -31,11 +32,15 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
   final void Function(Vector2 pos, String direction, bool isMoving)? onExplorerMovedFull;
   final void Function(bool hasKey)? onKeyStatusChanged;
   final void Function(String message)? onRuneFeedback;
+  final void Function(Vector2 tilePos)? onExplorerTrapped;
+  final void Function()? onExplorerSpikeHit;
+  final void Function(int correctCount, int totalCount, String? rune, bool isCorrect)? onRuneProgress;
   final AvatarConfig? explorerAvatarConfig;
   final bool isGuideMode;
   final double tileSize = 36.0;
 
   bool hasKey = false;
+  bool isExplorerTrapped = false;
   final List<String> currentSteppedSequence = [];
   Vector2? _lastProcessedRunePos;
   final ValueNotifier<int> portalRemainingSeconds = ValueNotifier<int>(0);
@@ -48,6 +53,9 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     this.onExplorerMovedFull,
     this.onKeyStatusChanged,
     this.onRuneFeedback,
+    this.onExplorerTrapped,
+    this.onExplorerSpikeHit,
+    this.onRuneProgress,
     this.explorerAvatarConfig,
     this.isGuideMode = false,
   });
@@ -312,11 +320,33 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     }
   }
 
-  void respawnExplorerAtStart() {
-    final startTileTopLeft = Vector2(tileSize * 1, tileSize * 1);
-    explorer.resetPosition(startTileTopLeft);
+  void handleExplorerTrapped(Vector2 pitfallTilePos) {
     _lastProcessedRunePos = null;
-    onRuneFeedback?.call('🕳️ Fell into an invisible Pitfall Trap! Respawned at start.');
+    isExplorerTrapped = true;
+    onExplorerTrapped?.call(pitfallTilePos);
+    onRuneFeedback?.call('🕳️ ¡Caíste en una grieta! El Guía puede rescatarte.');
+  }
+
+  void handleExplorerSpikeHit() {
+    onExplorerSpikeHit?.call();
+    onRuneFeedback?.call('⚠️ ¡Púas activas! Pídele al Guía que use su escudo.');
+  }
+
+  void rescueExplorerFromPitfall(Vector2 pitfallTilePos) {
+    print('[DUNGEON RESCUE] Rescuing explorer at $pitfallTilePos');
+    isExplorerTrapped = false;
+    for (final pit in world.children.whereType<PitfallComponent>()) {
+      if ((pit.position - pitfallTilePos).length < tileSize * 0.9) {
+        pit.repairAndRescue();
+      }
+    }
+    explorer.releaseFromPitfall();
+    onRuneFeedback?.call('🪢 ¡Tu compañero te rescató! La grieta ha sido sellada.');
+  }
+
+  void showFloatingEmote(String emote, {Vector2? atPos}) {
+    final spawnPos = atPos ?? (explorer.position + Vector2(explorer.size.x / 2, -4));
+    world.add(FloatingEmoteComponent(emote: emote, position: spawnPos));
   }
 
   void stepOnRuneTile(String runeType, Vector2 tilePos) {
@@ -335,16 +365,18 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
 
     if (currentIdx < targetSeq.length && targetSeq[currentIdx] == runeType) {
       print('[RUNE LOG] Correct rune step: ${DungeonGenerator.getRuneLabel(runeType)}');
-      onRuneFeedback?.call('✨ Correct Rune: ${DungeonGenerator.getRuneLabel(runeType)}');
+      onRuneFeedback?.call('✨ Runa correcta: ${DungeonGenerator.getRuneLabel(runeType)}');
+      onRuneProgress?.call(currentSteppedSequence.length, targetSeq.length, runeType, true);
 
       if (currentSteppedSequence.length == targetSeq.length) {
-        unlockRuneGate(seconds: 10);
-        onRuneFeedback?.call('🔓 ¡PORTÓN RÚNICO ABIERTO! 10 SEGUNDOS para cruzar!');
+        unlockRuneGate(seconds: 15);
+        onRuneFeedback?.call('🔓 ¡PORTÓN RÚNICO ABIERTO! 15 SEGUNDOS para cruzar!');
       }
     } else {
       print('[RUNE LOG] Wrong rune stepped! Resetting sequence...');
       currentSteppedSequence.clear();
-      onRuneFeedback?.call('❌ Wrong Rune Order! Sequence Reset.');
+      onRuneFeedback?.call('❌ ¡Orden incorrecto! Secuencia reiniciada.');
+      onRuneProgress?.call(0, targetSeq.length, runeType, false);
 
       // Reset all rune tiles visually
       for (final tile in world.children.whereType<RuneTileComponent>()) {
@@ -353,7 +385,7 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     }
   }
 
-  void unlockRuneGate({int seconds = 10}) {
+  void unlockRuneGate({int seconds = 15}) {
     _portalCountdownTimer?.cancel();
     portalRemainingSeconds.value = seconds;
 
@@ -372,6 +404,7 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
         portalRemainingSeconds.value = 0;
         currentSteppedSequence.clear();
         onRuneFeedback?.call('🔒 ¡Tiempo agotado! El portón rúnico se ha cerrado.');
+        onRuneProgress?.call(0, dungeonMapData?.secretRuneSequence.length ?? 3, null, false);
         // Reset tiles when gate relocks
         for (final tile in world.children.whereType<RuneTileComponent>()) {
           tile.reset();
