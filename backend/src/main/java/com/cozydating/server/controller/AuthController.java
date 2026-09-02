@@ -25,6 +25,15 @@ public class AuthController {
     @Autowired
     private DatabaseService databaseService;
 
+    @GetMapping({"/", "/health"})
+    public Map<String, Object> healthCheck() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("status", "UP");
+        status.put("service", "CozyDating Game Server");
+        status.put("timestamp", System.currentTimeMillis());
+        return status;
+    }
+
     private String extractJsonString(Object obj) {
         if (obj == null) return null;
         if (obj instanceof String s) return s;
