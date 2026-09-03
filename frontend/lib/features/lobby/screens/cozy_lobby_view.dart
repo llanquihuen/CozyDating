@@ -11,6 +11,8 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
+import '../../mailbox/screens/mailbox_screen.dart';
+import '../../mailbox/services/mailbox_service.dart';
 import '../components/isometric_furniture_component.dart';
 import '../components/isometric_interior_wall_component.dart';
 import '../games/cozy_room_game.dart';
@@ -101,6 +103,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    MailboxService.fetchLetters(userId: widget.activeUserId);
     _constructorTabController = TabController(length: 3, vsync: this);
     _constructorTabController.addListener(() {
       if (!mounted) return;
@@ -188,6 +191,18 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
               _currentAvatarConfig = newConfig;
             });
             _showTopNotification('✨ Avatar guardado en la nube');
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openMailbox() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MailboxScreen(
+          onClosed: () {
+            if (mounted) setState(() {});
           },
         ),
       ),
@@ -485,50 +500,6 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                 ),
               ),
 
-              // 3. Floating Icon-Only Button: Bajar / Subir Muros Interiores (Modo Zócalo)
-              // Located in the upper left, below the top menus
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 56,
-                left: 16,
-                child: Tooltip(
-                  message: _roomGame.wallsCut
-                      ? 'Muros interiores bajos (zócalo). Tocar para ver muros completos'
-                      : 'Muros interiores completos. Tocar para ver solo los primeros píxeles (zócalo)',
-                  child: Material(
-                    color: _roomGame.wallsCut
-                        ? const Color(0xFF00E5FF).withOpacity(0.25)
-                        : const Color(0xFF1E1C27).withOpacity(0.85),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: BorderSide(
-                        color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : const Color(0xFF453F58),
-                        width: 1.2,
-                      ),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    elevation: 3,
-                    child: InkWell(
-                      onTap: () {
-                        _roomGame.toggleWallsCut();
-                        AvatarStorageService.saveUserRoomConfig(widget.activeUserId, _roomGame.roomConfig);
-                        setState(() {});
-                        _showTopNotification(_roomGame.wallsCut
-                            ? '🚪 Muros interiores bajos: mostrando solo el zócalo'
-                            : '🚪 Muros interiores completos');
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(7),
-                        child: Icon(
-                          _roomGame.wallsCut ? Icons.border_bottom_rounded : Icons.apartment_rounded,
-                          color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : Colors.white70,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
               // 4. Floating Selected Furniture Action Toolbar — hovers right above the
               // selected object in the isometric world (Only in Decorate Mode)
               if (_isDecorating && _selectedFurniture != null && _selectedFurniture!.type != FurnitureType.portal)
@@ -574,38 +545,60 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     final user = AuthService.currentUser;
 
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // User Profile Badge or Mock Dropdown
-        Expanded(
+        // 1. User Profile & Wardrobe Card (Tap to edit Avatar, Tastes & Real Photo)
+        InkWell(
+          onTap: _openWardrobe,
+          borderRadius: BorderRadius.circular(20),
           child: user != null
               ? Container(
+                  constraints: const BoxConstraints(maxWidth: 220),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF282531).withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.6)),
+                    color: const Color(0xFF282531).withOpacity(0.92),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.6), width: 1.2),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 2)),
+                    ],
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Color(0xFFFFB300),
-                        child: Icon(Icons.person, size: 16, color: Colors.black),
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor: const Color(0xFFFFB300),
+                        backgroundImage: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
+                            ? NetworkImage(user.profilePhoto!)
+                            : null,
+                        child: (user.profilePhoto == null || user.profilePhoto!.isEmpty)
+                            ? const Icon(Icons.person, size: 16, color: Colors.black)
+                            : null,
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
+                      Flexible(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              user.username,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    user.username,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.edit, size: 11, color: Color(0xFFFFD54F)),
+                              ],
                             ),
                             Text(
                               '${user.commune} • ${user.ticketsBalance} 🎟️',
@@ -619,22 +612,25 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                           ],
                         ),
                       ),
-                      if (widget.onLogout != null)
+                      if (widget.onLogout != null) ...[
+                        const SizedBox(width: 6),
                         InkWell(
                           onTap: widget.onLogout,
                           child: const Padding(
-                            padding: EdgeInsets.all(4.0),
-                            child: Icon(Icons.logout, color: Colors.redAccent, size: 16),
+                            padding: EdgeInsets.all(2.0),
+                            child: Icon(Icons.logout, color: Colors.redAccent, size: 15),
                           ),
                         ),
+                      ],
                     ],
                   ),
                 )
               : Container(
+                  width: 140,
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: const Color(0xFF282531).withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFF453F58)),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -646,7 +642,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 12,
                       ),
                       items: CozyLobbyView.defaultUsers.map((u) {
                         return DropdownMenuItem<String>(
@@ -667,49 +663,48 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                   ),
                 ),
         ),
-        const SizedBox(width: 8),
 
-        // Action Buttons (Decorar, Constructor & Armario)
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF282531).withOpacity(0.9),
-            foregroundColor: const Color(0xFF00E5FF),
-            side: const BorderSide(color: Color(0xFF00E5FF), width: 1.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            visualDensity: VisualDensity.compact,
-          ),
-          onPressed: _enterDecorateMode,
-          icon: const Text('🎨', style: TextStyle(fontSize: 14)),
-          label: const Text('Decorar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-        ),
-        const SizedBox(width: 6),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF282531).withOpacity(0.9),
-            foregroundColor: const Color(0xFFFFB300),
-            side: const BorderSide(color: Color(0xFFFFB300), width: 1.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            visualDensity: VisualDensity.compact,
-          ),
-          onPressed: _enterConstructorMode,
-          icon: const Text('🔨', style: TextStyle(fontSize: 14)),
-          label: const Text('Constructor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-        ),
-        const SizedBox(width: 6),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF282531).withOpacity(0.9),
-            foregroundColor: const Color(0xFFFFD54F),
-            side: const BorderSide(color: Color(0xFFFFD54F), width: 1.2),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            visualDensity: VisualDensity.compact,
-          ),
-          onPressed: _openWardrobe,
-          icon: const Text('🪞', style: TextStyle(fontSize: 14)),
-          label: const Text('Armario', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+        // 2. Buzón de Recuerdos (Post-Date Matches & Letters)
+        ValueListenableBuilder<int>(
+          valueListenable: MailboxService.unreadLettersCount,
+          builder: (context, unreadCount, _) {
+            return ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: unreadCount > 0 ? const Color(0xFF3B1E2E).withOpacity(0.95) : const Color(0xFF282531).withOpacity(0.92),
+                foregroundColor: unreadCount > 0 ? const Color(0xFFFF80AB) : const Color(0xFFFFD54F),
+                side: BorderSide(
+                  color: unreadCount > 0 ? const Color(0xFFFF4081) : const Color(0xFFFFD54F),
+                  width: unreadCount > 0 ? 1.6 : 1.2,
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                visualDensity: VisualDensity.compact,
+                elevation: 3,
+              ),
+              onPressed: _openMailbox,
+              icon: const Text('📮', style: TextStyle(fontSize: 14)),
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Buzón', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  if (unreadCount > 0) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF4081),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '$unreadCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
         ),
       ],
     );
@@ -728,61 +723,107 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-        // Active Mode Indicator Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: badgeColor.withOpacity(0.25),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: badgeColor, width: 1.5),
+          // Active Mode Indicator Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: badgeColor, width: 1.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(badgeIcon, style: const TextStyle(fontSize: 14)),
+                const SizedBox(width: 6),
+                Text(
+                  badgeLabel,
+                  style: TextStyle(
+                    color: const Color(0xFFFFD54F),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Row(
+          const SizedBox(width: 8),
+
+          // Walls toggle in edit mode
+          InkWell(
+            onTap: () {
+              _roomGame.toggleWallsCut();
+              AvatarStorageService.saveUserRoomConfig(widget.activeUserId, _roomGame.roomConfig);
+              setState(() {});
+              _showTopNotification(_roomGame.wallsCut
+                  ? '🚪 Muros bajos: mostrando zócalo'
+                  : '🚪 Muros completos');
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: _roomGame.wallsCut
+                    ? const Color(0xFF00E5FF).withOpacity(0.25)
+                    : const Color(0xFF282531).withOpacity(0.9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : const Color(0xFF453F58),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _roomGame.wallsCut ? Icons.border_bottom_rounded : Icons.apartment_rounded,
+                    color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : Colors.white70,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _roomGame.wallsCut ? 'Zócalo' : 'Muros',
+                    style: TextStyle(
+                      color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : Colors.white70,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Save & Exit / Cancel
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(badgeIcon, style: const TextStyle(fontSize: 14)),
-              const SizedBox(width: 6),
-              Text(
-                badgeLabel,
-                style: TextStyle(
-                  color: isConstructor ? const Color(0xFFFFD54F) : const Color(0xFFFFD54F),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.0,
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  visualDensity: VisualDensity.compact,
                 ),
+                onPressed: _cancelDecorateMode,
+                child: const Text('Cancelar', style: TextStyle(fontSize: 11)),
+              ),
+              const SizedBox(width: 4),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E676),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: _saveAndExitDecorateMode,
+                icon: const Icon(Icons.check, size: 14, color: Colors.black),
+                label: const Text('Listo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ],
           ),
-        ),
-        const SizedBox(width: 10),
-
-        // Save & Exit / Cancel
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white70,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                visualDensity: VisualDensity.compact,
-              ),
-              onPressed: _cancelDecorateMode,
-              child: const Text('Cancelar', style: TextStyle(fontSize: 11)),
-            ),
-            const SizedBox(width: 4),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E676),
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                visualDensity: VisualDensity.compact,
-              ),
-              onPressed: _saveAndExitDecorateMode,
-              icon: const Icon(Icons.check, size: 14, color: Colors.black),
-              label: const Text('Listo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            ),
-          ],
-        ),
         ],
       ),
     );
@@ -2592,10 +2633,10 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
 
   Widget _buildIdleActionCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF24212D).withOpacity(0.92),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF24212D).withOpacity(0.94),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFF433E53)),
         boxShadow: [
           BoxShadow(
@@ -2607,31 +2648,127 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
       ),
       child: Row(
         children: [
-          const Text('💡', style: TextStyle(fontSize: 20)),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Habitación Cozy (Lobby)',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+          // 1. Muros Toggle (Modo Zócalo)
+          Material(
+            color: _roomGame.wallsCut
+                ? const Color(0xFF00E5FF).withOpacity(0.25)
+                : const Color(0xFF1E1C27).withOpacity(0.85),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : const Color(0xFF453F58),
+                width: 1.2,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () {
+                _roomGame.toggleWallsCut();
+                AvatarStorageService.saveUserRoomConfig(widget.activeUserId, _roomGame.roomConfig);
+                setState(() {});
+                _showTopNotification(_roomGame.wallsCut
+                    ? '🚪 Muros bajos: mostrando zócalo'
+                    : '🚪 Muros completos');
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _roomGame.wallsCut ? Icons.border_bottom_rounded : Icons.apartment_rounded,
+                      color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : Colors.white70,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _roomGame.wallsCut ? 'Zócalo' : 'Muros',
+                      style: TextStyle(
+                        color: _roomGame.wallsCut ? const Color(0xFF00E5FF) : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Toca el suelo para caminar • Pulsa "Decorar" para editar tu habitación',
-                  style: TextStyle(color: Colors.white60, fontSize: 11),
-                ),
-              ],
+              ),
             ),
           ),
           const SizedBox(width: 8),
+
+          // 2. Mi Hogar Menu (Decorar Muebles & Modo Constructor)
+          PopupMenuButton<String>(
+            tooltip: 'Diseñar Hogar',
+            color: const Color(0xFF1E1B2E),
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: Color(0xFFFFB300), width: 1.2),
+            ),
+            onSelected: (val) {
+              if (val == 'decorate') {
+                _enterDecorateMode();
+              } else if (val == 'construct') {
+                _enterConstructorMode();
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'decorate',
+                child: Row(
+                  children: [
+                    Text('🎨 ', style: TextStyle(fontSize: 16)),
+                    Text(
+                      'Decorar Muebles',
+                      style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
+              const PopupMenuItem(
+                value: 'construct',
+                child: Row(
+                  children: [
+                    Text('🔨 ', style: TextStyle(fontSize: 16)),
+                    Text(
+                      'Modo Constructor',
+                      style: TextStyle(color: Color(0xFFFFB300), fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1C27).withOpacity(0.85),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.8), width: 1.2),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('🏡', style: TextStyle(fontSize: 14)),
+                  SizedBox(width: 4),
+                  Text('Mi Hogar', style: TextStyle(color: Color(0xFFFFD54F), fontWeight: FontWeight.bold, fontSize: 12)),
+                  SizedBox(width: 2),
+                  Icon(Icons.arrow_drop_down, color: Color(0xFFFFD54F), size: 16),
+                ],
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          // 3. Iniciar Cita Button
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF6D00),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              elevation: 4,
             ),
             onPressed: _startMatchmaking,
             icon: const Icon(Icons.play_arrow, size: 18),

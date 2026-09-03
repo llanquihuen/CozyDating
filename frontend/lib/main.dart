@@ -77,19 +77,25 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
         token = AuthService.token!;
         userId = AuthService.currentUser!.id;
       } else {
-        final response = await http.get(
-          Uri.parse('$_baseUrl/auth/token?userId=$_selectedUserId'),
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          token = data['token'];
-          userId = data['userId'] ?? _selectedUserId;
+        final result = await AuthService.loginTestUser(_selectedUserId);
+        if (result.success && AuthService.token != null) {
+          token = AuthService.token!;
+          userId = AuthService.currentUser!.id;
         } else {
-          if (mounted) {
-            _showErrorSnackBar(context, 'Error de autenticación (${response.statusCode})');
+          final response = await http.get(
+            Uri.parse('$_baseUrl/auth/token?userId=$_selectedUserId'),
+          );
+
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            token = data['token'];
+            userId = data['userId'] ?? _selectedUserId;
+          } else {
+            if (mounted) {
+              _showErrorSnackBar(context, 'Error de autenticación (${response.statusCode})');
+            }
+            return;
           }
-          return;
         }
       }
 

@@ -72,6 +72,7 @@ class SessionInitPayload extends Equatable {
   final String? partnerUsername;
   final AvatarConfig? partnerAvatarConfig;
   final RoomConfig? partnerRoomConfig;
+  final List<String> partnerTastes;
   final int act;
   final int? seed;
 
@@ -84,6 +85,7 @@ class SessionInitPayload extends Equatable {
     this.partnerUsername,
     this.partnerAvatarConfig,
     this.partnerRoomConfig,
+    this.partnerTastes = const [],
     this.act = 1,
     this.seed,
   });
@@ -103,6 +105,21 @@ class SessionInitPayload extends Equatable {
       }
     }
 
+    List<String> tastes = [];
+    if (json['partnerTastes'] != null) {
+      final raw = json['partnerTastes'];
+      if (raw is List) {
+        tastes = raw.map((e) => e.toString()).toList();
+      } else if (raw is String) {
+        try {
+          final decoded = jsonDecode(raw);
+          if (decoded is List) {
+            tastes = decoded.map((e) => e.toString()).toList();
+          }
+        } catch (_) {}
+      }
+    }
+
     return SessionInitPayload(
       roomId: json['roomId'] as String? ?? '',
       role: json['role'] as String? ?? '',
@@ -112,6 +129,7 @@ class SessionInitPayload extends Equatable {
       partnerUsername: json['partnerUsername'] as String?,
       partnerAvatarConfig: avatar,
       partnerRoomConfig: room,
+      partnerTastes: tastes,
       act: (json['act'] as num?)?.toInt() ?? 1,
       seed: (json['seed'] as num?)?.toInt(),
     );
@@ -127,6 +145,7 @@ class SessionInitPayload extends Equatable {
       if (partnerUsername != null) 'partnerUsername': partnerUsername,
       if (partnerAvatarConfig != null) 'partnerAvatarConfig': partnerAvatarConfig!.toJson(),
       if (partnerRoomConfig != null) 'partnerRoomConfig': partnerRoomConfig!.toMap(),
+      if (partnerTastes.isNotEmpty) 'partnerTastes': partnerTastes,
       'act': act,
       'seed': seed,
     };
@@ -142,6 +161,7 @@ class SessionInitPayload extends Equatable {
     partnerUsername,
     partnerAvatarConfig,
     partnerRoomConfig,
+    partnerTastes,
     act,
     seed,
   ];

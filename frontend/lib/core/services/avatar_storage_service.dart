@@ -366,4 +366,60 @@ class AvatarStorageService {
   static void saveRoomConfig(RoomConfig config) {
     saveUserRoomConfig(_activeUserId, config);
   }
+
+  // --- Taste Preferences Methods ---
+  static final Map<String, List<String>> _userTastes = {
+    'alice': const ['game_coop', 'cinema_ghibli', 'life_coffee_tea', 'pet_cat', 'vibe_night_owl', 'intent_slow'],
+    'userA': const ['game_coop', 'cinema_ghibli', 'life_coffee_tea', 'pet_cat', 'vibe_night_owl', 'intent_slow'],
+    'bob': const ['game_coop', 'game_roguelike', 'cinema_ghibli', 'pet_dog', 'vibe_early_bird', 'intent_slow'],
+    'userB': const ['game_coop', 'game_roguelike', 'cinema_ghibli', 'pet_dog', 'vibe_early_bird', 'intent_slow'],
+    'charlie': const ['game_rpg', 'cinema_scifi', 'tech_pc_gamer', 'vibe_introvert', 'intent_gaming_duo'],
+    'userC': const ['game_rpg', 'cinema_scifi', 'tech_pc_gamer', 'vibe_introvert', 'intent_gaming_duo'],
+    'david': const ['game_tabletop', 'music_rock_metal', 'life_coffee_tea', 'vibe_adventurer', 'intent_cozy_chats'],
+    'userD': const ['game_tabletop', 'music_rock_metal', 'life_coffee_tea', 'vibe_adventurer', 'intent_cozy_chats'],
+  };
+
+  static List<String> getUserTastes(String userId) {
+    if (_userTastes.containsKey(userId)) {
+      return List<String>.from(_userTastes[userId]!);
+    }
+    if (userId.isEmpty) {
+      return const ['game_coop', 'intent_slow'];
+    }
+    const fallbackKeys = ['bob', 'charlie', 'david', 'alice'];
+    final index = userId.hashCode.abs() % fallbackKeys.length;
+    return List<String>.from(_userTastes[fallbackKeys[index]] ?? const ['game_coop', 'intent_slow']);
+  }
+
+  static void saveUserTastes(String userId, List<String> tastes) {
+    _userTastes[userId] = List<String>.from(tastes);
+  }
+
+  // --- Real Profile Photos Methods ---
+  static final Map<String, String> _userPhotos = {
+    'alice': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
+    'userA': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
+    'bob': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
+    'userB': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
+    'charlie': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
+    'userC': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
+    'david': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80',
+    'userD': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80',
+  };
+
+  static String? getUserPhoto(String userId) {
+    if (_userPhotos.containsKey(userId)) {
+      return _userPhotos[userId];
+    }
+    const fallbackKeys = ['alice', 'bob', 'charlie', 'david'];
+    if (userId.isNotEmpty) {
+      final index = userId.hashCode.abs() % fallbackKeys.length;
+      return _userPhotos[fallbackKeys[index]];
+    }
+    return null;
+  }
+
+  static void saveUserPhoto(String userId, String photo) {
+    _userPhotos[userId] = photo;
+  }
 }

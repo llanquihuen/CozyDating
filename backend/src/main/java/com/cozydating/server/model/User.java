@@ -10,6 +10,7 @@ public class User {
     private int ticketsBalance;
     private String avatarConfig; // JSON string
     private String tastes;       // JSON string
+    private String profilePhoto;  // Base64 or URL string
     private String roomConfig;    // JSON string
     private String createdAt;
     private String updatedAt;
@@ -19,6 +20,11 @@ public class User {
 
     public User(String id, String username, String email, String passwordHash, int age, String commune,
                 int ticketsBalance, String avatarConfig, String tastes, String roomConfig) {
+        this(id, username, email, passwordHash, age, commune, ticketsBalance, avatarConfig, tastes, null, roomConfig);
+    }
+
+    public User(String id, String username, String email, String passwordHash, int age, String commune,
+                int ticketsBalance, String avatarConfig, String tastes, String profilePhoto, String roomConfig) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -28,6 +34,7 @@ public class User {
         this.ticketsBalance = ticketsBalance;
         this.avatarConfig = avatarConfig;
         this.tastes = tastes;
+        this.profilePhoto = profilePhoto;
         this.roomConfig = roomConfig;
     }
 
@@ -101,6 +108,14 @@ public class User {
 
     public void setTastes(String tastes) {
         this.tastes = tastes;
+    }
+
+    public String getProfilePhoto() {
+        return profilePhoto;
+    }
+
+    public void setProfilePhoto(String profilePhoto) {
+        this.profilePhoto = profilePhoto;
     }
 
     public String getRoomConfig() {

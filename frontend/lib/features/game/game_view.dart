@@ -2,7 +2,10 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/models/avatar_config.dart';
 import '../../../core/models/game_models.dart';
+import '../../../core/models/room_config.dart';
+import '../../../core/models/user_profile.dart';
 import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
@@ -15,6 +18,7 @@ import 'widgets/dungeon_mission_hud.dart';
 import 'widgets/emote_wheel_widget.dart';
 import 'widgets/role_swap_transition_dialog.dart';
 import 'screens/role_swap_cinematic_view.dart';
+import '../campfire/screens/campfire_view.dart';
 import 'dart:async';
 
 class GameView extends StatefulWidget {
@@ -30,6 +34,7 @@ class _GameViewState extends State<GameView> {
   late DungeonGame _dungeonGame;
   bool _hasKey = false;
   bool _isShowingRoleSwapDialog = false;
+  bool _isShowingCampfire = false;
 
   Vector2? _lastExplorerPos;
   Vector2? _lastHandledPingPos;
@@ -210,6 +215,55 @@ class _GameViewState extends State<GameView> {
                 transitionsBuilder: (_, animation, __, child) =>
                     FadeTransition(opacity: animation, child: child),
                 transitionDuration: const Duration(milliseconds: 500),
+              ),
+            );
+          }
+          if (state.isCampfireActive && !_isShowingCampfire) {
+            _isShowingCampfire = true;
+            final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+            final localTastes = (AuthService.currentUser?.tastes != null && AuthService.currentUser!.tastes.isNotEmpty)
+                ? AuthService.currentUser!.tastes
+                : AvatarStorageService.getUserTastes(localUserId);
+
+            final localProfile = AuthService.currentUser?.copyWith(tastes: localTastes) ??
+                UserProfile(
+                  id: localUserId,
+                  username: 'Tú',
+                  avatarConfig: AvatarStorageService.getUserConfig(localUserId),
+                  roomConfig: AvatarStorageService.getUserRoomConfig(localUserId),
+                  tastes: localTastes,
+                );
+
+            final partnerTastes = (state.partnerTastes != null && state.partnerTastes!.isNotEmpty)
+                ? state.partnerTastes!
+                : (state.session.partnerTastes.isNotEmpty
+                    ? state.session.partnerTastes
+                    : AvatarStorageService.getUserTastes(state.session.partnerId));
+
+            final partnerProfile = UserProfile(
+              id: state.session.partnerId,
+              username: state.partnerUsername ?? state.session.partnerUsername ?? 'Compañero',
+              avatarConfig: state.partnerAvatarConfig ?? state.session.partnerAvatarConfig ?? const AvatarConfig(),
+              roomConfig: state.partnerRoomConfig ?? state.session.partnerRoomConfig ?? const RoomConfig(),
+              tastes: partnerTastes,
+            );
+
+            Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                opaque: true,
+                pageBuilder: (cContext, _, __) => CampfireView(
+                  localUser: localProfile,
+                  partnerUser: partnerProfile,
+                  partnerName: partnerProfile.username,
+                  partnerAvatarConfig: partnerProfile.avatarConfig,
+                  seed: state.session.seed,
+                  onReturnHome: () {
+                    Navigator.of(cContext).popUntil((route) => route.isFirst);
+                  },
+                ),
+                transitionsBuilder: (_, animation, __, child) =>
+                    FadeTransition(opacity: animation, child: child),
+                transitionDuration: const Duration(milliseconds: 600),
               ),
             );
           }

@@ -1,6 +1,7 @@
 package com.cozydating.server.service;
 
 import com.cozydating.server.model.GameRoom;
+import com.cozydating.server.model.User;
 import com.cozydating.server.util.LiveKitTokenGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -37,13 +38,13 @@ public class GameSessionService {
 
     public void createRoom(String roomId, String explorerId, WebSocketSession explorerSession,
                            String guideId, WebSocketSession guideSession, String mode) {
-        createRoom(roomId, explorerId, explorerSession, null, null, explorerId,
-                   guideId, guideSession, null, null, guideId, mode);
+        createRoom(roomId, explorerId, explorerSession, null, null, explorerId, null,
+                   guideId, guideSession, null, null, guideId, null, mode);
     }
 
     public void createRoom(String roomId,
-                           String explorerId, WebSocketSession explorerSession, Object explorerAvatar, Object explorerRoom, String explorerName,
-                           String guideId, WebSocketSession guideSession, Object guideAvatar, Object guideRoom, String guideName,
+                           String explorerId, WebSocketSession explorerSession, Object explorerAvatar, Object explorerRoom, String explorerName, Object explorerTastes,
+                           String guideId, WebSocketSession guideSession, Object guideAvatar, Object guideRoom, String guideName, Object guideTastes,
                            String mode) {
         
         logger.info("[GAME SESSION INIT] Building room {} [Explorer: {} ({}), Guide: {} ({}), Mode: {}]",
@@ -86,6 +87,7 @@ public class GameSessionService {
         explorerInit.put("partnerUsername", guideName);
         if (guideAvatar != null) explorerInit.put("partnerAvatarConfig", guideAvatar);
         if (guideRoom != null) explorerInit.put("partnerRoomConfig", guideRoom);
+        if (guideTastes != null) explorerInit.put("partnerTastes", guideTastes);
         explorerInit.put("seed", dungeonSeed);
         explorerInit.put("act", 1);
         sendJsonMessage(explorerSession, explorerInit);
@@ -102,9 +104,50 @@ public class GameSessionService {
         guideInit.put("partnerUsername", explorerName);
         if (explorerAvatar != null) guideInit.put("partnerAvatarConfig", explorerAvatar);
         if (explorerRoom != null) guideInit.put("partnerRoomConfig", explorerRoom);
+        if (explorerTastes != null) guideInit.put("partnerTastes", explorerTastes);
         guideInit.put("seed", dungeonSeed);
         guideInit.put("act", 1);
         sendJsonMessage(guideSession, guideInit);
+
+        // Record date in Mailbox for post-game decision
+        try {
+            User userA = databaseService.findUserById(explorerId);
+            User userB = databaseService.findUserById(guideId);
+
+            String photoA = userA != null ? userA.getProfilePhoto() : null;
+            String photoB = userB != null ? userB.getProfilePhoto() : null;
+            int ageA = userA != null ? userA.getAge() : 24;
+            int ageB = userB != null ? userB.getAge() : 25;
+            String communeA = userA != null ? userA.getCommune() : "Santiago";
+            String communeB = userB != null ? userB.getCommune() : "Providencia";
+
+            String commonTastesStr = explorerTastes != null ? explorerTastes.toString() : "";
+
+            com.cozydating.server.model.MailboxMatch match = new com.cozydating.server.model.MailboxMatch(
+                roomId,
+                explorerId,
+                guideId,
+                explorerName != null ? explorerName : explorerId,
+                guideName != null ? guideName : guideId,
+                explorerAvatar != null ? explorerAvatar.toString() : (userA != null ? userA.getAvatarConfig() : null),
+                guideAvatar != null ? guideAvatar.toString() : (userB != null ? userB.getAvatarConfig() : null),
+                photoA,
+                photoB,
+                ageA,
+                ageB,
+                communeA,
+                communeB,
+                commonTastesStr,
+                "PENDING",
+                null,
+                "PENDING",
+                null,
+                false
+            );
+            databaseService.createMailboxMatch(match);
+        } catch (Exception e) {
+            logger.warn("[GAME SESSION MAILBOX] Could not pre-create mailbox match: {}", e.getMessage());
+        }
     }
 
     public void handleDisconnect(String userId) {
@@ -332,6 +375,26 @@ public class GameSessionService {
 
         GameRoom room = activeRooms.get(roomId);
         if (room == null || room.isPaused()) return;
+
+        if (room.getAct() >= 2) {
+            logger.info("[GAME SESSION CAMPFIRE] User {} entered Final Portal in room {}. Act 2 completed! Transitioning to CAMPFIRE_START.", userId, roomId);
+            room.setAct(3);
+            Map<String, Object> campfireMsg = new HashMap<>();
+            campfireMsg.put("type", "CAMPFIRE_START");
+            campfireMsg.put("message", "Act 2 completed. Welcome to the Campfire!");
+            campfireMsg.put("act", 3);
+            campfireMsg.put("triggerUserId", userId);
+
+            WebSocketSession explorerSession = room.getExplorerSession();
+            WebSocketSession guideSession = room.getGuideSession();
+            if (explorerSession != null && explorerSession.isOpen()) {
+                sendJsonMessage(explorerSession, campfireMsg);
+            }
+            if (guideSession != null && guideSession.isOpen() && guideSession != explorerSession) {
+                sendJsonMessage(guideSession, campfireMsg);
+            }
+            return;
+        }
 
         long newSeed = Math.abs(room.getDungeonSeed() * 31 + 7919);
         room.swapRoles(newSeed);

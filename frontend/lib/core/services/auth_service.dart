@@ -55,6 +55,9 @@ class AuthService {
           AvatarStorageService.setActiveUser(_currentUser!.id);
           AvatarStorageService.saveUserConfig(_currentUser!.id, _currentUser!.avatarConfig);
           AvatarStorageService.saveUserRoomConfig(_currentUser!.id, _currentUser!.roomConfig);
+          if (_currentUser!.tastes.isNotEmpty) {
+            AvatarStorageService.saveUserTastes(_currentUser!.id, _currentUser!.tastes);
+          }
         }
         return AuthResult(success: true, user: _currentUser, token: _token);
       } else {
@@ -93,6 +96,12 @@ class AuthService {
         _token = data['token'];
         if (data['user'] != null) {
           _currentUser = UserProfile.fromMap(data['user']);
+          if (_currentUser!.tastes.isEmpty) {
+            final fallbackTastes = AvatarStorageService.getUserTastes(_currentUser!.id);
+            _currentUser = _currentUser!.copyWith(tastes: fallbackTastes);
+          } else {
+            AvatarStorageService.saveUserTastes(_currentUser!.id, _currentUser!.tastes);
+          }
           AvatarStorageService.setActiveUser(_currentUser!.id);
           AvatarStorageService.saveUserConfig(_currentUser!.id, _currentUser!.avatarConfig);
           AvatarStorageService.saveUserRoomConfig(_currentUser!.id, _currentUser!.roomConfig);
@@ -120,18 +129,27 @@ class AuthService {
         _token = data['token'];
         if (data['user'] != null) {
           _currentUser = UserProfile.fromMap(data['user']);
+          if (_currentUser!.tastes.isEmpty) {
+            final fallbackTastes = AvatarStorageService.getUserTastes(_currentUser!.id);
+            _currentUser = _currentUser!.copyWith(tastes: fallbackTastes);
+          } else {
+            AvatarStorageService.saveUserTastes(_currentUser!.id, _currentUser!.tastes);
+          }
         } else {
+          final localTastes = AvatarStorageService.getUserTastes(testUserId);
           _currentUser = UserProfile(
             id: data['userId'] ?? testUserId,
             username: testUserId,
             ticketsBalance: data['ticketsBalance'] ?? 5,
             avatarConfig: AvatarStorageService.getUserConfig(testUserId),
             roomConfig: AvatarStorageService.getUserRoomConfig(testUserId),
+            tastes: localTastes,
           );
         }
         AvatarStorageService.setActiveUser(_currentUser!.id);
         AvatarStorageService.saveUserConfig(_currentUser!.id, _currentUser!.avatarConfig);
         AvatarStorageService.saveUserRoomConfig(_currentUser!.id, _currentUser!.roomConfig);
+        AvatarStorageService.saveUserTastes(_currentUser!.id, _currentUser!.tastes);
         return AuthResult(success: true, user: _currentUser, token: _token);
       }
       return AuthResult(success: false, errorMessage: 'Error al conectar usuario de prueba');
@@ -192,6 +210,70 @@ class AuthService {
       }
     } catch (e) {
       print('[AVATAR SAVE ERROR] $e');
+    }
+    return false;
+  }
+
+  /// Update user taste preferences
+  static Future<bool> updateTastes(List<String> tastes) async {
+    if (_currentUser == null) return false;
+    final userId = _currentUser!.id;
+    _currentUser = _currentUser!.copyWith(tastes: tastes);
+    AvatarStorageService.saveUserTastes(userId, tastes);
+
+    try {
+      final url = Uri.parse('$_baseUrl/auth/profile');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+      final body = jsonEncode({
+        'userId': userId,
+        'tastes': jsonEncode(tastes),
+      });
+
+      final response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _currentUser = UserProfile.fromMap(data);
+        AvatarStorageService.saveUserTastes(userId, _currentUser!.tastes);
+        return true;
+      }
+    } catch (e) {
+      print('[TASTES SAVE ERROR] $e');
+    }
+    return false;
+  }
+
+  /// Update user real profile photo
+  static Future<bool> updateProfilePhoto(String photo) async {
+    if (_currentUser == null) return false;
+    final userId = _currentUser!.id;
+    _currentUser = _currentUser!.copyWith(profilePhoto: photo);
+    AvatarStorageService.saveUserPhoto(userId, photo);
+
+    try {
+      final url = Uri.parse('$_baseUrl/auth/profile');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+      final body = jsonEncode({
+        'userId': userId,
+        'profilePhoto': photo,
+      });
+
+      final response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _currentUser = UserProfile.fromMap(data);
+        if (_currentUser!.profilePhoto != null) {
+          AvatarStorageService.saveUserPhoto(userId, _currentUser!.profilePhoto!);
+        }
+        return true;
+      }
+    } catch (e) {
+      print('[PHOTO SAVE ERROR] $e');
     }
     return false;
   }

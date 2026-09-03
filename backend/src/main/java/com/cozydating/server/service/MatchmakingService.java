@@ -33,10 +33,11 @@ public class MatchmakingService {
         public final Object avatarConfig;
         public final Object roomConfig;
         public final String username;
+        public final Object tastes;
         public final long timestamp;
 
         public QueueEntry(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
-                          Object avatarConfig, Object roomConfig, String username) {
+                          Object avatarConfig, Object roomConfig, String username, Object tastes) {
             this.userId = userId;
             this.commune = commune;
             this.timeSlot = timeSlot;
@@ -45,16 +46,22 @@ public class MatchmakingService {
             this.avatarConfig = avatarConfig;
             this.roomConfig = roomConfig;
             this.username = username != null ? username : userId;
+            this.tastes = tastes;
             this.timestamp = System.currentTimeMillis();
         }
     }
 
     public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session) {
-        return joinQueue(userId, commune, timeSlot, mode, session, null, null, null);
+        return joinQueue(userId, commune, timeSlot, mode, session, null, null, null, null);
     }
 
     public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
                                           Object avatarConfig, Object roomConfig, String username) {
+        return joinQueue(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, null);
+    }
+
+    public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
+                                          Object avatarConfig, Object roomConfig, String username, Object tastes) {
         logger.info("[MATCHMAKING REQUEST] User {} ({}) requesting to join queue [Commune: {}, TimeSlot: {}, Mode: {}]", userId, username, commune, timeSlot, mode);
 
         for (QueueEntry entry : queue) {
@@ -73,7 +80,19 @@ public class MatchmakingService {
             }
         }
 
-        QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username);
+        Object resolvedTastes = tastes;
+        boolean isEmptyTastes = (resolvedTastes == null) ||
+                               (resolvedTastes instanceof List && ((List<?>) resolvedTastes).isEmpty()) ||
+                               (resolvedTastes instanceof String && (((String) resolvedTastes).trim().isEmpty() || "[]".equals(((String) resolvedTastes).trim())));
+
+        if (isEmptyTastes) {
+            com.cozydating.server.model.User u = databaseService.findUserById(userId);
+            if (u != null && u.getTastes() != null && !u.getTastes().trim().isEmpty() && !"[]".equals(u.getTastes().trim())) {
+                resolvedTastes = u.getTastes();
+            }
+        }
+
+        QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes);
         queue.add(newEntry);
         logger.info("[MATCHMAKING QUEUED] User {} successfully added to queue. Current Queue Size: {}", userId, queue.size());
 
@@ -166,8 +185,8 @@ public class MatchmakingService {
 
         gameSessionService.createRoom(
             roomId, 
-            entryA.userId, entryA.session, entryA.avatarConfig, entryA.roomConfig, entryA.username,
-            entryB.userId, entryB.session, entryB.avatarConfig, entryB.roomConfig, entryB.username,
+            entryA.userId, entryA.session, entryA.avatarConfig, entryA.roomConfig, entryA.username, entryA.tastes,
+            entryB.userId, entryB.session, entryB.avatarConfig, entryB.roomConfig, entryB.username, entryB.tastes,
             entryA.mode
         );
     }

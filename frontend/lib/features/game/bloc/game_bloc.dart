@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:equatable/equatable.dart';
 import 'package:flame/game.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -169,6 +170,25 @@ class ApplyRoleSwapEvent extends GameEvent {
   const ApplyRoleSwapEvent();
 }
 
+class SendCampfireAnswerEvent extends GameEvent {
+  final int round;
+  final String optionId;
+
+  const SendCampfireAnswerEvent({required this.round, required this.optionId});
+
+  @override
+  List<Object?> get props => [round, optionId];
+}
+
+class SendCampfireNextRoundEvent extends GameEvent {
+  final int round;
+
+  const SendCampfireNextRoundEvent({required this.round});
+
+  @override
+  List<Object?> get props => [round];
+}
+
 class ResetGameEvent extends GameEvent {
   const ResetGameEvent();
 }
@@ -226,6 +246,7 @@ class ActiveGameState extends GameState {
   final AvatarConfig? partnerAvatarConfig;
   final RoomConfig? partnerRoomConfig;
   final String? partnerUsername;
+  final List<String>? partnerTastes;
   final String? latestEmote;
   final int? emoteTrigger;
   final Vector2? trappedPitfallPos;
@@ -234,6 +255,11 @@ class ActiveGameState extends GameState {
   final int? spikeAlertTrigger;
   final int runeActivatedCount;
   final SessionInitPayload? pendingRoleSwapSession;
+  final bool isCampfireActive;
+  final String? partnerCampfireOptionId;
+  final int? partnerCampfireRound;
+  final int? partnerCampfireAnswerTrigger;
+  final int? campfireNextRoundTrigger;
 
   const ActiveGameState({
     required this.session,
@@ -246,6 +272,7 @@ class ActiveGameState extends GameState {
     this.partnerAvatarConfig,
     this.partnerRoomConfig,
     this.partnerUsername,
+    this.partnerTastes,
     this.latestEmote,
     this.emoteTrigger,
     this.trappedPitfallPos,
@@ -254,6 +281,11 @@ class ActiveGameState extends GameState {
     this.spikeAlertTrigger,
     this.runeActivatedCount = 0,
     this.pendingRoleSwapSession,
+    this.isCampfireActive = false,
+    this.partnerCampfireOptionId,
+    this.partnerCampfireRound,
+    this.partnerCampfireAnswerTrigger,
+    this.campfireNextRoundTrigger,
   });
 
   ActiveGameState copyWith({
@@ -267,6 +299,7 @@ class ActiveGameState extends GameState {
     AvatarConfig? partnerAvatarConfig,
     RoomConfig? partnerRoomConfig,
     String? partnerUsername,
+    List<String>? partnerTastes,
     String? latestEmote,
     int? emoteTrigger,
     Vector2? trappedPitfallPos,
@@ -275,6 +308,11 @@ class ActiveGameState extends GameState {
     int? spikeAlertTrigger,
     int? runeActivatedCount,
     SessionInitPayload? pendingRoleSwapSession,
+    bool? isCampfireActive,
+    String? partnerCampfireOptionId,
+    int? partnerCampfireRound,
+    int? partnerCampfireAnswerTrigger,
+    int? campfireNextRoundTrigger,
     bool clearTrappedPitfall = false,
     bool clearPendingRoleSwap = false,
   }) {
@@ -289,6 +327,7 @@ class ActiveGameState extends GameState {
       partnerAvatarConfig: partnerAvatarConfig ?? this.partnerAvatarConfig,
       partnerRoomConfig: partnerRoomConfig ?? this.partnerRoomConfig,
       partnerUsername: partnerUsername ?? this.partnerUsername,
+      partnerTastes: partnerTastes ?? this.partnerTastes,
       latestEmote: latestEmote ?? this.latestEmote,
       emoteTrigger: emoteTrigger ?? this.emoteTrigger,
       trappedPitfallPos: clearTrappedPitfall ? null : (trappedPitfallPos ?? this.trappedPitfallPos),
@@ -297,6 +336,11 @@ class ActiveGameState extends GameState {
       spikeAlertTrigger: spikeAlertTrigger ?? this.spikeAlertTrigger,
       runeActivatedCount: runeActivatedCount ?? this.runeActivatedCount,
       pendingRoleSwapSession: clearPendingRoleSwap ? null : (pendingRoleSwapSession ?? this.pendingRoleSwapSession),
+      isCampfireActive: isCampfireActive ?? this.isCampfireActive,
+      partnerCampfireOptionId: partnerCampfireOptionId ?? this.partnerCampfireOptionId,
+      partnerCampfireRound: partnerCampfireRound ?? this.partnerCampfireRound,
+      partnerCampfireAnswerTrigger: partnerCampfireAnswerTrigger ?? this.partnerCampfireAnswerTrigger,
+      campfireNextRoundTrigger: campfireNextRoundTrigger ?? this.campfireNextRoundTrigger,
     );
   }
 
@@ -312,6 +356,7 @@ class ActiveGameState extends GameState {
     partnerAvatarConfig,
     partnerRoomConfig,
     partnerUsername,
+    partnerTastes,
     latestEmote,
     emoteTrigger,
     trappedPitfallPos,
@@ -320,6 +365,11 @@ class ActiveGameState extends GameState {
     spikeAlertTrigger,
     runeActivatedCount,
     pendingRoleSwapSession,
+    isCampfireActive,
+    partnerCampfireOptionId,
+    partnerCampfireRound,
+    partnerCampfireAnswerTrigger,
+    campfireNextRoundTrigger,
   ];
 }
 
@@ -379,6 +429,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<SendSpikeAlertEvent>(_onSendSpikeAlert);
     on<SendRuneProgressEvent>(_onSendRuneProgress);
     on<ApplyRoleSwapEvent>(_onApplyRoleSwap);
+    on<SendCampfireAnswerEvent>(_onSendCampfireAnswer);
+    on<SendCampfireNextRoundEvent>(_onSendCampfireNextRound);
     on<ResetGameEvent>(_onResetGame);
     on<_OnSocketMessageEvent>(_onSocketMessage);
     on<_OnSocketStateChangedEvent>(_onSocketStateChanged);
@@ -402,8 +454,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       final myUsername = AuthService.currentUser?.username ?? myId;
       final myAvatar = AvatarStorageService.getUserConfig(myId);
       final myRoom = AvatarStorageService.getUserRoomConfig(myId);
+      final myTastes = (AuthService.currentUser?.tastes != null && AuthService.currentUser!.tastes.isNotEmpty)
+          ? AuthService.currentUser!.tastes
+          : AvatarStorageService.getUserTastes(myId);
 
-      print('[BLOC OUT] Submitting SESSION_INIT command with profile over WebSocket...');
+      print('[BLOC OUT] Submitting SESSION_INIT command with profile over WebSocket (Tastes: $myTastes)...');
       webSocketClient.sendMessage({
         'type': 'SESSION_INIT',
         'token': event.token,
@@ -413,6 +468,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         'username': myUsername,
         'avatarConfig': myAvatar.toJson(),
         'roomConfig': myRoom.toMap(),
+        'tastes': myTastes,
       });
 
       print('[BLOC STATE] Emitting MatchmakingQueueState');
@@ -577,6 +633,23 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
   }
 
+  void _onSendCampfireAnswer(SendCampfireAnswerEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending CAMPFIRE_ANSWER for round ${event.round}: ${event.optionId}');
+    webSocketClient.sendMessage({
+      'type': 'CAMPFIRE_ANSWER',
+      'round': event.round,
+      'optionId': event.optionId,
+    });
+  }
+
+  void _onSendCampfireNextRound(SendCampfireNextRoundEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending CAMPFIRE_NEXT_ROUND for round ${event.round}');
+    webSocketClient.sendMessage({
+      'type': 'CAMPFIRE_NEXT_ROUND',
+      'round': event.round,
+    });
+  }
+
   Future<void> _onSendEmergencyDisconnect(SendEmergencyDisconnectEvent event, Emitter<GameState> emit) async {
     print('[BLOC EVENT] SendEmergencyDisconnectEvent triggered (ShouldBlock: ${event.shouldBlock})');
     webSocketClient.setSessionActive(false);
@@ -613,25 +686,50 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     if (type == 'SESSION_INIT') {
       final payload = SessionInitPayload.fromJson(msg);
-      print('[BLOC IN] Received SESSION_INIT match! RoomId: ${payload.roomId}, Role: ${payload.role}, Partner: ${payload.partnerId} (${payload.partnerUsername})');
+      print('[BLOC IN] Received SESSION_INIT match! RoomId: ${payload.roomId}, Role: ${payload.role}, Partner: ${payload.partnerId} (${payload.partnerUsername}), PartnerTastes: ${payload.partnerTastes}');
       webSocketClient.setSessionActive(true);
 
-      // Si el backend envió el avatar/cuarto real del partner, guardarlo en AvatarStorageService
+      // Si el backend envió el avatar/cuarto/gustos reales del partner, guardarlos en AvatarStorageService
       if (payload.partnerAvatarConfig != null && payload.partnerId.isNotEmpty) {
         AvatarStorageService.saveUserConfig(payload.partnerId, payload.partnerAvatarConfig!);
       }
       if (payload.partnerRoomConfig != null && payload.partnerId.isNotEmpty) {
         AvatarStorageService.saveUserRoomConfig(payload.partnerId, payload.partnerRoomConfig!);
       }
+      if (payload.partnerTastes.isNotEmpty && payload.partnerId.isNotEmpty) {
+        AvatarStorageService.saveUserTastes(payload.partnerId, payload.partnerTastes);
+      }
 
       final resolvedAvatar = payload.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(payload.partnerId);
       final resolvedRoom = payload.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(payload.partnerId);
+      final resolvedTastes = payload.partnerTastes.isNotEmpty
+          ? payload.partnerTastes
+          : AvatarStorageService.getUserTastes(payload.partnerId);
+
+      // Re-enviar inmediatamente nuestro perfil completo (incluyendo gustos) para sincronización simétrica
+      final myId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+      final myUsername = AuthService.currentUser?.username ?? myId;
+      final myAvatar = AvatarStorageService.getUserConfig(myId);
+      final myRoom = AvatarStorageService.getUserRoomConfig(myId);
+      final myTastes = (AuthService.currentUser?.tastes != null && AuthService.currentUser!.tastes.isNotEmpty)
+          ? AuthService.currentUser!.tastes
+          : AvatarStorageService.getUserTastes(myId);
+
+      webSocketClient.sendMessage({
+        'type': 'PROFILE_SYNC',
+        'userId': myId,
+        'username': myUsername,
+        'avatarConfig': myAvatar.toJson(),
+        'roomConfig': myRoom.toMap(),
+        'tastes': myTastes,
+      });
 
       emit(ActiveGameState(
         session: payload,
         partnerAvatarConfig: resolvedAvatar,
         partnerRoomConfig: resolvedRoom,
         partnerUsername: payload.partnerUsername ?? payload.partnerId,
+        partnerTastes: resolvedTastes,
       ));
       return;
     }
@@ -641,9 +739,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       final senderUsername = msg['username'] as String?;
       final avatarData = msg['avatarConfig'] as Map<String, dynamic>?;
       final roomData = msg['roomConfig'] as Map<String, dynamic>?;
+      final rawTastes = msg['tastes'];
 
       AvatarConfig? partnerAvatar;
       RoomConfig? partnerRoom;
+      List<String>? partnerTastes;
 
       if (avatarData != null) {
         partnerAvatar = AvatarConfig.fromJson(avatarData);
@@ -659,7 +759,22 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         }
       }
 
-      print('[BLOC IN] Received PROFILE_SYNC from partner $senderUserId (${senderUsername ?? "unknown"})');
+      if (rawTastes is List) {
+        partnerTastes = rawTastes.map((e) => e.toString()).toList();
+      } else if (rawTastes is String && rawTastes.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawTastes);
+          if (decoded is List) {
+            partnerTastes = decoded.map((e) => e.toString()).toList();
+          }
+        } catch (_) {}
+      }
+
+      if (partnerTastes != null && partnerTastes.isNotEmpty && senderUserId.isNotEmpty) {
+        AvatarStorageService.saveUserTastes(senderUserId, partnerTastes);
+      }
+
+      print('[BLOC IN] Received PROFILE_SYNC from partner $senderUserId (${senderUsername ?? "unknown"}), Tastes: $partnerTastes');
 
       if (state is ActiveGameState) {
         final active = state as ActiveGameState;
@@ -667,6 +782,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           partnerAvatarConfig: partnerAvatar ?? active.partnerAvatarConfig,
           partnerRoomConfig: partnerRoom ?? active.partnerRoomConfig,
           partnerUsername: senderUsername ?? active.partnerUsername,
+          partnerTastes: (partnerTastes != null && partnerTastes.isNotEmpty) ? partnerTastes : active.partnerTastes,
         ));
       }
       return;
@@ -794,6 +910,42 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         );
         print('[BLOC IN] Storing pendingRoleSwapSession for Act $newAct: $currentRole -> $newRole (Seed: $newSeed, Partner: ${active.session.partnerId})');
         emit(active.copyWith(pendingRoleSwapSession: updatedSession));
+      }
+      return;
+    }
+
+    if (type == 'CAMPFIRE_START') {
+      print('[BLOC IN] Received CAMPFIRE_START from server: $msg');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(isCampfireActive: true));
+      }
+      return;
+    }
+
+    if (type == 'CAMPFIRE_ANSWER') {
+      final round = (msg['round'] as num?)?.toInt() ?? 0;
+      final optionId = msg['optionId'] as String?;
+      print('[BLOC IN] Partner selected option in campfire round $round: $optionId');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          partnerCampfireOptionId: optionId,
+          partnerCampfireRound: round,
+          partnerCampfireAnswerTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'CAMPFIRE_NEXT_ROUND') {
+      final round = (msg['round'] as num?)?.toInt() ?? 0;
+      print('[BLOC IN] Partner requested next campfire round: $round');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          campfireNextRoundTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
       }
       return;
     }

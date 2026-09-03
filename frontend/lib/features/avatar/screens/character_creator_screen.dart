@@ -2,6 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import '../../../core/models/avatar_config.dart';
+import '../../../core/models/preference_tags.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../components/modular_avatar_component.dart';
 import '../games/character_preview_game.dart';
@@ -24,6 +26,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     with TickerProviderStateMixin {
   late AvatarConfig _currentConfig;
   late CharacterPreviewGame _previewGame;
+  late Set<String> _selectedTastes;
 
   // 0: Rostro & Cabello (Zoom Facial), 1: Vestimenta & Estilo (Cuerpo Completo)
   int _mainSectionIndex = 0;
@@ -32,11 +35,16 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   late TabController _clothesTabController;
   bool _syncBrowsWithHair = true;
   double _dragDeltaAccumulator = 0.0;
+  String? _currentPhoto;
 
   @override
   void initState() {
     super.initState();
     _currentConfig = widget.initialConfig ?? AvatarStorageService.loadConfig();
+    final loadedTastes = AuthService.currentUser?.tastes ?? [];
+    _selectedTastes = Set<String>.from(loadedTastes);
+    final activeId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    _currentPhoto = AuthService.currentUser?.profilePhoto ?? AvatarStorageService.getUserPhoto(activeId);
     _previewGame = CharacterPreviewGame(
       config: _currentConfig,
       initialFaceZoom: true,
@@ -105,6 +113,12 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
 
   void _saveAndClose() {
     AvatarStorageService.saveConfig(_currentConfig);
+    AuthService.updateTastes(_selectedTastes.toList());
+    if (_currentPhoto != null && _currentPhoto!.isNotEmpty) {
+      AuthService.updateProfilePhoto(_currentPhoto!);
+      final activeId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+      AvatarStorageService.saveUserPhoto(activeId, _currentPhoto!);
+    }
     widget.onSaved?.call(_currentConfig);
     if (Navigator.canPop(context)) {
       Navigator.pop(context, _currentConfig);
@@ -366,103 +380,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       ],
     );
 
-    final controlsWidget = Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Rotation & Swipe Interactive Bar
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0B1120),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF334155)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.swipe, size: 14, color: Color(0xFF38BDF8)),
-                  SizedBox(width: 5),
-                  Text(
-                    'Desliza para girar',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF94A3B8),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  _buildQuickRotateBtn(Icons.rotate_left, () {
-                    setState(() {
-                      _previewGame.rotateLeft();
-                    });
-                  }),
-                  const SizedBox(width: 6),
-                  _buildQuickRotateBtn(Icons.rotate_right, () {
-                    setState(() {
-                      _previewGame.rotateRight();
-                    });
-                  }),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        // Walk toggle button
-        InkWell(
-          onTap: () {
-            setState(() {
-              _previewGame.toggleWalk();
-            });
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: _previewGame.isWalking
-                  ? const Color(0xFFDC2626).withOpacity(0.2)
-                  : const Color(0xFF16A34A).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: _previewGame.isWalking
-                    ? const Color(0xFFEF4444)
-                    : const Color(0xFF22C55E),
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _previewGame.isWalking ? Icons.pause : Icons.directions_walk,
-                  size: 15,
-                  color: _previewGame.isWalking
-                      ? const Color(0xFFFCA5A5)
-                      : const Color(0xFF86EFAC),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _previewGame.isWalking ? 'Pausar Movimiento' : 'Caminar (Animación)',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: _previewGame.isWalking
-                        ? const Color(0xFFFCA5A5)
-                        : const Color(0xFF86EFAC),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
+    final controlsWidget = _buildTastePreferencesControlPanel();
 
     return Container(
       color: const Color(0xFF131A2A),
@@ -486,9 +404,9 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
             )
           : Column(
               children: [
-                Expanded(child: canvasWidget),
+                Expanded(flex: 3, child: canvasWidget),
                 const SizedBox(height: 8),
-                controlsWidget,
+                Expanded(flex: 2, child: controlsWidget),
               ],
             ),
     );
@@ -506,6 +424,553 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
         ),
         child: Icon(icon, size: 14, color: const Color(0xFFE2E8F0)),
       ),
+    );
+  }
+
+  PreferenceItem? _getPreferenceItem(String id) {
+    for (final category in PreferenceCatalog.categories) {
+      for (final item in category.items) {
+        if (item.id == id) return item;
+      }
+    }
+    return null;
+  }
+
+  Widget _buildTastePreferencesControlPanel() {
+    final selectedItems = _selectedTastes.map((id) => _getPreferenceItem(id)).whereType<PreferenceItem>().toList();
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1120),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Header Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.favorite_rounded, size: 14, color: Color(0xFFF43F5E)),
+                  SizedBox(width: 5),
+                  Text(
+                    '🏷️ Mis Gustos',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF1F5F9),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0284C7).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.4)),
+                ),
+                child: Text(
+                  '${_selectedTastes.length} activos',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF38BDF8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Selected Tags Preview Vertical Scroll
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withOpacity(0.6),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF1E293B)),
+              ),
+              padding: const EdgeInsets.all(5),
+              child: selectedItems.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Sin gustos seleccionados.\nToca "Modificar Gustos" abajo.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 10, color: Colors.white38, fontStyle: FontStyle.italic),
+                      ),
+                    )
+                  : Scrollbar(
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: selectedItems.map((item) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E293B),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFF334155)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(item.emoji, style: const TextStyle(fontSize: 11)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    item.title,
+                                    style: const TextStyle(fontSize: 9.5, color: Color(0xFFE2E8F0)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          // Action Buttons: Modify Gustos & Subir Foto Real
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: _openTastePreferencesModal,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0284C7), Color(0xFF0369A1)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.edit_note, size: 14, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'Gustos',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: InkWell(
+                  onTap: _openPhotoPickerModal,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE11D48), Color(0xFFBE123C)],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.photo_camera, size: 13, color: Colors.white),
+                        const SizedBox(width: 4),
+                        Text(
+                          _currentPhoto != null ? 'Foto ✓' : 'Mi Foto',
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openPhotoPickerModal() {
+    final samplePhotos = [
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=500&auto=format&fit=crop&q=80',
+    ];
+
+    final urlController = TextEditingController(text: _currentPhoto ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.photo_camera, color: Color(0xFFFB7185), size: 18),
+                          SizedBox(width: 8),
+                          Text('📸 Mi Foto Real de Perfil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Esta foto se revelará de forma segura en la carta del Buzón de la cita para decidir si quieren seguir en contacto.',
+                    style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Active Photo Preview
+                  if (_currentPhoto != null && _currentPhoto!.isNotEmpty)
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.network(
+                          _currentPhoto!,
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 100,
+                            height: 100,
+                            color: const Color(0xFF1E293B),
+                            child: const Icon(Icons.broken_image, color: Colors.white54),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+
+                  // Preset samples
+                  Text('Elige una foto o ingresa tu enlace:', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 60,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: samplePhotos.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        final photo = samplePhotos[i];
+                        final isSel = _currentPhoto == photo;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() => _currentPhoto = photo);
+                            setModalState(() {});
+                            urlController.text = photo;
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSel ? const Color(0xFFFB7185) : Colors.transparent,
+                                width: 2.5,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(photo, width: 56, height: 56, fit: BoxFit.cover),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: urlController,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    decoration: InputDecoration(
+                      labelText: 'Enlace / URL de Foto Real',
+                      labelStyle: const TextStyle(color: Colors.white60, fontSize: 12),
+                      filled: true,
+                      fillColor: const Color(0xFF1E293B),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.check, color: Color(0xFFFB7185)),
+                        onPressed: () {
+                          if (urlController.text.isNotEmpty) {
+                            setState(() => _currentPhoto = urlController.text.trim());
+                            setModalState(() {});
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE11D48),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      if (urlController.text.isNotEmpty) {
+                        setState(() => _currentPhoto = urlController.text.trim());
+                      }
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text('Guardar Foto de Perfil', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _openTastePreferencesModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0F172A),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border(top: BorderSide(color: Color(0xFF334155), width: 1.5)),
+              ),
+              child: Column(
+                children: [
+                  // Drag handle & Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF475569),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.favorite_rounded, color: Color(0xFFF43F5E), size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  '🏷️ Mis Gustos & Aficiones',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0284C7).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFF38BDF8)),
+                              ),
+                              child: Text(
+                                '${_selectedTastes.length} seleccionados',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF38BDF8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Estas etiquetas se comparan en la Fogata para descubrir pasiones compartidas y contrastes únicos.',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Color(0xFF334155), height: 1),
+                  // Categories List
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: PreferenceCatalog.categories.length,
+                      itemBuilder: (context, catIndex) {
+                        final category = PreferenceCatalog.categories[catIndex];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(category.emoji, style: const TextStyle(fontSize: 15)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    category.title,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  if (category.isSingleSelect)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 6),
+                                      child: Text(
+                                        '(Elige 1)',
+                                        style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: category.items.map((item) {
+                                  final isSelected = _selectedTastes.contains(item.id);
+                                  return FilterChip(
+                                    selected: isSelected,
+                                    label: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(item.emoji, style: const TextStyle(fontSize: 13)),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          item.title,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                            color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    backgroundColor: const Color(0xFF1E293B),
+                                    selectedColor: const Color(0xFF0284C7),
+                                    checkmarkColor: Colors.white,
+                                    side: BorderSide(
+                                      color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF334155),
+                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    onSelected: (selected) {
+                                      setModalState(() {
+                                        setState(() {
+                                          if (category.isSingleSelect) {
+                                            for (final itm in category.items) {
+                                              _selectedTastes.remove(itm.id);
+                                            }
+                                            if (selected) _selectedTastes.add(item.id);
+                                          } else {
+                                            if (selected) {
+                                              _selectedTastes.add(item.id);
+                                            } else {
+                                              _selectedTastes.remove(item.id);
+                                            }
+                                          }
+                                        });
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // Bottom Confirm Button
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1E293B),
+                      border: Border(top: BorderSide(color: Color(0xFF334155))),
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0284C7),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(modalContext);
+                        },
+                        icon: const Icon(Icons.check, size: 18),
+                        label: const Text(
+                          'Confirmar Gustos',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

@@ -57,6 +57,10 @@ public class GameRoom {
         this.guideReady = false;
     }
 
+    public void setAct(int act) {
+        this.act = act;
+    }
+
     public long getDungeonSeed() {
         return dungeonSeed;
     }

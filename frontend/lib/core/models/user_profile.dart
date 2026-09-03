@@ -11,6 +11,7 @@ class UserProfile {
   final int ticketsBalance;
   final AvatarConfig avatarConfig;
   final List<String> tastes;
+  final String? profilePhoto;
   final RoomConfig roomConfig;
 
   const UserProfile({
@@ -22,6 +23,7 @@ class UserProfile {
     this.ticketsBalance = 5,
     this.avatarConfig = const AvatarConfig(),
     this.tastes = const [],
+    this.profilePhoto,
     this.roomConfig = const RoomConfig(),
   });
 
@@ -34,6 +36,7 @@ class UserProfile {
     int? ticketsBalance,
     AvatarConfig? avatarConfig,
     List<String>? tastes,
+    String? profilePhoto,
     RoomConfig? roomConfig,
   }) {
     return UserProfile(
@@ -45,6 +48,7 @@ class UserProfile {
       ticketsBalance: ticketsBalance ?? this.ticketsBalance,
       avatarConfig: avatarConfig ?? this.avatarConfig,
       tastes: tastes ?? this.tastes,
+      profilePhoto: profilePhoto ?? this.profilePhoto,
       roomConfig: roomConfig ?? this.roomConfig,
     );
   }
@@ -59,6 +63,7 @@ class UserProfile {
       'ticketsBalance': ticketsBalance,
       'avatarConfig': jsonEncode(avatarConfig.toJson()),
       'tastes': jsonEncode(tastes),
+      if (profilePhoto != null) 'profilePhoto': profilePhoto,
       'roomConfig': roomConfig.toJson(),
     };
   }
@@ -121,6 +126,7 @@ class UserProfile {
       ticketsBalance: (map['ticketsBalance'] as num?)?.toInt() ?? 5,
       avatarConfig: avatar,
       tastes: parsedTastes,
+      profilePhoto: map['profilePhoto'] as String?,
       roomConfig: room,
     );
   }

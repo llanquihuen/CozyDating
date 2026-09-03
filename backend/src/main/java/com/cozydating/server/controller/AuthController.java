@@ -231,6 +231,43 @@ public class AuthController {
         return response;
     }
 
+    @PostMapping("/auth/profile")
+    public ResponseEntity<?> updateProfile(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody Map<String, Object> body) {
+        
+        String resolvedUserId = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            resolvedUserId = jwtUtil.verifyTokenAndGetUserId(token);
+        }
+        if (resolvedUserId == null && body.containsKey("userId")) {
+            resolvedUserId = (String) body.get("userId");
+        }
+        if (resolvedUserId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token requerido"));
+        }
+
+        User user = databaseService.findUserById(resolvedUserId);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Usuario no encontrado"));
+        }
+
+        String tastes = extractJsonString(body.get("tastes"));
+        if (tastes != null) {
+            databaseService.updateUserProfile(resolvedUserId, user.getAge(), user.getCommune(), tastes);
+            user.setTastes(tastes);
+        }
+
+        if (body.containsKey("profilePhoto")) {
+            String photo = (String) body.get("profilePhoto");
+            databaseService.updateProfilePhoto(resolvedUserId, photo);
+            user.setProfilePhoto(photo);
+        }
+
+        return ResponseEntity.ok(formatUserResponse(user));
+    }
+
     private Map<String, Object> formatUserResponse(User user) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", user.getId());
@@ -241,6 +278,7 @@ public class AuthController {
         map.put("ticketsBalance", user.getTicketsBalance());
         map.put("avatarConfig", user.getAvatarConfig());
         map.put("tastes", user.getTastes());
+        map.put("profilePhoto", user.getProfilePhoto());
         map.put("roomConfig", user.getRoomConfig());
         return map;
     }

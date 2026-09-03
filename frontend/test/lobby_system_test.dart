@@ -204,11 +204,10 @@ void main() {
       );
 
       // Verify UI elements
-      expect(find.text('Decorar'), findsOneWidget);
-      expect(find.text('Constructor'), findsOneWidget);
-      expect(find.text('Armario'), findsOneWidget);
+      expect(find.text('Mi Hogar'), findsOneWidget);
+      expect(find.text('Buzón'), findsOneWidget);
       expect(find.text('Iniciar Cita'), findsOneWidget);
-      expect(find.text('Habitación Cozy (Lobby)'), findsOneWidget);
+      expect(find.text('Muros'), findsOneWidget);
       expect(find.text('🧑‍🦰 Alice (Explorador)'), findsOneWidget);
     });
 
@@ -228,8 +227,10 @@ void main() {
         ),
       );
 
-      // Tap Decorar button
-      await tester.tap(find.text('Decorar'));
+      // Tap Mi Hogar -> Decorar Muebles
+      await tester.tap(find.text('Mi Hogar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Decorar Muebles'));
       await tester.pumpAndSettle();
 
       // Should show Decorate mode UI with Muebles & Decoración section
@@ -265,8 +266,10 @@ void main() {
         ),
       );
 
-      // Tap Constructor button
-      await tester.tap(find.text('Constructor'));
+      // Tap Mi Hogar -> Modo Constructor
+      await tester.tap(find.text('Mi Hogar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Modo Constructor'));
       await tester.pumpAndSettle();
 
       // Should show Constructor mode UI elements

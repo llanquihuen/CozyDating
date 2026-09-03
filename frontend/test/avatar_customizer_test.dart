@@ -115,13 +115,14 @@ void main() {
       expect(find.widgetWithText(Tab, 'Calzado'), findsOneWidget);
       expect(find.widgetWithText(Tab, 'Accesorios'), findsOneWidget);
 
-      // Verify Rotate and Swipe Hints
-      expect(find.textContaining('Desliza para girar'), findsOneWidget);
+      // Verify Taste Preferences Panel (Replaces walk/rotate bar)
+      expect(find.textContaining('Mis Gustos'), findsOneWidget);
+      expect(find.textContaining('Gustos'), findsWidgets);
+      expect(find.textContaining('Foto'), findsOneWidget);
       expect(find.byIcon(Icons.rotate_left), findsWidgets);
       expect(find.byIcon(Icons.rotate_right), findsWidgets);
 
       // Verify Controls
-      expect(find.textContaining('Caminar'), findsOneWidget);
       expect(find.byIcon(Icons.casino), findsOneWidget);
       expect(find.byTooltip('Aleatorio'), findsOneWidget);
     });
