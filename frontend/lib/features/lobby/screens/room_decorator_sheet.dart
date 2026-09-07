@@ -91,7 +91,9 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
     // or shrink/close it — see _handleDragUpdate / _handleDragEnd below.
     final sheetHeight = (screenHeight * _heightFraction).clamp(220.0, screenHeight * _maxHeightFraction);
 
-    final allItems = FurnitureCatalogService.items.values.toList();
+    final allItems = FurnitureCatalogService.items.values
+        .where((item) => !item.id.contains('_base') && !item.id.contains('_back'))
+        .toList();
     final filteredItems = allItems.where((item) {
       if (_selectedCategory == 'living') {
         return (item.zone == 'living' || item.id == 'table' || item.id == 'bookshelf' || item.id == 'tall_bookshelf' || item.id == 'dining_table_2x2' || item.id == 'side_table_sm' || item.id == 'plush_armchair' || item.id == 'simple_chair_sm' || item.id == 'floor_plant_sm') && !item.isSurfaceItem && !item.isWallItem;

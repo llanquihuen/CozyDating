@@ -53,7 +53,15 @@ class IsometricFurnitureComponent extends PositionComponent {
 
   bool get isWardrobe => type == FurnitureType.wardrobe || id.contains('wardrobe') || typeName.contains('wardrobe');
   bool get isPortal => type == FurnitureType.portal || id.contains('portal') || typeName.contains('portal');
-  bool get isChair => id.contains('chair') || typeName.contains('chair') || id.contains('armchair') || typeName.contains('armchair');
+  bool get isChair =>
+      id.contains('chair') ||
+      typeName.contains('chair') ||
+      id.contains('armchair') ||
+      typeName.contains('armchair') ||
+      id.contains('sofa') ||
+      typeName.contains('sofa') ||
+      id.contains('couch') ||
+      typeName.contains('couch');
   final bool hasTableMagnet;
   bool get canSnapToTable {
     if (hasTableMagnet) return true;

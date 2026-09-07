@@ -12,6 +12,7 @@ import '../../../core/services/furniture_catalog_service.dart';
 import '../components/isometric_avatar_component.dart';
 import '../components/isometric_furniture_component.dart';
 import '../components/isometric_interior_wall_component.dart';
+import '../data/chair_seat_config.dart';
 import '../utils/isometric_coords.dart';
 import '../utils/isometric_pathfinder.dart';
 import '../utils/sprite_alpha_cache.dart';
@@ -66,6 +67,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
   // Pending chair target for avatar to sit on after walking
   IsometricFurnitureComponent? _pendingSitChair;
+  SeatSpot? _pendingSitSpot;
 
   // A wall must be held (touched without much movement) for this long before it's
   // selected and armed for dragging — see onDragStart/onDragUpdate.
@@ -269,7 +271,12 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
       Map<int, Sprite> chairBaseMap = {};
       Map<int, Sprite> chairBackMap = {};
-      if (targetTypeName.contains('chair') || targetTypeName.contains('armchair') || item.id.contains('chair')) {
+      if (targetTypeName.contains('chair') ||
+          targetTypeName.contains('armchair') ||
+          targetTypeName.contains('sofa') ||
+          targetTypeName.contains('couch') ||
+          item.id.contains('chair') ||
+          item.id.contains('sofa')) {
         final pair = await _loadChairLayerSprites(targetTypeName);
         chairBaseMap = pair.$1;
         chairBackMap = pair.$2;
@@ -334,14 +341,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       }
     }
 
-    // Third pass: Las sillas adyacentes a una mesa se ordenan direccionalmente en Z:
+    // Third pass: Las sillas adyacentes a una mesa se ordenan direccionalmente en Z según su posición espacial:
     // - Lado lejano (Norte / Oeste): van detrás de la mesa (comp.priority < table.priority).
     // - Lado cercano (Sur / Este): van delante de la mesa (comp.priority > table.priority).
     for (final comp in allComps) {
       if (comp.isChair) {
         final table = findAdjacentTableForChair(comp, comp.gridX, comp.gridY, candidateTables: allComps);
         if (table != null) {
-          final isBehind = comp.gridY < table.gridY || comp.gridX < table.gridX || comp.rotation == 0 || comp.rotation == 1;
+          final isBehind = comp.gridY < table.gridY || comp.gridX < table.gridX;
           if (isBehind) {
             if (comp.priority >= table.priority) {
               comp.priority = table.priority - 5;
@@ -356,10 +363,27 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
   }
 
+  /// Determina si un mueble es una mesa de comedor o escritorio real donde se sientan sillas
+  static bool isDiningTableOrDesk(IsometricFurnitureComponent comp) {
+    if (comp.isChair || comp.isWallItem || comp.isSurfaceItem) return false;
+    final id = comp.id.toLowerCase();
+    final typeName = comp.typeName.toLowerCase();
+    // Excluir camas, veladores de noche (side_table), lámparas, estufas, lavaplatos, etc.
+    if (id.contains('side_table') || typeName.contains('side_table')) return false;
+    if (id.contains('table_lamp') || typeName.contains('table_lamp')) return false;
+    if (id.contains('bed') || typeName.contains('bed')) return false;
+    if (id.contains('stove') || typeName.contains('stove')) return false;
+    if (id.contains('sink') || typeName.contains('sink')) return false;
+    if (id.contains('fountain') || typeName.contains('fountain')) return false;
+    if (id.contains('bath') || typeName.contains('bath')) return false;
+
+    final isTableOrDesk = id.contains('table') || typeName.contains('table') || id.contains('desk') || typeName.contains('desk');
+    return isTableOrDesk && comp.gridWidth >= 1.0 && comp.gridHeight >= 1.0;
+  }
+
   IsometricFurnitureComponent? findAdjacentTableForChair(IsometricFurnitureComponent chair, num gx, num gy, {List<IsometricFurnitureComponent>? candidateTables}) {
     final tables = (candidateTables ?? world.children.whereType<IsometricFurnitureComponent>()).where((t) =>
-      t != chair && !t.isChair && !t.isWallItem && !t.isSurfaceItem &&
-      (t.id.contains('table') || t.typeName.contains('table') || t.footprint == '2x2' || t.isSurfaceSupporting)
+      t != chair && isDiningTableOrDesk(t)
     );
 
     for (final table in tables) {
@@ -668,7 +692,12 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     Map<int, Sprite> chairBaseMap = {};
     Map<int, Sprite> chairBackMap = {};
-    if (catalogItem.id.contains('chair') || catalogItem.id.contains('armchair') || initialTypeName.contains('chair')) {
+    if (catalogItem.id.contains('chair') ||
+        catalogItem.id.contains('armchair') ||
+        catalogItem.id.contains('sofa') ||
+        catalogItem.id.contains('couch') ||
+        initialTypeName.contains('chair') ||
+        initialTypeName.contains('sofa')) {
       final pair = await _loadChairLayerSprites(initialTypeName);
       chairBaseMap = pair.$1;
       chairBackMap = pair.$2;
@@ -1117,8 +1146,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     if (_pendingSitChair != null && avatar != null) {
       final chair = _pendingSitChair!;
+      final spot = _pendingSitSpot;
       _pendingSitChair = null;
-      avatar!.sitOnChair(chair);
+      _pendingSitSpot = null;
+      avatar!.sitOnChair(chair, spot: spot);
       return;
     }
 
@@ -1489,9 +1520,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         double minDistance = 0.85; // Snapping attraction radius
 
         for (final table in world.children.whereType<IsometricFurnitureComponent>()) {
-          if (table == _draggedFurniture || table.isChair || table.isWallItem || table.isSurfaceItem) continue;
-          final isTable = table.id.contains('table') || table.typeName.contains('table') || table.footprint == '2x2';
-          if (!isTable) continue;
+          if (table == _draggedFurniture || !isDiningTableOrDesk(table)) continue;
 
           final slots = getChairSnapSlotsForTable(table);
           for (final slot in slots) {
@@ -1558,7 +1587,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     if (_draggedFurniture!.isChair) {
       final table = findAdjacentTableForChair(_draggedFurniture!, clampedGrid.x, clampedGrid.y);
       if (table != null) {
-        final isBehind = clampedGrid.y < table.gridY || clampedGrid.x < table.gridX || _draggedFurniture!.rotation == 0 || _draggedFurniture!.rotation == 1;
+        final isBehind = clampedGrid.y < table.gridY || clampedGrid.x < table.gridX;
         if (isBehind) {
           if (hoverPriority >= table.priority) {
             hoverPriority = table.priority - 5;
@@ -2244,32 +2273,37 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
 
     if (hitChair != null && avatar != null) {
-      // If already sitting on this chair, stand up to adjacent free space
-      if (avatar!.isSitting && avatar!.sittingChair == hitChair) {
+      final targetSpot = ChairSeatConfig.getClosestSpot(hitChair, worldPos);
+
+      // If already sitting on this chair in this exact spot, stand up to adjacent free space
+      if (avatar!.isSitting && avatar!.sittingChair == hitChair && avatar!.sittingSlotIndex == targetSpot.slotIndex) {
         avatar!.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
         _pendingSitChair = null;
+        _pendingSitSpot = null;
         return;
       }
 
-      // If already sitting on another chair, stand up first into adjacent free space
+      // If already sitting on another chair or another spot on this chair, stand up first into adjacent free space
       if (avatar!.isSitting) {
         avatar!.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
       }
 
-      final chairSubX = (hitChair.gridX * 2.0).floor();
-      final chairSubY = (hitChair.gridY * 2.0).floor();
+      final chairSubX = (hitChair.gridX * 2.0).floor() + targetSpot.subCell.x;
+      final chairSubY = (hitChair.gridY * 2.0).floor() + targetSpot.subCell.y;
       final currentAvatarX = avatar!.gridX.round();
       final currentAvatarY = avatar!.gridY.round();
 
-      // If already right at or adjacent to the target chair, sit directly
+      // If already right at or adjacent to the target seat spot, sit directly
       if ((currentAvatarX - chairSubX).abs() <= 1 && (currentAvatarY - chairSubY).abs() <= 1) {
         _pendingSitChair = null;
-        avatar!.sitOnChair(hitChair);
+        _pendingSitSpot = null;
+        avatar!.sitOnChair(hitChair, spot: targetSpot);
         return;
       }
 
-      // Otherwise, pathfind towards the chair
+      // Otherwise, pathfind towards the seat spot
       _pendingSitChair = hitChair;
+      _pendingSitSpot = targetSpot;
       final startPos = Point(currentAvatarX, currentAvatarY);
       final chairSubGoal = Point(chairSubX, chairSubY);
 
@@ -2287,15 +2321,18 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         avatar!.setPath(path, chairSubGoal);
       } else if ((currentAvatarX - chairSubX).abs() <= 1 && (currentAvatarY - chairSubY).abs() <= 1) {
         // If direct path couldn't be calculated but already adjacent, sit down directly
-        avatar!.sitOnChair(hitChair);
+        avatar!.sitOnChair(hitChair, spot: targetSpot);
         _pendingSitChair = null;
+        _pendingSitSpot = null;
       } else {
         _pendingSitChair = null;
+        _pendingSitSpot = null;
       }
       return;
     }
 
     _pendingSitChair = null;
+    _pendingSitSpot = null;
     final subGridPos = IsometricCoords.screenToSubGrid(worldPos.x, worldPos.y);
     const subLimit = gridSize * 2;
 

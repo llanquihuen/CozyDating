@@ -19,6 +19,8 @@ class FurnitureCatalogService {
       _catalog.clear();
       rawMap.forEach((key, value) {
         if (value is Map<String, dynamic>) {
+          // Descartar partes internas de renderizado (_base y _back) para que no aparezcan como muebles separados
+          if (key.contains('_base') || key.contains('_back')) return;
           _catalog[key] = FurnitureCatalogItem.fromJson(key, value);
         }
       });

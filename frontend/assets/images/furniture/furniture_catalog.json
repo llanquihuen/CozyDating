@@ -424,7 +424,7 @@
     }
   },
   "simple_chair_sm": {
-    "name": "Simple Chair Sm (Alto)",
+    "name": "Silla de Madera Simple",
     "zone": "living",
     "footprint": "0.5x0.5",
     "surface_height": 0,
@@ -526,854 +526,6 @@
           0
         ],
         "asset_path": "furniture/established_furniture/simple_chair_sm_rot3.png"
-      }
-    }
-  },
-  "simple_chair_rot0_back_sm": {
-    "name": "Simple Chair Rot0 Back Sm (Alto)",
-    "zone": "living",
-    "footprint": "0.5x0.5",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      176
-    ],
-    "sprite_offset": [
-      -32,
-      -44
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "simple_chair_rot0_back_sm_rot0",
-        "name": "Simple Chair Rot0 Back Sm (Alto) Rot 0",
-        "footprint": "0.5x0.5",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot0_back_sm_rot0.png"
-      },
-      "1": {
-        "id": "simple_chair_rot0_back_sm_rot1",
-        "name": "Simple Chair Rot0 Back Sm (Alto) Rot 1",
-        "footprint": "0.5x0.5",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot0_back_sm_rot1.png"
-      },
-      "2": {
-        "id": "simple_chair_rot0_back_sm_rot2",
-        "name": "Simple Chair Rot0 Back Sm (Alto) Rot 2",
-        "footprint": "0.5x0.5",
-        "rot": 2,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot0_back_sm_rot2.png"
-      },
-      "3": {
-        "id": "simple_chair_rot0_back_sm_rot3",
-        "name": "Simple Chair Rot0 Back Sm (Alto) Rot 3",
-        "footprint": "0.5x0.5",
-        "rot": 3,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot0_back_sm_rot3.png"
-      }
-    }
-  },
-  "simple_chair_rot0_base_sm": {
-    "name": "Simple Chair Rot0 Base Sm (Alto)",
-    "zone": "living",
-    "footprint": "0.5x0.5",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      176
-    ],
-    "sprite_offset": [
-      -32,
-      -44
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "simple_chair_rot0_base_sm_rot0",
-        "name": "Simple Chair Rot0 Base Sm (Alto) Rot 0",
-        "footprint": "0.5x0.5",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot0_base_sm_rot0.png"
-      },
-      "1": {
-        "id": "simple_chair_rot0_base_sm_rot1",
-        "name": "Simple Chair Rot0 Base Sm (Alto) Rot 1",
-        "footprint": "0.5x0.5",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot0_base_sm_rot1.png"
-      },
-      "2": {
-        "id": "simple_chair_rot0_base_sm_rot2",
-        "name": "Simple Chair Rot0 Base Sm (Alto) Rot 2",
-        "footprint": "0.5x0.5",
-        "rot": 2,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot0_base_sm_rot2.png"
-      },
-      "3": {
-        "id": "simple_chair_rot0_base_sm_rot3",
-        "name": "Simple Chair Rot0 Base Sm (Alto) Rot 3",
-        "footprint": "0.5x0.5",
-        "rot": 3,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot0_base_sm_rot3.png"
-      }
-    }
-  },
-  "simple_chair_rot1_back_sm": {
-    "name": "Simple Chair Rot1 Back Sm (Alto)",
-    "zone": "living",
-    "footprint": "0.5x0.5",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      176
-    ],
-    "sprite_offset": [
-      -32,
-      -44
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "simple_chair_rot1_back_sm_rot0",
-        "name": "Simple Chair Rot1 Back Sm (Alto) Rot 0",
-        "footprint": "0.5x0.5",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot1_back_sm_rot0.png"
-      },
-      "1": {
-        "id": "simple_chair_rot1_back_sm_rot1",
-        "name": "Simple Chair Rot1 Back Sm (Alto) Rot 1",
-        "footprint": "0.5x0.5",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot1_back_sm_rot1.png"
-      },
-      "2": {
-        "id": "simple_chair_rot1_back_sm_rot2",
-        "name": "Simple Chair Rot1 Back Sm (Alto) Rot 2",
-        "footprint": "0.5x0.5",
-        "rot": 2,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot1_back_sm_rot2.png"
-      },
-      "3": {
-        "id": "simple_chair_rot1_back_sm_rot3",
-        "name": "Simple Chair Rot1 Back Sm (Alto) Rot 3",
-        "footprint": "0.5x0.5",
-        "rot": 3,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot1_back_sm_rot3.png"
-      }
-    }
-  },
-  "simple_chair_rot1_base_sm": {
-    "name": "Simple Chair Rot1 Base Sm (Alto)",
-    "zone": "living",
-    "footprint": "0.5x0.5",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      176
-    ],
-    "sprite_offset": [
-      -32,
-      -44
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "simple_chair_rot1_base_sm_rot0",
-        "name": "Simple Chair Rot1 Base Sm (Alto) Rot 0",
-        "footprint": "0.5x0.5",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot1_base_sm_rot0.png"
-      },
-      "1": {
-        "id": "simple_chair_rot1_base_sm_rot1",
-        "name": "Simple Chair Rot1 Base Sm (Alto) Rot 1",
-        "footprint": "0.5x0.5",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot1_base_sm_rot1.png"
-      },
-      "2": {
-        "id": "simple_chair_rot1_base_sm_rot2",
-        "name": "Simple Chair Rot1 Base Sm (Alto) Rot 2",
-        "footprint": "0.5x0.5",
-        "rot": 2,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot1_base_sm_rot2.png"
-      },
-      "3": {
-        "id": "simple_chair_rot1_base_sm_rot3",
-        "name": "Simple Chair Rot1 Base Sm (Alto) Rot 3",
-        "footprint": "0.5x0.5",
-        "rot": 3,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot1_base_sm_rot3.png"
-      }
-    }
-  },
-  "simple_chair_rot2_back_sm": {
-    "name": "Simple Chair Rot2 Back Sm (Alto)",
-    "zone": "living",
-    "footprint": "0.5x0.5",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      176
-    ],
-    "sprite_offset": [
-      -32,
-      -44
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "simple_chair_rot2_back_sm_rot0",
-        "name": "Simple Chair Rot2 Back Sm (Alto) Rot 0",
-        "footprint": "0.5x0.5",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot2_back_sm_rot0.png"
-      },
-      "1": {
-        "id": "simple_chair_rot2_back_sm_rot1",
-        "name": "Simple Chair Rot2 Back Sm (Alto) Rot 1",
-        "footprint": "0.5x0.5",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot2_back_sm_rot1.png"
-      },
-      "2": {
-        "id": "simple_chair_rot2_back_sm_rot2",
-        "name": "Simple Chair Rot2 Back Sm (Alto) Rot 2",
-        "footprint": "0.5x0.5",
-        "rot": 2,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot2_back_sm_rot2.png"
-      },
-      "3": {
-        "id": "simple_chair_rot2_back_sm_rot3",
-        "name": "Simple Chair Rot2 Back Sm (Alto) Rot 3",
-        "footprint": "0.5x0.5",
-        "rot": 3,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot2_back_sm_rot3.png"
-      }
-    }
-  },
-  "simple_chair_rot2_base_sm": {
-    "name": "Simple Chair Rot2 Base Sm (Alto)",
-    "zone": "living",
-    "footprint": "0.5x0.5",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      176
-    ],
-    "sprite_offset": [
-      -32,
-      -44
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "simple_chair_rot2_base_sm_rot0",
-        "name": "Simple Chair Rot2 Base Sm (Alto) Rot 0",
-        "footprint": "0.5x0.5",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot2_base_sm_rot0.png"
-      },
-      "1": {
-        "id": "simple_chair_rot2_base_sm_rot1",
-        "name": "Simple Chair Rot2 Base Sm (Alto) Rot 1",
-        "footprint": "0.5x0.5",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot2_base_sm_rot1.png"
-      },
-      "2": {
-        "id": "simple_chair_rot2_base_sm_rot2",
-        "name": "Simple Chair Rot2 Base Sm (Alto) Rot 2",
-        "footprint": "0.5x0.5",
-        "rot": 2,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot2_base_sm_rot2.png"
-      },
-      "3": {
-        "id": "simple_chair_rot2_base_sm_rot3",
-        "name": "Simple Chair Rot2 Base Sm (Alto) Rot 3",
-        "footprint": "0.5x0.5",
-        "rot": 3,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot2_base_sm_rot3.png"
-      }
-    }
-  },
-  "simple_chair_rot3_back_sm": {
-    "name": "Simple Chair Rot3 Back Sm (Alto)",
-    "zone": "living",
-    "footprint": "0.5x0.5",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      176
-    ],
-    "sprite_offset": [
-      -32,
-      -44
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "simple_chair_rot3_back_sm_rot0",
-        "name": "Simple Chair Rot3 Back Sm (Alto) Rot 0",
-        "footprint": "0.5x0.5",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot3_back_sm_rot0.png"
-      },
-      "1": {
-        "id": "simple_chair_rot3_back_sm_rot1",
-        "name": "Simple Chair Rot3 Back Sm (Alto) Rot 1",
-        "footprint": "0.5x0.5",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot3_back_sm_rot1.png"
-      },
-      "2": {
-        "id": "simple_chair_rot3_back_sm_rot2",
-        "name": "Simple Chair Rot3 Back Sm (Alto) Rot 2",
-        "footprint": "0.5x0.5",
-        "rot": 2,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot3_back_sm_rot2.png"
-      },
-      "3": {
-        "id": "simple_chair_rot3_back_sm_rot3",
-        "name": "Simple Chair Rot3 Back Sm (Alto) Rot 3",
-        "footprint": "0.5x0.5",
-        "rot": 3,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot3_back_sm_rot3.png"
-      }
-    }
-  },
-  "simple_chair_rot3_base_sm": {
-    "name": "Simple Chair Rot3 Base Sm (Alto)",
-    "zone": "living",
-    "footprint": "0.5x0.5",
-    "surface_height": 0,
-    "supports_surface": false,
-    "surface_offset": [
-      0,
-      0
-    ],
-    "canvas_size": [
-      128,
-      176
-    ],
-    "sprite_offset": [
-      -32,
-      -44
-    ],
-    "has_table_magnet": false,
-    "rotations": {
-      "0": {
-        "id": "simple_chair_rot3_base_sm_rot0",
-        "name": "Simple Chair Rot3 Base Sm (Alto) Rot 0",
-        "footprint": "0.5x0.5",
-        "rot": 0,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot3_base_sm_rot0.png"
-      },
-      "1": {
-        "id": "simple_chair_rot3_base_sm_rot1",
-        "name": "Simple Chair Rot3 Base Sm (Alto) Rot 1",
-        "footprint": "0.5x0.5",
-        "rot": 1,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot3_base_sm_rot1.png"
-      },
-      "2": {
-        "id": "simple_chair_rot3_base_sm_rot2",
-        "name": "Simple Chair Rot3 Base Sm (Alto) Rot 2",
-        "footprint": "0.5x0.5",
-        "rot": 2,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot3_base_sm_rot2.png"
-      },
-      "3": {
-        "id": "simple_chair_rot3_base_sm_rot3",
-        "name": "Simple Chair Rot3 Base Sm (Alto) Rot 3",
-        "footprint": "0.5x0.5",
-        "rot": 3,
-        "canvas_size": [
-          128,
-          176
-        ],
-        "sprite_offset": [
-          -32,
-          -44
-        ],
-        "surface_height": 0,
-        "supports_surface": false,
-        "surface_offset": [
-          0,
-          0
-        ],
-        "asset_path": "furniture/established_furniture/simple_chair_rot3_base_sm_rot3.png"
       }
     }
   },
@@ -4494,6 +3646,452 @@
           0
         ],
         "asset_path": "furniture/established_furniture/window_yellow_w.png"
+      }
+    }
+  },
+  "tall_mangashelf_white": {
+    "name": "Estantería Manga Blanca (Alto)",
+    "zone": "living",
+    "footprint": "1x1",
+    "surface_height": 14,
+    "supports_surface": true,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      178
+    ],
+    "sprite_offset": [
+      -32,
+      -73
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "tall_mangashelf_white_rot0",
+        "name": "Estantería Manga Blanca (Alto) Rot 0",
+        "footprint": "1x1",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          178
+        ],
+        "sprite_offset": [
+          -32,
+          -73
+        ],
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/tall_mangashelf_white_rot0.png"
+      },
+      "1": {
+        "id": "tall_mangashelf_white_rot1",
+        "name": "Estantería Manga Blanca (Alto) Rot 1",
+        "footprint": "1x1",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          178
+        ],
+        "sprite_offset": [
+          -32,
+          -73
+        ],
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/tall_mangashelf_white_rot1.png"
+      },
+      "2": {
+        "id": "tall_mangashelf_white_rot2",
+        "name": "Estantería Manga Blanca (Alto) Rot 2",
+        "footprint": "1x1",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          178
+        ],
+        "sprite_offset": [
+          -32,
+          -73
+        ],
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/tall_mangashelf_white_rot2.png"
+      },
+      "3": {
+        "id": "tall_mangashelf_white_rot3",
+        "name": "Estantería Manga Blanca (Alto) Rot 3",
+        "footprint": "1x1",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          178
+        ],
+        "sprite_offset": [
+          -32,
+          -73
+        ],
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/tall_mangashelf_white_rot3.png"
+      }
+    }
+  },
+  "tall_mangashelf": {
+    "name": "Estantería Manga Alta",
+    "zone": "living",
+    "footprint": "1x1",
+    "surface_height": 14,
+    "supports_surface": true,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      178
+    ],
+    "sprite_offset": [
+      -32,
+      -73
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "tall_mangashelf_rot0",
+        "name": "Estantería Manga Alta Rot 0",
+        "footprint": "1x1",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          178
+        ],
+        "sprite_offset": [
+          -32,
+          -73
+        ],
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/tall_mangashelf_rot0.png"
+      },
+      "1": {
+        "id": "tall_mangashelf_rot1",
+        "name": "Estantería Manga Alta Rot 1",
+        "footprint": "1x1",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          178
+        ],
+        "sprite_offset": [
+          -32,
+          -73
+        ],
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/tall_mangashelf_rot1.png"
+      },
+      "2": {
+        "id": "tall_mangashelf_rot2",
+        "name": "Estantería Manga Alta Rot 2",
+        "footprint": "1x1",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          178
+        ],
+        "sprite_offset": [
+          -32,
+          -73
+        ],
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/tall_mangashelf_rot2.png"
+      },
+      "3": {
+        "id": "tall_mangashelf_rot3",
+        "name": "Estantería Manga Alta Rot 3",
+        "footprint": "1x1",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          178
+        ],
+        "sprite_offset": [
+          -32,
+          -73
+        ],
+        "surface_height": 14,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/tall_mangashelf_rot3.png"
+      }
+    }
+  },
+  "gaming_pc_desk": {
+    "name": "Gaming Pc Desk",
+    "zone": "living",
+    "footprint": "1x1",
+    "surface_height": 18,
+    "supports_surface": true,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "gaming_pc_desk_rot0",
+        "name": "Gaming Pc Desk Rot 0",
+        "footprint": "1x1",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gaming_pc_desk_rot0.png"
+      },
+      "1": {
+        "id": "gaming_pc_desk_rot1",
+        "name": "Gaming Pc Desk Rot 1",
+        "footprint": "1x1",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gaming_pc_desk_rot1.png"
+      },
+      "2": {
+        "id": "gaming_pc_desk_rot2",
+        "name": "Gaming Pc Desk Rot 2",
+        "footprint": "1x1",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gaming_pc_desk_rot2.png"
+      },
+      "3": {
+        "id": "gaming_pc_desk_rot3",
+        "name": "Gaming Pc Desk Rot 3",
+        "footprint": "1x1",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gaming_pc_desk_rot3.png"
+      }
+    }
+  },
+  "wall_poster_cinema": {
+    "name": "Wall Poster Cinema",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_poster_cinema_n",
+        "name": "Wall Poster Cinema (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_cinema_n.png"
+      },
+      "1": {
+        "id": "wall_poster_cinema_w",
+        "name": "Wall Poster Cinema (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_cinema_w.png"
+      }
+    }
+  },
+  "wall_poster_cinema2": {
+    "name": "Wall Poster Cinema2",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_poster_cinema2_n",
+        "name": "Wall Poster Cinema2 (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_cinema2_n.png"
+      },
+      "1": {
+        "id": "wall_poster_cinema2_w",
+        "name": "Wall Poster Cinema2 (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_cinema2_w.png"
       }
     }
   }
