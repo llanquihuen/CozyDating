@@ -9,6 +9,8 @@ import 'package:frontend/core/services/avatar_storage_service.dart';
 import 'package:frontend/features/game/bloc/game_bloc.dart';
 import 'package:frontend/features/lobby/screens/cozy_lobby_view.dart';
 import 'package:frontend/features/lobby/games/cozy_room_game.dart';
+import 'package:frontend/features/avatar/components/modular_avatar_component.dart';
+import 'package:frontend/features/lobby/components/isometric_avatar_component.dart';
 import 'package:frontend/features/lobby/components/isometric_furniture_component.dart';
 import 'package:frontend/features/lobby/components/isometric_interior_wall_component.dart';
 import 'package:frontend/features/lobby/utils/isometric_coords.dart';
@@ -921,4 +923,66 @@ void main() {
       expect(interiorWall.effectiveWallHeight, equals(IsometricInteriorWallComponent.fullWallHeight));
     });
   });
+
+  group('Avatar Sitting on Chairs Tests', () {
+    test('IsometricAvatarComponent sits on chair and aligns with chair rotation and position', () {
+      final avatar = IsometricAvatarComponent(
+        gridX: 2.0,
+        gridY: 2.0,
+        config: const AvatarConfig(),
+      );
+
+      final chair = IsometricFurnitureComponent(
+        id: 'simple_chair_sm',
+        typeName: 'simple_chair_sm',
+        gridX: 4.0,
+        gridY: 3.0,
+        rotation: 2, // Rot 2 (faces NE -> direction 4 / northEast)
+      );
+
+      expect(avatar.isSitting, isFalse);
+      expect(avatar.sittingChair, isNull);
+
+      // Sit on chair
+      avatar.sitOnChair(chair);
+
+      expect(avatar.isSitting, isTrue);
+      expect(avatar.sittingChair, equals(chair));
+      expect(avatar.gridX, equals(8.0)); // 4.0 * 2.0
+      expect(avatar.gridY, equals(6.0)); // 3.0 * 2.0
+      expect(avatar.avatarRenderer.direction, equals(AvatarDirection.northEast));
+      expect(avatar.priority, equals(chair.priority + 10));
+
+      // Stand up - avatar steps off in front of the chair (NE -> (8, 5))
+      avatar.standUp();
+      expect(avatar.isSitting, isFalse);
+      expect(avatar.sittingChair, isNull);
+      expect(avatar.gridX, equals(8.0));
+      expect(avatar.gridY, equals(5.0)); // Stepped off in front of the chair!
+    });
+
+    test('ModularAvatarComponent transitions through sitting animation frames', () {
+      final modular = ModularAvatarComponent(
+        config: const AvatarConfig(),
+        direction: AvatarDirection.southEast,
+      );
+
+      expect(modular.isSitting, isFalse);
+
+      modular.sitDown();
+      expect(modular.isSitting, isTrue);
+
+      // Update time to progress sitting animation frames
+      modular.update(0.15);
+      expect(modular.isSitting, isTrue);
+
+      modular.update(0.15);
+      expect(modular.isSitting, isTrue);
+
+      // Stand up
+      modular.standUp();
+      expect(modular.isSitting, isFalse);
+    });
+  });
 }
+

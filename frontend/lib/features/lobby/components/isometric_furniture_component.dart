@@ -149,10 +149,10 @@ class IsometricFurnitureComponent extends PositionComponent {
     
     // Z-order based on sub-grid footprint and furthest tile occupied (surface items get layer 100 on top of parent)
     final layer = (type == FurnitureType.carpet ? -1 : (isSurfaceItem ? 100 : 1));
-    final subX = (gx * 2).round();
-    final subY = (gy * 2).round();
-    final targetX = (isSurfaceItem && parentFurthestX != null) ? (parentFurthestX * 2).round() : subX;
-    final targetY = (isSurfaceItem && parentFurthestY != null) ? (parentFurthestY * 2).round() : subY;
+    final subX = (gx * 2.0).floor();
+    final subY = (gy * 2.0).floor();
+    final targetX = (isSurfaceItem && parentFurthestX != null) ? (parentFurthestX * 2.0).floor() : subX;
+    final targetY = (isSurfaceItem && parentFurthestY != null) ? (parentFurthestY * 2.0).floor() : subY;
 
     // A floor item's rendered sprite can visually spill past its own anchor tile onto a
     // neighboring interior wall panel's screen column — from a half-grid snap, or simply an
@@ -166,13 +166,14 @@ class IsometricFurnitureComponent extends PositionComponent {
       final size = renderSize;
       final spriteLeft = position.x + off.x;
       final spriteRight = spriteLeft + size.x;
-      final desiredBump = IsometricCoords.getWallClearanceBump(
-        gridX: gx,
-        gridY: gy,
+      final walls = (parent as World?)?.children.whereType<IsometricInteriorWallComponent>();
+      wallClearanceBump = calculateWallClearanceBump(
+        gx: gx,
+        gy: gy,
         spriteLeft: spriteLeft,
         spriteRight: spriteRight,
+        walls: walls,
       );
-      wallClearanceBump = desiredBump == 0 ? 0 : _capWallClearanceBump(gx, gy, spriteLeft, spriteRight, desiredBump);
     }
 
     priority = IsometricCoords.getSubZOrder(
@@ -186,36 +187,56 @@ class IsometricFurnitureComponent extends PositionComponent {
         wallClearanceBump * 10000;
   }
 
-  /// Caps [desiredBump] against the room's ACTUAL interior walls so it never pops this item in
-  /// front of a wall in a genuinely different, nearer row (north) / column (west) — only the real
-  /// wall list (available once mounted, via `parent`) can tell a real occluding wall apart from an
-  /// empty tile that happens to share the same coordinates. See `getWallClearanceBump`'s doc and
-  /// subcell-furniture-wall-zorder-fix memory: an earlier version tried to guess this from grid
-  /// math alone (assuming a wall could exist at any coordinate) and ended up suppressing the fix
-  /// almost everywhere, since most nearby tiles don't actually have a wall on them.
-  int _capWallClearanceBump(double gx, double gy, double spriteLeft, double spriteRight, int desiredBump) {
-    final walls = (parent as World?)?.children.whereType<IsometricInteriorWallComponent>();
-    if (walls == null) return desiredBump; // Not mounted yet — best effort until onMount refreshes it.
+  /// Calculates whole-tile depth bump needed ONLY when the rendered sprite overlaps a REAL interior wall panel
+  /// on the same continuous wall (same row for north walls, same column for west walls).
+  /// If no interior wall is overlapped, returns 0 so items in open rooms or next to tables never receive a false bump.
+  static int calculateWallClearanceBump({
+    required double gx,
+    required double gy,
+    required double spriteLeft,
+    required double spriteRight,
+    required Iterable<IsometricInteriorWallComponent>? walls,
+  }) {
+    if (walls == null || walls.isEmpty) return 0;
 
     final homeGx = gx.floor();
     final homeGy = gy.floor();
     final homeSum = homeGx + homeGy;
 
-    int ceiling = desiredBump;
+    int neededBump = 0;
+    int ceiling = 4;
+
     for (final w in walls) {
-      final wallSum = w.gridX + w.gridY;
-      if (wallSum <= homeSum) continue; // Not a "nearer room" boundary — no conflict possible.
       final isNorth = w.orientation == 'north';
-      // A panel in the item's OWN row (north) / OWN column (west) is exactly what the bump is
-      // meant to clear, not something to be capped by.
-      if (isNorth ? w.gridY == homeGy : w.gridX == homeGx) continue;
-      final (panelLeft, panelRight) = IsometricCoords.getWallPanelScreenSpan(w.gridX, w.gridY, isNorth);
-      final overlaps = spriteLeft < panelRight - 0.01 && spriteRight > panelLeft + 0.01;
+      final isSameRowOrCol = isNorth
+          ? (w.gridY == homeGy && w.gridX > homeGx)
+          : (w.gridX == homeGx && w.gridY > homeGy);
+
+      final (panelLeft, panelRight) =
+          IsometricCoords.getWallPanelScreenSpan(w.gridX, w.gridY, isNorth);
+      final overlaps =
+          spriteLeft < panelRight - 0.01 && spriteRight > panelLeft + 0.01;
       if (!overlaps) continue;
-      final allowed = wallSum - homeSum - 1;
-      if (allowed < ceiling) ceiling = allowed;
+
+      if (isSameRowOrCol) {
+        final bumpForThisPanel = isNorth ? (w.gridX - homeGx) : (w.gridY - homeGy);
+        if (bumpForThisPanel > neededBump) {
+          neededBump = bumpForThisPanel;
+        }
+      } else {
+        final wallSum = w.gridX + w.gridY;
+        if (wallSum > homeSum) {
+          final allowed = wallSum - homeSum - 1;
+          if (allowed < ceiling) {
+            ceiling = allowed;
+          }
+        }
+      }
     }
-    return ceiling < 0 ? 0 : ceiling;
+
+    if (neededBump == 0) return 0;
+    final bump = neededBump > ceiling ? ceiling : neededBump;
+    return bump.clamp(0, 4);
   }
 
   @override
@@ -247,9 +268,22 @@ class IsometricFurnitureComponent extends PositionComponent {
     final baseU = (gridX * 2).round();
     final baseV = (gridY * 2).round();
 
-    // 0. 0.5x0.5 compact footprint (plant, compact appliance, etc.)
+    // 0. 0.5x0.5 compact footprint (plant, compact appliance, chair, etc.)
+    // When placed at fractional coordinates (e.g. chairs snapped to tables at gx = tx + 0.25 / 0.75),
+    // the item spans multiple sub-cells across its footprint. All covered sub-cells must be blocked
+    // so characters cannot walk through the chair or furniture space.
     if (footprint == '0.5x0.5') {
-      return [Point(baseU, baseV)];
+      final minU = (gridX * 2.0).floor();
+      final maxU = ((gridX + gridWidth) * 2.0 - 0.001).floor();
+      final minV = (gridY * 2.0).floor();
+      final maxV = ((gridY + gridHeight) * 2.0 - 0.001).floor();
+      final cells = <Point<int>>[];
+      for (int u = minU; u <= maxU; u++) {
+        for (int v = minV; v <= maxV; v++) {
+          cells.add(Point(u, v));
+        }
+      }
+      return cells;
     }
 
     // 1. Bookshelves and tall wardrobes / closets
@@ -296,13 +330,15 @@ class IsometricFurnitureComponent extends PositionComponent {
       return [];
     }
 
-    // 4. Standard floor items: occupies all (gridWidth * 2) x (gridHeight * 2) subcells
-    final subW = (gridWidth * 2).round();
-    final subH = (gridHeight * 2).round();
+    // 4. Standard floor items: occupies all spanned subcells
+    final minU = (gridX * 2.0).floor();
+    final maxU = ((gridX + gridWidth) * 2.0 - 0.001).floor();
+    final minV = (gridY * 2.0).floor();
+    final maxV = ((gridY + gridHeight) * 2.0 - 0.001).floor();
     final cells = <Point<int>>[];
-    for (int du = 0; du < subW; du++) {
-      for (int dv = 0; dv < subH; dv++) {
-        cells.add(Point(baseU + du, baseV + dv));
+    for (int u = minU; u <= maxU; u++) {
+      for (int v = minV; v <= maxV; v++) {
+        cells.add(Point(u, v));
       }
     }
     return cells;
@@ -882,17 +918,9 @@ class ChairBackrestOverlayComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     position = chair.position;
-    // Solución A: El respaldo se renderiza con prioridad sobre el tablero de la mesa
-    // y por encima del avatar cuando este se ubica al oeste o en la misma fila
-    final naturalPriority = IsometricCoords.getSubZOrder(
-      (chair.gridX * 2).round(),
-      (chair.gridY * 2).round(),
-      width: (chair.gridWidth * 2).round(),
-      depth: (chair.gridHeight * 2).round(),
-      layer: 100,
-      footprint: chair.footprint,
-    );
-    priority = max(chair.priority + 5000, naturalPriority + 10);
+    // Sits directly above seated avatar (chair.priority + 10) so the backrest covers the seated avatar's lower back in Rot 2 & 3.
+    // Must NOT use large bumps (+5000) because that causes the backrest to render over avatars walking in front.
+    priority = chair.priority + 20;
   }
 
   @override
@@ -901,7 +929,7 @@ class ChairBackrestOverlayComponent extends PositionComponent {
     // En Rot 0 y Rot 1, el respaldo ya se dibuja en el fondo dentro de chair.render()
     if (chair.rotation != 2 && chair.rotation != 3) return;
 
-    final backrest = chair.chairBackrestSprites[chair.rotation] ?? (chair.rotationSprites[chair.rotation] ?? chair.sprite);
+    final backrest = chair.chairBackrestSprites[chair.rotation];
     if (backrest == null) return;
 
     canvas.save();

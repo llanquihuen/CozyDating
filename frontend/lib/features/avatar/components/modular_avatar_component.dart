@@ -28,6 +28,7 @@ class ModularAvatarComponent extends PositionComponent {
   AvatarConfig config;
   AvatarDirection direction;
   bool isMoving;
+  bool isSitting;
 
   // Cached OCTOPLAYER 8-direction individual frames
   final Map<String, Image> _octoImageCache = {};
@@ -36,16 +37,34 @@ class ModularAvatarComponent extends PositionComponent {
   int _currentFrame = 0;
   static const double _frameDuration = 0.16;
 
+  int _sittingFrame = 0;
+  double _sitAnimTimer = 0.0;
+  static const double _sitFrameDuration = 0.12;
+
   ModularAvatarComponent({
     required this.config,
     this.direction = AvatarDirection.south,
     this.isMoving = false,
+    this.isSitting = false,
     Vector2? position,
     Vector2? size,
   }) : super(
           position: position ?? Vector2.zero(),
           size: size ?? Vector2(64.0, 128.0),
         );
+
+  void sitDown() {
+    isSitting = true;
+    isMoving = false;
+    _sittingFrame = 0;
+    _sitAnimTimer = 0.0;
+  }
+
+  void standUp() {
+    isSitting = false;
+    _sittingFrame = 0;
+    _sitAnimTimer = 0.0;
+  }
 
   @override
   Future<void> onLoad() async {
@@ -167,6 +186,15 @@ class ModularAvatarComponent extends PositionComponent {
         // Body (female / male)
         futures.add(_loadOctoFrame('body', 'body/$bodyType$k.png', k));
 
+        // Hands (female / male)
+        if (k == '$d') {
+          futures.add(_loadOctoFrame('hands', 'body/${bodyType}_hands$d.png', k));
+        } else {
+          final isWalk = k.contains('_walk_f');
+          final walkFrame = isWalk ? k.split('_walk_f').last : '1';
+          futures.add(_loadOctoFrame('hands', 'body/${bodyType}${d}_walk_hands_f$walkFrame.png', k));
+        }
+
         // Head (face shape with oval fallback)
         futures.add(_loadOctoFrame('head', 'head/$head$k.png', k).then((_) {
           if (!_octoImageCache.containsKey('head:$k')) {
@@ -236,6 +264,38 @@ class ModularAvatarComponent extends PositionComponent {
       }
     }
 
+    // Load Sitting frames for diagonal directions [2, 4, 6, 8]
+    for (final d in [2, 4, 6, 8]) {
+      final cardinal = _dirToCardinal(d); // SE, NE, NW, SW
+      for (int f = 1; f <= 3; f++) {
+        final sitKey = '${d}_sitting_f$f';
+
+        // Body sit frame
+        futures.add(_loadOctoFrame('body', 'body/${bodyType}${d}_sitting_f$f.png', sitKey));
+
+        // Hands sit frame
+        futures.add(_loadOctoFrame('hands', 'body/${bodyType}${d}_sitting_hands_f$f.png', sitKey));
+
+        // Tops sit frame: e.g. tops/jacket_SE_sit1.png
+        if (config.topStyle != 'none') {
+          futures.add(_loadOctoFrame('tops', 'tops/${top}_${cardinal}_sit$f.png', sitKey).then((_) {
+            if (!_octoImageCache.containsKey('tops:$sitKey')) {
+              return _loadOctoFrame('tops', 'tops/${top}${d}_sitting_f$f.png', sitKey);
+            }
+          }));
+        }
+
+        // Bottoms sit frame: e.g. bottoms/jeans_SE_sit1.png
+        if (config.bottomStyle != 'none') {
+          futures.add(_loadOctoFrame('bottoms', 'bottoms/${bottom}_${cardinal}_sit$f.png', sitKey).then((_) {
+            if (!_octoImageCache.containsKey('bottoms:$sitKey')) {
+              return _loadOctoFrame('bottoms', 'bottoms/${bottom}${d}_sitting_f$f.png', sitKey);
+            }
+          }));
+        }
+      }
+    }
+
     await Future.wait(futures);
   }
 
@@ -257,14 +317,27 @@ class ModularAvatarComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     if (isMoving) {
+      isSitting = false;
       _animTimer += dt;
       if (_animTimer >= _frameDuration) {
         _animTimer -= _frameDuration;
         _currentFrame = (_currentFrame + 1) % 4;
       }
+    } else if (isSitting) {
+      _currentFrame = 0;
+      _animTimer = 0.0;
+      if (_sittingFrame < 2) {
+        _sitAnimTimer += dt;
+        if (_sitAnimTimer >= _sitFrameDuration) {
+          _sitAnimTimer -= _sitFrameDuration;
+          _sittingFrame++;
+        }
+      }
     } else {
       _currentFrame = 0;
       _animTimer = 0.0;
+      _sittingFrame = 0;
+      _sitAnimTimer = 0.0;
     }
   }
 
@@ -273,11 +346,21 @@ class ModularAvatarComponent extends PositionComponent {
     super.render(canvas);
 
     final int dirNum = direction.dirNumber;
-    final String frameKey = isMoving ? '${dirNum}_walk_f${_currentFrame + 1}' : '$dirNum';
+    int sitDirNum = dirNum;
+    if (dirNum % 2 != 0) {
+      sitDirNum = (dirNum + 1) % 8;
+      if (sitDirNum == 0) sitDirNum = 8;
+    }
+
+    final String frameKey = isSitting
+        ? '${sitDirNum}_sitting_f${_sittingFrame + 1}'
+        : (isMoving ? '${dirNum}_walk_f${_currentFrame + 1}' : '$dirNum');
     final dstRect = Rect.fromLTWH(0, 0, size.x, size.y);
 
     void drawLayer(String layerKey, Color? tintColor) {
-      final img = _octoImageCache['$layerKey:$frameKey'] ?? _octoImageCache['$layerKey:$dirNum'];
+      final img = _octoImageCache['$layerKey:$frameKey'] ??
+          _octoImageCache['$layerKey:${isSitting ? sitDirNum : dirNum}'] ??
+          _octoImageCache['$layerKey:$dirNum'];
       if (img != null) {
         final srcRect = Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
         final paint = Paint();
@@ -301,34 +384,37 @@ class ModularAvatarComponent extends PositionComponent {
       drawLayer('bottoms', config.bottomColor);
     }
 
-    // Layer 4: Shoes / Boots
+    // Layer 4: Hands (Skin Color - Rendered over pants so arms/hands aren't covered by bottoms)
+    drawLayer('hands', config.skinColor);
+
+    // Layer 5: Shoes / Boots
     if (config.shoeStyle != 'none') {
       drawLayer('shoes', config.shoeColor);
     }
 
-    // Layer 5: Tops / Jacket / Shirt
+    // Layer 6: Tops / Jacket / Shirt
     if (config.topStyle != 'none') {
       drawLayer('tops', config.topColor);
     }
 
-    // Layer 6: Head / Face Shape (Skin Color, rendered over clothes)
+    // Layer 7: Head / Face Shape (Skin Color, rendered over clothes)
     drawLayer('head', config.skinColor);
 
-    // Layer 7: Nose (Skin Color outline)
+    // Layer 8: Nose (Skin Color outline)
     drawLayer('nose', config.skinColor);
 
-    // Layer 8: Mouth
+    // Layer 9: Mouth
     drawLayer('mouth', null);
 
-    // Layer 9: Eyes (Iris & Eyebrows are dual-tinted at pixel level)
+    // Layer 10: Eyes (Iris & Eyebrows are dual-tinted at pixel level)
     drawLayer('eyes', null);
 
-    // Layer 10: Hair Front (Front locks / bangs)
+    // Layer 11: Hair Front (Front locks / bangs)
     if (config.hairStyle != 'none') {
       drawLayer('hair_front', config.hairColor);
     }
 
-    // Layer 11: Accessories
+    // Layer 12: Accessories
     if (config.accessoryStyle != 'none') {
       drawLayer('accessories', config.accessoryColor);
     }

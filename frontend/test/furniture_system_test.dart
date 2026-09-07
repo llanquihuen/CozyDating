@@ -689,5 +689,177 @@ void main() {
       expect(game.findAdjacentTableForChair(IsometricFurnitureComponent(gridX: 3.5, gridY: 4.25), 3.5, 4.25), equals(table));
       expect(game.findAdjacentTableForChair(IsometricFurnitureComponent(gridX: 5.0, gridY: 4.25), 5.0, 4.25), equals(table));
     });
+
+    test('Chairs snapped to table at fractional offsets block all covered subcells', () {
+      final chairNE = IsometricFurnitureComponent(
+        id: 'chair_ne',
+        typeName: 'simple_chair_sm',
+        gridX: 4.25,
+        gridY: 3.5,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        footprint: '0.5x0.5',
+      );
+      // gx = 4.25 * 2 = 8.5 -> floor is 8, max is 9. gy = 3.5 * 2 = 7
+      expect(chairNE.occupiedSubCells, containsAll([
+        const Point(8, 7),
+        const Point(9, 7),
+      ]));
+
+      final chairNW = IsometricFurnitureComponent(
+        id: 'chair_nw',
+        typeName: 'simple_chair_sm',
+        gridX: 3.5,
+        gridY: 4.25,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        footprint: '0.5x0.5',
+      );
+      // gx = 3.5 * 2 = 7. gy = 4.25 * 2 = 8.5 -> floor is 8, max is 9
+      expect(chairNW.occupiedSubCells, containsAll([
+        const Point(7, 8),
+        const Point(7, 9),
+      ]));
+    });
+
+    test('Directional table-chair depth sorting does not occlude avatar 1 square before NW chair', () {
+      final table = IsometricFurnitureComponent(
+        id: 'table_center',
+        typeName: 'table',
+        gridX: 4.0,
+        gridY: 4.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+      );
+
+      final chairNW = IsometricFurnitureComponent(
+        id: 'chair_nw',
+        typeName: 'simple_chair_sm',
+        gridX: 3.5,
+        gridY: 4.25,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        rotation: 1, // Facing table (East)
+        footprint: '0.5x0.5',
+      );
+
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+      );
+      game.world.add(table);
+      game.world.add(chairNW);
+      game.recalculateSurfacePriorities();
+
+      // Chair is behind the table
+      expect(chairNW.priority, lessThan(table.priority));
+
+      // Avatar walking 1 tile before the chair on tile (3, 4) at subcell (6, 8)
+      final avatarOneSquareAwayZ = IsometricCoords.getSubZOrder(6, 8, layer: 100);
+      expect(avatarOneSquareAwayZ, lessThan(chairNW.priority));
+
+      // Avatar on the walkway tile in front of the chair (e.g. tile 3, 5 at subcell 6, 10)
+      final avatarInFrontZ = IsometricCoords.getSubZOrder(6, 10, layer: 100);
+      expect(avatarInFrontZ, greaterThan(chairNW.priority));
+    });
+
+    test('Avatar walking behind South chair renders behind the chair', () {
+      final table = IsometricFurnitureComponent(
+        id: 'table_center',
+        typeName: 'table',
+        gridX: 4.0,
+        gridY: 4.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+      );
+
+      final chairSouth = IsometricFurnitureComponent(
+        id: 'chair_south',
+        typeName: 'simple_chair_sm',
+        gridX: 4.25,
+        gridY: 5.0,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        rotation: 2, // Facing table (North)
+        footprint: '0.5x0.5',
+      );
+
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+      );
+      game.world.add(table);
+      game.world.add(chairSouth);
+      game.recalculateSurfacePriorities();
+
+      // South chair is in front of the table
+      expect(chairSouth.priority, greaterThan(table.priority));
+
+      // Avatar standing behind the South chair at (4, 4) (subcell 8, 8)
+      final avatarBehindSouthChairZ = IsometricCoords.getSubZOrder(8, 8, layer: 100);
+      expect(avatarBehindSouthChairZ, lessThan(chairSouth.priority));
+    });
+
+    test('Avatar standing South of table-attached chairs renders in front of chair and backrest overlay', () {
+      final game = CozyRoomGame(avatarConfig: const AvatarConfig());
+
+      for (final is2x2 in [false, true]) {
+        final table = IsometricFurnitureComponent(
+          id: is2x2 ? 'table_2x2' : 'table_1x1',
+          typeName: is2x2 ? 'dining_table_2x2' : 'table',
+          gridX: 4.0,
+          gridY: 4.0,
+          gridWidth: is2x2 ? 2.0 : 1.0,
+          gridHeight: is2x2 ? 2.0 : 1.0,
+          footprint: is2x2 ? '2x2' : '1x1',
+        );
+
+        final slots = game.getChairSnapSlotsForTable(table);
+        for (final slot in slots) {
+          final chair = IsometricFurnitureComponent(
+            id: 'chair_${slot.gx}_${slot.gy}',
+            typeName: 'simple_chair_sm',
+            gridX: slot.gx,
+            gridY: slot.gy,
+            gridWidth: 0.5,
+            gridHeight: 0.5,
+            footprint: '0.5x0.5',
+            rotation: slot.autoRotation,
+          );
+
+          final testGame = CozyRoomGame(avatarConfig: const AvatarConfig());
+          testGame.world.add(table);
+          testGame.world.add(chair);
+          testGame.recalculateSurfacePriorities();
+
+          final overlay = ChairBackrestOverlayComponent(chair);
+          overlay.update(0.016);
+
+          final occupied = chair.occupiedSubCells;
+          final minU = (slot.gx * 2.0).floor();
+          final minV = (slot.gy * 2.0).floor();
+
+          // Check subcells to the south / southeast / southwest of the chair
+          for (int du = 0; du <= 2; du++) {
+            for (int dv = 0; dv <= 2; dv++) {
+              if (du == 0 && dv == 0) continue;
+              final testU = minU + du;
+              final testV = minV + dv;
+              if (occupied.contains(Point(testU, testV))) continue;
+
+              final avZ = IsometricCoords.getSubZOrder(testU, testV, layer: 100);
+              expect(
+                avZ,
+                greaterThan(chair.priority),
+                reason: 'Avatar at ($testU, $testV) must render in front of chair at (${slot.gx}, ${slot.gy})',
+              );
+              expect(
+                avZ,
+                greaterThan(overlay.priority),
+                reason: 'Avatar at ($testU, $testV) must render in front of backrest overlay at (${slot.gx}, ${slot.gy})',
+              );
+            }
+          }
+        }
+      }
+    });
   });
 }

@@ -95,8 +95,21 @@ class CharacterPreviewGame extends FlameGame {
 
   void toggleWalk() {
     isWalking = !isWalking;
+    if (isWalking) {
+      avatar.standUp();
+    }
     avatar.isMoving = isWalking;
   }
+
+  void toggleSit() {
+    if (avatar.isSitting) {
+      avatar.standUp();
+    } else {
+      avatar.sitDown();
+    }
+  }
+
+  bool get isSitting => avatar.isSitting;
 
   Future<void> updateConfig(AvatarConfig newConfig) async {
     config = newConfig;

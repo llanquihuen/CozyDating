@@ -553,12 +553,12 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
           borderRadius: BorderRadius.circular(20),
           child: user != null
               ? Container(
-                  constraints: const BoxConstraints(maxWidth: 220),
+                  constraints: const BoxConstraints(maxWidth: 240),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0xFF282531).withOpacity(0.92),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.6), width: 1.2),
+                    border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.7), width: 1.2),
                     boxShadow: [
                       BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 2)),
                     ],
@@ -566,15 +566,32 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundColor: const Color(0xFFFFB300),
-                        backgroundImage: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
-                            ? NetworkImage(user.profilePhoto!)
-                            : null,
-                        child: (user.profilePhoto == null || user.profilePhoto!.isEmpty)
-                            ? const Icon(Icons.person, size: 16, color: Colors.black)
-                            : null,
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          CircleAvatar(
+                            radius: 15,
+                            backgroundColor: const Color(0xFFFFB300),
+                            backgroundImage: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
+                                ? NetworkImage(user.profilePhoto!)
+                                : null,
+                            child: (user.profilePhoto == null || user.profilePhoto!.isEmpty)
+                                ? const Icon(Icons.person, size: 18, color: Colors.black)
+                                : null,
+                          ),
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1E1B2E),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Text('🪞', style: TextStyle(fontSize: 9)),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 8),
                       Flexible(
@@ -591,23 +608,42 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                      fontSize: 12.5,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.edit, size: 11, color: Color(0xFFFFD54F)),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFB300).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '${user.ticketsBalance} 🎟️',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFD54F),
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
-                            Text(
-                              '${user.commune} • ${user.ticketsBalance} 🎟️',
-                              style: const TextStyle(
-                                color: Color(0xFFFFD54F),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(height: 1),
+                            const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '🪞 Editar Avatar & Gustos ✨',
+                                  style: TextStyle(
+                                    color: Color(0xFFFFE082),
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
