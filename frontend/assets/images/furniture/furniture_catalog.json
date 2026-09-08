@@ -4094,5 +4094,217 @@
         "asset_path": "furniture/established_furniture/wall_poster_cinema2_w.png"
       }
     }
+  },
+  "simple_sofa": {
+    "name": "Simple Sofa",
+    "zone": "living",
+    "footprint": "2x1",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      192,
+      144
+    ],
+    "sprite_offset": [
+      -32,
+      -36
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "simple_sofa_rot0",
+        "name": "Simple Sofa Rot 0",
+        "footprint": "2x1",
+        "rot": 0,
+        "canvas_size": [
+          192,
+          144
+        ],
+        "sprite_offset": [
+          -32,
+          -36
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/simple_sofa_rot0.png"
+      },
+      "1": {
+        "id": "simple_sofa_rot1",
+        "name": "Simple Sofa Rot 1",
+        "footprint": "1x2",
+        "rot": 1,
+        "canvas_size": [
+          192,
+          144
+        ],
+        "sprite_offset": [
+          -64,
+          -36
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/simple_sofa_rot1.png"
+      },
+      "2": {
+        "id": "simple_sofa_rot2",
+        "name": "Simple Sofa Rot 2",
+        "footprint": "2x1",
+        "rot": 2,
+        "canvas_size": [
+          192,
+          144
+        ],
+        "sprite_offset": [
+          -32,
+          -36
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/simple_sofa_rot2.png"
+      },
+      "3": {
+        "id": "simple_sofa_rot3",
+        "name": "Simple Sofa Rot 3",
+        "footprint": "1x2",
+        "rot": 3,
+        "canvas_size": [
+          192,
+          144
+        ],
+        "sprite_offset": [
+          -64,
+          -36
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/simple_sofa_rot3.png"
+      }
+    }
+  },
+  "gamer_chair_sm": {
+    "name": "Gamer Chair Sm (Alto)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": true,
+    "rotations": {
+      "0": {
+        "id": "gamer_chair_sm_rot0",
+        "name": "Gamer Chair Sm (Alto) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gamer_chair_sm_rot0.png"
+      },
+      "1": {
+        "id": "gamer_chair_sm_rot1",
+        "name": "Gamer Chair Sm (Alto) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gamer_chair_sm_rot1.png"
+      },
+      "2": {
+        "id": "gamer_chair_sm_rot2",
+        "name": "Gamer Chair Sm (Alto) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gamer_chair_sm_rot2.png"
+      },
+      "3": {
+        "id": "gamer_chair_sm_rot3",
+        "name": "Gamer Chair Sm (Alto) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gamer_chair_sm_rot3.png"
+      }
+    }
   }
 }

@@ -1,10 +1,13 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flame/components.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/models/furniture_item.dart';
 import 'package:frontend/core/models/room_config.dart';
 import 'package:frontend/core/services/furniture_catalog_service.dart';
+import 'package:frontend/features/lobby/components/isometric_avatar_component.dart';
 import 'package:frontend/features/lobby/components/isometric_furniture_component.dart';
 import 'package:frontend/features/lobby/games/cozy_room_game.dart';
 import 'package:frontend/features/lobby/utils/isometric_coords.dart';
@@ -618,6 +621,73 @@ void main() {
       expect(bookshelf.canSnapToTable, isFalse);
     });
 
+    test('canSnapToTable is true for gamer_chair_sm and gamer_chair', () {
+      final gamerChairSm = IsometricFurnitureComponent(
+        id: 'gamer_chair_sm',
+        typeName: 'gamer_chair_sm',
+        gridX: 0,
+        gridY: 0,
+      );
+      expect(gamerChairSm.canSnapToTable, isTrue);
+
+      final gamerChair = IsometricFurnitureComponent(
+        id: 'gamer_chair',
+        typeName: 'gamer_chair',
+        gridX: 0,
+        gridY: 0,
+      );
+      expect(gamerChair.canSnapToTable, isTrue);
+    });
+
+    test('gaming_pc_desk provides only 1 snap slot directly in front of the computer for each rotation', () {
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+        roomConfig: const RoomConfig(),
+      );
+
+      final desk = IsometricFurnitureComponent(
+        id: 'gaming_desk_1',
+        typeName: 'gaming_pc_desk',
+        gridX: 4.0,
+        gridY: 4.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+        rotation: 0,
+      );
+
+      // Rot 0: Screen faces SW -> slot at South (gy: 5.0), chair faces North (autoRotation 2)
+      desk.rotation = 0;
+      var slots = game.getChairSnapSlotsForTable(desk);
+      expect(slots.length, equals(1));
+      expect(slots.first.gx, equals(4.25));
+      expect(slots.first.gy, equals(5.0));
+      expect(slots.first.autoRotation, equals(2));
+
+      // Rot 1: Screen faces SE -> slot at East (gx: 5.0), chair faces West (autoRotation 3)
+      desk.rotation = 1;
+      slots = game.getChairSnapSlotsForTable(desk);
+      expect(slots.length, equals(1));
+      expect(slots.first.gx, equals(5.0));
+      expect(slots.first.gy, equals(4.25));
+      expect(slots.first.autoRotation, equals(3));
+
+      // Rot 2: Screen faces NE -> slot at North (gy: 3.5), chair faces South (autoRotation 0)
+      desk.rotation = 2;
+      slots = game.getChairSnapSlotsForTable(desk);
+      expect(slots.length, equals(1));
+      expect(slots.first.gx, equals(4.25));
+      expect(slots.first.gy, equals(3.5));
+      expect(slots.first.autoRotation, equals(0));
+
+      // Rot 3: Screen faces NW -> slot at West (gx: 3.5), chair faces East (autoRotation 1)
+      desk.rotation = 3;
+      slots = game.getChairSnapSlotsForTable(desk);
+      expect(slots.length, equals(1));
+      expect(slots.first.gx, equals(3.5));
+      expect(slots.first.gy, equals(4.25));
+      expect(slots.first.autoRotation, equals(1));
+    });
+
     test('Table seat slots are centered between tiles to prevent clipping', () {
       final game = CozyRoomGame(
         avatarConfig: const AvatarConfig(),
@@ -862,4 +932,259 @@ void main() {
       }
     });
   });
+
+  group('Multi-tile 1x2 and 2x1 Furniture Depth Sorting & Avatar Occlusion Tests', () {
+    test('2x1 furniture (e.g. cube_2x1) correctly sorts avatars behind and in front of all tiles', () {
+      final cube2x1 = IsometricFurnitureComponent(
+        id: 'cube_2x1',
+        typeName: 'cube_2x1',
+        gridX: 3.0,
+        gridY: 2.0,
+        gridWidth: 2.0,
+        gridHeight: 1.0,
+        footprint: '2x1',
+      );
+      // Furthest tile is (3+2-1, 2+1-1) = (4.0, 2.0) -> subcell (8, 4)
+      final expectedPriority = IsometricCoords.getSubZOrder(8, 4, layer: 1);
+      expect(cube2x1.priority, equals(expectedPriority));
+
+      // 1. Avatar standing BEHIND the North tile (3, 1) -> subcell (6, 2)
+      final avatarBehindNorth = IsometricCoords.getSubZOrder(6, 2, layer: 100);
+      expect(avatarBehindNorth, lessThan(cube2x1.priority),
+          reason: 'Avatar behind the north tile of 2x1 must render behind the furniture');
+
+      // 2. Avatar standing BEHIND the South-East tile (4, 1) -> subcell (8, 2)
+      // (This was previously broken because the 2x1 only sorted against tile (3,2))
+      final avatarBehindSE = IsometricCoords.getSubZOrder(8, 2, layer: 100);
+      expect(avatarBehindSE, lessThan(cube2x1.priority),
+          reason: 'Avatar behind the south-east tile of 2x1 must render behind the furniture');
+
+      // 3. Avatar standing IN FRONT OF the South-East tile (4, 3) -> subcell (8, 6)
+      final avatarInFrontSE = IsometricCoords.getSubZOrder(8, 6, layer: 100);
+      expect(avatarInFrontSE, greaterThan(cube2x1.priority),
+          reason: 'Avatar in front of south-east tile of 2x1 must render in front of the furniture');
+
+      // 4. Avatar standing IN FRONT OF the North tile (3, 3) -> subcell (6, 6)
+      final avatarInFrontNorth = IsometricCoords.getSubZOrder(6, 6, layer: 100);
+      expect(avatarInFrontNorth, greaterThan(cube2x1.priority),
+          reason: 'Avatar in front of north tile of 2x1 must render in front of the furniture');
+    });
+
+    test('1x2 furniture (e.g. simple_sofa) correctly sorts avatars and adjacent furniture along South/West end', () {
+      final sofa1x2 = IsometricFurnitureComponent(
+        id: 'simple_sofa',
+        typeName: 'simple_sofa',
+        gridX: 3.0,
+        gridY: 2.0,
+        gridWidth: 1.0,
+        gridHeight: 2.0,
+        footprint: '1x2',
+      );
+      // Furthest tile is (3+1-1, 2+2-1) = (3.0, 3.0) -> subcell (6, 6)
+      final expectedPriority = IsometricCoords.getSubZOrder(6, 6, layer: 1);
+      expect(sofa1x2.priority, equals(expectedPriority));
+
+      // 1. Avatar standing BEHIND North-East tile (3, 1) -> subcell (6, 2)
+      final avatarBehindNE = IsometricCoords.getSubZOrder(6, 2, layer: 100);
+      expect(avatarBehindNE, lessThan(sofa1x2.priority),
+          reason: 'Avatar behind north-east tile of 1x2 must render behind the sofa');
+
+      // 2. Avatar standing BEHIND South-West tile (2, 3) -> subcell (4, 6)
+      // (This was previously broken because the 1x2 only sorted against tile (3,2))
+      final avatarBehindSW = IsometricCoords.getSubZOrder(4, 6, layer: 100);
+      expect(avatarBehindSW, lessThan(sofa1x2.priority),
+          reason: 'Avatar behind south-west tile of 1x2 must render behind the sofa');
+
+      // 3. Avatar standing IN FRONT OF South-West tile (3, 4) -> subcell (6, 8)
+      final avatarInFrontSW = IsometricCoords.getSubZOrder(6, 8, layer: 100);
+      expect(avatarInFrontSW, greaterThan(sofa1x2.priority),
+          reason: 'Avatar in front of south-west tile of 1x2 must render in front of the sofa');
+
+      // 4. Neighboring furniture placed at (2, 3) (North-West of the sofa southern armrest)
+      final neighbor = IsometricFurnitureComponent(
+        id: 'side_table',
+        typeName: 'side_table',
+        gridX: 2.0,
+        gridY: 3.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+      );
+      expect(neighbor.priority, lessThan(sofa1x2.priority),
+          reason: 'Neighbor at (2, 3) must render behind the sofa southern armrest at (3, 3)');
+    });
+  });
+
+  group('Animated Furniture & Gaming PC Desk Activation Tests', () {
+    test('IsometricFurnitureComponent advances animation frames only when activated', () {
+      final comp = IsometricFurnitureComponent(
+        id: 'gaming_pc_desk',
+        typeName: 'gaming_pc_desk',
+        gridX: 4.0,
+        gridY: 4.0,
+        rotation: 0,
+        animatedRotationSprites: {
+          0: [
+            // Frame 0 placeholder
+            Sprite(ImageTestUtils.createDummyImage()),
+            // Frame 1 placeholder
+            Sprite(ImageTestUtils.createDummyImage()),
+          ],
+        },
+        frameDuration: 0.1,
+      );
+
+      expect(comp.isActivated, isFalse);
+      expect(comp.currentAnimFrame, equals(0));
+
+      // Tick while inactive -> remains at frame 0
+      comp.update(0.2);
+      expect(comp.currentAnimFrame, equals(0));
+
+      // Activate -> animates
+      comp.setActivated(true);
+      expect(comp.isActivated, isTrue);
+
+      comp.update(0.05);
+      expect(comp.currentAnimFrame, equals(0));
+
+      comp.update(0.06); // total 0.11 > 0.10s
+      expect(comp.currentAnimFrame, equals(1));
+
+      comp.update(0.10); // loops back to frame 0
+      expect(comp.currentAnimFrame, equals(0));
+
+      // Deactivate -> resets
+      comp.setActivated(false);
+      expect(comp.isActivated, isFalse);
+      expect(comp.currentAnimFrame, equals(0));
+    });
+
+    test('Sitting on the chair in front of gaming_pc_desk activates desk and standing up deactivates it', () {
+      final desk = IsometricFurnitureComponent(
+        id: 'gaming_pc_desk_1',
+        typeName: 'gaming_pc_desk',
+        gridX: 4.0,
+        gridY: 4.0,
+        rotation: 0, // Chair slot is at South (gx: 4.25, gy: 5.0, autoRotation: 2)
+        animatedRotationSprites: {
+          0: [
+            Sprite(ImageTestUtils.createDummyImage()),
+            Sprite(ImageTestUtils.createDummyImage()),
+          ],
+        },
+      );
+
+      final chairInFront = IsometricFurnitureComponent(
+        id: 'gamer_chair_1',
+        typeName: 'gamer_chair',
+        gridX: 4.25,
+        gridY: 5.0,
+        rotation: 2,
+      );
+
+      final otherChair = IsometricFurnitureComponent(
+        id: 'gamer_chair_2',
+        typeName: 'gamer_chair',
+        gridX: 1.0,
+        gridY: 1.0,
+        rotation: 0,
+      );
+
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+        roomConfig: const RoomConfig(),
+      );
+
+      game.world.add(desk);
+      game.world.add(chairInFront);
+      game.world.add(otherChair);
+
+      // Create avatar connected to game's activation callback
+      final avatar = IsometricAvatarComponent(
+        gridX: 8.0,
+        gridY: 8.0,
+        config: const AvatarConfig(),
+        onSitStateChanged: game.updateFurnitureActivationStatesForTesting,
+      );
+      game.world.add(avatar);
+      game.avatar = avatar;
+
+      expect(desk.isActivated, isFalse);
+
+      // Sit on unrelated chair -> desk remains inactive
+      avatar.sitOnChair(otherChair);
+      expect(desk.isActivated, isFalse);
+
+      // Sit on chair in front of desk -> desk activates!
+      avatar.sitOnChair(chairInFront);
+      expect(desk.isActivated, isTrue);
+
+      // Stand up -> desk deactivates!
+      avatar.standUp();
+      expect(desk.isActivated, isFalse);
+    });
+
+    test('Sitting partnerAvatar in front of gaming_pc_desk activates desk and standing up deactivates it', () {
+      final desk = IsometricFurnitureComponent(
+        id: 'gaming_pc_desk_1',
+        typeName: 'gaming_pc_desk',
+        gridX: 4.0,
+        gridY: 4.0,
+        rotation: 0, // Chair slot is at South (gx: 4.25, gy: 5.0, autoRotation: 2)
+        animatedRotationSprites: {
+          0: [
+            Sprite(ImageTestUtils.createDummyImage()),
+            Sprite(ImageTestUtils.createDummyImage()),
+          ],
+        },
+      );
+
+      final chairInFront = IsometricFurnitureComponent(
+        id: 'gamer_chair_1',
+        typeName: 'gamer_chair',
+        gridX: 4.25,
+        gridY: 5.0,
+        rotation: 2,
+      );
+
+      final game = CozyRoomGame(
+        avatarConfig: const AvatarConfig(),
+        roomConfig: const RoomConfig(),
+      );
+
+      game.world.add(desk);
+      game.world.add(chairInFront);
+
+      // Create partnerAvatar connected to game's activation callback
+      final partner = IsometricAvatarComponent(
+        gridX: 8.0,
+        gridY: 8.0,
+        config: const AvatarConfig(),
+        onSitStateChanged: game.updateFurnitureActivationStatesForTesting,
+      );
+      game.world.add(partner);
+      game.partnerAvatar = partner;
+
+      expect(desk.isActivated, isFalse);
+
+      // Sit partner on chair in front of desk -> desk activates!
+      partner.sitOnChair(chairInFront);
+      expect(desk.isActivated, isTrue);
+
+      // Stand up -> desk deactivates!
+      partner.standUp();
+      expect(desk.isActivated, isFalse);
+    });
+  });
 }
+
+class ImageTestUtils {
+  static dynamic createDummyImage() {
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.drawRect(const Rect.fromLTWH(0, 0, 1, 1), Paint());
+    final picture = recorder.endRecording();
+    return picture.toImageSync(1, 1);
+  }
+}
+

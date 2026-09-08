@@ -1,4 +1,5 @@
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\controller\MailboxController.java
+C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\model\ChatMessage.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\util\LiveKitTokenGenerator.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\service\GameSessionService.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\model\MailboxMatch.java
@@ -11,4 +12,5 @@ C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\mo
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\ServerApplication.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\controller\RoomController.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\service\DatabaseService.java
+C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\controller\ChatController.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\service\MatchmakingService.java

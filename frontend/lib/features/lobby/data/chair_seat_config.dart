@@ -42,14 +42,53 @@ class ChairSeatConfig {
       2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
       3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0))],
     },
+    'gamer_chair_sm': {
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0))],
+    },
+    'gamer_chair': {
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0))],
+    },
 
     // 2. Sillón acolchado (1x1 = 2x2 subcuadros) - 1 asiento más amplio y elevado
     //(x 8.0 pixeles hacia la derecha,y 8.0 pixeles hacia abajo)
     'plush_armchair': {
-      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 1), visualOffset: Vector2(8.0, 8.0))],
-      1: [SeatSpot(slotIndex: 0, subCell: const Point(1, 0), visualOffset: Vector2(-8.0, 8.0))],
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 1), visualOffset: Vector2(11.0, 6.0))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(1, 0), visualOffset: Vector2(-11.0, 6.0))],
       2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 14.0))],
       3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(0.0, 14.0))],
+    },
+    // 3. Sofá simple (2x1 y 1x2) - 3 plazas (Izquierda, Centro, Derecha)
+    'simple_sofa': {
+      // Rot 0: Mirando a SW (frente a la cámara, 2x1 baldosas)
+      0: [
+        SeatSpot(slotIndex: 0, subCell: const Point(0, 1), visualOffset: Vector2(4.0, 4.0)),   // Plaza izquierda
+        SeatSpot(slotIndex: 1, subCell: const Point(1, 1), visualOffset: Vector2(10.0, 5.0)), // Plaza central
+        SeatSpot(slotIndex: 2, subCell: const Point(2, 1), visualOffset: Vector2(14.0, 5.0)),   // Plaza derecha
+      ],
+      // Rot 1: Mirando a SE (frente a la cámara, 1x2 baldosas)
+      1: [
+        SeatSpot(slotIndex: 0, subCell: const Point(1, 0), visualOffset: Vector2(-4.0, 4.0)),   // Plaza 1
+        SeatSpot(slotIndex: 1, subCell: const Point(1, 1), visualOffset: Vector2(-10.0, 5.0)),// Plaza 2 (Centro)
+        SeatSpot(slotIndex: 2, subCell: const Point(1, 2), visualOffset: Vector2(-14.0, 5.0)),   // Plaza 3
+      ],
+      // Rot 2: Mirando a NE (hacia el fondo, 2x1 baldosas)
+      2: [
+        SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(8.0, 6.0)),
+        SeatSpot(slotIndex: 1, subCell: const Point(1, 0), visualOffset: Vector2(11.0, 6.0)),
+        SeatSpot(slotIndex: 2, subCell: const Point(2, 0), visualOffset: Vector2(14.0, 6.0)),
+      ],
+      // Rot 3: Mirando a NW (hacia el fondo, 1x2 baldosas)
+      3: [
+        SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-8.0, 6.0)),
+        SeatSpot(slotIndex: 1, subCell: const Point(0, 1), visualOffset: Vector2(-11.0, 6.0)),
+        SeatSpot(slotIndex: 2, subCell: const Point(0, 2), visualOffset: Vector2(-14.0, 6.0)),
+      ],
     },
   };
 

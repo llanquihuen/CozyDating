@@ -422,4 +422,38 @@ class AvatarStorageService {
   static void saveUserPhoto(String userId, String photo) {
     _userPhotos[userId] = photo;
   }
+
+  // --- Coins Currency System ---
+  static final Map<String, int> _userCoins = {
+    'alice': 150,
+    'bob': 150,
+    'charlie': 150,
+    'david': 150,
+    'userA': 150,
+    'userB': 150,
+    'userC': 150,
+    'userD': 150,
+  };
+
+  static int getUserCoins(String userId) {
+    if (userId.isEmpty) return 150;
+    return _userCoins[userId] ?? 150;
+  }
+
+  static void addCoins(String userId, int amount) {
+    final current = getUserCoins(userId);
+    _userCoins[userId] = current + amount;
+  }
+
+  // --- Presence & Privacy (Tinder-style Slow Dating) ---
+  static final Map<String, String> _userPresenceModes = {};
+
+  static String getPresenceMode(String userId) {
+    return _userPresenceModes[userId] ?? 'ONLINE';
+  }
+
+  static void setPresenceMode(String userId, String mode) {
+    _userPresenceModes[userId] = mode.toUpperCase();
+  }
 }
+

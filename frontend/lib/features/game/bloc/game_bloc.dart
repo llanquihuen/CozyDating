@@ -9,6 +9,7 @@ import '../../../core/models/room_config.dart';
 import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
+import '../../chat/services/chat_service.dart';
 
 // =========================================================================
 // Game Events
@@ -189,6 +190,78 @@ class SendCampfireNextRoundEvent extends GameEvent {
   List<Object?> get props => [round];
 }
 
+class SendCampfireCompletedEvent extends GameEvent {
+  const SendCampfireCompletedEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class SendHomeAvatarMoveEvent extends GameEvent {
+  final double gridX;
+  final double gridY;
+
+  const SendHomeAvatarMoveEvent({required this.gridX, required this.gridY});
+
+  @override
+  List<Object?> get props => [gridX, gridY];
+}
+
+class SendHomeAvatarStandEvent extends GameEvent {
+  final double gridX;
+  final double gridY;
+
+  const SendHomeAvatarStandEvent({required this.gridX, required this.gridY});
+
+  @override
+  List<Object?> get props => [gridX, gridY];
+}
+
+class SendHomeAvatarSitEvent extends GameEvent {
+  final String chairId;
+  final int slotIndex;
+
+  const SendHomeAvatarSitEvent({required this.chairId, required this.slotIndex});
+
+  @override
+  List<Object?> get props => [chairId, slotIndex];
+}
+
+class SendHomeActionEvent extends GameEvent {
+  final String actionType;
+  final String message;
+
+  const SendHomeActionEvent({required this.actionType, required this.message});
+
+  @override
+  List<Object?> get props => [actionType, message];
+}
+
+class SendHomeEmoteEvent extends GameEvent {
+  final String emote;
+
+  const SendHomeEmoteEvent({required this.emote});
+
+  @override
+  List<Object?> get props => [emote];
+}
+
+class SendHomeChatEvent extends GameEvent {
+  final String text;
+
+  const SendHomeChatEvent({required this.text});
+
+  @override
+  List<Object?> get props => [text];
+}
+
+class SendHomeCompletedEvent extends GameEvent {
+  const SendHomeCompletedEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+
 class ResetGameEvent extends GameEvent {
   const ResetGameEvent();
 }
@@ -260,6 +333,19 @@ class ActiveGameState extends GameState {
   final int? partnerCampfireRound;
   final int? partnerCampfireAnswerTrigger;
   final int? campfireNextRoundTrigger;
+  final bool isHomeVisitActive;
+  final String? hostUserId;
+  final Vector2? partnerHomeMovePos;
+  final int? partnerHomeMoveTrigger;
+  final String? partnerHomeChairId;
+  final int? partnerHomeSlotIndex;
+  final int? partnerHomeSitTrigger;
+  final int? partnerHomeStandTrigger;
+  final String? homeActionType;
+  final String? homeActionMessage;
+  final int? homeActionTrigger;
+  final String? homeChatText;
+  final int? homeChatTrigger;
 
   const ActiveGameState({
     required this.session,
@@ -286,6 +372,19 @@ class ActiveGameState extends GameState {
     this.partnerCampfireRound,
     this.partnerCampfireAnswerTrigger,
     this.campfireNextRoundTrigger,
+    this.isHomeVisitActive = false,
+    this.hostUserId,
+    this.partnerHomeMovePos,
+    this.partnerHomeMoveTrigger,
+    this.partnerHomeChairId,
+    this.partnerHomeSlotIndex,
+    this.partnerHomeSitTrigger,
+    this.partnerHomeStandTrigger,
+    this.homeActionType,
+    this.homeActionMessage,
+    this.homeActionTrigger,
+    this.homeChatText,
+    this.homeChatTrigger,
   });
 
   ActiveGameState copyWith({
@@ -313,8 +412,22 @@ class ActiveGameState extends GameState {
     int? partnerCampfireRound,
     int? partnerCampfireAnswerTrigger,
     int? campfireNextRoundTrigger,
+    bool? isHomeVisitActive,
+    String? hostUserId,
+    Vector2? partnerHomeMovePos,
+    int? partnerHomeMoveTrigger,
+    String? partnerHomeChairId,
+    int? partnerHomeSlotIndex,
+    int? partnerHomeSitTrigger,
+    int? partnerHomeStandTrigger,
+    String? homeActionType,
+    String? homeActionMessage,
+    int? homeActionTrigger,
+    String? homeChatText,
+    int? homeChatTrigger,
     bool clearTrappedPitfall = false,
     bool clearPendingRoleSwap = false,
+    bool clearPartnerHomeChair = false,
   }) {
     return ActiveGameState(
       session: session ?? this.session,
@@ -341,6 +454,19 @@ class ActiveGameState extends GameState {
       partnerCampfireRound: partnerCampfireRound ?? this.partnerCampfireRound,
       partnerCampfireAnswerTrigger: partnerCampfireAnswerTrigger ?? this.partnerCampfireAnswerTrigger,
       campfireNextRoundTrigger: campfireNextRoundTrigger ?? this.campfireNextRoundTrigger,
+      isHomeVisitActive: isHomeVisitActive ?? this.isHomeVisitActive,
+      hostUserId: hostUserId ?? this.hostUserId,
+      partnerHomeMovePos: partnerHomeMovePos ?? this.partnerHomeMovePos,
+      partnerHomeMoveTrigger: partnerHomeMoveTrigger ?? this.partnerHomeMoveTrigger,
+      partnerHomeChairId: clearPartnerHomeChair ? null : (partnerHomeChairId ?? this.partnerHomeChairId),
+      partnerHomeSlotIndex: clearPartnerHomeChair ? null : (partnerHomeSlotIndex ?? this.partnerHomeSlotIndex),
+      partnerHomeSitTrigger: partnerHomeSitTrigger ?? this.partnerHomeSitTrigger,
+      partnerHomeStandTrigger: partnerHomeStandTrigger ?? this.partnerHomeStandTrigger,
+      homeActionType: homeActionType ?? this.homeActionType,
+      homeActionMessage: homeActionMessage ?? this.homeActionMessage,
+      homeActionTrigger: homeActionTrigger ?? this.homeActionTrigger,
+      homeChatText: homeChatText ?? this.homeChatText,
+      homeChatTrigger: homeChatTrigger ?? this.homeChatTrigger,
     );
   }
 
@@ -370,6 +496,19 @@ class ActiveGameState extends GameState {
     partnerCampfireRound,
     partnerCampfireAnswerTrigger,
     campfireNextRoundTrigger,
+    isHomeVisitActive,
+    hostUserId,
+    partnerHomeMovePos,
+    partnerHomeMoveTrigger,
+    partnerHomeChairId,
+    partnerHomeSlotIndex,
+    partnerHomeSitTrigger,
+    partnerHomeStandTrigger,
+    homeActionType,
+    homeActionMessage,
+    homeActionTrigger,
+    homeChatText,
+    homeChatTrigger,
   ];
 }
 
@@ -431,6 +570,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<ApplyRoleSwapEvent>(_onApplyRoleSwap);
     on<SendCampfireAnswerEvent>(_onSendCampfireAnswer);
     on<SendCampfireNextRoundEvent>(_onSendCampfireNextRound);
+    on<SendCampfireCompletedEvent>(_onSendCampfireCompleted);
+    on<SendHomeAvatarMoveEvent>(_onSendHomeAvatarMove);
+    on<SendHomeAvatarStandEvent>(_onSendHomeAvatarStand);
+    on<SendHomeAvatarSitEvent>(_onSendHomeAvatarSit);
+    on<SendHomeActionEvent>(_onSendHomeAction);
+    on<SendHomeEmoteEvent>(_onSendHomeEmote);
+    on<SendHomeChatEvent>(_onSendHomeChat);
+    on<SendHomeCompletedEvent>(_onSendHomeCompleted);
     on<ResetGameEvent>(_onResetGame);
     on<_OnSocketMessageEvent>(_onSocketMessage);
     on<_OnSocketStateChangedEvent>(_onSocketStateChanged);
@@ -448,7 +595,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     print('[BLOC EVENT] JoinQueueEvent triggered [Commune: ${event.commune}, Mode: ${event.mode}]');
     emit(const GameInitialState());
     try {
-      await webSocketClient.connect(event.socketUrl, event.token);
+      if (!webSocketClient.isConnected) {
+        await webSocketClient.connect(event.socketUrl, event.token);
+      }
       
       final myId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
       final myUsername = AuthService.currentUser?.username ?? myId;
@@ -628,6 +777,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           partnerAvatarConfig: active.partnerAvatarConfig,
           partnerRoomConfig: active.partnerRoomConfig,
           partnerUsername: active.partnerUsername,
+          partnerTastes: active.partnerTastes,
         ));
       }
     }
@@ -650,14 +800,79 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     });
   }
 
+  void _onSendCampfireCompleted(SendCampfireCompletedEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending CAMPFIRE_COMPLETED to server');
+    webSocketClient.sendMessage({
+      'type': 'CAMPFIRE_COMPLETED',
+    });
+  }
+
+  void _onSendHomeAvatarMove(SendHomeAvatarMoveEvent event, Emitter<GameState> emit) {
+    webSocketClient.sendMessage({
+      'type': 'HOME_AVATAR_MOVE',
+      'gridX': event.gridX,
+      'gridY': event.gridY,
+    });
+  }
+
+  void _onSendHomeAvatarStand(SendHomeAvatarStandEvent event, Emitter<GameState> emit) {
+    webSocketClient.sendMessage({
+      'type': 'HOME_AVATAR_STAND',
+      'gridX': event.gridX,
+      'gridY': event.gridY,
+    });
+  }
+
+  void _onSendHomeAvatarSit(SendHomeAvatarSitEvent event, Emitter<GameState> emit) {
+    webSocketClient.sendMessage({
+      'type': 'HOME_AVATAR_SIT',
+      'chairId': event.chairId,
+      'slotIndex': event.slotIndex,
+    });
+  }
+
+  void _onSendHomeAction(SendHomeActionEvent event, Emitter<GameState> emit) {
+    webSocketClient.sendMessage({
+      'type': 'HOME_ACTION',
+      'actionType': event.actionType,
+      'message': event.message,
+    });
+  }
+
+  void _onSendHomeEmote(SendHomeEmoteEvent event, Emitter<GameState> emit) {
+    webSocketClient.sendMessage({
+      'type': 'HOME_EMOTE',
+      'emote': event.emote,
+    });
+  }
+
+  void _onSendHomeChat(SendHomeChatEvent event, Emitter<GameState> emit) {
+    webSocketClient.sendMessage({
+      'type': 'HOME_CHAT',
+      'text': event.text,
+    });
+  }
+
+  void _onSendHomeCompleted(SendHomeCompletedEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending HOME_COMPLETED (DATE_COMPLETED) to server');
+    webSocketClient.sendMessage({
+      'type': 'DATE_COMPLETED',
+    });
+  }
+
   Future<void> _onSendEmergencyDisconnect(SendEmergencyDisconnectEvent event, Emitter<GameState> emit) async {
     print('[BLOC EVENT] SendEmergencyDisconnectEvent triggered (ShouldBlock: ${event.shouldBlock})');
+    if (state is MatchmakingQueueState) {
+      print('[BLOC OUT] Leaving matchmaking queue via emergency disconnect...');
+      webSocketClient.sendMessage({'type': 'LEAVE_QUEUE'});
+    }
     webSocketClient.setSessionActive(false);
     webSocketClient.sendMessage({
       'type': 'EMERGENCY_DISCONNECT',
       'block': event.shouldBlock,
     });
-    await webSocketClient.disconnect();
+    // Maintain lobby connection and presence for chat and invites
+    ChatService.ensureConnected();
 
     final reasonText = event.shouldBlock
         ? 'You exited the game and permanently blocked your partner (emergency disconnect).'
@@ -667,9 +882,15 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   }
 
   void _onResetGame(ResetGameEvent event, Emitter<GameState> emit) {
-    print('[BLOC EVENT] ResetGameEvent triggered. Disconnecting socket and resetting BLoC state to GameInitialState...');
-    webSocketClient.disconnect();
+    print('[BLOC EVENT] ResetGameEvent triggered. Resetting BLoC state to GameInitialState and maintaining socket connection...');
+    // If we were waiting in matchmaking queue, notify backend to leave the queue
+    if (state is MatchmakingQueueState) {
+      print('[BLOC OUT] Leaving matchmaking queue...');
+      webSocketClient.sendMessage({'type': 'LEAVE_QUEUE'});
+    }
+    webSocketClient.setSessionActive(false);
     emit(const GameInitialState());
+    ChatService.ensureConnected();
   }
 
   void _onSocketMessage(_OnSocketMessageEvent event, Emitter<GameState> emit) {
@@ -724,12 +945,18 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         'tastes': myTastes,
       });
 
+      final isHomeVisit = payload.isHomeVisitActive || payload.mode == 'HOME' || msg['isHomeVisitActive'] == true;
+      final hostUserId = (msg['hostUserId'] as String?) ?? payload.hostUserId;
+
       emit(ActiveGameState(
         session: payload,
         partnerAvatarConfig: resolvedAvatar,
         partnerRoomConfig: resolvedRoom,
         partnerUsername: payload.partnerUsername ?? payload.partnerId,
         partnerTastes: resolvedTastes,
+        isCampfireActive: payload.mode == 'CAMPFIRE' || msg['isCampfireActive'] == true,
+        isHomeVisitActive: isHomeVisit,
+        hostUserId: hostUserId,
       ));
       return;
     }
@@ -737,6 +964,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (type == 'PROFILE_SYNC') {
       final senderUserId = msg['userId'] as String? ?? '';
       final senderUsername = msg['username'] as String?;
+      final myId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+
+      // Ignore echoes of our own profile sync so we never overwrite partner info with our own
+      if (senderUserId.isNotEmpty && senderUserId == myId) {
+        print('[BLOC IN] Ignoring self PROFILE_SYNC packet from $senderUserId');
+        return;
+      }
+
       final avatarData = msg['avatarConfig'] as Map<String, dynamic>?;
       final roomData = msg['roomConfig'] as Map<String, dynamic>?;
       final rawTastes = msg['tastes'];
@@ -905,7 +1140,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           mode: active.session.mode,
           livekitToken: active.session.livekitToken,
           partnerId: active.session.partnerId,
-          act: newAct,
+          partnerUsername: active.partnerUsername ?? active.session.partnerUsername,
+          partnerAvatarConfig: active.partnerAvatarConfig ?? active.session.partnerAvatarConfig,
+          partnerTastes: (active.partnerTastes != null && active.partnerTastes!.isNotEmpty)
+              ? active.partnerTastes!
+              : active.session.partnerTastes,
           seed: newSeed,
         );
         print('[BLOC IN] Storing pendingRoleSwapSession for Act $newAct: $currentRole -> $newRole (Seed: $newSeed, Partner: ${active.session.partnerId})');
@@ -992,6 +1231,86 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       return;
     }
 
+    if (type == 'HOME_AVATAR_MOVE') {
+      final gx = (msg['gridX'] as num?)?.toDouble();
+      final gy = (msg['gridY'] as num?)?.toDouble();
+      if (gx != null && gy != null && state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          partnerHomeMovePos: Vector2(gx, gy),
+          partnerHomeMoveTrigger: DateTime.now().millisecondsSinceEpoch,
+          clearPartnerHomeChair: true,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'HOME_AVATAR_STAND') {
+      final gx = (msg['gridX'] as num?)?.toDouble();
+      final gy = (msg['gridY'] as num?)?.toDouble();
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          clearPartnerHomeChair: true,
+          partnerHomeMovePos: (gx != null && gy != null) ? Vector2(gx, gy) : null,
+          partnerHomeStandTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'HOME_AVATAR_SIT') {
+      final chairId = msg['chairId'] as String?;
+      final slotIndex = (msg['slotIndex'] as num?)?.toInt() ?? 0;
+      if (chairId != null && state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          partnerHomeChairId: chairId,
+          partnerHomeSlotIndex: slotIndex,
+          partnerHomeSitTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'HOME_ACTION') {
+      final actionType = msg['actionType'] as String? ?? '';
+      final message = msg['message'] as String? ?? '';
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          homeActionType: actionType,
+          homeActionMessage: message,
+          homeActionTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'HOME_EMOTE') {
+      final emote = msg['emote'] as String?;
+      if (emote != null && state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          latestEmote: emote,
+          emoteTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'HOME_CHAT') {
+      final text = msg['text'] as String?;
+      if (text != null && state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          homeChatText: text,
+          homeChatTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
     if (type == 'EMERGENCY_DISCONNECT') {
       print('[BLOC IN] Received EMERGENCY_DISCONNECT from server');
       webSocketClient.setSessionActive(false);
@@ -1003,6 +1322,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           : 'Partner exited the game session (Friendly Exit).';
 
       emit(TerminatedGameState(reason: reasonText));
+      ChatService.ensureConnected();
       return;
     }
 
@@ -1010,6 +1330,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       print('[BLOC IN] Received GAME_OVER from server');
       webSocketClient.setSessionActive(false);
       emit(TerminatedGameState(reason: msg['reason'] as String? ?? 'Session ended.'));
+      ChatService.ensureConnected();
       return;
     }
   }

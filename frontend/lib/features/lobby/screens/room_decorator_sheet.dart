@@ -92,7 +92,7 @@ class _RoomDecoratorSheetState extends State<RoomDecoratorSheet> {
     final sheetHeight = (screenHeight * _heightFraction).clamp(220.0, screenHeight * _maxHeightFraction);
 
     final allItems = FurnitureCatalogService.items.values
-        .where((item) => !item.id.contains('_base') && !item.id.contains('_back'))
+        .where((item) => !item.id.contains('_base') && !item.id.contains('_back') && !item.id.contains('_front'))
         .toList();
     final filteredItems = allItems.where((item) {
       if (_selectedCategory == 'living') {

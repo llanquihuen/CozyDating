@@ -23,6 +23,27 @@ public class GameRoom {
     private boolean explorerReady = false;
     private boolean guideReady = false;
     
+    private final String userAId;
+    private final String userBId;
+    private String userAName;
+    private String userBName;
+    private Object userAAvatar;
+    private Object userBAvatar;
+    private Object userARoom;
+    private Object userBRoom;
+    private Object userATastes;
+    private Object userBTastes;
+
+    private String explorerName;
+    private Object explorerAvatar;
+    private Object explorerRoom;
+    private Object explorerTastes;
+    private String guideName;
+    private Object guideAvatar;
+    private Object guideRoom;
+    private Object guideTastes;
+    private boolean mailboxRecorded = false;
+    
     private ScheduledFuture<?> reconnectGraceTask;
     private String disconnectedUserId;
 
@@ -35,12 +56,59 @@ public class GameRoom {
         this.explorerSession = explorerSession;
         this.guideId = guideId;
         this.guideSession = guideSession;
+        this.userAId = explorerId;
+        this.userBId = guideId;
         this.mode = mode;
         this.livekitTokenExplorer = livekitTokenExplorer;
         this.livekitTokenGuide = livekitTokenGuide;
         this.dungeonSeed = dungeonSeed;
         this.act = 1;
     }
+
+    public void setParticipantData(String explorerName, Object explorerAvatar, Object explorerRoom, Object explorerTastes,
+                                   String guideName, Object guideAvatar, Object guideRoom, Object guideTastes) {
+        this.explorerName = explorerName;
+        this.explorerAvatar = explorerAvatar;
+        this.explorerRoom = explorerRoom;
+        this.explorerTastes = explorerTastes;
+        this.guideName = guideName;
+        this.guideAvatar = guideAvatar;
+        this.guideRoom = guideRoom;
+        this.guideTastes = guideTastes;
+
+        // Immutable session identity (User A is initial explorer, User B is initial guide)
+        this.userAName = explorerName;
+        this.userAAvatar = explorerAvatar;
+        this.userARoom = explorerRoom;
+        this.userATastes = explorerTastes;
+        this.userBName = guideName;
+        this.userBAvatar = guideAvatar;
+        this.userBRoom = guideRoom;
+        this.userBTastes = guideTastes;
+    }
+
+    public String getUserAId() { return userAId; }
+    public String getUserBId() { return userBId; }
+    public String getUserAName() { return userAName; }
+    public String getUserBName() { return userBName; }
+    public Object getUserAAvatar() { return userAAvatar; }
+    public Object getUserBAvatar() { return userBAvatar; }
+    public Object getUserARoom() { return userARoom; }
+    public Object getUserBRoom() { return userBRoom; }
+    public Object getUserATastes() { return userATastes; }
+    public Object getUserBTastes() { return userBTastes; }
+
+    public String getExplorerName() { return explorerName; }
+    public Object getExplorerAvatar() { return explorerAvatar; }
+    public Object getExplorerRoom() { return explorerRoom; }
+    public Object getExplorerTastes() { return explorerTastes; }
+    public String getGuideName() { return guideName; }
+    public Object getGuideAvatar() { return guideAvatar; }
+    public Object getGuideRoom() { return guideRoom; }
+    public Object getGuideTastes() { return guideTastes; }
+    public boolean isMailboxRecorded() { return mailboxRecorded; }
+    public void setMailboxRecorded(boolean mailboxRecorded) { this.mailboxRecorded = mailboxRecorded; }
+
 
     public void swapRoles(long newSeed) {
         String tempId = this.explorerId;
@@ -50,6 +118,22 @@ public class GameRoom {
         WebSocketSession tempSession = this.explorerSession;
         this.explorerSession = this.guideSession;
         this.guideSession = tempSession;
+
+        String tempName = this.explorerName;
+        this.explorerName = this.guideName;
+        this.guideName = tempName;
+
+        Object tempAvatar = this.explorerAvatar;
+        this.explorerAvatar = this.guideAvatar;
+        this.guideAvatar = tempAvatar;
+
+        Object tempRoom = this.explorerRoom;
+        this.explorerRoom = this.guideRoom;
+        this.guideRoom = tempRoom;
+
+        Object tempTastes = this.explorerTastes;
+        this.explorerTastes = this.guideTastes;
+        this.guideTastes = tempTastes;
 
         this.act = 2;
         this.dungeonSeed = newSeed;

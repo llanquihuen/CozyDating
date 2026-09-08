@@ -293,6 +293,18 @@ class AuthService {
     return _currentUser!.ticketsBalance;
   }
 
+  static void addCoins(int amount) {
+    if (_currentUser != null) {
+      final newBalance = _currentUser!.coinsBalance + amount;
+      _currentUser = _currentUser!.copyWith(coinsBalance: newBalance);
+      AvatarStorageService.addCoins(_currentUser!.id, amount);
+    }
+  }
+
+  static void updateCurrentUser(UserProfile updated) {
+    _currentUser = updated;
+  }
+
   static void logout() {
     _token = null;
     _currentUser = null;

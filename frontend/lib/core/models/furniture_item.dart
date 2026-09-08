@@ -95,7 +95,13 @@ class FurnitureCatalogItem extends Equatable {
     this.hasTableMagnet = false,
   });
 
-  bool get canSnapToTable => hasTableMagnet || id == 'simple_chair_sm' || id == 'simple_chair';
+  bool get canSnapToTable =>
+      hasTableMagnet ||
+      id == 'simple_chair_sm' ||
+      id == 'simple_chair' ||
+      id == 'gamer_chair_sm' ||
+      id == 'gamer_chair' ||
+      id == 'gaming_chair';
 
   FurniturePlacementType get placementType {
     if (footprint == 'surface' || id == 'table_lamp' || id == 'coffee_mug' || id == 'open_book' || id == 'soap_bottles' || id == 'cooking_pot' || id == 'cutting_board' || id == 'plush_teddy') {
@@ -217,7 +223,12 @@ class FurnitureCatalogItem extends Equatable {
       });
     }
 
-    final hasMagnet = (json['has_table_magnet'] as bool?) ?? (id == 'simple_chair_sm' || id == 'simple_chair');
+    final hasMagnet = (json['has_table_magnet'] as bool?) ??
+        (id == 'simple_chair_sm' ||
+            id == 'simple_chair' ||
+            id == 'gamer_chair_sm' ||
+            id == 'gamer_chair' ||
+            id == 'gaming_chair');
 
     return FurnitureCatalogItem(
       id: id,

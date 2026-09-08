@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -52,6 +53,7 @@ public class GameServerTests {
     @BeforeEach
     public void cleanAndSeedDb() {
         jdbcTemplate.execute("DELETE FROM user_blocks");
+        jdbcTemplate.execute("DELETE FROM mailbox_matches");
         jdbcTemplate.execute("DELETE FROM users");
         
         // Seed users
@@ -238,6 +240,68 @@ public class GameServerTests {
         assertEquals(0, databaseService.getTicketBalance("userD"));
     }
 
+    @Test
+    public void testMatchmakingExcludesPreviouslyMetOrMatchedUsers() {
+        WebSocketSession sessionA = new TestWebSocketSession("sessionA");
+        WebSocketSession sessionB = new TestWebSocketSession("sessionB");
+
+        // Pre-insert an existing mailbox match between userA and userB
+        jdbcTemplate.update(
+            "INSERT INTO mailbox_matches (id, user_a_id, user_b_id, user_a_name, user_b_name, decision_a, decision_b, matched) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "match_test_prev", "userA", "userB", "Alice", "Bob", "KEEP_IN_TOUCH", "KEEP_IN_TOUCH", true
+        );
+
+        assertTrue(databaseService.haveUsersMetOrMatched("userA", "userB"));
+        assertTrue(databaseService.haveUsersMetOrMatched("userB", "userA"));
+        assertFalse(databaseService.haveUsersMetOrMatched("userA", "userD"));
+
+        // Both join queue for Buscar Cita
+        matchmakingService.joinQueue("userA", "Santiago", "20", "SILENT", sessionA);
+        matchmakingService.joinQueue("userB", "Santiago", "20", "SILENT", sessionB);
+
+        // They must NOT be matched because they already have a match/baul record
+        assertNull(gameSessionService.getRoomForUser("userA"));
+        assertNull(gameSessionService.getRoomForUser("userB"));
+
+        // Now a new user enters who hasn't met userA
+        WebSocketSession sessionD = new TestWebSocketSession("sessionD");
+        matchmakingService.joinQueue("userD", "Santiago", "20", "SILENT", sessionD);
+
+        // userA and userD should be matched!
+        assertNotNull(gameSessionService.getRoomForUser("userA"));
+        assertNotNull(gameSessionService.getRoomForUser("userD"));
+    }
+
+    @Test
+    public void testHomeVisitDateRoomCreation() {
+        TestWebSocketSession sessionA = new TestWebSocketSession("sessionA");
+        TestWebSocketSession sessionB = new TestWebSocketSession("sessionB");
+
+        gameSessionService.createRoom(
+            "room_home_visit",
+            "userA", sessionA, null, null, "Alice", "[]",
+            "userB", sessionB, null, null, "Bob", "[]",
+            "HOME"
+        );
+
+        GameRoom room = gameSessionService.getRoomForUser("userA");
+        assertNotNull(room);
+        assertEquals("HOME", room.getMode());
+
+        // Verify SESSION_INIT dispatched with isHomeVisitActive and hostUserId
+        assertFalse(sessionA.sentMessages.isEmpty());
+        String msgA = sessionA.sentMessages.get(0);
+        assertTrue(msgA.contains("\"isHomeVisitActive\":true"));
+        assertTrue(msgA.contains("\"hostUserId\":\"userA\""));
+        assertTrue(msgA.contains("\"mode\":\"HOME\""));
+
+        assertFalse(sessionB.sentMessages.isEmpty());
+        String msgB = sessionB.sentMessages.get(0);
+        assertTrue(msgB.contains("\"isHomeVisitActive\":true"));
+        assertTrue(msgB.contains("\"hostUserId\":\"userA\""));
+        assertTrue(msgB.contains("\"mode\":\"HOME\""));
+    }
+
     /**
      * Lightweight custom implementation of WebSocketSession for tests to bypass Byte Buddy Java 25 compatibility issues.
      */
@@ -245,6 +309,7 @@ public class GameServerTests {
         private final String id;
         private boolean open = true;
         private final Map<String, Object> attributes = new HashMap<>();
+        public final List<String> sentMessages = new ArrayList<>();
 
         public TestWebSocketSession(String id) {
             this.id = id;
@@ -263,7 +328,9 @@ public class GameServerTests {
         @Override public void setBinaryMessageSizeLimit(int sizeLimit) {}
         @Override public int getBinaryMessageSizeLimit() { return 0; }
         @Override public List<WebSocketExtension> getExtensions() { return Collections.emptyList(); }
-        @Override public void sendMessage(WebSocketMessage<?> message) throws IOException {}
+        @Override public void sendMessage(WebSocketMessage<?> message) throws IOException {
+            sentMessages.add(message.getPayload().toString());
+        }
         @Override public boolean isOpen() { return open; }
         @Override public void close() throws IOException { open = false; }
         @Override public void close(CloseStatus status) throws IOException { open = false; }

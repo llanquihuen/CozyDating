@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/user_profile.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/avatar_storage_service.dart';
 import '../../game/bloc/game_bloc.dart';
+import '../../mailbox/models/mailbox_models.dart';
+import '../../mailbox/services/mailbox_service.dart';
 import '../games/campfire_scene_game.dart';
 import '../models/campfire_models.dart';
 import '../services/campfire_card_catalog.dart';
@@ -16,6 +20,7 @@ class CampfireView extends StatefulWidget {
   final String partnerName;
   final AvatarConfig? partnerAvatarConfig;
   final int? seed;
+  final String? roomId;
   final VoidCallback onReturnHome;
 
   const CampfireView({
@@ -25,6 +30,7 @@ class CampfireView extends StatefulWidget {
     required this.partnerName,
     this.partnerAvatarConfig,
     this.seed,
+    this.roomId,
     required this.onReturnHome,
   });
 
@@ -183,6 +189,13 @@ class _CampfireViewState extends State<CampfireView> {
     final hasFriendship = widget.localUser.tastes.contains('intent_gaming_duo') ||
         widget.localUser.tastes.contains('intent_cozy_chats');
 
+    // Send date completion signal to server to record mailbox match
+    try {
+      context.read<GameBloc>().add(const SendCampfireCompletedEvent());
+    } catch (e) {
+      print('[CAMPFIRE] Offline completion: $e');
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -202,11 +215,53 @@ class _CampfireViewState extends State<CampfireView> {
   }
 
   void _handleReturnHome() {
+    // 1. Accrue coins to user profile & storage
+    final localId = widget.localUser.id;
+    final localName = widget.localUser.username;
+    AvatarStorageService.addCoins(localId, 150);
+    AuthService.addCoins(150);
+
+    // 2. Generate Tinder-like date letter in mailbox
+    final partner = widget.partnerUser;
+    var partnerId = partner?.id ?? widget.partnerName.toLowerCase();
+    var partnerName = widget.partnerName;
+
+    // Safety guard: Ensure partner is never the local user
+    if (partnerId.isEmpty || partnerId == localId) {
+      partnerId = (localId == 'userA' || localId == 'alice') ? 'userB' : 'userA';
+    }
+    if (partnerName.isEmpty || partnerName == localName || partnerName == 'Tú') {
+      partnerName = (localId == 'userA' || localId == 'alice') ? 'Bob' : 'Alice';
+    }
+
+    final partnerPhoto = partner?.profilePhoto ?? AvatarStorageService.getUserPhoto(partnerId);
+    final partnerAge = (partner?.age != null && partner!.age > 0) ? partner.age : 24;
+    final partnerCommune = (partner?.commune != null && partner!.commune.isNotEmpty) ? partner.commune : 'Santiago';
+
+    final sharedTags = widget.localUser.tastes.where((t) => partner?.tastes.contains(t) ?? false).toList();
+    final fallbackTags = _cards.map((c) => c.matchReason).whereType<String>().where((s) => s.isNotEmpty).take(3).toList();
+
+    final dateLetter = MailboxLetter(
+      id: widget.roomId ?? 'date_${DateTime.now().millisecondsSinceEpoch}',
+      partnerId: partnerId,
+      partnerName: partnerName,
+      partnerAvatar: widget.partnerAvatarConfig ?? partner?.avatarConfig ?? AvatarStorageService.getUserConfig(partnerId),
+      partnerPhoto: partnerPhoto,
+      partnerAge: partnerAge,
+      partnerCommune: partnerCommune,
+      commonTastes: sharedTags.isNotEmpty ? sharedTags : (fallbackTags.isNotEmpty ? fallbackTags : const ['game_coop', 'intent_slow']),
+      myDecision: MailboxDecision.pending,
+      createdAt: DateTime.now(),
+    );
+    MailboxService.addDateLetter(dateLetter);
+
+    // 3. Reset GameBloc
     try {
       context.read<GameBloc>().add(const ResetGameEvent());
     } catch (e) {
       print('[CAMPFIRE] ResetGameEvent: $e');
     }
+
     widget.onReturnHome();
   }
 

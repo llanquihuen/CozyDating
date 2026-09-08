@@ -208,7 +208,7 @@ void main() {
       // Verify UI elements
       expect(find.text('Mi Hogar'), findsOneWidget);
       expect(find.text('Buzón'), findsOneWidget);
-      expect(find.text('Iniciar Cita'), findsOneWidget);
+      expect(find.text('Buscar Cita'), findsOneWidget);
       expect(find.text('Muros'), findsOneWidget);
       expect(find.text('🧑‍🦰 Alice (Explorador)'), findsOneWidget);
     });

@@ -35,6 +35,7 @@ NAME_TRANSLATIONS = {
     "chair": "Silla",
     "simple_chair_sm": "Silla de Madera Simple",
     "plush_armchair": "Sillón Acolchado",
+    "simple_sofa": "Sofá Simple (2x1)",
     "floor_plant_sm": "Planta Decorativa (0.5x0.5)",
     "side_table_sm": "Mesa de Noche / Velador (0.5x0.5)",
     "dining_table_2x2": "Mesa de Comedor Roble (2x2)",
@@ -169,9 +170,9 @@ def sync_new_furniture_safe(target_subfolder=None):
         try:
             with open(CATALOG_PATH, "r", encoding="utf-8") as f:
                 existing_catalog = json.load(f)
-            # Limpiar entradas espurias de _base o _back si las hubiera
+            # Limpiar entradas espurias de _base, _back o _front si las hubiera
             for k in list(existing_catalog.keys()):
-                if "_base" in k or "_back" in k:
+                if "_base" in k or "_back" in k or "_front" in k:
                     del existing_catalog[k]
             print(f"[OK] Catálogo existente cargado: {len(existing_catalog)} muebles base preservados.")
         except Exception as e:
@@ -208,8 +209,8 @@ def sync_new_furniture_safe(target_subfolder=None):
 
             stem = os.path.splitext(file)[0]
 
-            # REGLA CLAVE: Las capas internas (_base, _back) no son muebles separados
-            if "_base" in stem or "_back" in stem:
+            # REGLA CLAVE: Las capas internas (_base, _back, _front) no son muebles separados
+            if "_base" in stem or "_back" in stem or "_front" in stem:
                 continue
 
             full_path = os.path.join(root, file)
@@ -379,15 +380,35 @@ def sync_new_furniture_safe(target_subfolder=None):
                     "asset_path": f"furniture/established_furniture/{rot_target_file}"
                 }
 
-                # Copia segura de capas (_base, _back) adjuntas al mueble
-                base_dir = os.path.dirname(data.get("base_file", ""))
-                base_stem = clean_id(os.path.splitext(os.path.basename(data.get("base_file", "")))[0])
-                for suffix in ["_base", "_back"]:
-                    for cand_name in [f"{base_stem}_rot{r}{suffix}.png", f"{item_id}_rot{r}{suffix}.png"]:
-                        cand_path = os.path.join(base_dir, cand_name)
-                        if os.path.exists(cand_path):
-                            if safe_copy(cand_path, os.path.join(ESTABLISHED_DIR, f"{item_id}_rot{r}{suffix}.png")):
-                                copied_count += 1
+                # Copia segura de capas (_base, _back, _front) adjuntas al mueble
+                base_fp = data.get("base_file", "")
+                base_dir = os.path.dirname(base_fp) if base_fp else ""
+                base_raw_stem = os.path.splitext(os.path.basename(base_fp))[0] if base_fp else ""
+                base_clean_stem = clean_id(base_raw_stem) if base_raw_stem else item_id
+
+                rot_file = data.get("rotations", {}).get(r, base_fp)
+                rot_dir = os.path.dirname(rot_file) if rot_file else base_dir
+                rot_raw_stem = os.path.splitext(os.path.basename(rot_file))[0] if rot_file else f"{base_raw_stem}_rot{r}"
+
+                for suffix in ["_front", "_base", "_back"]:
+                    cands = [
+                        f"{rot_raw_stem}{suffix}.png",
+                        f"{base_raw_stem}_rot{r}{suffix}.png",
+                        f"{base_clean_stem}_rot{r}{suffix}.png",
+                        f"{item_id}_rot{r}{suffix}.png",
+                    ]
+                    found = False
+                    for cand_name in cands:
+                        for d in [rot_dir, base_dir]:
+                            if not d:
+                                continue
+                            cand_path = os.path.join(d, cand_name)
+                            if os.path.exists(cand_path):
+                                if safe_copy(cand_path, os.path.join(ESTABLISHED_DIR, f"{item_id}_rot{r}{suffix}.png")):
+                                    copied_count += 1
+                                found = True
+                                break
+                        if found:
                             break
 
         merged_catalog[item_id] = item_entry

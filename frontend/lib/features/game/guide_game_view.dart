@@ -35,7 +35,6 @@ class _GuideGameViewState extends State<GuideGameView> {
   bool _showSpikeAlert = false;
   async.Timer? _spikeAlertTimer;
   bool _isShowingRoleSwapDialog = false;
-  bool _isShowingCampfire = false;
 
   @override
   void initState() {
@@ -180,55 +179,6 @@ class _GuideGameViewState extends State<GuideGameView> {
                 transitionsBuilder: (_, animation, __, child) =>
                     FadeTransition(opacity: animation, child: child),
                 transitionDuration: const Duration(milliseconds: 500),
-              ),
-            );
-          }
-          if (state.isCampfireActive && !_isShowingCampfire) {
-            _isShowingCampfire = true;
-            final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
-            final localTastes = (AuthService.currentUser?.tastes != null && AuthService.currentUser!.tastes.isNotEmpty)
-                ? AuthService.currentUser!.tastes
-                : AvatarStorageService.getUserTastes(localUserId);
-
-            final localProfile = AuthService.currentUser?.copyWith(tastes: localTastes) ??
-                UserProfile(
-                  id: localUserId,
-                  username: 'Tú',
-                  avatarConfig: AvatarStorageService.getUserConfig(localUserId),
-                  roomConfig: AvatarStorageService.getUserRoomConfig(localUserId),
-                  tastes: localTastes,
-                );
-
-            final partnerTastes = (state.partnerTastes != null && state.partnerTastes!.isNotEmpty)
-                ? state.partnerTastes!
-                : (state.session.partnerTastes.isNotEmpty
-                    ? state.session.partnerTastes
-                    : AvatarStorageService.getUserTastes(state.session.partnerId));
-
-            final partnerProfile = UserProfile(
-              id: state.session.partnerId,
-              username: state.partnerUsername ?? state.session.partnerUsername ?? 'Compañero',
-              avatarConfig: state.partnerAvatarConfig ?? state.session.partnerAvatarConfig ?? const AvatarConfig(),
-              roomConfig: state.partnerRoomConfig ?? state.session.partnerRoomConfig ?? const RoomConfig(),
-              tastes: partnerTastes,
-            );
-
-            Navigator.of(context).pushReplacement(
-              PageRouteBuilder(
-                opaque: true,
-                pageBuilder: (cContext, _, __) => CampfireView(
-                  localUser: localProfile,
-                  partnerUser: partnerProfile,
-                  partnerName: partnerProfile.username,
-                  partnerAvatarConfig: partnerProfile.avatarConfig,
-                  seed: state.session.seed,
-                  onReturnHome: () {
-                    Navigator.of(cContext).popUntil((route) => route.isFirst);
-                  },
-                ),
-                transitionsBuilder: (_, animation, __, child) =>
-                    FadeTransition(opacity: animation, child: child),
-                transitionDuration: const Duration(milliseconds: 600),
               ),
             );
           }

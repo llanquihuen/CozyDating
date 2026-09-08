@@ -90,6 +90,12 @@ public class GameSessionService {
         if (guideTastes != null) explorerInit.put("partnerTastes", guideTastes);
         explorerInit.put("seed", dungeonSeed);
         explorerInit.put("act", 1);
+        if ("CAMPFIRE".equalsIgnoreCase(mode)) {
+            explorerInit.put("isCampfireActive", true);
+        } else if ("HOME".equalsIgnoreCase(mode)) {
+            explorerInit.put("isHomeVisitActive", true);
+            explorerInit.put("hostUserId", explorerId);
+        }
         sendJsonMessage(explorerSession, explorerInit);
 
         // Send SESSION_INIT to Guide (Partner is Explorer)
@@ -107,12 +113,52 @@ public class GameSessionService {
         if (explorerTastes != null) guideInit.put("partnerTastes", explorerTastes);
         guideInit.put("seed", dungeonSeed);
         guideInit.put("act", 1);
+        if ("CAMPFIRE".equalsIgnoreCase(mode)) {
+            guideInit.put("isCampfireActive", true);
+        } else if ("HOME".equalsIgnoreCase(mode)) {
+            guideInit.put("isHomeVisitActive", true);
+            guideInit.put("hostUserId", explorerId);
+        }
         sendJsonMessage(guideSession, guideInit);
 
-        // Record date in Mailbox for post-game decision
+        // Store participant profile metadata in room for post-game mailbox creation
+        room.setParticipantData(
+            explorerName != null ? explorerName : explorerId,
+            explorerAvatar,
+            explorerRoom,
+            explorerTastes,
+            guideName != null ? guideName : guideId,
+            guideAvatar,
+            guideRoom,
+            guideTastes
+        );
+    }
+
+    /**
+     * Records a completed date in the mailbox database.
+     * Crucial: This is ONLY invoked when players reach the end of the campfire / date experience,
+     * ensuring premature disconnects or early quits do not leak partner profile info into the mailbox.
+     */
+    public void recordCompletedDate(String roomId) {
+        if (roomId == null) return;
+        GameRoom room = activeRooms.get(roomId);
+        if (room == null || room.isMailboxRecorded()) return;
+        room.setMailboxRecorded(true);
+
         try {
-            User userA = databaseService.findUserById(explorerId);
-            User userB = databaseService.findUserById(guideId);
+            String userAId = room.getUserAId();
+            String userBId = room.getUserBId();
+
+            // If the two users have already met / already have a letter or match in the mailbox,
+            // do not spawn new duplicate letters on subsequent dates!
+            if (databaseService.haveUsersMetOrMatched(userAId, userBId)) {
+                logger.info("[GAME SESSION MAILBOX] Users {} and {} have already met in mailbox. Skipping duplicate letter creation.",
+                        userAId, userBId);
+                return;
+            }
+
+            User userA = databaseService.findUserById(userAId);
+            User userB = databaseService.findUserById(userBId);
 
             String photoA = userA != null ? userA.getProfilePhoto() : null;
             String photoB = userB != null ? userB.getProfilePhoto() : null;
@@ -121,16 +167,21 @@ public class GameSessionService {
             String communeA = userA != null ? userA.getCommune() : "Santiago";
             String communeB = userB != null ? userB.getCommune() : "Providencia";
 
-            String commonTastesStr = explorerTastes != null ? explorerTastes.toString() : "";
+            String nameA = room.getUserAName() != null ? room.getUserAName() : (userA != null ? userA.getUsername() : userAId);
+            String nameB = room.getUserBName() != null ? room.getUserBName() : (userB != null ? userB.getUsername() : userBId);
+            String avatarA = room.getUserAAvatar() != null ? room.getUserAAvatar().toString() : (userA != null ? userA.getAvatarConfig() : null);
+            String avatarB = room.getUserBAvatar() != null ? room.getUserBAvatar().toString() : (userB != null ? userB.getAvatarConfig() : null);
+
+            String commonTastesStr = room.getUserATastes() != null ? room.getUserATastes().toString() : "";
 
             com.cozydating.server.model.MailboxMatch match = new com.cozydating.server.model.MailboxMatch(
                 roomId,
-                explorerId,
-                guideId,
-                explorerName != null ? explorerName : explorerId,
-                guideName != null ? guideName : guideId,
-                explorerAvatar != null ? explorerAvatar.toString() : (userA != null ? userA.getAvatarConfig() : null),
-                guideAvatar != null ? guideAvatar.toString() : (userB != null ? userB.getAvatarConfig() : null),
+                userAId,
+                userBId,
+                nameA,
+                nameB,
+                avatarA,
+                avatarB,
                 photoA,
                 photoB,
                 ageA,
@@ -145,8 +196,17 @@ public class GameSessionService {
                 false
             );
             databaseService.createMailboxMatch(match);
+            logger.info("[GAME SESSION MAILBOX] Successfully recorded completed date in mailbox for room {} between {} ({}) and {} ({})",
+                    roomId, userAId, nameA, userBId, nameB);
         } catch (Exception e) {
-            logger.warn("[GAME SESSION MAILBOX] Could not pre-create mailbox match: {}", e.getMessage());
+            logger.error("[GAME SESSION MAILBOX] Could not record completed date in mailbox: {}", e.getMessage(), e);
+        }
+    }
+
+    public void recordCompletedDateForUser(String userId) {
+        String roomId = userToRoomMap.get(userId);
+        if (roomId != null) {
+            recordCompletedDate(roomId);
         }
     }
 
@@ -219,9 +279,6 @@ public class GameSessionService {
             overMsg.put("type", "GAME_OVER");
             overMsg.put("reason", "RECONNECT_TIMEOUT");
             sendJsonMessage(partnerSession, overMsg);
-            try {
-                partnerSession.close();
-            } catch (Exception e) {}
         }
     }
 
@@ -300,16 +357,6 @@ public class GameSessionService {
             emergencyMsg.put("type", "EMERGENCY_DISCONNECT");
             emergencyMsg.put("reason", shouldBlock ? "PARTNER_ABORTED_AND_BLOCKED" : "PARTNER_LEFT_FRIENDLY");
             sendJsonMessage(partnerSession, emergencyMsg);
-            try {
-                partnerSession.close();
-            } catch (Exception e) {}
-        }
-
-        WebSocketSession mySession = userId.equals(room.getExplorerId()) ? room.getExplorerSession() : room.getGuideSession();
-        if (mySession != null && mySession.isOpen()) {
-            try {
-                mySession.close();
-            } catch (Exception e) {}
         }
     }
 
@@ -440,6 +487,36 @@ public class GameSessionService {
     public GameRoom getRoomForUser(String userId) {
         String roomId = userToRoomMap.get(userId);
         return roomId != null ? activeRooms.get(roomId) : null;
+    }
+
+    public boolean isUserInActiveSession(String userId) {
+        return getRoomForUser(userId) != null;
+    }
+
+    public void endSessionForRoom(String roomId) {
+        if (roomId == null) return;
+        GameRoom room = activeRooms.remove(roomId);
+        if (room != null) {
+            if (room.getReconnectGraceTask() != null) {
+                room.getReconnectGraceTask().cancel(true);
+            }
+            if (room.getExplorerId() != null) {
+                userToRoomMap.remove(room.getExplorerId());
+            }
+            if (room.getGuideId() != null) {
+                userToRoomMap.remove(room.getGuideId());
+            }
+            logger.info("[GAME SESSION END] Room {} cleanly terminated and removed from active sessions (Users freed: {}, {}).",
+                    roomId, room.getExplorerId(), room.getGuideId());
+        }
+    }
+
+    public void endSessionForUser(String userId) {
+        if (userId == null) return;
+        String roomId = userToRoomMap.get(userId);
+        if (roomId != null) {
+            endSessionForRoom(roomId);
+        }
     }
 
     public void clearSessions() {

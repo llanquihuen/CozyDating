@@ -14,7 +14,7 @@ class MailboxService {
   /// Get all mailbox letters for active user
   static Future<List<MailboxLetter>> fetchLetters({String? userId}) async {
     final activeId = userId ?? AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
-    if (activeId.isEmpty) return _getSampleLetters('userA');
+    if (activeId.isEmpty) return [];
 
     try {
       final url = Uri.parse('$_baseUrl/api/mailbox?userId=$activeId');
@@ -33,16 +33,13 @@ class MailboxService {
           }
         }
         _updateBadgeCount();
-        if (_cachedLetters.isNotEmpty) return List.from(_cachedLetters);
+        return List.from(_cachedLetters);
       }
     } catch (e) {
-      print('[MAILBOX FETCH ERROR] $e - Using local cache / samples');
+      print('[MAILBOX FETCH ERROR] $e - Using local cache');
     }
 
-    if (_cachedLetters.isEmpty) {
-      _cachedLetters.addAll(_getSampleLetters(activeId));
-      _updateBadgeCount();
-    }
+    _updateBadgeCount();
     return List.from(_cachedLetters);
   }
 

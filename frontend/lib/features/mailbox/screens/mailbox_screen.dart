@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/preference_tags.dart';
+import '../../chat/screens/private_chat_screen.dart';
+import '../../chat/widgets/date_invite_sheet.dart';
+import '../../chat/services/chat_service.dart';
 import '../models/mailbox_models.dart';
 import '../services/mailbox_service.dart';
 
@@ -167,20 +170,54 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
           ],
         ),
         actions: [
-          ElevatedButton(
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _tabController.animateTo(1); // Go to mutual matches tab
+            },
+            child: const Text('Ver en Cartas', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFD54F),
               foregroundColor: Colors.black87,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
+            icon: const Icon(Icons.chat_bubble_rounded, size: 16),
+            label: const Text('Abrir Chat', style: TextStyle(fontWeight: FontWeight.bold)),
             onPressed: () {
               Navigator.of(ctx).pop();
-              _tabController.animateTo(1); // Go to mutual matches tab
+              _openPrivateChat(letter);
             },
-            child: const Text('Ver en Conexiones Mutuas', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
+    );
+  }
+
+  void _openPrivateChat(MailboxLetter letter) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PrivateChatScreen(letter: letter),
+      ),
+    );
+  }
+
+  void _onInviteToDatePressed(MailboxLetter letter) {
+    showDateInviteSheet(
+      context,
+      partnerName: letter.partnerName,
+      onSelect: (dateType, title) {
+        // Close mailbox back to lobby
+        Navigator.of(context).pop();
+
+        // Send date invite and activate lobby waiting state
+        ChatService.sendDateInvite(
+          letter: letter,
+          dateType: dateType,
+          title: title,
+        );
+      },
     );
   }
 
@@ -643,6 +680,49 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
                   ),
                 ),
               ],
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD54F),
+                          foregroundColor: const Color(0xFF1E1B2E),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 3,
+                        ),
+                        icon: const Icon(Icons.chat_bubble_rounded, size: 16),
+                        label: Text(
+                          'Chatear',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        onPressed: () => _openPrivateChat(letter),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFFFD54F),
+                          side: const BorderSide(color: Color(0xFFFFD54F), width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Text('⚔️', style: TextStyle(fontSize: 14)),
+                        label: const Text(
+                          'Invitar a Cita',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        onPressed: () => _onInviteToDatePressed(letter),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         );

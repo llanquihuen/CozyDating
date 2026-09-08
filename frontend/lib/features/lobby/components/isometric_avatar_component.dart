@@ -13,6 +13,7 @@ class IsometricAvatarComponent extends PositionComponent {
   double gridY;
   final AvatarConfig config;
   final void Function(Point<int> dest)? onReachedDestination;
+  final VoidCallback? onSitStateChanged;
 
   late ModularAvatarComponent avatarRenderer;
   final List<Point<int>> _path = [];
@@ -20,6 +21,7 @@ class IsometricAvatarComponent extends PositionComponent {
   bool isVisible = true;
   IsometricFurnitureComponent? sittingChair;
   SeatSpot? sittingSpot;
+  AvatarBacklegComponent? backlegComponent;
 
   int get sittingSlotIndex => sittingSpot?.slotIndex ?? 0;
   bool get isSitting => avatarRenderer.isSitting;
@@ -39,6 +41,7 @@ class IsometricAvatarComponent extends PositionComponent {
     required this.gridY,
     required this.config,
     this.onReachedDestination,
+    this.onSitStateChanged,
   }) : super(size: Vector2(avatarWidth, avatarHeight)) {
     position = _calculateScreenPosition(gridX, gridY);
     priority =
@@ -48,9 +51,28 @@ class IsometricAvatarComponent extends PositionComponent {
       config: config,
       direction: AvatarDirection.down,
       isMoving: false,
+      renderBacklegSeparately: true,
       size: Vector2(avatarWidth, avatarHeight),
     );
     add(avatarRenderer);
+    backlegComponent = AvatarBacklegComponent(this);
+  }
+
+  @override
+  void onMount() {
+    super.onMount();
+    avatarRenderer.renderBacklegSeparately = true;
+    backlegComponent ??= AvatarBacklegComponent(this);
+    if (!backlegComponent!.isMounted && parent != null) {
+      parent!.add(backlegComponent!);
+    }
+  }
+
+  @override
+  void onRemove() {
+    backlegComponent?.removeFromParent();
+    backlegComponent = null;
+    super.onRemove();
   }
 
   /// Calculates the screen position that places the avatar's feet EXACTLY in the center of sub-cell (u, v)
@@ -103,8 +125,14 @@ class IsometricAvatarComponent extends PositionComponent {
 
     // Sit above the chair base (chair.priority), but behind the chair backrest overlay (chair.priority + 20) for rot 2 & 3
     priority = chair.priority + 10;
+    backlegComponent ??= AvatarBacklegComponent(this);
+    backlegComponent!.priority = chair.priority - 2;
     avatarRenderer.sitDown();
+    onSitStateChanged?.call();
   }
+
+  Set<Point<int>>? lastObstacles;
+  Set<String>? lastBlockedEdges;
 
   Point<int>? findExitSubCellForChair(
     IsometricFurnitureComponent chair, {
@@ -116,6 +144,11 @@ class IsometricAvatarComponent extends PositionComponent {
     final effectiveSpot = spot ?? sittingSpot;
     final baseU = (chair.gridX * 2).round() + (effectiveSpot?.subCell.x ?? 0);
     final baseV = (chair.gridY * 2).round() + (effectiveSpot?.subCell.y ?? 0);
+    final startCell = Point(baseU, baseV);
+
+    final obs = obstacles ?? lastObstacles ?? const <Point<int>>{};
+    final edges = blockedEdges ?? lastBlockedEdges ?? const <String>{};
+    final chairFootprint = chair.occupiedSubCells.toSet();
 
     // Priority of exit deltas based on chair facing rotation:
     // 0 (SW): facing (0, +1)
@@ -131,6 +164,8 @@ class IsometricAvatarComponent extends PositionComponent {
           const Point(0, 3),
           const Point(1, 0),
           const Point(-1, 0),
+          const Point(1, 1),
+          const Point(-1, 1),
           const Point(0, -1),
         ];
         break;
@@ -141,6 +176,8 @@ class IsometricAvatarComponent extends PositionComponent {
           const Point(3, 0),
           const Point(0, 1),
           const Point(0, -1),
+          const Point(1, 1),
+          const Point(1, -1),
           const Point(-1, 0),
         ];
         break;
@@ -151,6 +188,8 @@ class IsometricAvatarComponent extends PositionComponent {
           const Point(0, -3),
           const Point(1, 0),
           const Point(-1, 0),
+          const Point(1, -1),
+          const Point(-1, -1),
           const Point(0, 1),
         ];
         break;
@@ -161,6 +200,8 @@ class IsometricAvatarComponent extends PositionComponent {
           const Point(-3, 0),
           const Point(0, 1),
           const Point(0, -1),
+          const Point(-1, 1),
+          const Point(-1, -1),
           const Point(1, 0),
         ];
         break;
@@ -173,54 +214,117 @@ class IsometricAvatarComponent extends PositionComponent {
         ];
     }
 
-    final obs = obstacles ?? const <Point<int>>{};
-    final edges = blockedEdges ?? const <String>{};
+    // BFS search outward from startCell:
+    // Guarantees that any exit cell found has a continuous walkable path
+    // that NEVER crosses blockedEdges (internal walls) or other furniture obstacles.
+    final queue = <Point<int>>[startCell];
+    final visited = <Point<int>>{startCell};
+    final distance = <Point<int>, int>{startCell: 0};
+    final reachableFreeCells = <Point<int>>[];
+    final reachableFreeSet = <Point<int>>{};
 
-    for (final d in deltas) {
-      final target = Point(baseU + d.x, baseV + d.y);
-      if (target.x >= 0 &&
-          target.x < mapSize &&
-          target.y >= 0 &&
-          target.y < mapSize) {
-        if (!obs.contains(target)) {
-          final edge =
-              IsometricPathfinder.edgeKey(baseU, baseV, target.x, target.y);
-          if (!edges.contains(edge)) {
-            return target;
-          }
+    const maxSearchDistance = 4;
+
+    while (queue.isNotEmpty) {
+      final current = queue.removeAt(0);
+      final dist = distance[current]!;
+      if (dist >= maxSearchDistance) continue;
+
+      final neighbors = [
+        Point(current.x + 1, current.y),
+        Point(current.x - 1, current.y),
+        Point(current.x, current.y + 1),
+        Point(current.x, current.y - 1),
+      ];
+
+      for (final next in neighbors) {
+        if (next.x < 0 || next.x >= mapSize || next.y < 0 || next.y >= mapSize) {
+          continue;
         }
+        if (visited.contains(next)) continue;
+
+        // Check internal wall boundary between current and next
+        final edge = IsometricPathfinder.edgeKey(current.x, current.y, next.x, next.y);
+        if (edges.contains(edge)) {
+          continue; // Wall blocks movement!
+        }
+
+        visited.add(next);
+        distance[next] = dist + 1;
+
+        final isChairSubCell = chairFootprint.contains(next);
+        final isObstacle = obs.contains(next);
+
+        if (!isObstacle && !isChairSubCell) {
+          // Found a completely free, wall-safe reachable subcell outside the chair
+          reachableFreeCells.add(next);
+          reachableFreeSet.add(next);
+        } else if (isChairSubCell) {
+          // Can walk across the chair's own subcells (e.g. from sofa seat to sofa edge)
+          queue.add(next);
+        }
+        // If it is another obstacle not belonging to the chair, queue does not expand through it.
       }
     }
 
-    // Fallback search around 1-to-2 subcells radius if preferred directions are blocked
-    for (int radius = 1; radius <= 2; radius++) {
-      for (int du = -radius; du <= radius; du++) {
-        for (int dv = -radius; dv <= radius; dv++) {
-          if (du.abs() < radius && dv.abs() < radius) continue;
-          final target = Point(baseU + du, baseV + dv);
-          if (target.x >= 0 &&
-              target.x < mapSize &&
-              target.y >= 0 &&
-              target.y < mapSize) {
-            if (!obs.contains(target)) {
-              return target;
-            }
-          }
-        }
+    // 1. First priority: Check preferred directional deltas
+    for (final d in deltas) {
+      final target = Point(baseU + d.x, baseV + d.y);
+      if (reachableFreeSet.contains(target)) {
+        return target;
       }
+    }
+
+    // 2. Second priority: If no directional delta matched, pick the closest reachable free cell
+    if (reachableFreeCells.isNotEmpty) {
+      final Point<int> facingVec;
+      switch (chair.rotation) {
+        case 0:
+          facingVec = const Point(0, 1);
+          break;
+        case 1:
+          facingVec = const Point(1, 0);
+          break;
+        case 2:
+          facingVec = const Point(0, -1);
+          break;
+        case 3:
+          facingVec = const Point(-1, 0);
+          break;
+        default:
+          facingVec = const Point(0, 1);
+      }
+
+      reachableFreeCells.sort((a, b) {
+        final distA = distance[a] ?? 999;
+        final distB = distance[b] ?? 999;
+        if (distA != distB) {
+          return distA.compareTo(distB);
+        }
+        final dotA = (a.x - baseU) * facingVec.x + (a.y - baseV) * facingVec.y;
+        final dotB = (b.x - baseU) * facingVec.x + (b.y - baseV) * facingVec.y;
+        return dotB.compareTo(dotA);
+      });
+
+      return reachableFreeCells.first;
     }
 
     return null;
   }
 
   void standUp({Set<Point<int>>? obstacles, Set<String>? blockedEdges}) {
+    if (obstacles != null) lastObstacles = obstacles;
+    if (blockedEdges != null) lastBlockedEdges = blockedEdges;
+    final effectiveObs = obstacles ?? lastObstacles;
+    final effectiveEdges = blockedEdges ?? lastBlockedEdges;
+
     if (avatarRenderer.isSitting) {
       if (sittingChair != null) {
         final exitSubCell = findExitSubCellForChair(
           sittingChair!,
           spot: sittingSpot,
-          obstacles: obstacles,
-          blockedEdges: blockedEdges,
+          obstacles: effectiveObs,
+          blockedEdges: effectiveEdges,
         );
         if (exitSubCell != null) {
           gridX = exitSubCell.x.toDouble();
@@ -233,6 +337,7 @@ class IsometricAvatarComponent extends PositionComponent {
       sittingSpot = null;
       priority = IsometricCoords.getSubZOrder(gridX.round(), gridY.round(),
           layer: 100);
+      onSitStateChanged?.call();
     }
   }
 
@@ -357,3 +462,31 @@ class IsometricAvatarComponent extends PositionComponent {
     }
   }
 }
+
+/// Overlay component that renders the seated avatar's backleg (and backleg clothing)
+/// behind the chair or sofa base (priority = chair.priority - 2).
+class AvatarBacklegComponent extends PositionComponent {
+  final IsometricAvatarComponent avatar;
+
+  AvatarBacklegComponent(this.avatar)
+      : super(size: Vector2(IsometricAvatarComponent.avatarWidth, IsometricAvatarComponent.avatarHeight));
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    position = avatar.position;
+    size = avatar.size;
+
+    if (avatar.isSitting && avatar.sittingChair != null) {
+      // Sits directly BEHIND the chair / sofa base (chair.priority)
+      priority = avatar.sittingChair!.priority - 2;
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (!avatar.isVisible || !avatar.isSitting) return;
+    avatar.avatarRenderer.renderBackleg(canvas, size);
+  }
+}
+

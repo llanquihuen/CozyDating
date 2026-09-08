@@ -7,15 +7,18 @@ import 'package:flame/game.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/room_config.dart';
+import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
+import '../../mailbox/models/mailbox_models.dart';
 import '../../mailbox/screens/mailbox_screen.dart';
 import '../../mailbox/services/mailbox_service.dart';
 import '../components/isometric_furniture_component.dart';
 import '../components/isometric_interior_wall_component.dart';
 import '../games/cozy_room_game.dart';
+import '../../chat/services/chat_service.dart';
 import 'room_decorator_sheet.dart';
 
 class CozyLobbyView extends StatefulWidget {
@@ -103,6 +106,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    ChatService.ensureConnected();
     MailboxService.fetchLetters(userId: widget.activeUserId);
     _constructorTabController = TabController(length: 3, vsync: this);
     _constructorTabController.addListener(() {
@@ -531,7 +535,18 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                                 right: 16,
                                 bottom: MediaQuery.of(context).padding.bottom + 12,
                             ),
-                            child: isQueued ? _buildQueuedCard() : _buildIdleActionCard(),
+                            child: ValueListenableBuilder<Map<String, dynamic>?>(
+                              valueListenable: ChatService.outgoingDateInviteNotifier,
+                              builder: (context, outgoingInvite, _) {
+                                if (isQueued) {
+                                  return _buildQueuedCard();
+                                }
+                                if (outgoingInvite != null) {
+                                  return _buildWaitingInviteCard(outgoingInvite);
+                                }
+                                return _buildIdleActionCard();
+                              },
+                            ),
                           )),
               ),
             ],
@@ -615,6 +630,23 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                                 ),
                                 const SizedBox(width: 4),
                                 Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.amberAccent.withOpacity(0.4), width: 0.8),
+                                  ),
+                                  child: Text(
+                                    '${user.coinsBalance} 🪙',
+                                    style: const TextStyle(
+                                      color: Colors.amberAccent,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFFB300).withOpacity(0.2),
@@ -661,46 +693,160 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                     ],
                   ),
                 )
-              : Container(
-                  width: 140,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF282531).withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF453F58)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: selectedDropdownValue,
-                      dropdownColor: const Color(0xFF282531),
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFFD54F), size: 18),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 135,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF282531).withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF453F58)),
                       ),
-                      items: CozyLobbyView.defaultUsers.map((u) {
-                        return DropdownMenuItem<String>(
-                          value: u['id'],
-                          child: Text(
-                            u['name']!,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: selectedDropdownValue,
+                          dropdownColor: const Color(0xFF282531),
+                          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFFD54F), size: 18),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          widget.onUserChanged(val);
-                        }
-                      },
+                          items: CozyLobbyView.defaultUsers.map((u) {
+                            return DropdownMenuItem<String>(
+                              value: u['id'],
+                              child: Text(
+                                u['name']!,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              widget.onUserChanged(val);
+                            }
+                          },
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF282531).withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amberAccent.withOpacity(0.4)),
+                      ),
+                      child: Text(
+                        '${AvatarStorageService.getUserCoins(widget.activeUserId)} 🪙',
+                        style: const TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
         ),
 
-        // 2. Buzón de Recuerdos (Post-Date Matches & Letters)
+        // 2. Privacy Mode Toggle (🟢 En línea / 🌙 Modo Invisible)
+        StatefulBuilder(
+          builder: (context, setBtnState) {
+            final activeId = widget.activeUserId;
+            final isOnline = AvatarStorageService.getPresenceMode(activeId) != 'INVISIBLE';
+
+            return InkWell(
+              onTap: () {
+                final newMode = isOnline ? 'INVISIBLE' : 'ONLINE';
+                ChatService.setPresenceMode(newMode);
+                setBtnState(() {});
+                _showTopNotification(isOnline ? '🌙 Modo Invisible activado: Te muestras desconectado' : '🟢 Ahora te muestras En Línea');
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF282531).withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isOnline ? const Color(0xFF66BB6A).withOpacity(0.7) : const Color(0xFF9E9E9E).withOpacity(0.7),
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: isOnline ? const Color(0xFF66BB6A) : const Color(0xFF9E9E9E),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isOnline ? 'En línea' : 'Invisible',
+                      style: TextStyle(
+                        color: isOnline ? const Color(0xFF81C784) : const Color(0xFFBDBDBD),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+
+        // 2b. WebSocket Live Network Status Badge
+        ValueListenableBuilder<bool>(
+          valueListenable: WebSocketClient.isConnectedNotifier,
+          builder: (context, isWs, _) {
+            return Tooltip(
+              message: isWs
+                  ? 'WebSocket Conectado (${WebSocketClient.shared?.currentUrl ?? ""})'
+                  : 'WebSocket Desconectado',
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF282531).withOpacity(0.92),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isWs ? Colors.greenAccent.withOpacity(0.5) : Colors.redAccent.withOpacity(0.5),
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: isWs ? Colors.greenAccent : Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      isWs ? 'Red OK' : 'Sin Red',
+                      style: TextStyle(
+                        color: isWs ? Colors.greenAccent : Colors.redAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+
+        // 3. Buzón de Recuerdos (Post-Date Matches & Letters)
         ValueListenableBuilder<int>(
           valueListenable: MailboxService.unreadLettersCount,
           builder: (context, unreadCount, _) {
@@ -2797,7 +2943,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
 
           const Spacer(),
 
-          // 3. Iniciar Cita Button
+          // 3. Buscar Cita Button (Solo nuevas parejas desconocidas)
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF6D00),
@@ -2807,8 +2953,8 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
               elevation: 4,
             ),
             onPressed: _startMatchmaking,
-            icon: const Icon(Icons.play_arrow, size: 18),
-            label: const Text('Iniciar Cita', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            icon: const Icon(Icons.explore, size: 18),
+            label: const Text('Buscar Cita', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ),
         ],
       ),
@@ -2844,7 +2990,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Buscando Pareja en la Mazmorra...',
+                  'Buscando Nueva Pareja en la Mazmorra...',
                   style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
                 ),
                 Text(
@@ -2861,6 +3007,71 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             onPressed: _cancelMatchmaking,
+            child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWaitingInviteCard(Map<String, dynamic> invite) {
+    final partnerName = invite['partnerName'] as String? ?? 'Compañero';
+    final title = invite['title'] as String? ?? 'Cita Especial';
+    final matchId = invite['matchId'] as String? ?? '';
+    final partnerId = invite['partnerId'] as String? ?? '';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1C24).withOpacity(0.95),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFB300), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFB300).withOpacity(0.25),
+            blurRadius: 16,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFFFFB300)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Esperando que $partnerName acepte la invitación...',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '$title • Puedes seguir explorando tu cuarto',
+                  style: const TextStyle(color: Color(0xFFFFD54F), fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            onPressed: () {
+              ChatService.cancelDateInvite(matchId: matchId, partnerId: partnerId);
+              _showTopNotification('Invitación a cita cancelada.');
+            },
             child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ],

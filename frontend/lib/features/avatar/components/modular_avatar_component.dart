@@ -29,6 +29,7 @@ class ModularAvatarComponent extends PositionComponent {
   AvatarDirection direction;
   bool isMoving;
   bool isSitting;
+  bool renderBacklegSeparately;
 
   // Cached OCTOPLAYER 8-direction individual frames
   final Map<String, Image> _octoImageCache = {};
@@ -46,6 +47,7 @@ class ModularAvatarComponent extends PositionComponent {
     this.direction = AvatarDirection.south,
     this.isMoving = false,
     this.isSitting = false,
+    this.renderBacklegSeparately = false,
     Vector2? position,
     Vector2? size,
   }) : super(
@@ -293,6 +295,14 @@ class ModularAvatarComponent extends PositionComponent {
             }
           }));
         }
+
+        // Backleg frame for sitting (only applicable to NE (4) and NW (6) at frame 3)
+        if ((d == 4 || d == 6) && f == 3) {
+          futures.add(_loadOctoFrame('body_backleg', 'body/${bodyType}${d}_sitting_f3_backleg.png', sitKey));
+          if (config.bottomStyle != 'none') {
+            futures.add(_loadOctoFrame('bottoms_backleg', 'bottoms/${bottom}_${cardinal}_backleg_sit3.png', sitKey));
+          }
+        }
       }
     }
 
@@ -341,6 +351,68 @@ class ModularAvatarComponent extends PositionComponent {
     }
   }
 
+  bool get hasBackleg {
+    final int dirNum = direction.dirNumber;
+    int sitDirNum = dirNum;
+    if (dirNum % 2 != 0) {
+      sitDirNum = (dirNum + 1) % 8;
+      if (sitDirNum == 0) sitDirNum = 8;
+    }
+    final String frameKey = isSitting
+        ? '${sitDirNum}_sitting_f${_sittingFrame + 1}'
+        : (isMoving ? '${dirNum}_walk_f${_currentFrame + 1}' : '$dirNum');
+    return _octoImageCache.containsKey('body_backleg:$frameKey') ||
+        _octoImageCache.containsKey('bottoms_backleg:$frameKey') ||
+        _octoImageCache.containsKey('shoes_backleg:$frameKey') ||
+        _octoImageCache.containsKey('tops_backleg:$frameKey');
+  }
+
+  void renderBackleg(Canvas canvas, [Vector2? targetSize]) {
+    if (!isSitting) return;
+
+    final int dirNum = direction.dirNumber;
+    int sitDirNum = dirNum;
+    if (dirNum % 2 != 0) {
+      sitDirNum = (dirNum + 1) % 8;
+      if (sitDirNum == 0) sitDirNum = 8;
+    }
+
+    final String frameKey = '${sitDirNum}_sitting_f${_sittingFrame + 1}';
+    final renderWidth = targetSize?.x ?? size.x;
+    final renderHeight = targetSize?.y ?? size.y;
+    final dstRect = Rect.fromLTWH(0, 0, renderWidth, renderHeight);
+
+    void drawBacklegLayer(String layerKey, Color? tintColor) {
+      final img = _octoImageCache['$layerKey:$frameKey'];
+      if (img != null) {
+        final srcRect = Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
+        final paint = Paint();
+        if (tintColor != null) {
+          paint.colorFilter = ColorFilter.mode(tintColor, BlendMode.modulate);
+        }
+        canvas.drawImageRect(img, srcRect, dstRect, paint);
+      }
+    }
+
+    // Layer 1: Body backleg (Base skin)
+    drawBacklegLayer('body_backleg', config.skinColor);
+
+    // Layer 2: Bottoms backleg (e.g. Jeans - rendered over body skin)
+    if (config.bottomStyle != 'none') {
+      drawBacklegLayer('bottoms_backleg', config.bottomColor);
+    }
+
+    // Layer 3: Shoes backleg (rendered over pants/skin)
+    if (config.shoeStyle != 'none') {
+      drawBacklegLayer('shoes_backleg', config.shoeColor);
+    }
+
+    // Layer 4: Tops backleg (rendered over pants/skin)
+    if (config.topStyle != 'none') {
+      drawBacklegLayer('tops_backleg', config.topColor);
+    }
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -376,8 +448,18 @@ class ModularAvatarComponent extends PositionComponent {
       drawLayer('hair_back', config.hairColor);
     }
 
+    // Layer 2a: Body Backleg (Only when NOT rendered separately behind furniture)
+    if (!renderBacklegSeparately && isSitting) {
+      drawLayer('body_backleg', config.skinColor);
+    }
+
     // Layer 2: Body (Base Skin)
     drawLayer('body', config.skinColor);
+
+    // Layer 3a: Bottoms Backleg (Only when NOT rendered separately behind furniture)
+    if (!renderBacklegSeparately && isSitting && config.bottomStyle != 'none') {
+      drawLayer('bottoms_backleg', config.bottomColor);
+    }
 
     // Layer 3: Bottoms / Pants / Jeans
     if (config.bottomStyle != 'none') {
@@ -387,9 +469,19 @@ class ModularAvatarComponent extends PositionComponent {
     // Layer 4: Hands (Skin Color - Rendered over pants so arms/hands aren't covered by bottoms)
     drawLayer('hands', config.skinColor);
 
+    // Layer 5a: Shoes Backleg (Only when NOT rendered separately behind furniture)
+    if (!renderBacklegSeparately && isSitting && config.shoeStyle != 'none') {
+      drawLayer('shoes_backleg', config.shoeColor);
+    }
+
     // Layer 5: Shoes / Boots
     if (config.shoeStyle != 'none') {
       drawLayer('shoes', config.shoeColor);
+    }
+
+    // Layer 6a: Tops Backleg (Only when NOT rendered separately behind furniture)
+    if (!renderBacklegSeparately && isSitting && config.topStyle != 'none') {
+      drawLayer('tops_backleg', config.topColor);
     }
 
     // Layer 6: Tops / Jacket / Shirt

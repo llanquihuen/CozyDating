@@ -7,6 +7,7 @@ import 'package:frontend/features/lobby/components/isometric_furniture_component
 import 'package:frontend/features/lobby/data/chair_seat_config.dart';
 import 'package:frontend/features/lobby/games/cozy_room_game.dart';
 import 'package:frontend/features/lobby/utils/isometric_coords.dart';
+import 'package:frontend/features/lobby/utils/isometric_pathfinder.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +46,7 @@ void main() {
       expect(armchairSpots.length, equals(1));
       expect(armchairSpots.first.slotIndex, equals(0));
       expect(armchairSpots.first.subCell, equals(const Point(0, 1)));
-      expect(armchairSpots.first.visualOffset, equals(Vector2(8.0, 8.0)));
+      expect(armchairSpots.first.visualOffset, equals(Vector2(11.0, 6.0)));
     });
 
     test('Multi-seat registration: custom 2-seater sofa supports 2 distinct seat spots and closest spot selection', () {
@@ -131,6 +132,84 @@ void main() {
 
       final standingPoint = Point(avatar.gridX.round(), avatar.gridY.round());
       expect(obstacles.contains(standingPoint), isFalse, reason: 'Avatar must stand outside the armchair footprint');
+    });
+
+    test('Avatar standing up from chair NEVER crosses internal walls', () {
+      final chair = IsometricFurnitureComponent(
+        id: 'chair_wall_test',
+        typeName: 'simple_chair_sm',
+        gridX: 2.0, // Subcell u = 4
+        gridY: 2.0, // Subcell v = 4
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        rotation: 0, // Facing SW: delta (0, 1) -> (4, 5)
+        footprint: '0.5x0.5',
+      );
+
+      final avatar = IsometricAvatarComponent(
+        gridX: 4.0,
+        gridY: 4.0,
+        config: const AvatarConfig(),
+      );
+      avatar.sitOnChair(chair);
+      expect(avatar.isSitting, isTrue);
+
+      // Blocked edge directly in front of chair facing direction (between (4, 4) and (4, 5))
+      // Also block further down ray: (4, 5) to (4, 6)
+      final blockedEdges = <String>{
+        IsometricPathfinder.edgeKey(4, 4, 4, 5),
+        IsometricPathfinder.edgeKey(4, 5, 4, 6),
+      };
+
+      final obstacles = chair.occupiedSubCells.toSet();
+
+      avatar.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
+      expect(avatar.isSitting, isFalse);
+
+      final standingPoint = Point(avatar.gridX.round(), avatar.gridY.round());
+      expect(standingPoint.y <= 4, isTrue,
+          reason: 'Avatar must NOT stand at or across v=5 (blocked by internal wall)');
+      expect(standingPoint, isNot(equals(const Point(4, 4))),
+          reason: 'Avatar must step outside chair footprint');
+      // Should have stepped to side (e.g. (5, 4) or (3, 4)) or back (4, 3)
+      expect(standingPoint == const Point(5, 4) || standingPoint == const Point(3, 4) || standingPoint == const Point(4, 3), isTrue);
+    });
+
+    test('Avatar standing up chooses only wall-free reachable exit when 3 sides are blocked by walls', () {
+      final chair = IsometricFurnitureComponent(
+        id: 'chair_corner_test',
+        typeName: 'simple_chair_sm',
+        gridX: 2.0, // Subcell (4, 4)
+        gridY: 2.0,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        rotation: 0,
+        footprint: '0.5x0.5',
+      );
+
+      final avatar = IsometricAvatarComponent(
+        gridX: 4.0,
+        gridY: 4.0,
+        config: const AvatarConfig(),
+      );
+      avatar.sitOnChair(chair);
+
+      // Walls on South (front), North (back), and West (left):
+      // Only East (4, 4) -> (5, 4) is open!
+      final blockedEdges = <String>{
+        IsometricPathfinder.edgeKey(4, 4, 4, 5), // South wall
+        IsometricPathfinder.edgeKey(4, 4, 4, 3), // North wall
+        IsometricPathfinder.edgeKey(4, 4, 3, 4), // West wall
+      };
+
+      final obstacles = chair.occupiedSubCells.toSet();
+
+      avatar.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
+      expect(avatar.isSitting, isFalse);
+
+      final standingPoint = Point(avatar.gridX.round(), avatar.gridY.round());
+      expect(standingPoint, equals(const Point(5, 4)),
+          reason: 'Avatar must exit solely to the open East side (5, 4) without crossing any of the 3 walls');
     });
 
     test('isDiningTableOrDesk classifies tables correctly and excludes beds, nightstands, and appliances', () {
@@ -246,6 +325,44 @@ void main() {
       expect(southChair.priority > table.priority, isTrue,
           reason: 'South chair in rotation 1 (SE) must still render in front of table');
     });
+
+    test('Chair Front / Base dual-layer: chairFrontSprites renders overlay in any rotation and sandwiches avatar', () {
+      final chair = IsometricFurnitureComponent(
+        id: 'gamer_chair',
+        typeName: 'gamer_chair',
+        gridX: 4.0,
+        gridY: 4.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+        rotation: 0, // SW
+        footprint: '1x1',
+      );
+
+      final avatar = IsometricAvatarComponent(
+        gridX: 4.0,
+        gridY: 4.0,
+        config: const AvatarConfig(),
+      );
+
+      final overlay = ChairBackrestOverlayComponent(chair);
+      overlay.update(0.016);
+
+      // 1. Priority sandwich: chair (base) < avatar < overlay (front)
+      avatar.sitOnChair(chair);
+      expect(chair.priority, lessThan(avatar.priority),
+          reason: 'Chair base priority must be lower than sitting avatar priority');
+      expect(avatar.priority, lessThan(overlay.priority),
+          reason: 'Sitting avatar priority must be lower than chair front overlay priority');
+      expect(overlay.priority, equals(chair.priority + 20));
+
+      // 2. Front overlay responds to any rotation: SW (0), SE (1), NE (2), NW (3)
+      for (int r = 0; r < 4; r++) {
+        chair.setRotation(r);
+        overlay.update(0.016);
+        expect(overlay.priority, equals(chair.priority + 20));
+      }
+    });
   });
 }
+
 

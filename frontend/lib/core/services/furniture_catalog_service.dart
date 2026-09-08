@@ -19,8 +19,8 @@ class FurnitureCatalogService {
       _catalog.clear();
       rawMap.forEach((key, value) {
         if (value is Map<String, dynamic>) {
-          // Descartar partes internas de renderizado (_base y _back) para que no aparezcan como muebles separados
-          if (key.contains('_base') || key.contains('_back')) return;
+          // Descartar partes internas de renderizado (_base, _back y _front) para que no aparezcan como muebles separados
+          if (key.contains('_base') || key.contains('_back') || key.contains('_front')) return;
           _catalog[key] = FurnitureCatalogItem.fromJson(key, value);
         }
       });
@@ -47,6 +47,7 @@ class FurnitureCatalogService {
     if (_catalog.containsKey(id)) return _catalog[id];
     if (id == 'side_table' && _catalog.containsKey('side_table_sm')) return _catalog['side_table_sm'];
     if (id == 'wooden_chair' && _catalog.containsKey('simple_chair_sm')) return _catalog['simple_chair_sm'];
+    if ((id == 'gamer_chair' || id == 'gaming_chair') && _catalog.containsKey('gamer_chair_sm')) return _catalog['gamer_chair_sm'];
     if (id == 'potted_plant' && _catalog.containsKey('floor_plant_sm')) return _catalog['floor_plant_sm'];
     if (id == 'bathtub_1x2' && _catalog.containsKey('bathtub_classic')) return _catalog['bathtub_classic'];
     // If querying variant e.g. art_painting_n or art_painting_w, resolve to base item
@@ -112,6 +113,7 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'dining_table_2x2', name: 'Mesa de Comedor Roble (2x2)', zone: 'living', footprint: '2x2', surfaceHeight: 22, spriteOffset: [-64, -44]),
       const FurnitureCatalogItem(id: 'side_table_sm', name: 'Mesa de Noche / Velador (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', surfaceHeight: 18, spriteOffset: [-32, -44]),
       const FurnitureCatalogItem(id: 'simple_chair_sm', name: 'Silla de Madera (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', surfaceHeight: 14, spriteOffset: [-32, -44]),
+      const FurnitureCatalogItem(id: 'gamer_chair_sm', name: 'Silla Gamer Ergonómica (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', canvasSize: [128, 176], spriteOffset: [-32, -44], hasTableMagnet: true),
       const FurnitureCatalogItem(id: 'plush_armchair', name: 'Sillón Acolchado', zone: 'living', footprint: '1x1', surfaceHeight: 16, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'floor_plant_sm', name: 'Planta Decorativa (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
 

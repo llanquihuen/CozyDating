@@ -9,6 +9,7 @@ class UserProfile {
   final int age;
   final String commune;
   final int ticketsBalance;
+  final int coinsBalance;
   final AvatarConfig avatarConfig;
   final List<String> tastes;
   final String? profilePhoto;
@@ -21,6 +22,7 @@ class UserProfile {
     this.age = 20,
     this.commune = 'Santiago',
     this.ticketsBalance = 5,
+    this.coinsBalance = 100,
     this.avatarConfig = const AvatarConfig(),
     this.tastes = const [],
     this.profilePhoto,
@@ -34,6 +36,7 @@ class UserProfile {
     int? age,
     String? commune,
     int? ticketsBalance,
+    int? coinsBalance,
     AvatarConfig? avatarConfig,
     List<String>? tastes,
     String? profilePhoto,
@@ -46,6 +49,7 @@ class UserProfile {
       age: age ?? this.age,
       commune: commune ?? this.commune,
       ticketsBalance: ticketsBalance ?? this.ticketsBalance,
+      coinsBalance: coinsBalance ?? this.coinsBalance,
       avatarConfig: avatarConfig ?? this.avatarConfig,
       tastes: tastes ?? this.tastes,
       profilePhoto: profilePhoto ?? this.profilePhoto,
@@ -61,6 +65,7 @@ class UserProfile {
       'age': age,
       'commune': commune,
       'ticketsBalance': ticketsBalance,
+      'coinsBalance': coinsBalance,
       'avatarConfig': jsonEncode(avatarConfig.toJson()),
       'tastes': jsonEncode(tastes),
       if (profilePhoto != null) 'profilePhoto': profilePhoto,
@@ -124,6 +129,7 @@ class UserProfile {
       age: (map['age'] as num?)?.toInt() ?? 20,
       commune: map['commune'] ?? 'Santiago',
       ticketsBalance: (map['ticketsBalance'] as num?)?.toInt() ?? 5,
+      coinsBalance: (map['coinsBalance'] as num?)?.toInt() ?? 100,
       avatarConfig: avatar,
       tastes: parsedTastes,
       profilePhoto: map['profilePhoto'] as String?,

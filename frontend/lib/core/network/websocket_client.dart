@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 enum WebSocketConnectionState {
@@ -9,6 +10,9 @@ enum WebSocketConnectionState {
 }
 
 class WebSocketClient {
+  static WebSocketClient? shared;
+  static final ValueNotifier<bool> isConnectedNotifier = ValueNotifier<bool>(false);
+
   WebSocketChannel? _channel;
   StreamSubscription? _channelSubscription;
   WebSocketConnectionState _connectionState = WebSocketConnectionState.disconnected;
@@ -28,12 +32,16 @@ class WebSocketClient {
   String? _cachedUrl;
   String? _cachedToken;
 
-  WebSocketClient();
+  WebSocketClient() {
+    shared = this;
+  }
 
   Stream<WebSocketConnectionState> get stateStream => _stateController.stream;
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
   WebSocketConnectionState get connectionState => _connectionState;
+  bool get isConnected => _connectionState == WebSocketConnectionState.connected;
   bool get isSessionActive => _isSessionActive;
+  String? get currentUrl => _cachedUrl;
 
   void setSessionActive(bool active) {
     print('[NET FSM] setSessionActive = $active');
@@ -41,6 +49,10 @@ class WebSocketClient {
   }
 
   Future<void> connect(String url, String token) async {
+    if (isConnected && _cachedUrl == url && _channel != null) {
+      print('[NET LOG] Already connected to $url. Re-using active WebSocket channel.');
+      return;
+    }
     print('[NET LOG] Connecting to $url with token: ${token.substring(0, token.length > 15 ? 15 : token.length)}...');
     _cachedUrl = url;
     _cachedToken = token;
@@ -212,6 +224,7 @@ class WebSocketClient {
     if (_connectionState != newState) {
       print('[NET FSM] Transitioning state: $_connectionState -> $newState');
       _connectionState = newState;
+      isConnectedNotifier.value = (newState == WebSocketConnectionState.connected);
       if (!_stateController.isClosed) {
         _stateController.add(newState);
       }

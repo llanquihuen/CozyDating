@@ -4,15 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'core/config/app_config.dart';
+import 'core/models/avatar_config.dart';
 import 'core/models/game_models.dart';
+import 'core/models/room_config.dart';
+import 'core/models/user_profile.dart';
 import 'core/network/websocket_client.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/avatar_storage_service.dart';
 import 'features/auth/screens/welcome_screen.dart';
+import 'features/campfire/screens/campfire_view.dart';
+import 'features/chat/services/chat_service.dart';
+import 'features/chat/widgets/global_date_invite_overlay.dart';
 import 'features/game/bloc/game_bloc.dart';
 import 'features/game/game_view.dart';
 import 'features/game/guide_game_view.dart';
 import 'features/game/screens/dungeon_match_intro_view.dart';
+import 'features/home_visit/screens/home_visit_view.dart';
 import 'features/lobby/screens/cozy_lobby_view.dart';
 
 void main() {
@@ -40,6 +47,9 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
+        builder: (context, child) => GlobalDateInviteOverlay(
+          child: child ?? const SizedBox.shrink(),
+        ),
         home: const GameLauncherScreen(),
       ),
     );
@@ -65,6 +75,7 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
     super.initState();
     if (AuthService.isAuthenticated) {
       _selectedUserId = AuthService.currentUser!.id;
+      ChatService.ensureConnected();
     }
   }
 
@@ -130,10 +141,116 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
         }
         if (state is GameInitialState || state is TerminatedGameState) {
           _introCompletedRoomId = null;
+          if (AuthService.isAuthenticated) {
+            ChatService.ensureConnected();
+          }
         }
       },
       builder: (context, state) {
         if (state is ActiveGameState) {
+          // Si la fogata está activa, renderizarla directamente
+          if (state.isCampfireActive) {
+            final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+            final localTastes = (AuthService.currentUser?.tastes != null && AuthService.currentUser!.tastes.isNotEmpty)
+                ? AuthService.currentUser!.tastes
+                : AvatarStorageService.getUserTastes(localUserId);
+
+            final localUsername = AuthService.currentUser?.username ?? 'Tú';
+            final localProfile = AuthService.currentUser?.copyWith(tastes: localTastes) ??
+                UserProfile(
+                  id: localUserId,
+                  username: localUsername,
+                  avatarConfig: AvatarStorageService.getUserConfig(localUserId),
+                  roomConfig: AvatarStorageService.getUserRoomConfig(localUserId),
+                  tastes: localTastes,
+                );
+
+            var partnerId = state.session.partnerId;
+            var partnerName = state.partnerUsername ?? state.session.partnerUsername;
+
+            // Defensive resolution: partner must never be the local user
+            if (partnerId.isEmpty || partnerId == localUserId) {
+              partnerId = (localUserId == 'userA' || localUserId == 'alice') ? 'userB' : 'userA';
+            }
+            if (partnerName == null || partnerName.isEmpty || partnerName == localUsername || partnerName == 'Tú') {
+              partnerName = (localUserId == 'userA' || localUserId == 'alice') ? 'Bob' : 'Alice';
+            }
+
+            final partnerTastes = (state.partnerTastes != null && state.partnerTastes!.isNotEmpty)
+                ? state.partnerTastes!
+                : (state.session.partnerTastes.isNotEmpty
+                    ? state.session.partnerTastes
+                    : AvatarStorageService.getUserTastes(partnerId));
+
+            final partnerProfile = UserProfile(
+              id: partnerId,
+              username: partnerName,
+              avatarConfig: state.partnerAvatarConfig ?? state.session.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(partnerId),
+              roomConfig: state.partnerRoomConfig ?? state.session.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(partnerId),
+              tastes: partnerTastes,
+            );
+
+            return CampfireView(
+              key: ValueKey('campfire_${state.session.roomId}'),
+              localUser: localProfile,
+              partnerUser: partnerProfile,
+              partnerName: partnerName,
+              partnerAvatarConfig: partnerProfile.avatarConfig,
+              seed: state.session.seed,
+              roomId: state.session.roomId,
+              onReturnHome: () {
+                context.read<GameBloc>().add(const ResetGameEvent());
+              },
+            );
+          }
+
+          // Si la cita de Visita al Hogar está activa, renderizar HomeVisitView
+          if (state.isHomeVisitActive || state.session.mode == 'HOME') {
+            final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+            final localUsername = AuthService.currentUser?.username ?? 'Tú';
+            final localProfile = AuthService.currentUser ??
+                UserProfile(
+                  id: localUserId,
+                  username: localUsername,
+                  avatarConfig: AvatarStorageService.getUserConfig(localUserId),
+                  roomConfig: AvatarStorageService.getUserRoomConfig(localUserId),
+                );
+
+            var partnerId = state.session.partnerId;
+            var partnerName = state.partnerUsername ?? state.session.partnerUsername;
+            if (partnerId.isEmpty || partnerId == localUserId) {
+              partnerId = (localUserId == 'userA' || localUserId == 'alice') ? 'userB' : 'userA';
+            }
+            if (partnerName == null || partnerName.isEmpty || partnerName == localUsername || partnerName == 'Tú') {
+              partnerName = (localUserId == 'userA' || localUserId == 'alice') ? 'Bob' : 'Alice';
+            }
+
+            final partnerProfile = UserProfile(
+              id: partnerId,
+              username: partnerName,
+              avatarConfig: state.partnerAvatarConfig ?? state.session.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(partnerId),
+              roomConfig: state.partnerRoomConfig ?? state.session.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(partnerId),
+            );
+
+            // Determinar si el anfitrión es el usuario local o el compañero
+            final hostId = state.hostUserId ?? state.session.hostUserId ?? state.session.partnerId;
+            final isLocalHost = hostId == localUserId;
+            final hostName = isLocalHost ? localUsername : partnerName;
+            final hostRoomConfig = isLocalHost ? localProfile.roomConfig : partnerProfile.roomConfig;
+
+            return HomeVisitView(
+              key: ValueKey('home_visit_${state.session.roomId}'),
+              localUser: localProfile,
+              partnerUser: partnerProfile,
+              isHost: isLocalHost,
+              hostName: hostName,
+              hostRoomConfig: hostRoomConfig,
+              onLeave: () {
+                context.read<GameBloc>().add(const ResetGameEvent());
+              },
+            );
+          }
+
           // Si no ha completado la pantalla de match intro para esta sala, mostrarla
           if (_introCompletedRoomId != state.session.roomId) {
             return DungeonMatchIntroView(
@@ -168,6 +285,7 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
               setState(() {
                 _selectedUserId = AuthService.currentUser!.id;
               });
+              ChatService.ensureConnected();
             },
           );
         }
@@ -176,15 +294,18 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
           return CozyLobbyView(
             key: ValueKey('lobby_${AuthService.currentUser?.id ?? _selectedUserId}'),
             activeUserId: AuthService.currentUser?.id ?? _selectedUserId,
-            onUserChanged: (newId) {
+            onUserChanged: (newId) async {
               setState(() {
                 _selectedUserId = newId;
                 AvatarStorageService.setActiveUser(newId);
               });
+              await AuthService.loginTestUser(newId);
+              await ChatService.reconnectAsUser(newId);
             },
             onLogout: () {
               setState(() {
                 AuthService.logout();
+                WebSocketClient.shared?.disconnect();
               });
             },
             onStartMatchmaking: () => _startMatchmaking(context),

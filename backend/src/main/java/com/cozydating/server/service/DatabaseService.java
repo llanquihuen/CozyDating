@@ -5,6 +5,7 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -14,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import com.cozydating.server.model.ChatMessage;
 
 @Service
 public class DatabaseService {
@@ -68,6 +72,21 @@ public class DatabaseService {
             m.setMatched(rs.getBoolean("matched"));
             m.setCreatedAt(rs.getString("created_at"));
             m.setUpdatedAt(rs.getString("updated_at"));
+            return m;
+        }
+    };
+
+    private final RowMapper<ChatMessage> chatMessageRowMapper = new RowMapper<ChatMessage>() {
+        @Override
+        public ChatMessage mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ChatMessage m = new ChatMessage();
+            m.setId(rs.getString("id"));
+            m.setMatchId(rs.getString("match_id"));
+            m.setSenderId(rs.getString("sender_id"));
+            m.setReceiverId(rs.getString("receiver_id"));
+            m.setText(rs.getString("text"));
+            m.setDateType(rs.getString("date_type"));
+            m.setCreatedAt(rs.getString("created_at"));
             return m;
         }
     };
@@ -134,6 +153,19 @@ public class DatabaseService {
             ")"
         );
 
+        // Create chat_messages table for persistent chat and interactive date invites
+        jdbcTemplate.execute(
+            "CREATE TABLE IF NOT EXISTS chat_messages (" +
+            "  id VARCHAR(255) PRIMARY KEY," +
+            "  match_id VARCHAR(255) NOT NULL," +
+            "  sender_id VARCHAR(255) NOT NULL," +
+            "  receiver_id VARCHAR(255) NOT NULL," +
+            "  text TEXT NOT NULL," +
+            "  date_type VARCHAR(50)," +
+            "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+            ")"
+        );
+
         seedData();
     }
 
@@ -156,6 +188,12 @@ public class DatabaseService {
                 jdbcTemplate.execute("ALTER TABLE users ADD COLUMN " + col);
             } catch (Exception ignored) {}
         }
+
+        try {
+            // Clean up any previously corrupted inverted records from the role swap bug
+            jdbcTemplate.update("UPDATE mailbox_matches SET user_a_name = 'Alice', user_b_name = 'Bob' WHERE user_a_id = 'userA' AND user_b_id = 'userB' AND user_a_name = 'Bob'");
+            jdbcTemplate.update("UPDATE mailbox_matches SET user_a_name = 'Bob', user_b_name = 'Alice' WHERE user_a_id = 'userB' AND user_b_id = 'userA' AND user_a_name = 'Alice'");
+        } catch (Exception ignored) {}
     }
 
     private void seedData() {
@@ -374,32 +412,36 @@ public class DatabaseService {
 
     @Transactional
     public void createMailboxMatch(com.cozydating.server.model.MailboxMatch match) {
-        jdbcTemplate.update(
-            "INSERT INTO mailbox_matches (id, user_a_id, user_b_id, user_a_name, user_b_name, " +
-            "user_a_avatar, user_b_avatar, user_a_photo, user_b_photo, user_a_age, user_b_age, " +
-            "user_a_commune, user_b_commune, common_tastes, decision_a, note_a, decision_b, note_b, matched) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            match.getId(),
-            match.getUserAId(),
-            match.getUserBId(),
-            match.getUserAName(),
-            match.getUserBName(),
-            match.getUserAAvatar(),
-            match.getUserBAvatar(),
-            match.getUserAPhoto(),
-            match.getUserBPhoto(),
-            match.getUserAAge(),
-            match.getUserBAge(),
-            match.getUserACommune(),
-            match.getUserBCommune(),
-            match.getCommonTastes(),
-            match.getDecisionA() != null ? match.getDecisionA() : "PENDING",
-            match.getNoteA(),
-            match.getDecisionB() != null ? match.getDecisionB() : "PENDING",
-            match.getNoteB(),
-            match.isMatched()
-        );
-        logger.info("[DB MAILBOX] Created new mailbox match letter: {} between {} and {}", match.getId(), match.getUserAId(), match.getUserBId());
+        try {
+            jdbcTemplate.update(
+                "INSERT INTO mailbox_matches (id, user_a_id, user_b_id, user_a_name, user_b_name, " +
+                "user_a_avatar, user_b_avatar, user_a_photo, user_b_photo, user_a_age, user_b_age, " +
+                "user_a_commune, user_b_commune, common_tastes, decision_a, note_a, decision_b, note_b, matched) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                match.getId(),
+                match.getUserAId(),
+                match.getUserBId(),
+                match.getUserAName(),
+                match.getUserBName(),
+                match.getUserAAvatar(),
+                match.getUserBAvatar(),
+                match.getUserAPhoto(),
+                match.getUserBPhoto(),
+                match.getUserAAge(),
+                match.getUserBAge(),
+                match.getUserACommune(),
+                match.getUserBCommune(),
+                match.getCommonTastes(),
+                match.getDecisionA() != null ? match.getDecisionA() : "PENDING",
+                match.getNoteA(),
+                match.getDecisionB() != null ? match.getDecisionB() : "PENDING",
+                match.getNoteB(),
+                match.isMatched()
+            );
+            logger.info("[DB MAILBOX] Created new mailbox match letter: {} between {} and {}", match.getId(), match.getUserAId(), match.getUserBId());
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            logger.info("[DB MAILBOX] Match {} already exists in mailbox, ignoring duplicate creation.", match.getId());
+        }
     }
 
     public com.cozydating.server.model.MailboxMatch findMailboxMatchById(String matchId) {
@@ -469,6 +511,53 @@ public class DatabaseService {
             return count != null ? count : 0;
         } catch (Exception e) {
             return 0;
+        }
+    }
+
+    public boolean haveUsersMetOrMatched(String userA, String userB) {
+        try {
+            Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM mailbox_matches WHERE (user_a_id = ? AND user_b_id = ?) OR (user_a_id = ? AND user_b_id = ?)",
+                Integer.class,
+                userA, userB, userB, userA
+            );
+            return count != null && count > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public void saveChatMessage(ChatMessage msg) {
+        try {
+            jdbcTemplate.update(
+                "INSERT INTO chat_messages (id, match_id, sender_id, receiver_id, text, date_type, created_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) " +
+                "ON DUPLICATE KEY UPDATE text = VALUES(text), date_type = VALUES(date_type)",
+                msg.getId(),
+                msg.getMatchId(),
+                msg.getSenderId(),
+                msg.getReceiverId(),
+                msg.getText(),
+                msg.getDateType()
+            );
+            logger.info("[DB CHAT] Saved chat message {} for match {}", msg.getId(), msg.getMatchId());
+        } catch (DuplicateKeyException e) {
+            logger.debug("[DB CHAT] Message {} already persisted (duplicate ignored)", msg.getId());
+        } catch (Exception e) {
+            logger.error("[DB CHAT ERROR] Failed to save chat message " + msg.getId(), e);
+        }
+    }
+
+    public List<ChatMessage> getChatMessages(String matchId) {
+        try {
+            return jdbcTemplate.query(
+                "SELECT * FROM chat_messages WHERE match_id = ? ORDER BY created_at ASC",
+                chatMessageRowMapper,
+                matchId
+            );
+        } catch (Exception e) {
+            logger.error("[DB CHAT ERROR] Failed to fetch chat messages for match " + matchId, e);
+            return new ArrayList<>();
         }
     }
 }

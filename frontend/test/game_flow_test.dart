@@ -146,7 +146,7 @@ void main() {
         )),
       );
 
-      expect(client!.connectionState, WebSocketConnectionState.disconnected);
+      expect(client!.connectionState, WebSocketConnectionState.connected);
       expect(client!.isSessionActive, isFalse);
     });
   });

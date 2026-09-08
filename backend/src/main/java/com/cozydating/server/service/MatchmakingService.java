@@ -131,11 +131,12 @@ public class MatchmakingService {
                 boolean slotMatch = entryA.timeSlot.equals(entryB.timeSlot);
                 boolean differentUsers = !entryA.userId.equals(entryB.userId);
                 boolean notBlocked = !databaseService.isMutuallyBlocked(entryA.userId, entryB.userId);
+                boolean notPreviouslyMet = !databaseService.haveUsersMetOrMatched(entryA.userId, entryB.userId);
 
-                logger.info("[MATCHMAKING EVAL RESULT] Candidates ({} vs {}): Mode: {}, Commune: {}, Slot: {}, DiffUser: {}, NotBlocked: {}",
-                        entryA.userId, entryB.userId, modeMatch, communeMatch, slotMatch, differentUsers, notBlocked);
+                logger.info("[MATCHMAKING EVAL RESULT] Candidates ({} vs {}): Mode: {}, Commune: {}, Slot: {}, DiffUser: {}, NotBlocked: {}, NotPreviouslyMet: {}",
+                        entryA.userId, entryB.userId, modeMatch, communeMatch, slotMatch, differentUsers, notBlocked, notPreviouslyMet);
 
-                if (modeMatch && communeMatch && slotMatch && differentUsers && notBlocked) {
+                if (modeMatch && communeMatch && slotMatch && differentUsers && notBlocked && notPreviouslyMet) {
                     logger.info("[MATCHMAKING MATCH FOUND] Valid pair identified: {} <-> {} for mode {}", entryA.userId, entryB.userId, entryA.mode);
                     
                     matchedEntries.add(entryA);
