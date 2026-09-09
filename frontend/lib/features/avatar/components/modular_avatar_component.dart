@@ -227,7 +227,7 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Hair Back & Front
         if (config.hairStyle != 'none') {
-          if (hair == 'long_flow' || hair == 'flow') {
+          if (AvatarConfig.hairsWithBack.contains(hair)) {
             futures.add(_loadOctoFrame('hair_back', 'hair/$hair/back/$hair$k.png', k));
           }
           futures.add(_loadOctoFrame('hair_front', 'hair/$hair/front/$hair$k.png', k));
@@ -296,11 +296,27 @@ class ModularAvatarComponent extends PositionComponent {
           }));
         }
 
+        // Shoes sit frame: e.g. shoes/boots_SE_sit1.png
+        if (config.shoeStyle != 'none') {
+          futures.add(_loadOctoFrame('shoes', 'shoes/${config.shoeStyle}_${cardinal}_sit$f.png', sitKey).then((_) {
+            if (!_octoImageCache.containsKey('shoes:$sitKey')) {
+              return _loadOctoFrame('shoes', 'shoes/${config.shoeStyle}${d}_sitting_f$f.png', sitKey);
+            }
+          }));
+        }
+
         // Backleg frame for sitting (only applicable to NE (4) and NW (6) at frame 3)
         if ((d == 4 || d == 6) && f == 3) {
           futures.add(_loadOctoFrame('body_backleg', 'body/${bodyType}${d}_sitting_f3_backleg.png', sitKey));
           if (config.bottomStyle != 'none') {
             futures.add(_loadOctoFrame('bottoms_backleg', 'bottoms/${bottom}_${cardinal}_backleg_sit3.png', sitKey));
+          }
+          if (config.shoeStyle != 'none') {
+            futures.add(_loadOctoFrame('shoes_backleg', 'shoes/${config.shoeStyle}_${cardinal}_backleg_sit3.png', sitKey).then((_) {
+              if (!_octoImageCache.containsKey('shoes_backleg:$sitKey')) {
+                return _loadOctoFrame('shoes_backleg', 'shoes/${config.shoeStyle}${d}_sitting_f3_backleg.png', sitKey);
+              }
+            }));
           }
         }
       }
@@ -430,9 +446,23 @@ class ModularAvatarComponent extends PositionComponent {
     final dstRect = Rect.fromLTWH(0, 0, size.x, size.y);
 
     void drawLayer(String layerKey, Color? tintColor) {
-      final img = _octoImageCache['$layerKey:$frameKey'] ??
-          _octoImageCache['$layerKey:${isSitting ? sitDirNum : dirNum}'] ??
-          _octoImageCache['$layerKey:$dirNum'];
+      Image? img;
+      if (isSitting) {
+        img = _octoImageCache['$layerKey:$frameKey'];
+        // Facial and hair features don't have separate sitting frames; use seated direction frame
+        if (img == null &&
+            (layerKey == 'head' ||
+             layerKey == 'nose' ||
+             layerKey == 'mouth' ||
+             layerKey == 'eyes' ||
+             layerKey == 'hair_front' ||
+             layerKey == 'hair_back' ||
+             layerKey == 'accessories')) {
+          img = _octoImageCache['$layerKey:$sitDirNum'];
+        }
+      } else {
+        img = _octoImageCache['$layerKey:$frameKey'] ?? _octoImageCache['$layerKey:$dirNum'];
+      }
       if (img != null) {
         final srcRect = Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
         final paint = Paint();

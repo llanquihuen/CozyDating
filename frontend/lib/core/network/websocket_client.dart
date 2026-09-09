@@ -31,6 +31,7 @@ class WebSocketClient {
 
   String? _cachedUrl;
   String? _cachedToken;
+  Completer<void>? _connectingCompleter;
 
   WebSocketClient() {
     shared = this;
@@ -53,18 +54,41 @@ class WebSocketClient {
       print('[NET LOG] Already connected to $url. Re-using active WebSocket channel.');
       return;
     }
+
+    // Deduplicate in-flight connection attempts
+    if (_connectingCompleter != null) {
+      print('[NET LOG] Connection already in-flight to $_cachedUrl. Awaiting existing attempt...');
+      try {
+        await _connectingCompleter!.future;
+      } catch (_) {}
+      if (isConnected && _cachedUrl == url && _channel != null) {
+        return;
+      }
+    }
+
     print('[NET LOG] Connecting to $url with token: ${token.substring(0, token.length > 15 ? 15 : token.length)}...');
     _cachedUrl = url;
     _cachedToken = token;
     _reconnectAttempts = 0;
     _cancelReconnectTimer();
 
-    await _establishConnection();
+    _connectingCompleter = Completer<void>();
+    try {
+      await _establishConnection();
+      _connectingCompleter?.complete();
+    } catch (e) {
+      _connectingCompleter?.completeError(e);
+      rethrow;
+    } finally {
+      _connectingCompleter = null;
+    }
   }
 
   Future<void> disconnect() async {
     print('[NET LOG] Manual disconnect requested.');
     _isSessionActive = false;
+    _connectingCompleter?.complete();
+    _connectingCompleter = null;
     _cancelReconnectTimer();
     _stopHeartbeat();
     await _closeChannel();
@@ -89,28 +113,32 @@ class WebSocketClient {
   Future<void> _establishConnection() async {
     if (_cachedUrl == null) return;
 
+    await _closeChannel();
+
     try {
       print('[NET LOG] Attempting raw socket connection to $_cachedUrl...');
       final uri = Uri.parse(_cachedUrl!);
-      _channel = WebSocketChannel.connect(uri);
+      final channel = WebSocketChannel.connect(uri);
       
       // Wait for socket connection readiness
-      await _channel!.ready;
+      await channel.ready;
 
+      _channel = channel;
       _reconnectAttempts = 0;
       print('[NET LOG] Socket connection ESTABLISHED successfully!');
       _transitionTo(WebSocketConnectionState.connected);
       _startHeartbeat();
 
-      _channelSubscription = _channel!.stream.listen(
+      _channelSubscription = channel.stream.listen(
         _onMessageReceived,
-        onDone: _onConnectionClosed,
-        onError: _handleError,
+        onDone: () => _onConnectionClosed(channel),
+        onError: (err) => _handleError(err, channel),
         cancelOnError: true,
       );
     } catch (e) {
       print('[NET ERROR] Socket connection failed: $e');
-      _handleError(e);
+      _handleError(e, null);
+      rethrow;
     }
   }
 
@@ -130,7 +158,11 @@ class WebSocketClient {
     }
   }
 
-  void _onConnectionClosed() {
+  void _onConnectionClosed([WebSocketChannel? closedChannel]) {
+    if (closedChannel != null && _channel != null && closedChannel != _channel) {
+      print('[NET LOG] Ignored onDone from stale/superseded WebSocket channel.');
+      return;
+    }
     print('[NET LOG] Socket connection closed by server or network loss. ActiveSession = $_isSessionActive');
     _stopHeartbeat();
     _channel = null;
@@ -141,7 +173,11 @@ class WebSocketClient {
     }
   }
 
-  void _handleError(dynamic error) {
+  void _handleError(dynamic error, [WebSocketChannel? failedChannel]) {
+    if (failedChannel != null && _channel != null && failedChannel != _channel) {
+      print('[NET LOG] Ignored error from stale/superseded WebSocket channel.');
+      return;
+    }
     print('[NET ERROR] Socket error encountered: $error. ActiveSession = $_isSessionActive');
     _stopHeartbeat();
     _channel = null;
@@ -200,10 +236,10 @@ class WebSocketClient {
         _transitionTo(WebSocketConnectionState.connected);
         _startHeartbeat();
 
-        _channelSubscription = _channel!.stream.listen(
+        _channelSubscription = channel.stream.listen(
           _onMessageReceived,
-          onDone: _onConnectionClosed,
-          onError: _handleError,
+          onDone: () => _onConnectionClosed(channel),
+          onError: (err) => _handleError(err, channel),
           cancelOnError: true,
         );
 

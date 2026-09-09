@@ -113,6 +113,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
 
   void _saveAndClose() {
     AvatarStorageService.saveConfig(_currentConfig);
+    AuthService.saveAvatarConfig(_currentConfig);
     AuthService.updateTastes(_selectedTastes.toList());
     if (_currentPhoto != null && _currentPhoto!.isNotEmpty) {
       AuthService.updateProfilePhoto(_currentPhoto!);

@@ -461,8 +461,8 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
 
               // 2. Top Discreet Notification Toast (Clean, subtle, non-intrusive text)
               Positioned(
-                top: MediaQuery.of(context).padding.top + 54,
-                left: 60,
+                top: MediaQuery.of(context).padding.top + 98,
+                left: 20,
                 right: 20,
                 child: IgnorePointer(
                   child: ValueListenableBuilder<String?>(
@@ -539,7 +539,8 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                               valueListenable: ChatService.outgoingDateInviteNotifier,
                               builder: (context, outgoingInvite, _) {
                                 if (isQueued) {
-                                  return _buildQueuedCard();
+                                  final queueState = state is MatchmakingQueueState ? state : null;
+                                  return _buildQueuedCard(queueState);
                                 }
                                 if (outgoingInvite != null) {
                                   return _buildWaitingInviteCard(outgoingInvite);
@@ -560,333 +561,350 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     final user = AuthService.currentUser;
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // 1. User Profile & Wardrobe Card (Tap to edit Avatar, Tastes & Real Photo)
-        InkWell(
-          onTap: _openWardrobe,
-          borderRadius: BorderRadius.circular(20),
-          child: user != null
-              ? Container(
-                  constraints: const BoxConstraints(maxWidth: 240),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF282531).withOpacity(0.92),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.7), width: 1.2),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 2)),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          CircleAvatar(
-                            radius: 15,
-                            backgroundColor: const Color(0xFFFFB300),
-                            backgroundImage: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
-                                ? NetworkImage(user.profilePhoto!)
-                                : null,
-                            child: (user.profilePhoto == null || user.profilePhoto!.isEmpty)
-                                ? const Icon(Icons.person, size: 18, color: Colors.black)
-                                : null,
-                          ),
-                          Positioned(
-                            right: -2,
-                            bottom: -2,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF1E1B2E),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Text('🪞', style: TextStyle(fontSize: 9)),
-                            ),
-                          ),
+        // 1. Columna superior izquierda: Perfil de usuario arriba + Botón de Buzón abajo
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // User Profile & Wardrobe Card (Tap to edit Avatar, Tastes & Real Photo)
+            InkWell(
+              onTap: _openWardrobe,
+              borderRadius: BorderRadius.circular(20),
+              child: user != null
+                  ? Container(
+                      constraints: const BoxConstraints(maxWidth: 240),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF282531).withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.7), width: 1.2),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 2)),
                         ],
                       ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              CircleAvatar(
+                                radius: 15,
+                                backgroundColor: const Color(0xFFFFB300),
+                                backgroundImage: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
+                                    ? NetworkImage(user.profilePhoto!)
+                                    : null,
+                                child: (user.profilePhoto == null || user.profilePhoto!.isEmpty)
+                                    ? const Icon(Icons.person, size: 18, color: Colors.black)
+                                    : null,
+                              ),
+                              Positioned(
+                                right: -2,
+                                bottom: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF1E1B2E),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Text('🪞', style: TextStyle(fontSize: 9)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Flexible(
-                                  child: Text(
-                                    user.username,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12.5,
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        user.username,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12.5,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: Colors.amberAccent.withOpacity(0.4), width: 0.8),
+                                      ),
+                                      child: Text(
+                                        '${user.coinsBalance} 🪙',
+                                        style: const TextStyle(
+                                          color: Colors.amberAccent,
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFB300).withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        '${user.ticketsBalance} 🎟️',
+                                        style: const TextStyle(
+                                          color: Color(0xFFFFD54F),
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.amberAccent.withOpacity(0.4), width: 0.8),
-                                  ),
-                                  child: Text(
-                                    '${user.coinsBalance} 🪙',
-                                    style: const TextStyle(
-                                      color: Colors.amberAccent,
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.bold,
+                                const SizedBox(height: 1),
+                                const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '🪞 Editar Avatar & Gustos ✨',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFE082),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFB300).withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '${user.ticketsBalance} 🎟️',
-                                    style: const TextStyle(
-                                      color: Color(0xFFFFD54F),
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 1),
-                            const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  '🪞 Editar Avatar & Gustos ✨',
-                                  style: TextStyle(
-                                    color: Color(0xFFFFE082),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                          ),
+                          if (widget.onLogout != null) ...[
+                            const SizedBox(width: 6),
+                            InkWell(
+                              onTap: widget.onLogout,
+                              child: const Padding(
+                                padding: EdgeInsets.all(2.0),
+                                child: Icon(Icons.logout, color: Colors.redAccent, size: 15),
+                              ),
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                      if (widget.onLogout != null) ...[
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 135,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF282531).withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFF453F58)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: selectedDropdownValue,
+                              dropdownColor: const Color(0xFF282531),
+                              icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFFD54F), size: 18),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                              items: CozyLobbyView.defaultUsers.map((u) {
+                                return DropdownMenuItem<String>(
+                                  value: u['id'],
+                                  child: Text(
+                                    u['name']!,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  widget.onUserChanged(val);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 6),
-                        InkWell(
-                          onTap: widget.onLogout,
-                          child: const Padding(
-                            padding: EdgeInsets.all(2.0),
-                            child: Icon(Icons.logout, color: Colors.redAccent, size: 15),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF282531).withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.amberAccent.withOpacity(0.4)),
+                          ),
+                          child: Text(
+                            '${AvatarStorageService.getUserCoins(widget.activeUserId)} 🪙',
+                            style: const TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Buzón de Recuerdos (debajo del botón de perfil en la parte superior izquierda)
+            ValueListenableBuilder<int>(
+              valueListenable: MailboxService.unreadLettersCount,
+              builder: (context, unreadCount, _) {
+                return ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: unreadCount > 0 ? const Color(0xFF3B1E2E).withOpacity(0.95) : const Color(0xFF282531).withOpacity(0.92),
+                    foregroundColor: unreadCount > 0 ? const Color(0xFFFF80AB) : const Color(0xFFFFD54F),
+                    side: BorderSide(
+                      color: unreadCount > 0 ? const Color(0xFFFF4081) : const Color(0xFFFFD54F),
+                      width: unreadCount > 0 ? 1.6 : 1.2,
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    visualDensity: VisualDensity.compact,
+                    elevation: 3,
+                  ),
+                  onPressed: _openMailbox,
+                  icon: const Text('📮', style: TextStyle(fontSize: 14)),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Buzón', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      if (unreadCount > 0) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF4081),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
                     ],
                   ),
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 135,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF282531).withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF453F58)),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: selectedDropdownValue,
-                          dropdownColor: const Color(0xFF282531),
-                          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFFD54F), size: 18),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          items: CozyLobbyView.defaultUsers.map((u) {
-                            return DropdownMenuItem<String>(
-                              value: u['id'],
-                              child: Text(
-                                u['name']!,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              widget.onUserChanged(val);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF282531).withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.amberAccent.withOpacity(0.4)),
-                      ),
-                      child: Text(
-                        '${AvatarStorageService.getUserCoins(widget.activeUserId)} 🪙',
-                        style: const TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-
-        // 2. Privacy Mode Toggle (🟢 En línea / 🌙 Modo Invisible)
-        StatefulBuilder(
-          builder: (context, setBtnState) {
-            final activeId = widget.activeUserId;
-            final isOnline = AvatarStorageService.getPresenceMode(activeId) != 'INVISIBLE';
-
-            return InkWell(
-              onTap: () {
-                final newMode = isOnline ? 'INVISIBLE' : 'ONLINE';
-                ChatService.setPresenceMode(newMode);
-                setBtnState(() {});
-                _showTopNotification(isOnline ? '🌙 Modo Invisible activado: Te muestras desconectado' : '🟢 Ahora te muestras En Línea');
+                );
               },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF282531).withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isOnline ? const Color(0xFF66BB6A).withOpacity(0.7) : const Color(0xFF9E9E9E).withOpacity(0.7),
-                    width: 1.2,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: isOnline ? const Color(0xFF66BB6A) : const Color(0xFF9E9E9E),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isOnline ? 'En línea' : 'Invisible',
-                      style: TextStyle(
-                        color: isOnline ? const Color(0xFF81C784) : const Color(0xFFBDBDBD),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+            ),
+          ],
         ),
 
-        // 2b. WebSocket Live Network Status Badge
-        ValueListenableBuilder<bool>(
-          valueListenable: WebSocketClient.isConnectedNotifier,
-          builder: (context, isWs, _) {
-            return Tooltip(
-              message: isWs
-                  ? 'WebSocket Conectado (${WebSocketClient.shared?.currentUrl ?? ""})'
-                  : 'WebSocket Desconectado',
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF282531).withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: isWs ? Colors.greenAccent.withOpacity(0.5) : Colors.redAccent.withOpacity(0.5),
-                    width: 1.2,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: isWs ? Colors.greenAccent : Colors.redAccent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      isWs ? 'Red OK' : 'Sin Red',
-                      style: TextStyle(
-                        color: isWs ? Colors.greenAccent : Colors.redAccent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+        // 2. Columna/Fila derecha: Modo Invisible y Estado de Red
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Privacy Mode Toggle (🟢 En línea / 🌙 Modo Invisible)
+            StatefulBuilder(
+              builder: (context, setBtnState) {
+                final activeId = widget.activeUserId;
+                final isOnline = AvatarStorageService.getPresenceMode(activeId) != 'INVISIBLE';
 
-        // 3. Buzón de Recuerdos (Post-Date Matches & Letters)
-        ValueListenableBuilder<int>(
-          valueListenable: MailboxService.unreadLettersCount,
-          builder: (context, unreadCount, _) {
-            return ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: unreadCount > 0 ? const Color(0xFF3B1E2E).withOpacity(0.95) : const Color(0xFF282531).withOpacity(0.92),
-                foregroundColor: unreadCount > 0 ? const Color(0xFFFF80AB) : const Color(0xFFFFD54F),
-                side: BorderSide(
-                  color: unreadCount > 0 ? const Color(0xFFFF4081) : const Color(0xFFFFD54F),
-                  width: unreadCount > 0 ? 1.6 : 1.2,
-                ),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                visualDensity: VisualDensity.compact,
-                elevation: 3,
-              ),
-              onPressed: _openMailbox,
-              icon: const Text('📮', style: TextStyle(fontSize: 14)),
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Buzón', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  if (unreadCount > 0) ...[
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF4081),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '$unreadCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                return InkWell(
+                  onTap: () {
+                    final newMode = isOnline ? 'INVISIBLE' : 'ONLINE';
+                    ChatService.setPresenceMode(newMode);
+                    setBtnState(() {});
+                    _showTopNotification(isOnline ? '🌙 Modo Invisible activado: Te muestras desconectado' : '🟢 Ahora te muestras En Línea');
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF282531).withOpacity(0.92),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isOnline ? const Color(0xFF66BB6A).withOpacity(0.7) : const Color(0xFF9E9E9E).withOpacity(0.7),
+                        width: 1.2,
                       ),
                     ),
-                  ],
-                ],
-              ),
-            );
-          },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: isOnline ? const Color(0xFF66BB6A) : const Color(0xFF9E9E9E),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isOnline ? 'En línea' : 'Invisible',
+                          style: TextStyle(
+                            color: isOnline ? const Color(0xFF81C784) : const Color(0xFFBDBDBD),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 6),
+
+            // WebSocket Live Network Status Badge
+            ValueListenableBuilder<bool>(
+              valueListenable: WebSocketClient.isConnectedNotifier,
+              builder: (context, isWs, _) {
+                return Tooltip(
+                  message: isWs
+                      ? 'WebSocket Conectado (${WebSocketClient.shared?.currentUrl ?? ""})'
+                      : 'WebSocket Desconectado',
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF282531).withOpacity(0.92),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isWs ? Colors.greenAccent.withOpacity(0.5) : Colors.redAccent.withOpacity(0.5),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: isWs ? Colors.greenAccent : Colors.redAccent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          isWs ? 'Red OK' : 'Sin Red',
+                          style: TextStyle(
+                            color: isWs ? Colors.greenAccent : Colors.redAccent,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ],
     );
@@ -2961,7 +2979,12 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     );
   }
 
-  Widget _buildQueuedCard() {
+  Widget _buildQueuedCard([MatchmakingQueueState? queueState]) {
+    final commune = queueState?.commune ?? AuthService.currentUser?.commune ?? 'Santiago';
+    final isVoice = queueState?.mode == 'VOICE';
+    final modeLabel = isVoice ? 'Modo Voz' : 'Mazmorra Cooperativa';
+    final subText = '$commune • $modeLabel • Sigue explorando tu cuarto';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -2984,18 +3007,18 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFFFF6D00)),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Buscando Nueva Pareja en la Mazmorra...',
+                const Text(
+                  'Buscando Pareja en la Mazmorra...',
                   style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
                 ),
                 Text(
-                  'Santiago • Modo Voz • Sigue explorando tu cuarto',
-                  style: TextStyle(color: Colors.amberAccent, fontSize: 11),
+                  subText,
+                  style: const TextStyle(color: Colors.amberAccent, fontSize: 11),
                 ),
               ],
             ),

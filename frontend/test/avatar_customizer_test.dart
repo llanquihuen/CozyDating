@@ -52,11 +52,31 @@ void main() {
       expect(deserialized, equals(config));
     });
 
+    test('AvatarConfig preserves shoeStyle boots and shoeColor across JSON serialization', () {
+      const configWithBoots = AvatarConfig(
+        bodyType: 'female',
+        shoeStyle: 'boots',
+        shoeColor: Color(0xFFDC2626),
+        accessoryStyle: 'nice_lenses',
+      );
+
+      final json = configWithBoots.toJson();
+      expect(json['shoeStyle'], equals('boots'));
+      expect(json['accessoryStyle'], equals('nice_lenses'));
+
+      final deserialized = AvatarConfig.fromJson(json);
+      expect(deserialized.shoeStyle, equals('boots'));
+      expect(deserialized.shoeColor, equals(const Color(0xFFDC2626)));
+      expect(deserialized.accessoryStyle, equals('nice_lenses'));
+    });
+
     test('AvatarStorageService saves and retrieves current avatar config', () {
       const customConfig = AvatarConfig(
         spriteResolution: '64x128',
         hairStyle: 'bangs',
         topStyle: 'jacket',
+        shoeStyle: 'boots',
+        shoeColor: Color(0xFF78350F),
       );
 
       AvatarStorageService.saveConfig(customConfig);
@@ -65,6 +85,8 @@ void main() {
       expect(retrieved.spriteResolution, equals('64x128'));
       expect(retrieved.hairStyle, equals('bangs'));
       expect(retrieved.topStyle, equals('jacket'));
+      expect(retrieved.shoeStyle, equals('boots'));
+      expect(retrieved.shoeColor, equals(const Color(0xFF78350F)));
     });
 
     test('AvatarDirection supports 8 directions with 1..8 numbering', () {

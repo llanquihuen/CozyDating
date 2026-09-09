@@ -64,22 +64,6 @@ public class MatchmakingService {
                                           Object avatarConfig, Object roomConfig, String username, Object tastes) {
         logger.info("[MATCHMAKING REQUEST] User {} ({}) requesting to join queue [Commune: {}, TimeSlot: {}, Mode: {}]", userId, username, commune, timeSlot, mode);
 
-        for (QueueEntry entry : queue) {
-            if (entry.userId.equals(userId)) {
-                logger.warn("[MATCHMAKING WARN] User {} is ALREADY in queue. Request ignored.", userId);
-                return false;
-            }
-        }
-
-        if ("VOICE".equalsIgnoreCase(mode)) {
-            int balance = databaseService.getTicketBalance(userId);
-            logger.info("[MATCHMAKING VOICE CHECK] User {} tickets balance: {}", userId, balance);
-            if (balance < 1) {
-                logger.warn("[MATCHMAKING REJECTED] User {} has 0 tickets balance. Queue join REJECTED.", userId);
-                return false;
-            }
-        }
-
         Object resolvedTastes = tastes;
         boolean isEmptyTastes = (resolvedTastes == null) ||
                                (resolvedTastes instanceof List && ((List<?>) resolvedTastes).isEmpty()) ||
@@ -92,6 +76,25 @@ public class MatchmakingService {
             }
         }
 
+        for (int i = 0; i < queue.size(); i++) {
+            QueueEntry entry = queue.get(i);
+            if (entry.userId.equals(userId)) {
+                logger.info("[MATCHMAKING UPDATE] User {} is ALREADY in queue. Updating session and candidate parameters.", userId);
+                queue.set(i, new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes));
+                checkAndFormMatches();
+                return true;
+            }
+        }
+
+        if ("VOICE".equalsIgnoreCase(mode)) {
+            int balance = databaseService.getTicketBalance(userId);
+            logger.info("[MATCHMAKING VOICE CHECK] User {} tickets balance: {}", userId, balance);
+            if (balance < 1) {
+                logger.warn("[MATCHMAKING REJECTED] User {} has 0 tickets balance. Queue join REJECTED.", userId);
+                return false;
+            }
+        }
+
         QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes);
         queue.add(newEntry);
         logger.info("[MATCHMAKING QUEUED] User {} successfully added to queue. Current Queue Size: {}", userId, queue.size());
@@ -101,7 +104,11 @@ public class MatchmakingService {
     }
 
     public synchronized void leaveQueue(String userId) {
-        boolean removed = queue.removeIf(entry -> entry.userId.equals(userId));
+        leaveQueue(userId, null);
+    }
+
+    public synchronized void leaveQueue(String userId, WebSocketSession session) {
+        boolean removed = queue.removeIf(entry -> entry.userId.equals(userId) && (session == null || entry.session == null || entry.session.equals(session)));
         if (removed) {
             logger.info("[MATCHMAKING LEAVE] User {} removed from queue. New Queue Size: {}", userId, queue.size());
         }

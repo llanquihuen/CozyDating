@@ -159,7 +159,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             userPresenceModeMap.remove(userId);
             broadcastPresence(userId, false);
             logger.warn("[SOCKET CLOSED] WebSocket link closed for userId: {} (Status: {}). Triggering cleanup...", userId, status);
-            matchmakingService.leaveQueue(userId);
+            matchmakingService.leaveQueue(userId, session);
             gameSessionService.handleDisconnect(userId, session);
         } else {
             logger.info("[SOCKET CLOSED] Unauthenticated session closed: {}", session.getId());

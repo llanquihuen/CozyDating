@@ -126,8 +126,15 @@ class AvatarConfig extends Equatable {
     'oval',
   ];
 
+  static const List<String> hairsWithBack = [
+    'flow',
+    'long_flow',
+    'twintails',
+  ];
+
   static const List<String> availableEyeStyles = [
     'cateyes',
+    'closedeyes',
     'relax',
   ];
 
@@ -136,11 +143,12 @@ class AvatarConfig extends Equatable {
   ];
 
   static const List<String> availableNoseStyles = [
-    'standard',
     'small',
+    'standard',
   ];
 
   static const List<String> availableMouthStyles = [
+    'biglips',
     'catmouth',
     'smile',
     'smirk',
@@ -151,11 +159,12 @@ class AvatarConfig extends Equatable {
   ];
 
   static const List<String> availableHairStyles = [
-    'long_flow',
-    'flow',
-    'comb_over',
     'bangs',
     'braids',
+    'comb_over',
+    'flow',
+    'long_flow',
+    'twintails',
     'none',
   ];
 
@@ -176,6 +185,7 @@ class AvatarConfig extends Equatable {
 
   static const List<String> availableAccessoryStyles = [
     'none',
+    'freckles',
     'nice_lenses',
     'normal_lenses',
   ];
@@ -242,6 +252,10 @@ class AvatarConfig extends Equatable {
       case 'normal_lenses': return 'Lentes Clásicos 👓';
       case 'straw_hat': return 'Sombrero';
       case 'none': return 'Ninguno';
+
+      case 'biglips': return 'Labios Grandes 💋';
+      case 'closedeyes': return 'Ojos Cerrados 😌';
+      case 'twintails': return 'Dos Coletas / Twintails 👧';
 
       default:
         return id.replaceAll('_', ' ');
@@ -361,6 +375,17 @@ class AvatarConfig extends Equatable {
       return 'catmouth';
     }
 
+    String mapShoe(String? s) {
+      if (s == 'boots') return 'boots';
+      return 'none';
+    }
+
+    String mapAccessory(String? a) {
+      if (a == 'nice_lenses') return 'nice_lenses';
+      if (a == 'normal_lenses') return 'normal_lenses';
+      return 'none';
+    }
+
     return AvatarConfig(
       bodyType: (json['bodyType'] == 'male') ? 'male' : 'female',
       spriteResolution: '64x128',
@@ -380,9 +405,9 @@ class AvatarConfig extends Equatable {
       topColor: json['topColor'] != null ? Color(json['topColor'] as int) : const Color(0xFFDC2626),
       bottomStyle: mapBottom(json['bottomStyle'] as String?),
       bottomColor: json['bottomColor'] != null ? Color(json['bottomColor'] as int) : const Color(0xFF2563EB),
-      shoeStyle: 'none',
+      shoeStyle: mapShoe(json['shoeStyle'] as String?),
       shoeColor: json['shoeColor'] != null ? Color(json['shoeColor'] as int) : const Color(0xFF78350F),
-      accessoryStyle: 'none',
+      accessoryStyle: mapAccessory(json['accessoryStyle'] as String?),
       accessoryColor: json['accessoryColor'] != null ? Color(json['accessoryColor'] as int) : const Color(0xFFEAB308),
     );
   }

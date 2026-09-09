@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/models/avatar_config.dart';
@@ -119,6 +120,23 @@ void main() {
       expect(modular.renderBacklegSeparately, isFalse);
       modular.renderBacklegSeparately = true;
       expect(modular.renderBacklegSeparately, isTrue);
+    });
+
+    test('ModularAvatarComponent with boots correctly tracks sitting state and hasBackleg', () {
+      final modular = ModularAvatarComponent(
+        config: const AvatarConfig(
+          shoeStyle: 'boots',
+          shoeColor: Color(0xFF78350F),
+        ),
+        direction: AvatarDirection.northEast,
+      );
+
+      expect(modular.isSitting, isFalse);
+      modular.sitDown();
+      expect(modular.isSitting, isTrue);
+
+      // In NE, sitting avatar direction is 4
+      expect(modular.direction, equals(AvatarDirection.northEast));
     });
   });
 }

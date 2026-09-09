@@ -301,11 +301,17 @@ class GameInitialState extends GameState {
 
 class MatchmakingQueueState extends GameState {
   final String mode;
+  final String? commune;
+  final String? timeSlot;
 
-  const MatchmakingQueueState({required this.mode});
+  const MatchmakingQueueState({
+    required this.mode,
+    this.commune,
+    this.timeSlot,
+  });
 
   @override
-  List<Object?> get props => [mode];
+  List<Object?> get props => [mode, commune, timeSlot];
 }
 
 class ActiveGameState extends GameState {
@@ -593,7 +599,13 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   Future<void> _onJoinQueue(JoinQueueEvent event, Emitter<GameState> emit) async {
     print('[BLOC EVENT] JoinQueueEvent triggered [Commune: ${event.commune}, Mode: ${event.mode}]');
-    emit(const GameInitialState());
+    webSocketClient.setSessionActive(true);
+    emit(MatchmakingQueueState(
+      mode: event.mode,
+      commune: event.commune,
+      timeSlot: event.timeSlot,
+    ));
+
     try {
       if (!webSocketClient.isConnected) {
         await webSocketClient.connect(event.socketUrl, event.token);
@@ -619,11 +631,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         'roomConfig': myRoom.toMap(),
         'tastes': myTastes,
       });
-
-      print('[BLOC STATE] Emitting MatchmakingQueueState');
-      emit(MatchmakingQueueState(mode: event.mode));
     } catch (e) {
       print('[BLOC ERROR] Exception during queue join: $e');
+      webSocketClient.setSessionActive(false);
       emit(ErrorGameState(message: 'Failed to join matchmaking queue: $e'));
     }
   }
@@ -901,7 +911,16 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
     if (type == 'ERROR') {
       print('[BLOC IN] Received error packet: ${msg['message']}');
+      webSocketClient.setSessionActive(false);
       emit(ErrorGameState(message: msg['message'] as String? ?? 'Unknown error'));
+      return;
+    }
+
+    if (type == 'QUEUED') {
+      print('[BLOC IN] Confirmed in matchmaking queue by server');
+      if (state is! MatchmakingQueueState && state is! ActiveGameState) {
+        emit(const MatchmakingQueueState(mode: 'STANDARD'));
+      }
       return;
     }
 
@@ -1344,9 +1363,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         final active = state as ActiveGameState;
         emit(PausedGameState(session: active.session, reason: 'Connection lost. Reconnecting...'));
       }
+      // Note: If state is MatchmakingQueueState, stay in MatchmakingQueueState while client auto-reconnects
     } else if (netState == WebSocketConnectionState.disconnected) {
       if (state is MatchmakingQueueState) {
         print('[BLOC IN] Disconnected while in queue. Returning to GameInitialState (Main Menu).');
+        webSocketClient.setSessionActive(false);
         emit(const GameInitialState());
       } else if (state is ActiveGameState || state is PausedGameState) {
         emit(const TerminatedGameState(reason: 'Connection disconnected permanently.'));

@@ -67,6 +67,8 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
   String _selectedUserId = 'alice';
   String? _introCompletedRoomId;
 
+  bool _isMatchmakingRequestInFlight = false;
+
   String get _baseUrl => AppConfig.baseUrl;
   String get _wsUrl => AppConfig.wsUrl;
 
@@ -80,6 +82,11 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
   }
 
   Future<void> _startMatchmaking(BuildContext context) async {
+    if (_isMatchmakingRequestInFlight) return;
+    final currentGameState = context.read<GameBloc>().state;
+    if (currentGameState is MatchmakingQueueState) return;
+
+    _isMatchmakingRequestInFlight = true;
     try {
       String token;
       String userId;
@@ -123,6 +130,14 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
       if (mounted) {
         _showErrorSnackBar(context, 'Error al conectar con matchmaking: $e');
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isMatchmakingRequestInFlight = false;
+        });
+      } else {
+        _isMatchmakingRequestInFlight = false;
+      }
     }
   }
 
@@ -139,7 +154,7 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
         if (state is ErrorGameState) {
           _showErrorSnackBar(context, state.message);
         }
-        if (state is GameInitialState || state is TerminatedGameState) {
+        if ((state is GameInitialState || state is TerminatedGameState) && !_isMatchmakingRequestInFlight) {
           _introCompletedRoomId = null;
           if (AuthService.isAuthenticated) {
             ChatService.ensureConnected();
