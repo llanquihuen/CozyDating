@@ -15,14 +15,19 @@ class SeatSpot {
   /// Desfase visual en píxeles de pantalla (dx: izquierda/derecha, dy: arriba/abajo - altura del cojín).
   final Vector2 visualOffset;
 
+  /// Ajuste fino opcional para definir el centro del área de clic (ej. el centro del cojín o respaldo),
+  /// relativo a la posición visual donde se asienta el avatar.
+  final Vector2? tapOffset;
+
   const SeatSpot({
     required this.slotIndex,
     required this.subCell,
     required this.visualOffset,
+    this.tapOffset,
   });
 
   @override
-  String toString() => 'SeatSpot(slotIndex: $slotIndex, subCell: $subCell, visualOffset: $visualOffset)';
+  String toString() => 'SeatSpot(slotIndex: $slotIndex, subCell: $subCell, visualOffset: $visualOffset, tapOffset: $tapOffset)';
 }
 
 /// Configuración centralizada de puntos de asiento por tipo de mueble y rotación.
@@ -31,63 +36,63 @@ class ChairSeatConfig {
   static final Map<String, Map<int, List<SeatSpot>>> _spots = {
     // 1. Silla simple de madera (0.5x0.5) - 1 solo asiento
     'simple_chair_sm': {
-      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0))],
-      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
-      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
-      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0))],
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0), tapOffset: Vector2(0, -18))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0), tapOffset: Vector2(0, -18))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0), tapOffset: Vector2(0, -18))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0), tapOffset: Vector2(0, -18))],
     },
     'simple_chair': {
-      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0))],
-      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
-      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
-      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0))],
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0), tapOffset: Vector2(0, -18))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0), tapOffset: Vector2(0, -18))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0), tapOffset: Vector2(0, -18))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0), tapOffset: Vector2(0, -18))],
     },
     'gamer_chair_sm': {
-      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0))],
-      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
-      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
-      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0))],
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0), tapOffset: Vector2(0, -18))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0), tapOffset: Vector2(0, -18))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0), tapOffset: Vector2(0, -18))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0), tapOffset: Vector2(0, -18))],
     },
     'gamer_chair': {
-      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0))],
-      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
-      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0))],
-      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0))],
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-2.0, 0.0), tapOffset: Vector2(0, -18))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0), tapOffset: Vector2(0, -18))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 2.0), tapOffset: Vector2(0, -18))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-5.0, 2.0), tapOffset: Vector2(0, -18))],
     },
 
     // 2. Sillón acolchado (1x1 = 2x2 subcuadros) - 1 asiento más amplio y elevado
     //(x 8.0 pixeles hacia la derecha,y 8.0 pixeles hacia abajo)
     'plush_armchair': {
-      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 1), visualOffset: Vector2(11.0, 6.0))],
-      1: [SeatSpot(slotIndex: 0, subCell: const Point(1, 0), visualOffset: Vector2(-11.0, 6.0))],
-      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 14.0))],
-      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(0.0, 14.0))],
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 1), visualOffset: Vector2(11.0, 6.0), tapOffset: Vector2(0, -20))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(1, 0), visualOffset: Vector2(-11.0, 6.0), tapOffset: Vector2(0, -20))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 14.0), tapOffset: Vector2(0, -20))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(0.0, 14.0), tapOffset: Vector2(0, -20))],
     },
     // 3. Sofá simple (2x1 y 1x2) - 3 plazas (Izquierda, Centro, Derecha)
     'simple_sofa': {
       // Rot 0: Mirando a SW (frente a la cámara, 2x1 baldosas)
       0: [
-        SeatSpot(slotIndex: 0, subCell: const Point(0, 1), visualOffset: Vector2(4.0, 4.0)),   // Plaza izquierda
-        SeatSpot(slotIndex: 1, subCell: const Point(1, 1), visualOffset: Vector2(10.0, 5.0)), // Plaza central
-        SeatSpot(slotIndex: 2, subCell: const Point(2, 1), visualOffset: Vector2(14.0, 5.0)),   // Plaza derecha
+        SeatSpot(slotIndex: 0, subCell: const Point(0, 1), visualOffset: Vector2(4.0, 4.0), tapOffset: Vector2(0, -18)),   // Plaza izquierda
+        SeatSpot(slotIndex: 1, subCell: const Point(1, 1), visualOffset: Vector2(10.0, 5.0), tapOffset: Vector2(0, -18)), // Plaza central
+        SeatSpot(slotIndex: 2, subCell: const Point(2, 1), visualOffset: Vector2(14.0, 5.0), tapOffset: Vector2(0, -18)),   // Plaza derecha
       ],
       // Rot 1: Mirando a SE (frente a la cámara, 1x2 baldosas)
       1: [
-        SeatSpot(slotIndex: 0, subCell: const Point(1, 0), visualOffset: Vector2(-4.0, 4.0)),   // Plaza 1
-        SeatSpot(slotIndex: 1, subCell: const Point(1, 1), visualOffset: Vector2(-10.0, 5.0)),// Plaza 2 (Centro)
-        SeatSpot(slotIndex: 2, subCell: const Point(1, 2), visualOffset: Vector2(-14.0, 5.0)),   // Plaza 3
+        SeatSpot(slotIndex: 0, subCell: const Point(1, 0), visualOffset: Vector2(-4.0, 4.0), tapOffset: Vector2(0, -18)),   // Plaza 1
+        SeatSpot(slotIndex: 1, subCell: const Point(1, 1), visualOffset: Vector2(-10.0, 5.0), tapOffset: Vector2(0, -18)),// Plaza 2 (Centro)
+        SeatSpot(slotIndex: 2, subCell: const Point(1, 2), visualOffset: Vector2(-14.0, 5.0), tapOffset: Vector2(0, -18)),   // Plaza 3
       ],
       // Rot 2: Mirando a NE (hacia el fondo, 2x1 baldosas)
       2: [
-        SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(8.0, 6.0)),
-        SeatSpot(slotIndex: 1, subCell: const Point(1, 0), visualOffset: Vector2(11.0, 6.0)),
-        SeatSpot(slotIndex: 2, subCell: const Point(2, 0), visualOffset: Vector2(14.0, 6.0)),
+        SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(8.0, 6.0), tapOffset: Vector2(0, -18)),
+        SeatSpot(slotIndex: 1, subCell: const Point(1, 0), visualOffset: Vector2(11.0, 6.0), tapOffset: Vector2(0, -18)),
+        SeatSpot(slotIndex: 2, subCell: const Point(2, 0), visualOffset: Vector2(14.0, 6.0), tapOffset: Vector2(0, -18)),
       ],
       // Rot 3: Mirando a NW (hacia el fondo, 1x2 baldosas)
       3: [
-        SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-8.0, 6.0)),
-        SeatSpot(slotIndex: 1, subCell: const Point(0, 1), visualOffset: Vector2(-11.0, 6.0)),
-        SeatSpot(slotIndex: 2, subCell: const Point(0, 2), visualOffset: Vector2(-14.0, 6.0)),
+        SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(-8.0, 6.0), tapOffset: Vector2(0, -18)),
+        SeatSpot(slotIndex: 1, subCell: const Point(0, 1), visualOffset: Vector2(-11.0, 6.0), tapOffset: Vector2(0, -18)),
+        SeatSpot(slotIndex: 2, subCell: const Point(0, 2), visualOffset: Vector2(-14.0, 6.0), tapOffset: Vector2(0, -18)),
       ],
     },
   };
@@ -153,13 +158,17 @@ class ChairSeatConfig {
     double bestDistSq = double.infinity;
 
     for (final spot in pool) {
-      final spotScreenPos = IsometricCoords.subGridToScreen(
+      final avatarPos = IsometricCoords.subGridToScreen(
         baseSubU + spot.subCell.x,
         baseSubV + spot.subCell.y,
       ) + spot.visualOffset;
 
-      final distSq = (spotScreenPos.x - worldTapPos.x) * (spotScreenPos.x - worldTapPos.x) +
-          (spotScreenPos.y - worldTapPos.y) * (spotScreenPos.y - worldTapPos.y);
+      final clickTargetPos = spot.tapOffset != null
+          ? (avatarPos + spot.tapOffset!)
+          : avatarPos;
+
+      final distSq = (clickTargetPos.x - worldTapPos.x) * (clickTargetPos.x - worldTapPos.x) +
+          (clickTargetPos.y - worldTapPos.y) * (clickTargetPos.y - worldTapPos.y);
 
       if (distSq < bestDistSq) {
         bestDistSq = distSq;

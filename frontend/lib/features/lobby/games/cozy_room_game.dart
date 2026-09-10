@@ -2495,7 +2495,19 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
 
     if (hitChair != null && avatar != null) {
-      final targetSpot = ChairSeatConfig.getClosestSpot(hitChair, worldPos);
+      final occupiedSlots = <int>{};
+      if (partnerAvatar != null && partnerAvatar!.isSitting && partnerAvatar!.sittingChair == hitChair) {
+        occupiedSlots.add(partnerAvatar!.sittingSlotIndex);
+      }
+      // If local avatar is already sitting here, their slot doesn't prevent them from clicking it to stand up.
+      // But they shouldn't accidentally switch to an occupied spot.
+
+      final targetSpot = ChairSeatConfig.getClosestSpot(hitChair, worldPos, occupiedSlots: occupiedSlots);
+
+      if (occupiedSlots.contains(targetSpot.slotIndex)) {
+        // The closest spot (and all other spots on this chair) are already occupied by someone else.
+        return;
+      }
 
       // If already sitting on this chair in this exact spot, stand up to adjacent free space
       if (avatar!.isSitting && avatar!.sittingChair == hitChair && avatar!.sittingSlotIndex == targetSpot.slotIndex) {
