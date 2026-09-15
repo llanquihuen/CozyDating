@@ -47,8 +47,17 @@ class _CampfireViewState extends State<CampfireView> {
   String? _partnerSelectedOptionId;
   bool _isRevealed = false;
 
+  // Distensión (Relaxation) Phase state (Discrete 20s timer)
+  bool _isRelaxationPhase = false;
+  int _relaxationSecondsLeft = 20;
+  async.Timer? _relaxationTimer;
+  final TextEditingController _chatController = TextEditingController();
+  final FocusNode _chatFocusNode = FocusNode();
+  bool _showChatInput = false;
+
   int? _lastHandledEmoteTrigger;
   int? _lastHandledNextRoundTrigger;
+  int? _lastHandledChatTrigger;
   async.StreamSubscription<GameState>? _blocSub;
 
   @override
@@ -87,6 +96,9 @@ class _CampfireViewState extends State<CampfireView> {
 
   @override
   void dispose() {
+    _relaxationTimer?.cancel();
+    _chatController.dispose();
+    _chatFocusNode.dispose();
     _blocSub?.cancel();
     super.dispose();
   }
@@ -98,6 +110,12 @@ class _CampfireViewState extends State<CampfireView> {
       if (state.latestEmote != null && state.emoteTrigger != _lastHandledEmoteTrigger) {
         _lastHandledEmoteTrigger = state.emoteTrigger;
         _game.triggerEmote(state.latestEmote!, onLeft: false);
+      }
+
+      // 1b. Synchronized partner campfire chat (speech bubble)
+      if (state.partnerCampfireChatText != null && state.partnerCampfireChatTrigger != _lastHandledChatTrigger) {
+        _lastHandledChatTrigger = state.partnerCampfireChatTrigger;
+        _game.triggerSpeechBubble(state.partnerCampfireChatText!, onLeft: false);
       }
 
       // 2. Synchronized partner answer
@@ -170,7 +188,7 @@ class _CampfireViewState extends State<CampfireView> {
       }
       _advanceToRound(nextRound);
     } else {
-      _showCompletionDialog();
+      _startRelaxationPhase();
     }
   }
 
@@ -185,7 +203,47 @@ class _CampfireViewState extends State<CampfireView> {
     }
   }
 
+  void _sendChatMessage([String? presetText]) {
+    final text = (presetText ?? _chatController.text).trim();
+    if (text.isEmpty) return;
+
+    _game.triggerSpeechBubble(text, onLeft: true);
+    try {
+      context.read<GameBloc>().add(SendCampfireChatEvent(text: text));
+    } catch (e) {
+      print('[CAMPFIRE] Offline chat: $e');
+    }
+
+    if (presetText == null) {
+      _chatController.clear();
+    }
+  }
+
+  void _startRelaxationPhase() {
+    setState(() {
+      _isRelaxationPhase = true;
+      _relaxationSecondsLeft = 20;
+    });
+
+    _relaxationTimer?.cancel();
+    _relaxationTimer = async.Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_relaxationSecondsLeft > 1) {
+        setState(() {
+          _relaxationSecondsLeft--;
+        });
+      } else {
+        timer.cancel();
+        _showCompletionDialog();
+      }
+    });
+  }
+
   void _showCompletionDialog() {
+    _relaxationTimer?.cancel();
     final hasFriendship = widget.localUser.tastes.contains('intent_gaming_duo') ||
         widget.localUser.tastes.contains('intent_cozy_chats');
 
@@ -221,7 +279,7 @@ class _CampfireViewState extends State<CampfireView> {
     AvatarStorageService.addCoins(localId, 150);
     AuthService.addCoins(150);
 
-    // 2. Generate Tinder-like date letter in mailbox
+    // 2. Generate Tinder-like date letter in mailbox with all photos, bio and intent
     final partner = widget.partnerUser;
     var partnerId = partner?.id ?? widget.partnerName.toLowerCase();
     var partnerName = widget.partnerName;
@@ -234,7 +292,16 @@ class _CampfireViewState extends State<CampfireView> {
       partnerName = (localId == 'userA' || localId == 'alice') ? 'Bob' : 'Alice';
     }
 
-    final partnerPhoto = partner?.profilePhoto ?? AvatarStorageService.getUserPhoto(partnerId);
+    final partnerPhotos = (partner?.photos != null && partner!.photos.isNotEmpty)
+        ? partner.photos
+        : AvatarStorageService.getUserPhotos(partnerId);
+    final partnerPhoto = partner?.profilePhoto ?? (partnerPhotos.isNotEmpty ? partnerPhotos.first : AvatarStorageService.getUserPhoto(partnerId));
+    final partnerBio = (partner?.bio != null && partner!.bio.isNotEmpty)
+        ? partner.bio
+        : AvatarStorageService.getUserBio(partnerId);
+    final partnerIntent = (partner?.intent != null && partner!.intent.isNotEmpty)
+        ? partner.intent
+        : AvatarStorageService.getUserIntent(partnerId);
     final partnerAge = (partner?.age != null && partner!.age > 0) ? partner.age : 24;
     final partnerCommune = (partner?.commune != null && partner!.commune.isNotEmpty) ? partner.commune : 'Santiago';
 
@@ -247,6 +314,9 @@ class _CampfireViewState extends State<CampfireView> {
       partnerName: partnerName,
       partnerAvatar: widget.partnerAvatarConfig ?? partner?.avatarConfig ?? AvatarStorageService.getUserConfig(partnerId),
       partnerPhoto: partnerPhoto,
+      partnerPhotos: partnerPhotos,
+      partnerBio: partnerBio,
+      partnerIntent: partnerIntent,
       partnerAge: partnerAge,
       partnerCommune: partnerCommune,
       commonTastes: sharedTags.isNotEmpty ? sharedTags : (fallbackTags.isNotEmpty ? fallbackTags : const ['game_coop', 'intent_slow']),
@@ -356,23 +426,40 @@ class _CampfireViewState extends State<CampfireView> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Round Progress Badge
+                    // Round Progress Badge OR Discrete 20s Timer
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.15),
+                        color: _isRelaxationPhase ? Colors.black.withOpacity(0.4) : Colors.amber.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.amberAccent.withOpacity(0.6)),
                       ),
-                      child: Text(
-                        'Ronda ${_currentRound + 1} de ${_cards.length}',
-                        style: const TextStyle(
-                          color: Colors.amberAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                      child: _isRelaxationPhase
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.timer_outlined, size: 13, color: Colors.amberAccent),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${_relaxationSecondsLeft}s',
+                                  style: const TextStyle(
+                                    color: Colors.amberAccent,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'Ronda ${_currentRound + 1} de ${_cards.length}',
+                              style: const TextStyle(
+                                color: Colors.amberAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -380,7 +467,7 @@ class _CampfireViewState extends State<CampfireView> {
 
               // Campfire Flame Canvas (Upper half)
               Expanded(
-                flex: 5,
+                flex: _isRelaxationPhase ? 7 : 5,
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
@@ -395,54 +482,75 @@ class _CampfireViewState extends State<CampfireView> {
                     ],
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: GameWidget(game: _game),
-                ),
-              ),
-
-              // Quick Emote Bar
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: ['❤️', '👏', '☕', '🔥', '😂'].map((emote) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: InkWell(
-                        onTap: () => _sendReactionEmote(emote),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF141724),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white12),
-                          ),
-                          child: Text(emote, style: const TextStyle(fontSize: 16)),
-                        ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Animated Campfire Pixel Art Background GIF
+                      Image.asset(
+                        'assets/images/campfire.gif',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                       ),
-                    );
-                  }).toList(),
+                      // Flame Game Layer on top (avatars seated on logs, speech bubbles, emotes)
+                      GameWidget(game: _game),
+                    ],
+                  ),
                 ),
               ),
 
-              // Card & Options Area (Lower half)
+              // Quick Emote Bar (hidden during relaxation because relaxation has its own cozy bar)
+              if (!_isRelaxationPhase)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: ['❤️', '👏', '☕', '🔥', '😂'].map((emote) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: InkWell(
+                          onTap: () => _sendReactionEmote(emote),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF141724),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Text(emote, style: const TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+
+              // Card & Options Area OR Relaxation Phase Area (Lower half)
               Expanded(
-                flex: 6,
+                flex: _isRelaxationPhase ? 3 : 6,
                 child: Container(
                   width: double.infinity,
                   margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                  padding: const EdgeInsets.all(16),
+                  padding: _isRelaxationPhase
+                      ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+                      : const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF131520),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white12),
+                    border: Border.all(
+                      color: _isRelaxationPhase ? Colors.amberAccent.withOpacity(0.3) : Colors.white12,
+                      width: 1.0,
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Partner Answer Hint Banner (before local answer)
-                      if (_partnerSelectedOptionId != null && _localSelectedOptionId == null)
-                        Container(
+                  child: _isRelaxationPhase
+                      ? _buildRelaxationPhaseContent()
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Partner Answer Hint Banner (before local answer)
+                            if (_partnerSelectedOptionId != null && _localSelectedOptionId == null)
+                              Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
@@ -649,5 +757,121 @@ class _CampfireViewState extends State<CampfireView> {
           ),
         ),
       );
+  }
+
+  Widget _buildRelaxationPhaseContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // Floating text input like in HomeVisitView
+        if (_showChatInput)
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2030),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.amberAccent.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _chatController,
+                    focusNode: _chatFocusNode,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: const InputDecoration(
+                      hintText: 'Escribe algo para hablar...',
+                      hintStyle: TextStyle(color: Colors.white38, fontSize: 12),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    onSubmitted: (_) => _sendChatMessage(),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send_rounded, color: Colors.amberAccent, size: 18),
+                  onPressed: () => _sendChatMessage(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
+            ),
+          ),
+
+        // Cozy interactions bar (emotes + conversation button)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF141724),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildRelaxationEmoteButton('❤️'),
+              _buildRelaxationEmoteButton('🔥'),
+              _buildRelaxationEmoteButton('☕'),
+              _buildRelaxationEmoteButton('✨'),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _showChatInput = !_showChatInput;
+                    if (_showChatInput) {
+                      _chatFocusNode.requestFocus();
+                    }
+                  });
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _showChatInput ? Colors.amberAccent.withOpacity(0.2) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _showChatInput ? Colors.amberAccent : Colors.white24),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.chat_bubble_outline_rounded, size: 15, color: Colors.amberAccent),
+                      SizedBox(width: 5),
+                      Text('Conversar', style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Discreet exit button
+        TextButton(
+          onPressed: _showCompletionDialog,
+          child: const Text(
+            'Terminar cita ✨',
+            style: TextStyle(color: Colors.white60, fontSize: 11.5),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRelaxationEmoteButton(String emote) {
+    return InkWell(
+      onTap: () => _sendReactionEmote(emote),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E2030),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Text(emote, style: const TextStyle(fontSize: 16)),
+      ),
+    );
   }
 }

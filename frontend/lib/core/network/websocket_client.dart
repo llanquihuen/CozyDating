@@ -28,6 +28,8 @@ class WebSocketClient {
   final Duration _heartbeatInterval = const Duration(seconds: 15);
 
   bool _isSessionActive = false;
+  bool _manualDisconnect = false;
+  int _unansweredPings = 0;
 
   String? _cachedUrl;
   String? _cachedToken;
@@ -69,6 +71,7 @@ class WebSocketClient {
     print('[NET LOG] Connecting to $url with token: ${token.substring(0, token.length > 15 ? 15 : token.length)}...');
     _cachedUrl = url;
     _cachedToken = token;
+    _manualDisconnect = false;
     _reconnectAttempts = 0;
     _cancelReconnectTimer();
 
@@ -86,6 +89,7 @@ class WebSocketClient {
 
   Future<void> disconnect() async {
     print('[NET LOG] Manual disconnect requested.');
+    _manualDisconnect = true;
     _isSessionActive = false;
     _connectingCompleter?.complete();
     _connectingCompleter = null;
@@ -147,7 +151,8 @@ class WebSocketClient {
       try {
         final Map<String, dynamic> parsed = jsonDecode(data) as Map<String, dynamic>;
         if (parsed['type'] == 'PONG') {
-          // Keep-alive heartbeat pong received
+          // Keep-alive heartbeat pong received, reset unanswered counter
+          _unansweredPings = 0;
           return;
         }
         print('[NET INCOMING] Raw text received: $data');
@@ -163,10 +168,10 @@ class WebSocketClient {
       print('[NET LOG] Ignored onDone from stale/superseded WebSocket channel.');
       return;
     }
-    print('[NET LOG] Socket connection closed by server or network loss. ActiveSession = $_isSessionActive');
+    print('[NET LOG] Socket connection closed by server or network loss. ActiveSession = $_isSessionActive, ManualDisconnect = $_manualDisconnect');
     _stopHeartbeat();
     _channel = null;
-    if (_isSessionActive) {
+    if (_isSessionActive || (!_manualDisconnect && _cachedUrl != null)) {
       _startReconnectionSchedule();
     } else {
       _transitionTo(WebSocketConnectionState.disconnected);
@@ -178,10 +183,10 @@ class WebSocketClient {
       print('[NET LOG] Ignored error from stale/superseded WebSocket channel.');
       return;
     }
-    print('[NET ERROR] Socket error encountered: $error. ActiveSession = $_isSessionActive');
+    print('[NET ERROR] Socket error encountered: $error. ActiveSession = $_isSessionActive, ManualDisconnect = $_manualDisconnect');
     _stopHeartbeat();
     _channel = null;
-    if (_isSessionActive) {
+    if (_isSessionActive || (!_manualDisconnect && _cachedUrl != null)) {
       _startReconnectionSchedule();
     } else {
       _transitionTo(WebSocketConnectionState.disconnected);
@@ -190,8 +195,15 @@ class WebSocketClient {
 
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
+    _unansweredPings = 0;
     _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
       if (_connectionState == WebSocketConnectionState.connected && _channel != null) {
+        _unansweredPings++;
+        if (_unansweredPings >= 3) {
+          print('[NET WARN] Heartbeat timeout: No PONG received in 45s (dead/half-open socket). Forcing reconnect...');
+          _handleError('Heartbeat timeout (dead socket)');
+          return;
+        }
         sendMessage({'type': 'PING'});
       }
     });
@@ -200,6 +212,7 @@ class WebSocketClient {
   void _stopHeartbeat() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
+    _unansweredPings = 0;
   }
 
   void _startReconnectionSchedule() {
@@ -244,11 +257,19 @@ class WebSocketClient {
         );
 
         if (_cachedToken != null) {
-          print('[NET RECONNECT] Automatically submitting RECONNECT_SESSION frame...');
-          sendMessage({
-            'type': 'RECONNECT_SESSION',
-            'token': _cachedToken,
-          });
+          if (_isSessionActive) {
+            print('[NET RECONNECT] Automatically submitting RECONNECT_SESSION frame...');
+            sendMessage({
+              'type': 'RECONNECT_SESSION',
+              'token': _cachedToken,
+            });
+          } else {
+            print('[NET RECONNECT] Automatically submitting USER_ONLINE frame...');
+            sendMessage({
+              'type': 'USER_ONLINE',
+              'token': _cachedToken,
+            });
+          }
         }
       } catch (e) {
         print('[NET RECONNECT] Attempt $_reconnectAttempts failed: $e');

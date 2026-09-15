@@ -20,6 +20,8 @@ public class MailboxMatch {
     private String decisionB; // PENDING, KEEP_IN_TOUCH, ARCHIVED
     private String noteB;
     private boolean matched;
+    private boolean celebratedA;
+    private boolean celebratedB;
     private String createdAt;
     private String updatedAt;
 
@@ -202,6 +204,22 @@ public class MailboxMatch {
 
     public void setMatched(boolean matched) {
         this.matched = matched;
+    }
+
+    public boolean isCelebratedA() {
+        return celebratedA;
+    }
+
+    public void setCelebratedA(boolean celebratedA) {
+        this.celebratedA = celebratedA;
+    }
+
+    public boolean isCelebratedB() {
+        return celebratedB;
+    }
+
+    public void setCelebratedB(boolean celebratedB) {
+        this.celebratedB = celebratedB;
     }
 
     public String getCreatedAt() {

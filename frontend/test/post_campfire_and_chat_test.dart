@@ -251,5 +251,102 @@ void main() {
       expect(ChatService.incomingDateInviteNotifier.value, isNull);
       expect(find.textContaining('¡Invitación a Cita de Bob!'), findsNothing);
     });
+
+    testWidgets('Chat message creates unread notification in Mailbox tab and match card', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      MailboxService.clear();
+
+      final letter = MailboxLetter(
+        id: 'match_notify_1',
+        partnerId: 'user_david',
+        partnerName: 'David',
+        partnerAvatar: const AvatarConfig(),
+        partnerAge: 25,
+        partnerCommune: 'Ñuñoa',
+        commonTastes: const ['game_coop'],
+        myDecision: MailboxDecision.keepInTouch,
+        isMutualMatch: true,
+        createdAt: DateTime.now(),
+      );
+
+      MailboxService.addDateLetter(letter);
+
+      // Verify initially 0 unread
+      expect(ChatService.totalUnreadMessages, equals(0));
+
+      // Simulate incoming chat message while user is not in chat
+      ChatService.activeChatMatchId = null;
+      ChatService.unreadMessagesNotifier.value = {'match_notify_1': 1};
+      MailboxService.updateTotalBadgeCount();
+
+      // Verify MailboxService total unread is updated
+      expect(MailboxService.unreadLettersCount.value, equals(1));
+
+      // Render MailboxScreen
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MailboxScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Go to Mutuas tab
+      final mutuasTab = find.textContaining('Mutuas');
+      expect(mutuasTab, findsOneWidget);
+      await tester.tap(mutuasTab);
+      await tester.pumpAndSettle();
+
+      // Verify unread chat notification on the card and button
+      expect(find.text('¡Mensaje nuevo!'), findsOneWidget);
+      expect(find.text('Chatear (1)'), findsOneWidget);
+
+      // Tap "Chatear (1)"
+      await tester.tap(find.text('Chatear (1)'));
+      await tester.pumpAndSettle();
+
+      // Verify PrivateChatScreen opened and unread cleared
+      expect(find.text('David'), findsOneWidget);
+      expect(ChatService.getUnreadForMatch('match_notify_1'), equals(0));
+      expect(ChatService.totalUnreadMessages, equals(0));
+      expect(MailboxService.unreadLettersCount.value, equals(0));
+    });
+
+    testWidgets('PrivateChatScreen lifecycle observer triggers catch-up on resumed', (tester) async {
+      final letter = MailboxLetter(
+        id: 'match_lifecycle_1',
+        partnerId: 'sofia_user',
+        partnerName: 'Sofia',
+        partnerAvatar: const AvatarConfig(),
+        partnerAge: 25,
+        partnerCommune: 'Santiago',
+        commonTastes: ['vibe_night_owl'],
+        myDecision: MailboxDecision.keepInTouch,
+        isMutualMatch: true,
+        createdAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PrivateChatScreen(letter: letter),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sofia'), findsOneWidget);
+      expect(ChatService.activeChatMatchId, equals('match_lifecycle_1'));
+
+      // Simulate app going to background and resuming
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      // Ensure active chat match ID and notifier remain active
+      expect(ChatService.activeChatMatchId, equals('match_lifecycle_1'));
+    });
   });
 }
+

@@ -135,6 +135,14 @@ class AuthService {
           } else {
             AvatarStorageService.saveUserTastes(_currentUser!.id, _currentUser!.tastes);
           }
+          if (_currentUser!.photos.isEmpty) {
+            _currentUser = _currentUser!.copyWith(
+              photos: AvatarStorageService.getUserPhotos(_currentUser!.id),
+              bio: _currentUser!.bio.isNotEmpty ? _currentUser!.bio : AvatarStorageService.getUserBio(_currentUser!.id),
+              intent: _currentUser!.intent.isNotEmpty ? _currentUser!.intent : AvatarStorageService.getUserIntent(_currentUser!.id),
+              maxDistanceKm: AvatarStorageService.getUserMaxDistance(_currentUser!.id),
+            );
+          }
         } else {
           final localTastes = AvatarStorageService.getUserTastes(testUserId);
           _currentUser = UserProfile(
@@ -144,6 +152,10 @@ class AuthService {
             avatarConfig: AvatarStorageService.getUserConfig(testUserId),
             roomConfig: AvatarStorageService.getUserRoomConfig(testUserId),
             tastes: localTastes,
+            photos: AvatarStorageService.getUserPhotos(testUserId),
+            bio: AvatarStorageService.getUserBio(testUserId),
+            intent: AvatarStorageService.getUserIntent(testUserId),
+            maxDistanceKm: AvatarStorageService.getUserMaxDistance(testUserId),
           );
         }
         AvatarStorageService.setActiveUser(_currentUser!.id);
@@ -276,6 +288,27 @@ class AuthService {
       print('[PHOTO SAVE ERROR] $e');
     }
     return false;
+  }
+
+  /// Update dating profile fields in current session user
+  static void updateDatingProfile({
+    List<String>? photos,
+    String? bio,
+    String? intent,
+    double? maxDistanceKm,
+    int? age,
+    String? commune,
+  }) {
+    if (_currentUser == null) return;
+    _currentUser = _currentUser!.copyWith(
+      photos: photos,
+      profilePhoto: (photos != null && photos.isNotEmpty) ? photos.first : _currentUser!.profilePhoto,
+      bio: bio,
+      intent: intent,
+      maxDistanceKm: maxDistanceKm,
+      age: age,
+      commune: commune,
+    );
   }
 
   /// Fetch user ticket balance from backend

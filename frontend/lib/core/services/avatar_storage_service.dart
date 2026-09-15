@@ -395,32 +395,135 @@ class AvatarStorageService {
     _userTastes[userId] = List<String>.from(tastes);
   }
 
-  // --- Real Profile Photos Methods ---
-  static final Map<String, String> _userPhotos = {
-    'alice': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
-    'userA': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
-    'bob': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
-    'userB': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
-    'charlie': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
-    'userC': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
-    'david': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80',
-    'userD': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80',
+  // --- Real Profile Photos Methods (Up to 6 photos) ---
+  static final Map<String, List<String>> _userPhotosList = {
+    'alice': [
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80',
+    ],
+    'userA': [
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80',
+    ],
+    'bob': [
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80',
+    ],
+    'userB': [
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80',
+    ],
+    'charlie': [
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&auto=format&fit=crop&q=80',
+    ],
+    'userC': [
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&auto=format&fit=crop&q=80',
+    ],
+    'david': [
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+    ],
+    'userD': [
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+    ],
   };
 
-  static String? getUserPhoto(String userId) {
-    if (_userPhotos.containsKey(userId)) {
-      return _userPhotos[userId];
+  static List<String> getUserPhotos(String userId) {
+    if (_userPhotosList.containsKey(userId)) {
+      return List<String>.from(_userPhotosList[userId]!);
     }
     const fallbackKeys = ['alice', 'bob', 'charlie', 'david'];
     if (userId.isNotEmpty) {
       final index = userId.hashCode.abs() % fallbackKeys.length;
-      return _userPhotos[fallbackKeys[index]];
+      return List<String>.from(_userPhotosList[fallbackKeys[index]] ?? []);
     }
-    return null;
+    return const [];
+  }
+
+  static void saveUserPhotos(String userId, List<String> photos) {
+    _userPhotosList[userId] = List<String>.from(photos);
+  }
+
+  static String? getUserPhoto(String userId) {
+    final list = getUserPhotos(userId);
+    return list.isNotEmpty ? list.first : null;
   }
 
   static void saveUserPhoto(String userId, String photo) {
-    _userPhotos[userId] = photo;
+    final list = getUserPhotos(userId);
+    if (!list.contains(photo)) {
+      list.insert(0, photo);
+      _userPhotosList[userId] = list;
+    }
+  }
+
+  // --- Bio ("Acerca de mí") ---
+  static final Map<String, String> _userBios = {
+    'alice': 'Amante del café de especialidad, la animación japonesa y las partidas cooperativas con mantita. Busco conectar sin prisas ✨',
+    'userA': 'Amante del café de especialidad, la animación japonesa y las partidas cooperativas con mantita. Busco conectar sin prisas ✨',
+    'bob': 'Diseñador de día, explorador de roguelikes de noche. Me gustan las buenas conversaciones, los paseos con mi perro y la pizza casera 🍕',
+    'userB': 'Diseñador de día, explorador de roguelikes de noche. Me gustan las buenas conversaciones, los paseos con mi perro y la pizza casera 🍕',
+    'charlie': 'Fan de la ciencia ficción, juegos de rol y música lo-fi. Introvertido pero con ganas de encontrar a alguien con quien compartir silencio cómodo 🎧',
+    'userC': 'Fan de la ciencia ficción, juegos de rol y música lo-fi. Introvertido pero con ganas de encontrar a alguien con quien compartir silencio cómodo 🎧',
+    'david': 'Apasionado de los juegos de mesa, la escalada y el rock clásico. Siempre listo para reír y descubrir lugares nuevos en la ciudad 🧗',
+    'userD': 'Apasionado de los juegos de mesa, la escalada y el rock clásico. Siempre listo para reír y descubrir lugares nuevos en la ciudad 🧗',
+  };
+
+  static String getUserBio(String userId) {
+    if (_userBios.containsKey(userId)) return _userBios[userId]!;
+    const fallbackKeys = ['alice', 'bob', 'charlie', 'david'];
+    if (userId.isNotEmpty) {
+      final index = userId.hashCode.abs() % fallbackKeys.length;
+      return _userBios[fallbackKeys[index]] ?? '';
+    }
+    return '';
+  }
+
+  static void saveUserBio(String userId, String bio) {
+    _userBios[userId] = bio;
+  }
+
+  // --- Dating Intent ---
+  static final Map<String, String> _userIntents = {
+    'alice': 'intent_slow',
+    'userA': 'intent_slow',
+    'bob': 'intent_slow',
+    'userB': 'intent_slow',
+    'charlie': 'intent_gaming_duo',
+    'userC': 'intent_gaming_duo',
+    'david': 'intent_cozy_chats',
+    'userD': 'intent_cozy_chats',
+  };
+
+  static String getUserIntent(String userId) {
+    return _userIntents[userId] ?? 'intent_slow';
+  }
+
+  static void saveUserIntent(String userId, String intent) {
+    _userIntents[userId] = intent;
+  }
+
+  // --- Max Distance Filter (km) ---
+  static final Map<String, double> _userMaxDistances = {
+    'alice': 25.0,
+    'userA': 25.0,
+    'bob': 25.0,
+    'userB': 25.0,
+  };
+
+  static double getUserMaxDistance(String userId) {
+    return _userMaxDistances[userId] ?? 25.0;
+  }
+
+  static void saveUserMaxDistance(String userId, double distanceKm) {
+    _userMaxDistances[userId] = distanceKm;
   }
 
   // --- Coins Currency System ---
@@ -454,6 +557,15 @@ class AvatarStorageService {
 
   static void setPresenceMode(String userId, String mode) {
     _userPresenceModes[userId] = mode.toUpperCase();
+  }
+
+  // --- Mutual Match Celebration Tracking ---
+  static final Set<String> _acknowledgedMatchIds = {};
+
+  static bool isMatchAcknowledged(String matchId) => _acknowledgedMatchIds.contains(matchId);
+
+  static void markMatchAcknowledged(String matchId) {
+    _acknowledgedMatchIds.add(matchId);
   }
 }
 

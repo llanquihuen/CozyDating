@@ -8,6 +8,7 @@ class PitfallComponent extends PositionComponent with HasGameRef<DungeonGame>, C
   List<Sprite>? sprites;
   int _animFrame = 0; // 0: floor-crack1, 1: floor-crack2, 2: floor-crack3, 3: floor-crack4
   bool _isTriggered = false;
+  bool get isTriggered => _isTriggered;
   bool _isAnimating = false;
   bool isRepaired = false;
   double _animTimer = 0.0;
@@ -44,10 +45,10 @@ class PitfallComponent extends PositionComponent with HasGameRef<DungeonGame>, C
     if (sprites == null || sprites!.isEmpty) {
       try {
         sprites = [
-          await Sprite.load('floor-crack1.png'),
-          await Sprite.load('floor-crack2.png'),
-          await Sprite.load('floor-crack3.png'),
-          await Sprite.load('floor-crack4.png'),
+          await Sprite.load('dungeon/floor-crack1.png'),
+          await Sprite.load('dungeon/floor-crack2.png'),
+          await Sprite.load('dungeon/floor-crack3.png'),
+          await Sprite.load('dungeon/floor-crack4.png'),
         ];
       } catch (_) {
         // Fallback gracefully in headless test environments
@@ -121,12 +122,9 @@ class PitfallComponent extends PositionComponent with HasGameRef<DungeonGame>, C
         return;
       }
 
-      // In Guide Mode, render a warning overlay
+      // In Guide Mode, render an unmistakable large red 'X' warning overlay
       if (gameRef.isGuideMode && !_isTriggered) {
-        final center = (size / 2).toOffset();
-        final xPaint = Paint()..color = Colors.redAccent..strokeWidth = 2.0;
-        canvas.drawLine(center + const Offset(-5, -5), center + const Offset(5, 5), xPaint);
-        canvas.drawLine(center + const Offset(5, -5), center + const Offset(-5, 5), xPaint);
+        _renderGuideWarningX(canvas);
       }
       return;
     }
@@ -139,16 +137,55 @@ class PitfallComponent extends PositionComponent with HasGameRef<DungeonGame>, C
 
     if (gameRef.isGuideMode || _isTriggered) {
       final rect = size.toRect();
-      final center = (size / 2).toOffset();
-
       canvas.drawRect(rect, _guidePitPaint);
       canvas.drawRect(rect, _guideBorderPaint);
-
-      // Draw Skull warning X
-      final xPaint = Paint()..color = Colors.white..strokeWidth = 2.5;
-      canvas.drawLine(center + const Offset(-6, -6), center + const Offset(6, 6), xPaint);
-      canvas.drawLine(center + const Offset(6, -6), center + const Offset(-6, 6), xPaint);
+      if (gameRef.isGuideMode && !_isTriggered) {
+        _renderGuideWarningX(canvas);
+      }
     }
+  }
+
+  /// Renders a large, unmistakable red 'X' with dark shadow, red glow, and alert border for the Guide
+  void _renderGuideWarningX(Canvas canvas) {
+    final rect = size.toRect();
+    final center = (size / 2).toOffset();
+    final span = (size.x * 0.36); // Spans ~26px across a 36px tile
+
+    // 1. Subtle translucent crimson alert background on the tile
+    final alertBgPaint = Paint()..color = const Color(0x35E53935);
+    canvas.drawRect(rect, alertBgPaint);
+
+    // 2. Clear alert border
+    final alertBorderPaint = Paint()
+      ..color = const Color(0xAAFF1744)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawRect(rect.deflate(1.0), alertBorderPaint);
+
+    // 3. High-contrast dark outer shadow for the X
+    final shadowPaint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 5.2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(center + Offset(-span, -span), center + Offset(span, span), shadowPaint);
+    canvas.drawLine(center + Offset(span, -span), center + Offset(-span, span), shadowPaint);
+
+    // 4. Large glowing red X
+    final glowPaint = Paint()
+      ..color = const Color(0xFFFF1744).withValues(alpha: 0.7)
+      ..strokeWidth = 4.5
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    canvas.drawLine(center + Offset(-span, -span), center + Offset(span, span), glowPaint);
+    canvas.drawLine(center + Offset(span, -span), center + Offset(-span, span), glowPaint);
+
+    // 5. Bright vivid core X
+    final corePaint = Paint()
+      ..color = const Color(0xFFFF1744)
+      ..strokeWidth = 3.6
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(center + Offset(-span, -span), center + Offset(span, span), corePaint);
+    canvas.drawLine(center + Offset(span, -span), center + Offset(-span, span), corePaint);
   }
 
   void _renderRepairedPlanks(Canvas canvas) {

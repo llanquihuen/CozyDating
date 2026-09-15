@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/models/avatar_config.dart';
@@ -6,6 +7,12 @@ import 'package:frontend/features/mailbox/screens/mailbox_screen.dart';
 import 'package:frontend/features/mailbox/services/mailbox_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    MailboxService.clear();
+  });
+
   group('Mailbox Models & Flow Widget Tests', () {
     test('MailboxLetter parsing and status mapping', () {
       final map = {
@@ -86,6 +93,74 @@ void main() {
 
       // Unread count should update to 0
       expect(MailboxService.unreadLettersCount.value, equals(0));
+    });
+
+    testWidgets('Tapping a Mutual Match card opens full profile with all photos and bio', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      // Seed a mutual match with multiple photos
+      MailboxService.addDateLetter(
+        MailboxLetter(
+          id: 'mutual_date_1',
+          partnerId: 'user_claire',
+          partnerName: 'Claire',
+          partnerAvatar: const AvatarConfig(),
+          partnerPhoto: 'https://example.com/claire1.jpg',
+          partnerPhotos: const [
+            'https://example.com/claire1.jpg',
+            'https://example.com/claire2.jpg',
+          ],
+          partnerBio: 'Amante de la astronomía y el buen café.',
+          partnerIntent: 'Citas con calma 🌱',
+          partnerAge: 25,
+          partnerCommune: 'Las Condes',
+          commonTastes: const ['game_coop', 'nature_hiking'],
+          myDecision: MailboxDecision.keepInTouch,
+          isMutualMatch: true,
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MailboxScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Switch to Mutuas tab
+      final mutuasTab = find.textContaining('Mutuas');
+      expect(mutuasTab, findsOneWidget);
+      await tester.tap(mutuasTab);
+      await tester.pumpAndSettle();
+
+      // Verify mutual card displays Claire and photo badge
+      expect(find.text('Claire'), findsOneWidget);
+      expect(find.text('25 años • Las Condes'), findsOneWidget);
+      expect(find.text('2 fotos'), findsOneWidget);
+
+      // Tap on the card
+      await tester.tap(find.text('Claire'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Full profile modal should be displayed
+      expect(find.text('PERFIL COMPLETO'), findsOneWidget);
+      expect(find.text('Conexión Mutua • Claire'), findsOneWidget);
+      expect(find.text('Claire, 25'), findsOneWidget);
+      expect(find.text('Las Condes'), findsOneWidget);
+      expect(find.text('Amante de la astronomía y el buen café.'), findsOneWidget);
+      expect(find.text('Escribir a Claire'), findsOneWidget);
+      expect(find.text('Cerrar perfil'), findsOneWidget);
+
+      // Close modal
+      await tester.tap(find.text('Cerrar perfil'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('PERFIL COMPLETO'), findsNothing);
     });
   });
 }

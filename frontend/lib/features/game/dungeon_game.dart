@@ -2,11 +2,13 @@ import 'dart:async' as async;
 import 'dart:math';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import '../../../core/models/avatar_config.dart';
+import '../avatar/components/modular_avatar_component.dart';
 import 'components/darkness_overlay_component.dart';
 import 'components/explorer_component.dart';
 import 'components/floating_emote_component.dart';
@@ -23,7 +25,7 @@ import 'components/wall_component.dart';
 import 'services/dungeon_generator.dart';
 import 'widgets/dpad_widget.dart';
 
-class DungeonGame extends FlameGame with HasCollisionDetection {
+class DungeonGame extends FlameGame with HasCollisionDetection, TapCallbacks, DragCallbacks {
   late ExplorerComponent explorer;
   DungeonMapData? dungeonMapData;
 
@@ -35,12 +37,17 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
   final void Function(Vector2 tilePos)? onExplorerTrapped;
   final void Function()? onExplorerSpikeHit;
   final void Function(int correctCount, int totalCount, String? rune, bool isCorrect)? onRuneProgress;
+  final VoidCallback? onFlashlightAim;
+  final VoidCallback? onMapLoaded;
   final AvatarConfig? explorerAvatarConfig;
   final bool isGuideMode;
   final double tileSize = 36.0;
 
   bool hasKey = false;
   bool isExplorerTrapped = false;
+  bool isMapLoaded = false;
+  double? customFlashlightAngle;
+  final ValueNotifier<bool> canCoverTrap = ValueNotifier<bool>(false);
   final List<String> currentSteppedSequence = [];
   Vector2? _lastProcessedRunePos;
   final ValueNotifier<int> portalRemainingSeconds = ValueNotifier<int>(0);
@@ -56,6 +63,8 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     this.onExplorerTrapped,
     this.onExplorerSpikeHit,
     this.onRuneProgress,
+    this.onFlashlightAim,
+    this.onMapLoaded,
     this.explorerAvatarConfig,
     this.isGuideMode = false,
   });
@@ -97,54 +106,57 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     await super.onLoad();
 
     // Load floor texture
-    final floorSprite = await loadSprite('floor.png');
+    final floorSprite = await loadSprite('dungeon/floor.png');
     world.add(FloorComponent(sprite: floorSprite));
 
-    // Load all wall variations
-    final wallFaceMid = await loadSprite('wall.png');
-    final wallFaceLeft = await loadSprite('wall-left.png');
-    final wallFaceRight = await loadSprite('wall-right.png');
-    final wallFaceSingle = await loadSprite('wall-single.png');
+    // Load all wall variations (64x64)
+    final wallFaceMid = await loadSprite('dungeon/wall.png');
+    final wallFaceLeft = await loadSprite('dungeon/wall-left.png');
+    final wallFaceRight = await loadSprite('dungeon/wall-right.png');
+    final wallFaceSingle = await loadSprite('dungeon/wall-single.png');
 
-    final wallTopMid = await loadSprite('wall-up.png');
-    final wallTopLeft = await loadSprite('wall-up-left.png');
-    final wallTopRight = await loadSprite('wall-up-right.png');
-    final wallTopSingle = await loadSprite('wall-up-single.png');
+    final wallTopMid = await loadSprite('dungeon/wall-up.png');
+    final wallTopLeft = await loadSprite('dungeon/wall-up-left.png');
+    final wallTopRight = await loadSprite('dungeon/wall-up-right.png');
+    final wallTopSingle = await loadSprite('dungeon/wall-up-single.png');
 
     // Vertical wall variations
-    final wallFaceVertical = await loadSprite('vertical-wall.png');
-    final wallFaceVerticalLeftEdge = await loadSprite('vertical-left-more-wall-at-right.png');
-    final wallFaceVerticalRightEdge = await loadSprite('vertical-right-more-wall-at-left.png');
-    final wallFaceVerticalDownLeft = await loadSprite('vertical-wall-down-left.png');
-    final wallFaceVerticalDownRight = await loadSprite('vertical-wall-down-right.png');
-    final wallFaceVerticalDownLeftAndRight = await loadSprite('vertical-wall-down-left-and-right.png');
-    final wallFaceSurrounded = await loadSprite('wall-surrounded.png');
+    final wallFaceVertical = await loadSprite('dungeon/vertical-wall.png');
+    final wallFaceVerticalLeftEdge = await loadSprite('dungeon/vertical-left-more-wall-at-right.png');
+    final wallFaceVerticalRightEdge = await loadSprite('dungeon/vertical-right-more-wall-at-left.png');
+    final wallFaceVerticalDownLeft = await loadSprite('dungeon/vertical-wall-down-left.png');
+    final wallFaceVerticalDownRight = await loadSprite('dungeon/vertical-wall-down-right.png');
+    final wallFaceVerticalDownLeftAndRight = await loadSprite('dungeon/vertical-wall-down-left-and-right.png');
+    final wallFaceSurrounded = await loadSprite('dungeon/wall-surrounded.png');
 
     // Preload spike trap animation frames
     final spikeSprites = [
-      await loadSprite('spike-off1.png'),
-      await loadSprite('spike-off2.png'),
-      await loadSprite('spike-off3.png'),
-      await loadSprite('spike-off4.png'),
+      await loadSprite('dungeon/spike-off1.png'),
+      await loadSprite('dungeon/spike-off2.png'),
+      await loadSprite('dungeon/spike-off3.png'),
+      await loadSprite('dungeon/spike-off4.png'),
     ];
 
     // Preload pitfall floor crack animation frames
     final floorCrackSprites = [
-      await loadSprite('floor-crack1.png'),
-      await loadSprite('floor-crack2.png'),
-      await loadSprite('floor-crack3.png'),
-      await loadSprite('floor-crack4.png'),
+      await loadSprite('dungeon/floor-crack1.png'),
+      await loadSprite('dungeon/floor-crack2.png'),
+      await loadSprite('dungeon/floor-crack3.png'),
+      await loadSprite('dungeon/floor-crack4.png'),
     ];
 
     // Preload rune tile sprites
-    final sunOff = await loadSprite('sun-off.png');
-    final sunOn = await loadSprite('sun-on.png');
-    final moonOff = await loadSprite('moon-off.png');
-    final moonOn = await loadSprite('moon-on.png');
-    final snakeOff = await loadSprite('snake-off.png');
-    final snakeOn = await loadSprite('snake-on.png');
-    final lightningOff = await loadSprite('lighting-off.png');
-    final lightningOn = await loadSprite('lighting-on.png');
+    final sunOff = await loadSprite('dungeon/sun-off.png');
+    final sunOn = await loadSprite('dungeon/sun-on.png');
+    final moonOff = await loadSprite('dungeon/moon-off.png');
+    final moonOn = await loadSprite('dungeon/moon-on.png');
+    final snakeOff = await loadSprite('dungeon/snake-off.png');
+    final snakeOn = await loadSprite('dungeon/snake-on.png');
+    final lightningOff = await loadSprite('dungeon/lighting-off.png');
+    final lightningOn = await loadSprite('dungeon/lighting-on.png');
+
+    List<Sprite>? exitOffFrames;
+    List<Sprite>? exitOnFrames;
 
     dungeonMapData ??= DungeonGenerator.generateMap();
     final grid = dungeonMapData!.gridMatrix;
@@ -265,6 +277,8 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
             size: tileVectorSize,
             onGatePassed: onSanctuaryReached,
             runeSprites: [sunOn, moonOn, snakeOn, lightningOn],
+            framesOff: exitOffFrames,
+            framesOn: exitOnFrames,
           ));
         } else if (cell == 11) {
           world.add(RuneTileComponent(
@@ -318,11 +332,15 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
     if (!isGuideMode) {
       world.add(DarknessOverlayComponent());
     }
+
+    isMapLoaded = true;
+    onMapLoaded?.call();
   }
 
   void handleExplorerTrapped(Vector2 pitfallTilePos) {
     _lastProcessedRunePos = null;
     isExplorerTrapped = true;
+    canCoverTrap.value = false;
     onExplorerTrapped?.call(pitfallTilePos);
     onRuneFeedback?.call('🕳️ ¡Caíste en una grieta! El Guía puede rescatarte.');
   }
@@ -341,7 +359,55 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
       }
     }
     explorer.releaseFromPitfall();
+    updateCoverTrapState();
     onRuneFeedback?.call('🪢 ¡Tu compañero te rescató! La grieta ha sido sellada.');
+  }
+
+  /// Detects if there is an unrepaired pitfall trap on an adjacent tile right before the explorer
+  PitfallComponent? getNearbyCoverablePitfall() {
+    if (isExplorerTrapped) return null;
+    try {
+      final feet = explorer.feetPosition;
+      for (final pit in world.children.whereType<PitfallComponent>()) {
+        if (!pit.isRepaired && !pit.isTriggered) {
+          final pitCenter = pit.position + (pit.size / 2);
+          final dist = (feet - pitCenter).length;
+          // When standing on an immediately adjacent tile right before the trap (dist ~36px)
+          if (dist <= tileSize * 1.25) {
+            return pit;
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Covers the nearby pitfall with solid wooden planks before the explorer falls into it
+  bool coverNearbyPitfall() {
+    final pit = getNearbyCoverablePitfall();
+    if (pit != null) {
+      pit.repairAndRescue();
+      updateCoverTrapState();
+      onRuneFeedback?.call('🪵 ¡Trampa tapada con tablones! Camino seguro.');
+      return true;
+    }
+    return false;
+  }
+
+  /// Updates the canCoverTrap reactive flag for UI action button activation
+  void updateCoverTrapState() {
+    final canCover = getNearbyCoverablePitfall() != null;
+    if (canCoverTrap.value != canCover) {
+      canCoverTrap.value = canCover;
+    }
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!isGuideMode) {
+      updateCoverTrapState();
+    }
   }
 
   void showFloatingEmote(String emote, {Vector2? atPos}) {
@@ -478,6 +544,86 @@ class DungeonGame extends FlameGame with HasCollisionDetection {
 
   void stopExplorer() {
     explorer.stopMovement();
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    super.onTapDown(event);
+    if (!isGuideMode) {
+      aimFlashlightAtCanvas(event.canvasPosition);
+    }
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    if (!isGuideMode) {
+      aimFlashlightAtCanvas(event.canvasPosition);
+    }
+  }
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    if (!isGuideMode) {
+      aimFlashlightAtCanvas(event.canvasPosition);
+    }
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    super.onDragUpdate(event);
+    if (!isGuideMode) {
+      aimFlashlightAtCanvas(event.canvasEndPosition);
+    }
+  }
+
+  /// Converts an angle in radians to the closest 8-direction AvatarDirection
+  static AvatarDirection angleToAvatarDirection(double angle) {
+    double norm = angle % (2 * pi);
+    if (norm < 0) norm += 2 * pi;
+    final sector = ((norm + (pi / 8)) % (2 * pi) / (pi / 4)).floor();
+    switch (sector) {
+      case 0:
+        return AvatarDirection.east;
+      case 1:
+        return AvatarDirection.southEast;
+      case 2:
+        return AvatarDirection.south;
+      case 3:
+        return AvatarDirection.southWest;
+      case 4:
+        return AvatarDirection.west;
+      case 5:
+        return AvatarDirection.northWest;
+      case 6:
+        return AvatarDirection.north;
+      case 7:
+        return AvatarDirection.northEast;
+      default:
+        return AvatarDirection.south;
+    }
+  }
+
+  /// Aims the flashlight towards a screen/canvas position
+  void aimFlashlightAtCanvas(Vector2 canvasPos) {
+    try {
+      final worldPos = camera.viewfinder.globalToLocal(canvasPos);
+      aimFlashlightAtWorld(worldPos);
+    } catch (_) {}
+  }
+
+  /// Aims the flashlight towards a world coordinate
+  void aimFlashlightAtWorld(Vector2 worldPos) {
+    try {
+      final feetPos = explorer.feetPosition;
+      final angle = atan2(worldPos.y - feetPos.y, worldPos.x - feetPos.x);
+      customFlashlightAngle = angle;
+
+      final dir = angleToAvatarDirection(angle);
+      explorer.setFacingDirection(dir);
+      onFlashlightAim?.call();
+    } catch (_) {}
   }
 }
 

@@ -34,12 +34,13 @@ public class MatchmakingService {
         public final Object roomConfig;
         public final String username;
         public final Object tastes;
+        public final double maxDistanceKm;
         public final long timestamp;
 
         public QueueEntry(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
-                          Object avatarConfig, Object roomConfig, String username, Object tastes) {
+                          Object avatarConfig, Object roomConfig, String username, Object tastes, double maxDistanceKm) {
             this.userId = userId;
-            this.commune = commune;
+            this.commune = commune != null && !commune.trim().isEmpty() ? commune : "Santiago";
             this.timeSlot = timeSlot;
             this.mode = mode;
             this.session = session;
@@ -47,22 +48,45 @@ public class MatchmakingService {
             this.roomConfig = roomConfig;
             this.username = username != null ? username : userId;
             this.tastes = tastes;
+            this.maxDistanceKm = maxDistanceKm;
             this.timestamp = System.currentTimeMillis();
+        }
+
+        public double getEffectiveRadiusKm(long currentTime) {
+            if (maxDistanceKm < 0) {
+                return Double.MAX_VALUE; // Unlimited / National
+            }
+            double base = maxDistanceKm > 0 ? maxDistanceKm : 25.0;
+            long elapsedSeconds = Math.max(0, (currentTime - timestamp) / 1000);
+            // Expands by +15 km every 15 seconds in queue
+            double expansion = (elapsedSeconds / 15) * 15.0;
+            double total = base + expansion;
+            // After 60 seconds waiting, relax to national/unlimited
+            if (elapsedSeconds >= 60) {
+                return Double.MAX_VALUE;
+            }
+            return total;
         }
     }
 
     public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session) {
-        return joinQueue(userId, commune, timeSlot, mode, session, null, null, null, null);
+        return joinQueue(userId, commune, timeSlot, mode, session, null, null, null, null, 25.0);
     }
 
     public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
                                           Object avatarConfig, Object roomConfig, String username) {
-        return joinQueue(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, null);
+        return joinQueue(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, null, 25.0);
     }
 
     public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
                                           Object avatarConfig, Object roomConfig, String username, Object tastes) {
-        logger.info("[MATCHMAKING REQUEST] User {} ({}) requesting to join queue [Commune: {}, TimeSlot: {}, Mode: {}]", userId, username, commune, timeSlot, mode);
+        return joinQueue(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, tastes, 25.0);
+    }
+
+    public synchronized boolean joinQueue(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
+                                          Object avatarConfig, Object roomConfig, String username, Object tastes, double maxDistanceKm) {
+        logger.info("[MATCHMAKING REQUEST] User {} ({}) requesting to join queue [Commune: {}, MaxDist: {} km, TimeSlot: {}, Mode: {}]",
+                userId, username, commune, maxDistanceKm, timeSlot, mode);
 
         Object resolvedTastes = tastes;
         boolean isEmptyTastes = (resolvedTastes == null) ||
@@ -80,7 +104,7 @@ public class MatchmakingService {
             QueueEntry entry = queue.get(i);
             if (entry.userId.equals(userId)) {
                 logger.info("[MATCHMAKING UPDATE] User {} is ALREADY in queue. Updating session and candidate parameters.", userId);
-                queue.set(i, new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes));
+                queue.set(i, new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes, maxDistanceKm));
                 checkAndFormMatches();
                 return true;
             }
@@ -95,7 +119,7 @@ public class MatchmakingService {
             }
         }
 
-        QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes);
+        QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes, maxDistanceKm);
         queue.add(newEntry);
         logger.info("[MATCHMAKING QUEUED] User {} successfully added to queue. Current Queue Size: {}", userId, queue.size());
 
@@ -122,29 +146,37 @@ public class MatchmakingService {
         }
 
         List<QueueEntry> matchedEntries = new ArrayList<>();
+        long now = System.currentTimeMillis();
 
         for (int i = 0; i < queue.size(); i++) {
             QueueEntry entryA = queue.get(i);
             if (matchedEntries.contains(entryA)) continue;
 
+            double radiusA = entryA.getEffectiveRadiusKm(now);
+
             for (int j = i + 1; j < queue.size(); j++) {
                 QueueEntry entryB = queue.get(j);
                 if (matchedEntries.contains(entryB)) continue;
 
-                logger.info("[MATCHMAKING EVAL] Comparing candidate A ({}) with candidate B ({})...", entryA.userId, entryB.userId);
+                double radiusB = entryB.getEffectiveRadiusKm(now);
+                double distanceKm = com.cozydating.server.util.GeoDistanceUtil.calculateDistanceKm(entryA.commune, entryB.commune);
+
+                logger.info("[MATCHMAKING EVAL] Comparing candidate A ({}, {}) with candidate B ({}, {}). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km",
+                        entryA.userId, entryA.commune, entryB.userId, entryB.commune, distanceKm, radiusA, radiusB);
 
                 boolean modeMatch = entryA.mode.equalsIgnoreCase(entryB.mode);
-                boolean communeMatch = entryA.commune.equalsIgnoreCase(entryB.commune);
+                boolean distanceMatch = distanceKm <= radiusA && distanceKm <= radiusB;
                 boolean slotMatch = entryA.timeSlot.equals(entryB.timeSlot);
                 boolean differentUsers = !entryA.userId.equals(entryB.userId);
                 boolean notBlocked = !databaseService.isMutuallyBlocked(entryA.userId, entryB.userId);
                 boolean notPreviouslyMet = !databaseService.haveUsersMetOrMatched(entryA.userId, entryB.userId);
 
-                logger.info("[MATCHMAKING EVAL RESULT] Candidates ({} vs {}): Mode: {}, Commune: {}, Slot: {}, DiffUser: {}, NotBlocked: {}, NotPreviouslyMet: {}",
-                        entryA.userId, entryB.userId, modeMatch, communeMatch, slotMatch, differentUsers, notBlocked, notPreviouslyMet);
+                logger.info("[MATCHMAKING EVAL RESULT] Candidates ({} vs {}): Mode: {}, DistMatch: {}, Slot: {}, DiffUser: {}, NotBlocked: {}, NotPreviouslyMet: {}",
+                        entryA.userId, entryB.userId, modeMatch, distanceMatch, slotMatch, differentUsers, notBlocked, notPreviouslyMet);
 
-                if (modeMatch && communeMatch && slotMatch && differentUsers && notBlocked && notPreviouslyMet) {
-                    logger.info("[MATCHMAKING MATCH FOUND] Valid pair identified: {} <-> {} for mode {}", entryA.userId, entryB.userId, entryA.mode);
+                if (modeMatch && distanceMatch && slotMatch && differentUsers && notBlocked && notPreviouslyMet) {
+                    logger.info("[MATCHMAKING MATCH FOUND] Valid pair identified: {} <-> {} for mode {} (Distance: {:.1f} km)",
+                            entryA.userId, entryB.userId, entryA.mode, distanceKm);
                     
                     matchedEntries.add(entryA);
                     matchedEntries.add(entryB);

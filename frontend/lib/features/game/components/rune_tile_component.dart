@@ -12,6 +12,8 @@ class RuneTileComponent extends PositionComponent with HasGameRef<DungeonGame>, 
   bool _isStepped = false;
   bool _isCorrectlyStepped = false;
 
+  bool get isLit => _isCorrectlyStepped;
+
   final Paint _platePaint = Paint()..color = const Color(0xFF2C3E50);
   final Paint _activePaint = Paint()..color = const Color(0xFF3498DB);
   final Paint _borderPaint = Paint()
@@ -51,19 +53,19 @@ class RuneTileComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     switch (type.toUpperCase()) {
       case 'SOL':
       case 'SUN':
-        return ('sun-off.png', 'sun-on.png');
+        return ('dungeon/sun-off.png', 'dungeon/sun-on.png');
       case 'MOON':
       case 'LUNA':
-        return ('moon-off.png', 'moon-on.png');
+        return ('dungeon/moon-off.png', 'dungeon/moon-on.png');
       case 'SNAKE':
       case 'SERPIENTE':
-        return ('snake-off.png', 'snake-on.png');
+        return ('dungeon/snake-off.png', 'dungeon/snake-on.png');
       case 'LIGHTNING':
       case 'LIGHTING':
       case 'RAYO':
-        return ('lighting-off.png', 'lighting-on.png');
+        return ('dungeon/lighting-off.png', 'dungeon/lighting-on.png');
       default:
-        return ('sun-off.png', 'sun-on.png');
+        return ('dungeon/sun-off.png', 'dungeon/sun-on.png');
     }
   }
 
@@ -126,7 +128,7 @@ class RuneTileComponent extends PositionComponent with HasGameRef<DungeonGame>, 
   void render(Canvas canvas) {
     super.render(canvas);
 
-    final isLit = _isStepped || _isCorrectlyStepped;
+    final isLit = _isCorrectlyStepped;
     final currentSprite = isLit ? spriteOn : spriteOff;
 
     if (currentSprite != null) {

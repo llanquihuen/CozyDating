@@ -80,4 +80,48 @@ public class ChatController {
 
         return ResponseEntity.ok(msg);
     }
+
+    /**
+     * Mark chat messages as read for a specific match.
+     */
+    @PostMapping("/read")
+    public ResponseEntity<?> markMessagesAsRead(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody Map<String, Object> body) {
+
+        String queryUserId = (String) body.get("userId");
+        String userId = resolveUserId(authHeader, queryUserId);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Usuario no autenticado"));
+        }
+
+        String matchId = (String) body.get("matchId");
+        if (matchId != null) {
+            databaseService.markChatMessagesAsRead(matchId, userId);
+        }
+
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "matchId", matchId != null ? matchId : ""));
+    }
+
+    /**
+     * Get unread chat counts grouped by matchId as well as total count.
+     */
+    @GetMapping("/unread-summary")
+    public ResponseEntity<?> getUnreadSummary(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "userId", required = false) String queryUserId) {
+
+        String userId = resolveUserId(authHeader, queryUserId);
+        if (userId == null) {
+            return ResponseEntity.ok(Map.of("totalUnread", 0, "unreadByMatch", Collections.emptyMap()));
+        }
+
+        int total = databaseService.getUnreadChatCount(userId);
+        Map<String, Integer> byMatch = databaseService.getUnreadChatCountsByMatch(userId);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("totalUnread", total);
+        resp.put("unreadByMatch", byMatch);
+        return ResponseEntity.ok(resp);
+    }
 }

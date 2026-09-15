@@ -26,6 +26,9 @@ public class MailboxController {
     @Autowired
     private DatabaseService databaseService;
 
+    @Autowired(required = false)
+    private com.cozydating.server.handler.GameWebSocketHandler gameWebSocketHandler;
+
     private String resolveUserId(String authHeader, String queryUserId) {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
@@ -73,8 +76,8 @@ public class MailboxController {
             String partnerDecision = isUserA ? m.getDecisionB() : m.getDecisionA();
             String partnerNote = isUserA ? m.getNoteB() : m.getNoteA();
 
-            // Zero-rejection logic: only reveal partner note and mutual status if matched == true
             boolean isMutual = m.isMatched();
+            boolean isCelebrated = isUserA ? m.isCelebratedA() : m.isCelebratedB();
 
             Map<String, Object> item = new HashMap<>();
             item.put("id", m.getId());
@@ -88,6 +91,7 @@ public class MailboxController {
             item.put("myDecision", myDecision != null ? myDecision : "PENDING");
             item.put("myNote", myNote);
             item.put("isMutualMatch", isMutual);
+            item.put("isCelebrated", isCelebrated);
             if (isMutual) {
                 item.put("partnerNote", partnerNote);
             }
@@ -134,6 +138,10 @@ public class MailboxController {
         if (updated.isMatched()) {
             boolean isUserA = userId.equals(updated.getUserAId());
             resp.put("partnerNote", isUserA ? updated.getNoteB() : updated.getNoteA());
+
+            if (gameWebSocketHandler != null) {
+                gameWebSocketHandler.notifyMutualMatch(updated);
+            }
         }
 
         return ResponseEntity.ok(resp);
@@ -154,5 +162,27 @@ public class MailboxController {
 
         int count = databaseService.getUnreadMailboxCount(userId);
         return ResponseEntity.ok(Map.of("unreadCount", count));
+    }
+
+    /**
+     * Mark a match celebration as acknowledged so it won't appear again on future logins.
+     */
+    @PostMapping("/celebrated")
+    public ResponseEntity<?> markCelebrated(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody Map<String, Object> body) {
+
+        String queryUserId = (String) body.get("userId");
+        String userId = resolveUserId(authHeader, queryUserId);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Usuario no autenticado"));
+        }
+
+        String matchId = (String) body.get("matchId");
+        if (matchId != null) {
+            databaseService.markMatchCelebrated(matchId, userId);
+        }
+
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "matchId", matchId != null ? matchId : ""));
     }
 }

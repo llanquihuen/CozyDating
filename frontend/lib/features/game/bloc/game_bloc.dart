@@ -197,6 +197,24 @@ class SendCampfireCompletedEvent extends GameEvent {
   List<Object?> get props => [];
 }
 
+class SendCampfireChatEvent extends GameEvent {
+  final String text;
+
+  const SendCampfireChatEvent({required this.text});
+
+  @override
+  List<Object?> get props => [text];
+}
+
+class SendDoubleBlindVoteEvent extends GameEvent {
+  final bool wantsMatch;
+
+  const SendDoubleBlindVoteEvent({required this.wantsMatch});
+
+  @override
+  List<Object?> get props => [wantsMatch];
+}
+
 class SendHomeAvatarMoveEvent extends GameEvent {
   final double gridX;
   final double gridY;
@@ -339,6 +357,12 @@ class ActiveGameState extends GameState {
   final int? partnerCampfireRound;
   final int? partnerCampfireAnswerTrigger;
   final int? campfireNextRoundTrigger;
+  final String? partnerCampfireChatText;
+  final int? partnerCampfireChatTrigger;
+  final bool? localBlindVote;
+  final bool? partnerBlindVote;
+  final bool? blindVoteMatched;
+  final bool blindVoteClosed;
   final bool isHomeVisitActive;
   final String? hostUserId;
   final Vector2? partnerHomeMovePos;
@@ -378,6 +402,12 @@ class ActiveGameState extends GameState {
     this.partnerCampfireRound,
     this.partnerCampfireAnswerTrigger,
     this.campfireNextRoundTrigger,
+    this.partnerCampfireChatText,
+    this.partnerCampfireChatTrigger,
+    this.localBlindVote,
+    this.partnerBlindVote,
+    this.blindVoteMatched,
+    this.blindVoteClosed = false,
     this.isHomeVisitActive = false,
     this.hostUserId,
     this.partnerHomeMovePos,
@@ -418,6 +448,12 @@ class ActiveGameState extends GameState {
     int? partnerCampfireRound,
     int? partnerCampfireAnswerTrigger,
     int? campfireNextRoundTrigger,
+    String? partnerCampfireChatText,
+    int? partnerCampfireChatTrigger,
+    bool? localBlindVote,
+    bool? partnerBlindVote,
+    bool? blindVoteMatched,
+    bool? blindVoteClosed,
     bool? isHomeVisitActive,
     String? hostUserId,
     Vector2? partnerHomeMovePos,
@@ -460,6 +496,12 @@ class ActiveGameState extends GameState {
       partnerCampfireRound: partnerCampfireRound ?? this.partnerCampfireRound,
       partnerCampfireAnswerTrigger: partnerCampfireAnswerTrigger ?? this.partnerCampfireAnswerTrigger,
       campfireNextRoundTrigger: campfireNextRoundTrigger ?? this.campfireNextRoundTrigger,
+      partnerCampfireChatText: partnerCampfireChatText ?? this.partnerCampfireChatText,
+      partnerCampfireChatTrigger: partnerCampfireChatTrigger ?? this.partnerCampfireChatTrigger,
+      localBlindVote: localBlindVote ?? this.localBlindVote,
+      partnerBlindVote: partnerBlindVote ?? this.partnerBlindVote,
+      blindVoteMatched: blindVoteMatched ?? this.blindVoteMatched,
+      blindVoteClosed: blindVoteClosed ?? this.blindVoteClosed,
       isHomeVisitActive: isHomeVisitActive ?? this.isHomeVisitActive,
       hostUserId: hostUserId ?? this.hostUserId,
       partnerHomeMovePos: partnerHomeMovePos ?? this.partnerHomeMovePos,
@@ -502,6 +544,12 @@ class ActiveGameState extends GameState {
     partnerCampfireRound,
     partnerCampfireAnswerTrigger,
     campfireNextRoundTrigger,
+    partnerCampfireChatText,
+    partnerCampfireChatTrigger,
+    localBlindVote,
+    partnerBlindVote,
+    blindVoteMatched,
+    blindVoteClosed,
     isHomeVisitActive,
     hostUserId,
     partnerHomeMovePos,
@@ -577,6 +625,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<SendCampfireAnswerEvent>(_onSendCampfireAnswer);
     on<SendCampfireNextRoundEvent>(_onSendCampfireNextRound);
     on<SendCampfireCompletedEvent>(_onSendCampfireCompleted);
+    on<SendCampfireChatEvent>(_onSendCampfireChat);
+    on<SendDoubleBlindVoteEvent>(_onSendDoubleBlindVote);
     on<SendHomeAvatarMoveEvent>(_onSendHomeAvatarMove);
     on<SendHomeAvatarStandEvent>(_onSendHomeAvatarStand);
     on<SendHomeAvatarSitEvent>(_onSendHomeAvatarSit);
@@ -815,6 +865,38 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     webSocketClient.sendMessage({
       'type': 'CAMPFIRE_COMPLETED',
     });
+  }
+
+  void _onSendCampfireChat(SendCampfireChatEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending CAMPFIRE_CHAT: ${event.text}');
+    webSocketClient.sendMessage({
+      'type': 'CAMPFIRE_CHAT',
+      'text': event.text,
+    });
+  }
+
+  void _onSendDoubleBlindVote(SendDoubleBlindVoteEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending BLIND_VOTE: ${event.wantsMatch}');
+    webSocketClient.sendMessage({
+      'type': 'BLIND_VOTE',
+      'wantsMatch': event.wantsMatch,
+    });
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      // If partner has already voted:
+      if (active.partnerBlindVote != null) {
+        final matched = event.wantsMatch && (active.partnerBlindVote == true);
+        emit(active.copyWith(
+          localBlindVote: event.wantsMatch,
+          blindVoteMatched: matched,
+          blindVoteClosed: true,
+        ));
+      } else {
+        emit(active.copyWith(
+          localBlindVote: event.wantsMatch,
+        ));
+      }
+    }
   }
 
   void _onSendHomeAvatarMove(SendHomeAvatarMoveEvent event, Emitter<GameState> emit) {
@@ -1204,6 +1286,40 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         emit(active.copyWith(
           campfireNextRoundTrigger: DateTime.now().millisecondsSinceEpoch,
         ));
+      }
+      return;
+    }
+
+    if (type == 'CAMPFIRE_CHAT') {
+      final text = msg['text'] as String?;
+      print('[BLOC IN] Partner sent campfire chat: $text');
+      if (text != null && state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          partnerCampfireChatText: text,
+          partnerCampfireChatTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'BLIND_VOTE') {
+      final wantsMatch = msg['wantsMatch'] as bool? ?? false;
+      print('[BLOC IN] Received partner BLIND_VOTE: $wantsMatch');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        if (active.localBlindVote != null) {
+          final matched = (active.localBlindVote == true) && wantsMatch;
+          emit(active.copyWith(
+            partnerBlindVote: wantsMatch,
+            blindVoteMatched: matched,
+            blindVoteClosed: true,
+          ));
+        } else {
+          emit(active.copyWith(
+            partnerBlindVote: wantsMatch,
+          ));
+        }
       }
       return;
     }

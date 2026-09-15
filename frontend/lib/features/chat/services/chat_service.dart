@@ -8,6 +8,7 @@ import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../mailbox/models/mailbox_models.dart';
+import '../../mailbox/services/mailbox_service.dart';
 import '../models/chat_message.dart';
 
 class ChatService {
@@ -28,16 +29,95 @@ class ChatService {
   static final ValueNotifier<Map<String, Map<String, dynamic>>> activeInvitesNotifier =
       ValueNotifier<Map<String, Map<String, dynamic>>>({});
 
+  /// Track unread incoming messages per matchId (key: matchId, value: count of unread messages)
+  static final ValueNotifier<Map<String, int>> unreadMessagesNotifier =
+      ValueNotifier<Map<String, int>>({});
+
+  /// Currently active open chat matchId (if user is viewing that conversation, messages are read in real-time)
+  static String? activeChatMatchId;
+
+  static int get totalUnreadMessages =>
+      unreadMessagesNotifier.value.values.fold(0, (a, b) => a + b);
+
+  static int getUnreadForMatch(String matchId) =>
+      unreadMessagesNotifier.value[matchId] ?? 0;
+
+  static void clearUnread() {
+    unreadMessagesNotifier.value = {};
+  }
+
+  static void markMessagesAsRead(String matchId) {
+    if (unreadMessagesNotifier.value.containsKey(matchId) &&
+        (unreadMessagesNotifier.value[matchId] ?? 0) > 0) {
+      final updated = Map<String, int>.from(unreadMessagesNotifier.value);
+      updated.remove(matchId);
+      unreadMessagesNotifier.value = updated;
+      MailboxService.updateTotalBadgeCount();
+      _syncReadToServer(matchId);
+    }
+  }
+
+  static Future<void> _syncReadToServer(String matchId) async {
+    final myId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    if (myId.isEmpty) return;
+    try {
+      final url = Uri.parse('${AppConfig.baseUrl}/api/chat/read');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (AuthService.token != null) 'Authorization': 'Bearer ${AuthService.token}',
+      };
+      await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({'matchId': matchId, 'userId': myId}),
+      ).timeout(const Duration(seconds: 3));
+    } catch (_) {}
+  }
+
+  static Future<void> fetchUnreadSummary() async {
+    final myId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    if (myId.isEmpty) return;
+    try {
+      final url = Uri.parse('${AppConfig.baseUrl}/api/chat/unread-summary?userId=$myId');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (AuthService.token != null) 'Authorization': 'Bearer ${AuthService.token}',
+      };
+      final res = await http.get(url, headers: headers).timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic> && data['unreadByMatch'] is Map) {
+          final Map<String, int> parsed = {};
+          (data['unreadByMatch'] as Map).forEach((k, v) {
+            if (v is num && v > 0) {
+              parsed[k.toString()] = v.toInt();
+            }
+          });
+          unreadMessagesNotifier.value = parsed;
+          MailboxService.updateTotalBadgeCount();
+        }
+      }
+    } catch (_) {}
+  }
+
   static StreamSubscription<Map<String, dynamic>>? _socketSubscription;
+  static StreamSubscription<WebSocketConnectionState>? _socketStateSubscription;
 
   /// Initialize WebSocket listener for real multiplayer chat and presence
   static void initSocketListener() {
-    if (_socketSubscription != null) return;
-
     final client = WebSocketClient.shared;
     if (client == null) return;
 
-    _socketSubscription = client.messageStream.listen(_handleIncomingSocketMessage);
+    _socketSubscription ??= client.messageStream.listen(_handleIncomingSocketMessage);
+    _socketStateSubscription ??= client.stateStream.listen((state) {
+      if (state == WebSocketConnectionState.connected) {
+        fetchUnreadSummary();
+        // If a chat conversation is currently open, perform automatic catch-up
+        if (activeChatMatchId != null) {
+          fetchHistory(activeChatMatchId!);
+        }
+      }
+    });
   }
 
   static void _handleIncomingSocketMessage(Map<String, dynamic> msg) {
@@ -83,7 +163,29 @@ class ChatService {
           partnerPresenceNotifier.value = updated;
         }
         break;
+      case 'MUTUAL_MATCH_REVEAL':
+        _onReceiveMutualMatchReveal(msg);
+        break;
     }
+  }
+
+  static void _onReceiveMutualMatchReveal(Map<String, dynamic> data) {
+    final partnerId = data['partnerId'] as String? ?? '';
+    final letter = MailboxLetter(
+      id: data['matchId'] as String? ?? 'match_${DateTime.now().millisecondsSinceEpoch}',
+      partnerId: partnerId,
+      partnerName: data['partnerName'] as String? ?? 'Compañero',
+      partnerAvatar: AvatarStorageService.getUserConfig(partnerId),
+      partnerPhoto: data['partnerPhoto'] as String?,
+      partnerAge: (data['partnerAge'] as num?)?.toInt() ?? 24,
+      partnerCommune: data['partnerCommune'] as String? ?? 'Santiago',
+      commonTastes: (data['commonTastes'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      myDecision: MailboxDecision.keepInTouch,
+      isMutualMatch: true,
+      partnerNote: data['partnerNote'] as String?,
+      createdAt: DateTime.now(),
+    );
+    MailboxService.triggerMutualMatchCelebration(letter);
   }
 
   static void _onReceiveChatMessage(Map<String, dynamic> data) {
@@ -114,8 +216,17 @@ class ChatService {
     if (list.any((m) => m.id == messageId)) return;
 
     list.add(newMsg);
+    list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     if (_notifiers.containsKey(matchId)) {
       _notifiers[matchId]!.value = List.from(list);
+    }
+
+    // If this chat is not currently open on screen, increment unread count for mailbox badge
+    if (activeChatMatchId != matchId) {
+      final updated = Map<String, int>.from(unreadMessagesNotifier.value);
+      updated[matchId] = (updated[matchId] ?? 0) + 1;
+      unreadMessagesNotifier.value = updated;
+      MailboxService.updateTotalBadgeCount();
     }
   }
 
@@ -311,9 +422,21 @@ class ChatService {
           }
 
           if (remoteMessages.isNotEmpty) {
-            _messages[matchId] = remoteMessages;
+            final currentList = _messages[matchId] ?? [];
+            final Set<String> existingIds = currentList.map((m) => m.id).toSet();
+            final List<ChatMessage> merged = List.from(currentList);
+
+            for (final rMsg in remoteMessages) {
+              if (!existingIds.contains(rMsg.id)) {
+                merged.add(rMsg);
+                existingIds.add(rMsg.id);
+              }
+            }
+            merged.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+            _messages[matchId] = merged;
             if (_notifiers.containsKey(matchId)) {
-              _notifiers[matchId]!.value = List.from(remoteMessages);
+              _notifiers[matchId]!.value = List.from(merged);
             }
           }
         }

@@ -13,6 +13,10 @@ class UserProfile {
   final AvatarConfig avatarConfig;
   final List<String> tastes;
   final String? profilePhoto;
+  final List<String> photos;
+  final String bio;
+  final String intent;
+  final double maxDistanceKm;
   final RoomConfig roomConfig;
 
   const UserProfile({
@@ -26,8 +30,22 @@ class UserProfile {
     this.avatarConfig = const AvatarConfig(),
     this.tastes = const [],
     this.profilePhoto,
+    this.photos = const [],
+    this.bio = '',
+    this.intent = 'intent_slow',
+    this.maxDistanceKm = 25.0,
     this.roomConfig = const RoomConfig(),
   });
+
+  /// Primary photo for fallback/compatibility
+  String? get primaryPhoto => photos.isNotEmpty ? photos.first : profilePhoto;
+
+  /// Guaranteed list of photos (minimum 1 fallback if photo exists)
+  List<String> get allPhotos {
+    if (photos.isNotEmpty) return photos;
+    if (profilePhoto != null && profilePhoto!.isNotEmpty) return [profilePhoto!];
+    return const [];
+  }
 
   UserProfile copyWith({
     String? id,
@@ -40,6 +58,10 @@ class UserProfile {
     AvatarConfig? avatarConfig,
     List<String>? tastes,
     String? profilePhoto,
+    List<String>? photos,
+    String? bio,
+    String? intent,
+    double? maxDistanceKm,
     RoomConfig? roomConfig,
   }) {
     return UserProfile(
@@ -53,6 +75,10 @@ class UserProfile {
       avatarConfig: avatarConfig ?? this.avatarConfig,
       tastes: tastes ?? this.tastes,
       profilePhoto: profilePhoto ?? this.profilePhoto,
+      photos: photos ?? this.photos,
+      bio: bio ?? this.bio,
+      intent: intent ?? this.intent,
+      maxDistanceKm: maxDistanceKm ?? this.maxDistanceKm,
       roomConfig: roomConfig ?? this.roomConfig,
     );
   }
@@ -68,7 +94,11 @@ class UserProfile {
       'coinsBalance': coinsBalance,
       'avatarConfig': jsonEncode(avatarConfig.toJson()),
       'tastes': jsonEncode(tastes),
-      if (profilePhoto != null) 'profilePhoto': profilePhoto,
+      if (primaryPhoto != null) 'profilePhoto': primaryPhoto,
+      'photos': jsonEncode(allPhotos),
+      'bio': bio,
+      'intent': intent,
+      'maxDistanceKm': maxDistanceKm,
       'roomConfig': roomConfig.toJson(),
     };
   }
@@ -122,6 +152,26 @@ class UserProfile {
       parsedTastes = [];
     }
 
+    List<String> parsedPhotos = [];
+    try {
+      final rawPhotos = map['photos'];
+      if (rawPhotos is String && rawPhotos.isNotEmpty) {
+        final decoded = jsonDecode(rawPhotos);
+        if (decoded is List) {
+          parsedPhotos = List<String>.from(decoded);
+        }
+      } else if (rawPhotos is List) {
+        parsedPhotos = List<String>.from(rawPhotos);
+      }
+    } catch (_) {
+      parsedPhotos = [];
+    }
+
+    final singlePhoto = map['profilePhoto'] as String?;
+    if (parsedPhotos.isEmpty && singlePhoto != null && singlePhoto.isNotEmpty) {
+      parsedPhotos = [singlePhoto];
+    }
+
     return UserProfile(
       id: map['id'] ?? '',
       username: map['username'] ?? '',
@@ -132,7 +182,11 @@ class UserProfile {
       coinsBalance: (map['coinsBalance'] as num?)?.toInt() ?? 100,
       avatarConfig: avatar,
       tastes: parsedTastes,
-      profilePhoto: map['profilePhoto'] as String?,
+      profilePhoto: singlePhoto,
+      photos: parsedPhotos,
+      bio: map['bio'] as String? ?? '',
+      intent: map['intent'] as String? ?? 'intent_slow',
+      maxDistanceKm: (map['maxDistanceKm'] as num?)?.toDouble() ?? 25.0,
       roomConfig: room,
     );
   }

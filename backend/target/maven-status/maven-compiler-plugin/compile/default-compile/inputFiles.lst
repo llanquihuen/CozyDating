@@ -3,6 +3,7 @@ C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\mo
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\util\LiveKitTokenGenerator.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\service\GameSessionService.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\model\MailboxMatch.java
+C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\util\GeoDistanceUtil.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\model\User.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\config\WebSocketConfig.java
 C:\Users\Asus\ProyectoJuegoDating\backend\src\main\java\com\cozydating\server\controller\AuthController.java

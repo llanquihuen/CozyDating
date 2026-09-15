@@ -1,8 +1,10 @@
 import 'dart:async' as async;
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'explorer_component.dart';
 
 class RuneGateComponent extends PositionComponent with CollisionCallbacks {
@@ -13,6 +15,11 @@ class RuneGateComponent extends PositionComponent with CollisionCallbacks {
   final void Function()? onGatePassed;
 
   List<Sprite>? runeSprites;
+  List<Sprite>? framesOff;
+  List<Sprite>? framesOn;
+  int _animFrame = 0;
+  double _animTimer = 0.0;
+  static const double _frameDuration = 0.12; // ~120ms per GIF frame
   double _orbitAngle = 0.0;
   double _pulseTimer = 0.0;
 
@@ -27,22 +34,45 @@ class RuneGateComponent extends PositionComponent with CollisionCallbacks {
     required Vector2 size,
     this.onGatePassed,
     this.runeSprites,
+    this.framesOff,
+    this.framesOn,
   }) : super(position: position, size: size) {
-    priority = 3;
+    priority = 2;
     _hitbox = RectangleHitbox();
     add(_hitbox!);
+  }
+
+  static Future<List<Sprite>> loadGifFrames(String assetPath) async {
+    final byteData = await rootBundle.load(assetPath);
+    final bytes = byteData.buffer.asUint8List();
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frames = <Sprite>[];
+    for (int i = 0; i < codec.frameCount; i++) {
+      final frameInfo = await codec.getNextFrame();
+      frames.add(Sprite(frameInfo.image));
+    }
+    return frames;
   }
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    if (framesOff == null || framesOn == null) {
+      try {
+        framesOff ??= await loadGifFrames('assets/images/dungeon/exit-off.gif');
+        framesOn ??= await loadGifFrames('assets/images/dungeon/exit-on.gif');
+      } catch (_) {
+        // Fallback for headless test environments
+      }
+    }
+
     if (runeSprites == null || runeSprites!.isEmpty) {
       try {
         runeSprites = [
-          await Sprite.load('sun-on.png'),
-          await Sprite.load('moon-on.png'),
-          await Sprite.load('snake-on.png'),
-          await Sprite.load('lighting-on.png'),
+          await Sprite.load('dungeon/sun-on.png'),
+          await Sprite.load('dungeon/moon-on.png'),
+          await Sprite.load('dungeon/snake-on.png'),
+          await Sprite.load('dungeon/lighting-on.png'),
         ];
       } catch (_) {
         // Fallback for headless test environments
@@ -54,11 +84,15 @@ class RuneGateComponent extends PositionComponent with CollisionCallbacks {
   void unlockForDuration(Duration duration, {void Function()? onRelocked}) {
     print('[RUNE GATE LOG] Rune Gate UNLOCKED for ${duration.inSeconds} seconds!');
     isLocked = false;
+    _animFrame = 0;
+    _animTimer = 0.0;
 
     _lockTimer?.cancel();
     _lockTimer = async.Timer(duration, () {
       isLocked = true;
       _hasTriggeredSwap = false;
+      _animFrame = 0;
+      _animTimer = 0.0;
       onRelocked?.call();
       print('[RUNE GATE LOG] Rune Gate RELOCKED!');
     });
@@ -72,6 +106,12 @@ class RuneGateComponent extends PositionComponent with CollisionCallbacks {
   void update(double dt) {
     super.update(dt);
     _pulseTimer += dt;
+
+    _animTimer += dt;
+    if (_animTimer >= _frameDuration) {
+      _animTimer = 0.0;
+      _animFrame++;
+    }
 
     // Speed up orbital rotation when portal is active/unlocked
     final speed = isLocked ? 1.0 : 2.6;
@@ -93,6 +133,19 @@ class RuneGateComponent extends PositionComponent with CollisionCallbacks {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+
+    // Primary: Render pixel art GIF frames (exit-off.gif or exit-on.gif)
+    final activeFrames = isLocked ? framesOff : framesOn;
+    if (activeFrames != null && activeFrames.isNotEmpty) {
+      final sprite = activeFrames[_animFrame % activeFrames.length];
+      sprite.render(
+        canvas,
+        position: Vector2(0, -size.y),
+        size: Vector2(size.x, size.y * 2),
+      );
+      return;
+    }
+
     final rect = size.toRect();
     final center = (size / 2).toOffset();
 

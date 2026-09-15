@@ -5,7 +5,6 @@ import '../../../core/models/avatar_config.dart';
 import '../../../core/models/preference_tags.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
-import '../components/modular_avatar_component.dart';
 import '../games/character_preview_game.dart';
 
 class CharacterCreatorScreen extends StatefulWidget {
@@ -28,14 +27,36 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   late CharacterPreviewGame _previewGame;
   late Set<String> _selectedTastes;
 
-  // 0: Rostro & Cabello (Zoom Facial), 1: Vestimenta & Estilo (Cuerpo Completo)
+  // 0: Modo Personaje (Avatar), 1: Modo Perfil de Citas (Tinder-style)
+  int _screenModeIndex = 0;
+
+  // Sub-sección Personaje: 0: Rostro & Cabello, 1: Vestimenta & Estilo
   int _mainSectionIndex = 0;
 
   late TabController _faceTabController;
   late TabController _clothesTabController;
-  bool _syncBrowsWithHair = true;
+  final bool _syncBrowsWithHair = true;
   double _dragDeltaAccumulator = 0.0;
   String? _currentPhoto;
+
+  // Dating Profile fields (Tinder style: 1 to 6 photos, bio, intent, distance, age, commune)
+  late List<String> _userPhotos;
+  late TextEditingController _bioController;
+  late String _selectedIntent;
+  late double _selectedDistanceKm;
+  late int _userAge;
+  late String _userCommune;
+
+  final List<String> _samplePhotoPresets = const [
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
+  ];
 
   @override
   void initState() {
@@ -45,6 +66,25 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     _selectedTastes = Set<String>.from(loadedTastes);
     final activeId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
     _currentPhoto = AuthService.currentUser?.profilePhoto ?? AvatarStorageService.getUserPhoto(activeId);
+    
+    final loadedPhotos = AuthService.currentUser?.photos ?? AvatarStorageService.getUserPhotos(activeId);
+    _userPhotos = List<String>.from(loadedPhotos);
+    if (_userPhotos.isEmpty && _currentPhoto != null && _currentPhoto!.isNotEmpty) {
+      _userPhotos.add(_currentPhoto!);
+    }
+
+    _bioController = TextEditingController(
+      text: AuthService.currentUser?.bio.isNotEmpty == true
+          ? AuthService.currentUser!.bio
+          : AvatarStorageService.getUserBio(activeId),
+    );
+    _selectedIntent = AuthService.currentUser?.intent.isNotEmpty == true
+        ? AuthService.currentUser!.intent
+        : AvatarStorageService.getUserIntent(activeId);
+    _selectedDistanceKm = AuthService.currentUser?.maxDistanceKm ?? AvatarStorageService.getUserMaxDistance(activeId);
+    _userAge = AuthService.currentUser?.age ?? 24;
+    _userCommune = AuthService.currentUser?.commune ?? 'Santiago';
+
     _previewGame = CharacterPreviewGame(
       config: _currentConfig,
       initialFaceZoom: true,
@@ -57,6 +97,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   void dispose() {
     _faceTabController.dispose();
     _clothesTabController.dispose();
+    _bioController.dispose();
     super.dispose();
   }
 
@@ -102,8 +143,8 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       topColor: randomTopColor,
       bottomStyle: AvatarConfig.availableBottomStyles[rand.nextInt(AvatarConfig.availableBottomStyles.length)],
       bottomColor: randomBottomColor,
-      shoeStyle: 'none',
-      shoeColor: const Color(0xFF78350F),
+      shoeStyle: AvatarConfig.availableShoeStyles[rand.nextInt(AvatarConfig.availableShoeStyles.length)],
+      shoeColor: const Color(0xFF334155),
       accessoryStyle: 'none',
       accessoryColor: const Color(0xFFEAB308),
     );
@@ -112,14 +153,39 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   }
 
   void _saveAndClose() {
+    if (_userPhotos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes añadir al menos 1 foto para tu perfil de citas.'),
+          backgroundColor: Colors.deepOrange,
+        ),
+      );
+      setState(() {
+        _screenModeIndex = 1;
+      });
+      return;
+    }
+
     AvatarStorageService.saveConfig(_currentConfig);
     AuthService.saveAvatarConfig(_currentConfig);
     AuthService.updateTastes(_selectedTastes.toList());
-    if (_currentPhoto != null && _currentPhoto!.isNotEmpty) {
-      AuthService.updateProfilePhoto(_currentPhoto!);
-      final activeId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
-      AvatarStorageService.saveUserPhoto(activeId, _currentPhoto!);
-    }
+
+    final activeId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    AvatarStorageService.saveUserPhotos(activeId, _userPhotos);
+    AvatarStorageService.saveUserPhoto(activeId, _userPhotos.first);
+    AvatarStorageService.saveUserBio(activeId, _bioController.text.trim());
+    AvatarStorageService.saveUserIntent(activeId, _selectedIntent);
+    AvatarStorageService.saveUserMaxDistance(activeId, _selectedDistanceKm);
+
+    AuthService.updateDatingProfile(
+      photos: _userPhotos,
+      bio: _bioController.text.trim(),
+      intent: _selectedIntent,
+      maxDistanceKm: _selectedDistanceKm,
+      age: _userAge,
+      commune: _userCommune,
+    );
+
     widget.onSaved?.call(_currentConfig);
     if (Navigator.canPop(context)) {
       Navigator.pop(context, _currentConfig);
@@ -134,7 +200,16 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       backgroundColor: const Color(0xFF0F172A),
       appBar: _buildAppBar(),
       body: SafeArea(
-        child: isWide ? _buildWideLayout() : _buildNarrowLayout(),
+        child: Column(
+          children: [
+            _buildModeToggleHeader(),
+            Expanded(
+              child: _screenModeIndex == 0
+                  ? (isWide ? _buildWideLayout() : _buildNarrowLayout())
+                  : _buildDatingProfileLayout(isWide),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -161,7 +236,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Armario & Creador de Avatar',
+                'Armario • Avatar & Perfil',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -216,6 +291,757 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildModeToggleHeader() {
+    return Container(
+      color: const Color(0xFF1E293B),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF334155)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _screenModeIndex = 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    color: _screenModeIndex == 0 ? const Color(0xFF0284C7) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.face,
+                        size: 18,
+                        color: _screenModeIndex == 0 ? Colors.white : Colors.white60,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Versión Personaje',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: _screenModeIndex == 0 ? Colors.white : Colors.white60,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _screenModeIndex = 1),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    color: _screenModeIndex == 1 ? const Color(0xFFE11D48) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.favorite,
+                        size: 18,
+                        color: _screenModeIndex == 1 ? Colors.white : Colors.white60,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Perfil de Citas',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: _screenModeIndex == 1 ? Colors.white : Colors.white60,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatingProfileLayout(bool isWide) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 40 : 16,
+        vertical: 20,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Fotos de Perfil (1 a 6 fotos)
+              _buildPhotosSection(),
+              const SizedBox(height: 24),
+
+              // 2. Acerca de mí (Biografía)
+              _buildBioSection(),
+              const SizedBox(height: 24),
+
+              // 3. Intención de Cita
+              _buildIntentSection(),
+              const SizedBox(height: 24),
+
+              // 4. Proximidad y Ubicación
+              _buildDistanceAndLocationSection(),
+              const SizedBox(height: 24),
+
+              // 5. Intereses y Gustos Cozy
+              _buildTastesSection(),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhotosSection() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.photo_library, color: Color(0xFFFB7185), size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Tus Fotos Reales',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _userPhotos.isEmpty ? Colors.red.withOpacity(0.2) : const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _userPhotos.isEmpty ? Colors.red : const Color(0xFF475569),
+                  ),
+                ),
+                child: Text(
+                  '${_userPhotos.length} / 6 fotos (mín. 1)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _userPhotos.isEmpty ? Colors.redAccent : const Color(0xFF38BDF8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Solo se revelarán en HD a tu compañero si ambos confirman Match al final de la fogata.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.82,
+            ),
+            itemCount: 6,
+            itemBuilder: (context, index) {
+              if (index < _userPhotos.length) {
+                final photoUrl = _userPhotos[index];
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        photoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: const Color(0xFF334155),
+                          child: const Icon(Icons.broken_image, color: Colors.white54),
+                        ),
+                      ),
+                    ),
+                    if (index == 0)
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.star, color: Colors.amber, size: 12),
+                              SizedBox(width: 3),
+                              Text('Principal', style: TextStyle(color: Colors.white, fontSize: 10)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_userPhotos.length <= 1) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Debes conservar al menos 1 foto en tu perfil.'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+                          setState(() {
+                            _userPhotos.removeAt(index);
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.75),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: Colors.white, size: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return GestureDetector(
+                  onTap: _showAddPhotoDialog,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF475569),
+                        style: BorderStyle.solid,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_a_photo, color: Color(0xFF38BDF8), size: 26),
+                        SizedBox(height: 6),
+                        Text(
+                          'Añadir',
+                          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddPhotoDialog() {
+    final textController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.add_photo_alternate, color: Color(0xFF38BDF8)),
+            SizedBox(width: 8),
+            Text('Añadir Foto al Perfil', style: TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Elige una foto de muestra o pega un enlace web (URL):',
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: textController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'https://images.unsplash.com/...',
+                    hintStyle: const TextStyle(color: Colors.white38),
+                    filled: true,
+                    fillColor: const Color(0xFF0F172A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF475569)),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'O selecciona una foto cozy de ejemplo:',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _samplePhotoPresets.map((url) {
+                    return GestureDetector(
+                      onTap: () {
+                        if (_userPhotos.length < 6) {
+                          setState(() {
+                            _userPhotos.add(url);
+                          });
+                          Navigator.pop(dialogContext);
+                        }
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          url,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0284C7),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final url = textController.text.trim();
+              if (url.isNotEmpty && _userPhotos.length < 6) {
+                setState(() {
+                  _userPhotos.add(url);
+                });
+              }
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Añadir URL'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBioSection() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.edit_note, color: Color(0xFF38BDF8), size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Acerca de mí',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Cuenta qué te apasiona, tu café o juego favorito, o qué buscas en una conexión.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _bioController,
+            maxLines: 3,
+            maxLength: 180,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'Ej: Amante del café de especialidad, la música lo-fi y las partidas cooperativas. Busco conectar sin prisas ✨',
+              hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+              filled: true,
+              fillColor: const Color(0xFF0F172A),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF475569)),
+              ),
+              counterStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntentSection() {
+    final intents = [
+      {'id': 'intent_slow', 'emoji': '☕', 'title': 'Slow Dating', 'desc': 'Conectar con calma y buena vibra'},
+      {'id': 'intent_serious', 'emoji': '💍', 'title': 'Relación Seria', 'desc': 'Buscando algo lindo a largo plazo'},
+      {'id': 'intent_gaming_duo', 'emoji': '🎮', 'title': 'Gaming Duo', 'desc': 'Compañero/a de juegos y risas'},
+      {'id': 'intent_cozy_chats', 'emoji': '💬', 'title': 'Charlas Cozy', 'desc': 'Conversaciones profundas y té nocturno'},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.flag_circle, color: Color(0xFFF59E0B), size: 20),
+              SizedBox(width: 8),
+              Text(
+                '¿Cuál es tu intención?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Se mostrará en la tarjeta de inicio para asegurar expectativas alineadas.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 14),
+          Column(
+            children: intents.map((item) {
+              final isSelected = _selectedIntent == item['id'];
+              return GestureDetector(
+                onTap: () => setState(() => _selectedIntent = item['id']!),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFF59E0B).withOpacity(0.15) : const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFFF59E0B) : const Color(0xFF334155),
+                      width: isSelected ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(item['emoji']!, style: const TextStyle(fontSize: 22)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['title']!,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: isSelected ? const Color(0xFFFBBF24) : Colors.white,
+                              ),
+                            ),
+                            Text(
+                              item['desc']!,
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        const Icon(Icons.check_circle, color: Color(0xFFFBBF24), size: 18),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistanceAndLocationSection() {
+    final communes = [
+      'Santiago', 'Providencia', 'Las Condes', 'Ñuñoa', 'La Florida', 'Maipú',
+      'Puente Alto', 'San Miguel', 'Viña del Mar', 'Valparaíso', 'Concepción',
+      'La Serena', 'Coquimbo', 'Antofagasta', 'Temuco', 'Rancagua'
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.location_on, color: Color(0xFF10B981), size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Ubicación & Radio de Búsqueda',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'El emparejamiento calcula la distancia real en kilómetros entre ambas ubicaciones.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 16),
+
+          // Comuna y Edad
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Tu Comuna / Ciudad:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF475569)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: communes.contains(_userCommune) ? _userCommune : 'Santiago',
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF1E293B),
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          items: communes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _userCommune = val);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              SizedBox(
+                width: 100,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Edad:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF475569)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('$_userAge años', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Slider de Distancia
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Distancia máxima preferida:',
+                style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                ),
+                child: Text(
+                  _selectedDistanceKm >= 100 ? 'Sin límite (Nacional)' : '${_selectedDistanceKm.toInt()} km',
+                  style: const TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            value: _selectedDistanceKm.clamp(5.0, 100.0),
+            min: 5.0,
+            max: 100.0,
+            divisions: 19,
+            activeColor: const Color(0xFF10B981),
+            inactiveColor: const Color(0xFF334155),
+            onChanged: (val) {
+              setState(() => _selectedDistanceKm = val);
+            },
+          ),
+          const Text(
+            '💡 Si transcurren más de 15 segundos sin personas en tu radio, la búsqueda se expandirá gradualmente para no hacerte esperar.',
+            style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTastesSection() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.interests, color: Color(0xFFA855F7), size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Gustos & Intereses Cozy',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                '${_selectedTastes.length} seleccionados',
+                style: const TextStyle(color: Color(0xFFC084FC), fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Las cartas de la fogata se seleccionarán basándose en lo que ambos tengan en común.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: PreferenceCatalog.categories.expand((cat) => cat.items).map((item) {
+              final isSelected = _selectedTastes.contains(item.id);
+              return FilterChip(
+                label: Text('${item.emoji} ${item.title}'),
+                selected: isSelected,
+                selectedColor: const Color(0xFFA855F7).withOpacity(0.25),
+                backgroundColor: const Color(0xFF0F172A),
+                checkmarkColor: const Color(0xFFC084FC),
+                labelStyle: TextStyle(
+                  color: isSelected ? const Color(0xFFE9D5FF) : Colors.white70,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: isSelected ? const Color(0xFFA855F7) : const Color(0xFF334155),
+                  ),
+                ),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedTastes.add(item.id);
+                    } else {
+                      _selectedTastes.remove(item.id);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
@@ -381,7 +1207,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       ],
     );
 
-    final controlsWidget = _buildTastePreferencesControlPanel();
+    final controlsWidget = _buildSectionSwitcherPanel();
 
     return Container(
       color: const Color(0xFF131A2A),
@@ -428,18 +1254,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     );
   }
 
-  PreferenceItem? _getPreferenceItem(String id) {
-    for (final category in PreferenceCatalog.categories) {
-      for (final item in category.items) {
-        if (item.id == id) return item;
-      }
-    }
-    return null;
-  }
-
-  Widget _buildTastePreferencesControlPanel() {
-    final selectedItems = _selectedTastes.map((id) => _getPreferenceItem(id)).whereType<PreferenceItem>().toList();
-
+  Widget _buildSectionSwitcherPanel() {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -449,529 +1264,46 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Header Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          const Row(
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.favorite_rounded, size: 14, color: Color(0xFFF43F5E)),
-                  SizedBox(width: 5),
-                  Text(
-                    '🏷️ Mis Gustos',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFF1F5F9),
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0284C7).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.4)),
-                ),
-                child: Text(
-                  '${_selectedTastes.length} activos',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF38BDF8),
-                  ),
+              Icon(Icons.tune_rounded, size: 14, color: Color(0xFF38BDF8)),
+              SizedBox(width: 6),
+              Text(
+                'SECCIONES DE EDICIÓN',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  color: Color(0xFF94A3B8),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          // Selected Tags Preview Vertical Scroll
+          const SizedBox(height: 8),
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A).withOpacity(0.6),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF1E293B)),
-              ),
-              padding: const EdgeInsets.all(5),
-              child: selectedItems.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Sin gustos seleccionados.\nToca "Modificar Gustos" abajo.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 10, color: Colors.white38, fontStyle: FontStyle.italic),
-                      ),
-                    )
-                  : Scrollbar(
-                      thumbVisibility: true,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.vertical,
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: selectedItems.map((item) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E293B),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFF334155)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(item.emoji, style: const TextStyle(fontSize: 11)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    item.title,
-                                    style: const TextStyle(fontSize: 9.5, color: Color(0xFFE2E8F0)),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
+            child: _buildSectionTabButton(
+              index: 0,
+              title: '1. Rostro & Cabello',
+              subtitle: 'Zoom Primer Plano',
+              icon: Icons.face_retouching_natural,
+              activeColor: const Color(0xFF0284C7),
+              activeBorderColor: const Color(0xFF38BDF8),
             ),
           ),
-          const SizedBox(height: 6),
-          // Action Buttons: Modify Gustos & Subir Foto Real
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: _openTastePreferencesModal,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 7),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0284C7), Color(0xFF0369A1)],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.edit_note, size: 14, color: Colors.white),
-                        SizedBox(width: 4),
-                        Text(
-                          'Gustos',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: InkWell(
-                  onTap: _openPhotoPickerModal,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 7),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE11D48), Color(0xFFBE123C)],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.photo_camera, size: 13, color: Colors.white),
-                        const SizedBox(width: 4),
-                        Text(
-                          _currentPhoto != null ? 'Foto ✓' : 'Mi Foto',
-                          style: const TextStyle(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 8),
+          Expanded(
+            child: _buildSectionTabButton(
+              index: 1,
+              title: '2. Vestimenta & Estilo',
+              subtitle: 'Cuerpo Completo',
+              icon: Icons.dry_cleaning,
+              activeColor: const Color(0xFF7C3AED),
+              activeBorderColor: const Color(0xFFA78BFA),
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  void _openPhotoPickerModal() {
-    final samplePhotos = [
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=500&auto=format&fit=crop&q=80',
-    ];
-
-    final urlController = TextEditingController(text: _currentPhoto ?? '');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF0F172A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.photo_camera, color: Color(0xFFFB7185), size: 18),
-                          SizedBox(width: 8),
-                          Text('📸 Mi Foto Real de Perfil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white70),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Esta foto se revelará de forma segura en la carta del Buzón de la cita para decidir si quieren seguir en contacto.',
-                    style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // Active Photo Preview
-                  if (_currentPhoto != null && _currentPhoto!.isNotEmpty)
-                    Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          _currentPhoto!,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 100,
-                            height: 100,
-                            color: const Color(0xFF1E293B),
-                            child: const Icon(Icons.broken_image, color: Colors.white54),
-                          ),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 14),
-
-                  // Preset samples
-                  Text('Elige una foto o ingresa tu enlace:', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 60,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: samplePhotos.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (_, i) {
-                        final photo = samplePhotos[i];
-                        final isSel = _currentPhoto == photo;
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() => _currentPhoto = photo);
-                            setModalState(() {});
-                            urlController.text = photo;
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isSel ? const Color(0xFFFB7185) : Colors.transparent,
-                                width: 2.5,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(photo, width: 56, height: 56, fit: BoxFit.cover),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: urlController,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                    decoration: InputDecoration(
-                      labelText: 'Enlace / URL de Foto Real',
-                      labelStyle: const TextStyle(color: Colors.white60, fontSize: 12),
-                      filled: true,
-                      fillColor: const Color(0xFF1E293B),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.check, color: Color(0xFFFB7185)),
-                        onPressed: () {
-                          if (urlController.text.isNotEmpty) {
-                            setState(() => _currentPhoto = urlController.text.trim());
-                            setModalState(() {});
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE11D48),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: () {
-                      if (urlController.text.isNotEmpty) {
-                        setState(() => _currentPhoto = urlController.text.trim());
-                      }
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Guardar Foto de Perfil', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _openTastePreferencesModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (modalContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.85,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0F172A),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                border: Border(top: BorderSide(color: Color(0xFF334155), width: 1.5)),
-              ),
-              child: Column(
-                children: [
-                  // Drag handle & Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF475569),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(Icons.favorite_rounded, color: Color(0xFFF43F5E), size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  '🏷️ Mis Gustos & Aficiones',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0284C7).withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFF38BDF8)),
-                              ),
-                              child: Text(
-                                '${_selectedTastes.length} seleccionados',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF38BDF8),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Estas etiquetas se comparan en la Fogata para descubrir pasiones compartidas y contrastes únicos.',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(color: Color(0xFF334155), height: 1),
-                  // Categories List
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: PreferenceCatalog.categories.length,
-                      itemBuilder: (context, catIndex) {
-                        final category = PreferenceCatalog.categories[catIndex];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(category.emoji, style: const TextStyle(fontSize: 15)),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    category.title,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFFE2E8F0),
-                                    ),
-                                  ),
-                                  if (category.isSingleSelect)
-                                    const Padding(
-                                      padding: EdgeInsets.only(left: 6),
-                                      child: Text(
-                                        '(Elige 1)',
-                                        style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: category.items.map((item) {
-                                  final isSelected = _selectedTastes.contains(item.id);
-                                  return FilterChip(
-                                    selected: isSelected,
-                                    label: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(item.emoji, style: const TextStyle(fontSize: 13)),
-                                        const SizedBox(width: 5),
-                                        Text(
-                                          item.title,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                            color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    backgroundColor: const Color(0xFF1E293B),
-                                    selectedColor: const Color(0xFF0284C7),
-                                    checkmarkColor: Colors.white,
-                                    side: BorderSide(
-                                      color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF334155),
-                                    ),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    onSelected: (selected) {
-                                      setModalState(() {
-                                        setState(() {
-                                          if (category.isSingleSelect) {
-                                            for (final itm in category.items) {
-                                              _selectedTastes.remove(itm.id);
-                                            }
-                                            if (selected) _selectedTastes.add(item.id);
-                                          } else {
-                                            if (selected) {
-                                              _selectedTastes.add(item.id);
-                                            } else {
-                                              _selectedTastes.remove(item.id);
-                                            }
-                                          }
-                                        });
-                                      });
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  // Bottom Confirm Button
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF1E293B),
-                      border: Border(top: BorderSide(color: Color(0xFF334155))),
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0284C7),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(modalContext);
-                        },
-                        icon: const Icon(Icons.check, size: 18),
-                        label: const Text(
-                          'Confirmar Gustos',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 
@@ -981,8 +1313,6 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   Widget _buildCustomizationWorkspace() {
     return Column(
       children: [
-        // Top 2-Section Switcher Header
-        _buildMainSectionSwitcher(),
         // Sub-tabs for the selected section
         Container(
           color: const Color(0xFF1E293B),
@@ -1046,40 +1376,6 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     );
   }
 
-  Widget _buildMainSectionSwitcher() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: const Color(0xFF131A2A),
-      child: Row(
-        children: [
-          // Section 1: Rostro & Cabello
-          Expanded(
-            child: _buildSectionTabButton(
-              index: 0,
-              title: '1. Rostro & Cabello',
-              subtitle: 'Zoom Primer Plano',
-              icon: Icons.face_retouching_natural,
-              activeColor: const Color(0xFF0284C7),
-              activeBorderColor: const Color(0xFF38BDF8),
-            ),
-          ),
-          const SizedBox(width: 10),
-          // Section 2: Vestimenta & Estilo
-          Expanded(
-            child: _buildSectionTabButton(
-              index: 1,
-              title: '2. Vestimenta & Estilo',
-              subtitle: 'Cuerpo Completo',
-              icon: Icons.dry_cleaning,
-              activeColor: const Color(0xFF7C3AED),
-              activeBorderColor: const Color(0xFFA78BFA),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSectionTabButton({
     required int index,
     required String title,
@@ -1093,6 +1389,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       onTap: () => _onMainSectionChanged(index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
           color: isSelected ? activeColor.withOpacity(0.2) : const Color(0xFF1E293B),
@@ -1151,6 +1448,12 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
                 ],
               ),
             ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle_rounded,
+                size: 16,
+                color: activeBorderColor,
+              ),
           ],
         ),
       ),

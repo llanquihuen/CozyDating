@@ -15,6 +15,7 @@ class GuideDungeonGame extends DungeonGame with TapCallbacks, DragCallbacks {
   GuideDungeonGame({
     super.dungeonMapData,
     super.explorerAvatarConfig,
+    super.onMapLoaded,
     this.onPingTap,
   }) : super(isGuideMode: true);
 

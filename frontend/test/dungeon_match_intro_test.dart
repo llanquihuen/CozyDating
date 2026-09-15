@@ -80,8 +80,9 @@ void main() {
 
       expect(find.text('¡CITA ENCONTRADA!'), findsOneWidget);
       expect(find.text('Acto 1 • Mazmorra Cooperativa'), findsOneWidget);
-      expect(find.text('TU MISIÓN DE EXPLORADOR'), findsOneWidget);
+      expect(find.text('TE VAN A GUIAR 🔦'), findsOneWidget);
       expect(find.text('¡Listo para la Cita!'), findsOneWidget);
+      expect(find.text('Entrar directamente (Prueba)'), findsNothing);
 
       // Tap ready button
       await tester.tap(find.text('¡Listo para la Cita!'));
@@ -89,9 +90,14 @@ void main() {
 
       expect(mockClient.sentMessages.any((m) => m['type'] == 'GAME_READY'), isTrue);
 
-      // Tap direct entry shortcut
-      await tester.tap(find.text('Entrar directamente (Prueba)'));
-      await tester.pump(const Duration(milliseconds: 100));
+      // When partner also signals ready, countdown begins and starts the game
+      gameBloc.emit(const ActiveGameState(
+        session: session,
+        localReady: true,
+        partnerReady: true,
+      ));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(seconds: 4));
       expect(gameStarted, isTrue);
     });
 
@@ -132,6 +138,51 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(mockClient.sentMessages.any((m) => m['type'] == 'EMERGENCY_DISCONNECT'), isTrue);
+    });
+
+    testWidgets('Tapping partner room sneakpeek opens isometric room preview modal and allows closing', (tester) async {
+      final mockClient = _MockWebSocketClient();
+      final gameBloc = GameBloc(webSocketClient: mockClient);
+
+      const session = SessionInitPayload(
+        roomId: 'room_room_modal_1',
+        role: 'EXPLORER',
+        mode: 'STANDARD',
+        partnerId: 'bob',
+        act: 1,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider.value(
+            value: gameBloc,
+            child: DungeonMatchIntroView(
+              state: const ActiveGameState(session: session),
+              onStartGame: () {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Find the partner sneakpeek card
+      final roomPreviewTile = find.textContaining('Cuarto de Bob');
+      expect(roomPreviewTile, findsOneWidget);
+
+      // Tap room sneakpeek to open modal
+      await tester.tap(roomPreviewTile);
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Verify modal is displayed with title and return button
+      expect(find.textContaining('El Hogar de Bob'), findsOneWidget);
+      expect(find.text('Volver a la Preparación ✨'), findsOneWidget);
+
+      // Tap return button to dismiss dialog
+      await tester.tap(find.text('Volver a la Preparación ✨'));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('El Hogar de Bob'), findsNothing);
     });
   });
 }

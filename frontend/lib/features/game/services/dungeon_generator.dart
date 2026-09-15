@@ -66,7 +66,7 @@ class DungeonGenerator {
     // 2. Initialize solid wall grid (all 1s)
     final grid = List.generate(height, (_) => List.generate(width, (_) => 1));
 
-    // Recursive Backtracker Maze carving on odd coordinates
+    // Recursive Backtracker Maze carving on odd coordinates (1, 3, 5, 7, 9)
     void carveMaze(int cx, int cy) {
       grid[cy][cx] = 0;
 
@@ -90,11 +90,144 @@ class DungeonGenerator {
 
     carveMaze(1, 1);
 
-    // 3. Open only 2 or 3 single wall tiles to form subtle navigational loops
+    int manhattanDist(Point<int> a, Point<int> b) => (a.x - b.x).abs() + (a.y - b.y).abs();
+
+    int countWallNeighbors(int x, int y) {
+      int count = 0;
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (final d in dirs) {
+        final nx = x + d[0];
+        final ny = y + d[1];
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height || grid[ny][nx] == 1) {
+          count++;
+        }
+      }
+      return count;
+    }
+
+    // 3. Find dead-end floor tiles (tiles with exactly 3 wall neighbors).
+    // Dead-end alcoves are critical: they NEVER sit on a transit route between other locations,
+    // guaranteeing players are never forced to step on wrong runes while navigating the dungeon.
+    List<Point<int>> getDeadEnds() {
+      final list = <Point<int>>[];
+      for (int r = 1; r < height - 1; r++) {
+        for (int c = 1; c < width - 1; c++) {
+          if (grid[r][c] == 0 && !(c == 1 && r == 1)) {
+            if (countWallNeighbors(c, r) == 3) {
+              list.add(Point(c, r));
+            }
+          }
+        }
+      }
+      return list;
+    }
+
+    var deadEnds = getDeadEnds();
+
+    // If there are fewer than 6 dead ends, carve dedicated 1-tile alcoves off existing corridors
+    // into walls that have exactly 1 floor neighbor and 3 wall neighbors
+    if (deadEnds.length < 6) {
+      final candidateAlcoveWalls = <Point<int>>[];
+      for (int r = 1; r < height - 1; r++) {
+        for (int c = 1; c < width - 1; c++) {
+          if (grid[r][c] == 1 && !(c <= 2 && r <= 2)) {
+            int floorNeighbors = 0;
+            const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            for (final d in dirs) {
+              final nx = c + d[0];
+              final ny = r + d[1];
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[ny][nx] == 0) {
+                floorNeighbors++;
+              }
+            }
+            if (floorNeighbors == 1) {
+              candidateAlcoveWalls.add(Point(c, r));
+            }
+          }
+        }
+      }
+      candidateAlcoveWalls.shuffle(random);
+      for (final wall in candidateAlcoveWalls) {
+        if (deadEnds.length >= 7) break;
+        grid[wall.y][wall.x] = 0;
+        deadEnds = getDeadEnds();
+      }
+    }
+
+    // 4. Select Portal (10) and 4 Runes (11, 12, 13, 14) exclusively in distinct dead-end alcoves
+    // with strict minimum distance between each other and spawn (1, 1)
+    final spawnPoint = const Point(1, 1);
+    deadEnds.shuffle(random);
+
+    // Pick portal: prefer an alcove far from spawn
+    deadEnds.sort((a, b) => manhattanDist(b, spawnPoint).compareTo(manhattanDist(a, spawnPoint)));
+    final portalPos = deadEnds.removeAt(0);
+    grid[portalPos.y][portalPos.x] = 10;
+
+    final selectedRunePositions = <Point<int>>[];
+    final chosenRuneCodes = [11, 12, 13, 14]..shuffle(random);
+    final runePositions = <int, Point<int>>{};
+
+    // Select 4 dead-ends with maximum spatial separation (minDistance >= 3)
+    deadEnds.shuffle(random);
+    for (int minDist = 4; minDist >= 2; minDist--) {
+      for (final candidate in List<Point<int>>.from(deadEnds)) {
+        if (selectedRunePositions.length == 4) break;
+
+        final isFarFromSpawn = manhattanDist(candidate, spawnPoint) >= 2;
+        final isFarFromPortal = manhattanDist(candidate, portalPos) >= minDist;
+        final isFarFromRunes = selectedRunePositions.every((p) => manhattanDist(candidate, p) >= minDist);
+
+        if (isFarFromSpawn && isFarFromPortal && isFarFromRunes) {
+          selectedRunePositions.add(candidate);
+          deadEnds.remove(candidate);
+        }
+      }
+      if (selectedRunePositions.length == 4) break;
+    }
+
+    // Fallback if needed to ensure all 4 runes have distinct alcoves
+    while (selectedRunePositions.length < 4 && deadEnds.isNotEmpty) {
+      selectedRunePositions.add(deadEnds.removeAt(0));
+    }
+
+    // If still less than 4, take any floor tile not adjacent to others
+    if (selectedRunePositions.length < 4) {
+      for (int r = 1; r < height - 1; r++) {
+        for (int c = 1; c < width - 1; c++) {
+          if (selectedRunePositions.length == 4) break;
+          final pt = Point(c, r);
+          if (grid[r][c] == 0 && pt != spawnPoint && pt != portalPos && !selectedRunePositions.contains(pt)) {
+            selectedRunePositions.add(pt);
+          }
+        }
+      }
+    }
+
+    // Assign rune codes to the chosen alcove positions
+    for (int i = 0; i < 4; i++) {
+      final pos = selectedRunePositions[i];
+      final code = chosenRuneCodes[i];
+      grid[pos.y][pos.x] = code;
+      runePositions[code] = pos;
+    }
+
+    // 5. Open subtle navigation loops (1 or 2 shortcuts), but NEVER touch walls adjacent
+    // to rune or portal alcoves to protect their dead-end sanctuary status
+    final protectedPoints = <Point<int>>[
+      spawnPoint,
+      portalPos,
+      ...selectedRunePositions,
+    ];
+
     final candidateWallsToOpen = <Point<int>>[];
     for (int r = 2; r < height - 2; r++) {
       for (int c = 2; c < width - 2; c++) {
         if (grid[r][c] == 1) {
+          // Do not open if adjacent to any rune alcove or portal alcove
+          final isProtected = protectedPoints.any((p) => manhattanDist(Point(c, r), p) <= 1);
+          if (isProtected) continue;
+
           // Horizontal wall between two floor tiles
           if (grid[r][c - 1] == 0 && grid[r][c + 1] == 0 && grid[r - 1][c] == 1 && grid[r + 1][c] == 1) {
             candidateWallsToOpen.add(Point(c, r));
@@ -107,36 +240,12 @@ class DungeonGenerator {
       }
     }
     candidateWallsToOpen.shuffle(random);
-    for (int i = 0; i < min(3, candidateWallsToOpen.length); i++) {
+    for (int i = 0; i < min(2, candidateWallsToOpen.length); i++) {
       final wall = candidateWallsToOpen[i];
-      grid[wall.y][wall.x] = 0; // Open a single loop shortcut
+      grid[wall.y][wall.x] = 0; // Open shortcut safely
     }
 
-    // 4. Identify all floor tiles (excluding spawn (1, 1) and its immediate step)
-    final floorTiles = <Point<int>>[];
-    for (int r = 1; r < height - 1; r++) {
-      for (int c = 1; c < width - 1; c++) {
-        if (grid[r][c] == 0 && !(c <= 2 && r <= 2)) {
-          floorTiles.add(Point(c, r));
-        }
-      }
-    }
-    floorTiles.shuffle(random);
-
-    // Pick 5 distinct floor tiles: 1 for Portal (10) + 4 for Runes (11, 12, 13, 14)
-    final portalPos = floorTiles.removeLast();
-    grid[portalPos.y][portalPos.x] = 10;
-
-    final runePositions = <int, Point<int>>{};
-    final runeCodes = [11, 12, 13, 14]..shuffle(random);
-    for (int i = 0; i < 4; i++) {
-      final pos = floorTiles.removeLast();
-      final code = runeCodes[i];
-      grid[pos.y][pos.x] = code;
-      runePositions[code] = pos;
-    }
-
-    // 5. BFS Path Validator: Verifies that no walls block the sequence legs
+    // 6. BFS Path Validator: Verifies that no walls or other runes block the sequence legs
     bool hasCleanPath(Point<int> start, Point<int> target, Set<Point<int>> forbiddenTiles) {
       final queue = Queue<Point<int>>();
       final visited = List.generate(height, (_) => List.generate(width, (_) => false));
@@ -172,7 +281,7 @@ class DungeonGenerator {
     // Verify each leg of the 3-rune secret sequence:
     // Spawn (1, 1) -> R1 -> R2 -> R3 -> Portal
     final seqPoints = <Point<int>>[
-      const Point(1, 1),
+      spawnPoint,
       runePositions[runeNameToCode[secretSequence[0]]!]!,
       runePositions[runeNameToCode[secretSequence[1]]!]!,
       runePositions[runeNameToCode[secretSequence[2]]!]!,
@@ -187,7 +296,7 @@ class DungeonGenerator {
       final forbidden = Set<Point<int>>.from(allRunePoints)..remove(to);
 
       if (!hasCleanPath(from, to, forbidden)) {
-        // Carve minimal single-tile path directly connecting from and to
+        // Carve minimal single-tile path directly connecting from and to if needed
         int cx = from.x;
         int cy = from.y;
         while (cx != to.x) {
@@ -201,12 +310,16 @@ class DungeonGenerator {
       }
     }
 
-    // 6. Place Pitfall Traps (max 2) and Spikes (2-3) on remaining floor tiles
+    // 7. Place Pitfall Traps (max 2) and Spikes (max 2)
+    // Traps are NEVER placed on runes, portal, or directly blocking rune alcove entrances
     final availableFloor = <Point<int>>[];
     for (int r = 1; r < height - 1; r++) {
       for (int c = 1; c < width - 1; c++) {
         if (grid[r][c] == 0 && !(c <= 2 && r <= 2)) {
-          availableFloor.add(Point(c, r));
+          final isNearSpecial = protectedPoints.any((p) => manhattanDist(Point(c, r), p) <= 1);
+          if (!isNearSpecial) {
+            availableFloor.add(Point(c, r));
+          }
         }
       }
     }
@@ -215,10 +328,10 @@ class DungeonGenerator {
     int pitfalls = 0;
     int spikes = 0;
     for (final slot in availableFloor) {
-      if (pitfalls < 2 && random.nextDouble() < 0.3) {
+      if (pitfalls < 2 && random.nextDouble() < 0.25) {
         grid[slot.y][slot.x] = 6; // Pitfall trap
         pitfalls++;
-      } else if (spikes < 3 && random.nextDouble() < 0.3) {
+      } else if (spikes < 2 && random.nextDouble() < 0.25) {
         grid[slot.y][slot.x] = 3; // Spike trap
         spikes++;
       }

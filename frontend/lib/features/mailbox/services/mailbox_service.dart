@@ -3,13 +3,61 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
+import '../../chat/services/chat_service.dart';
 import '../models/mailbox_models.dart';
 
 class MailboxService {
   static const String _baseUrl = 'http://localhost:8080';
 
   static final ValueNotifier<int> unreadLettersCount = ValueNotifier<int>(0);
+  static final ValueNotifier<MailboxLetter?> mutualMatchCelebrationNotifier = ValueNotifier<MailboxLetter?>(null);
   static final List<MailboxLetter> _cachedLetters = [];
+
+  static void triggerMutualMatchCelebration(MailboxLetter letter) {
+    if (letter.isCelebrated || AvatarStorageService.isMatchAcknowledged(letter.id)) return;
+    AvatarStorageService.markMatchAcknowledged(letter.id);
+    final index = _cachedLetters.indexWhere((l) => l.id == letter.id);
+    if (index != -1) {
+      _cachedLetters[index] = _cachedLetters[index].copyWith(isCelebrated: true);
+    }
+    markMatchCelebratedOnServer(letter.id);
+    mutualMatchCelebrationNotifier.value = letter;
+  }
+
+  static void clear() {
+    _cachedLetters.clear();
+    unreadLettersCount.value = 0;
+    mutualMatchCelebrationNotifier.value = null;
+    ChatService.clearUnread();
+  }
+
+  static void checkForUncelebratedMatches() {
+    for (final letter in _cachedLetters) {
+      if (letter.isMutualMatch && !letter.isCelebrated && !AvatarStorageService.isMatchAcknowledged(letter.id)) {
+        triggerMutualMatchCelebration(letter);
+        break;
+      }
+    }
+  }
+
+  static Future<void> markMatchCelebratedOnServer(String matchId, {String? userId}) async {
+    final activeId = userId ?? AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    if (activeId.isEmpty) return;
+    try {
+      final url = Uri.parse('$_baseUrl/api/mailbox/celebrated');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (AuthService.token != null) 'Authorization': 'Bearer ${AuthService.token}',
+      };
+      await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({'matchId': matchId, 'userId': activeId}),
+      ).timeout(const Duration(seconds: 4));
+    } catch (e) {
+      print('[MAILBOX CELEBRATED SYNC ERROR] $e');
+    }
+  }
 
   /// Get all mailbox letters for active user
   static Future<List<MailboxLetter>> fetchLetters({String? userId}) async {
@@ -33,6 +81,7 @@ class MailboxService {
           }
         }
         _updateBadgeCount();
+        checkForUncelebratedMatches();
         return List.from(_cachedLetters);
       }
     } catch (e) {
@@ -40,6 +89,7 @@ class MailboxService {
     }
 
     _updateBadgeCount();
+    checkForUncelebratedMatches();
     return List.from(_cachedLetters);
   }
 
@@ -101,10 +151,15 @@ class MailboxService {
     return true;
   }
 
-  /// Update unread letters badge count
+  /// Update total badge count (pending letters + unread chat messages)
   static void _updateBadgeCount() {
-    final unread = _cachedLetters.where((l) => l.myDecision == MailboxDecision.pending).length;
-    unreadLettersCount.value = unread;
+    updateTotalBadgeCount();
+  }
+
+  static void updateTotalBadgeCount() {
+    final unreadLetters = _cachedLetters.where((l) => l.myDecision == MailboxDecision.pending).length;
+    final unreadChats = ChatService.totalUnreadMessages;
+    unreadLettersCount.value = unreadLetters + unreadChats;
   }
 
   /// Add a newly finished game date letter directly to mailbox

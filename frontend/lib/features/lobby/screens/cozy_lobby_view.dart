@@ -7,6 +7,7 @@ import 'package:flame/game.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/room_config.dart';
+import '../../../core/models/user_profile.dart';
 import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
@@ -15,6 +16,7 @@ import '../../game/bloc/game_bloc.dart';
 import '../../mailbox/models/mailbox_models.dart';
 import '../../mailbox/screens/mailbox_screen.dart';
 import '../../mailbox/services/mailbox_service.dart';
+import '../../revelation/screens/match_reveal_celebration_view.dart';
 import '../components/isometric_furniture_component.dart';
 import '../components/isometric_interior_wall_component.dart';
 import '../games/cozy_room_game.dart';
@@ -97,6 +99,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
 
   @override
   void dispose() {
+    MailboxService.mutualMatchCelebrationNotifier.removeListener(_onMutualMatchCelebrationTriggered);
     _topNotificationTimer?.cancel();
     _topNotificationNotifier.dispose();
     _constructorTabController.dispose();
@@ -107,6 +110,8 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   void initState() {
     super.initState();
     ChatService.ensureConnected();
+    ChatService.fetchUnreadSummary();
+    MailboxService.mutualMatchCelebrationNotifier.addListener(_onMutualMatchCelebrationTriggered);
     MailboxService.fetchLetters(userId: widget.activeUserId);
     _constructorTabController = TabController(length: 3, vsync: this);
     _constructorTabController.addListener(() {
@@ -209,6 +214,49 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             if (mounted) setState(() {});
           },
         ),
+      ),
+    );
+  }
+
+  void _onMutualMatchCelebrationTriggered() {
+    final letter = MailboxService.mutualMatchCelebrationNotifier.value;
+    if (letter == null || !mounted) return;
+    MailboxService.mutualMatchCelebrationNotifier.value = null;
+
+    AvatarStorageService.markMatchAcknowledged(letter.id);
+
+    final partnerUser = UserProfile(
+      id: letter.partnerId,
+      username: letter.partnerName,
+      avatarConfig: letter.partnerAvatar,
+      profilePhoto: letter.partnerPhoto ?? (letter.effectivePhotos.isNotEmpty ? letter.effectivePhotos.first : null),
+      photos: letter.effectivePhotos,
+      bio: letter.effectiveBio,
+      intent: letter.effectiveIntent,
+      age: letter.partnerAge,
+      commune: letter.partnerCommune,
+      tastes: letter.commonTastes,
+    );
+
+    final localId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    final localUser = AuthService.currentUser ??
+        UserProfile(
+          id: localId,
+          username: AuthService.currentUser?.username ?? 'Tú',
+          avatarConfig: AvatarStorageService.getUserConfig(localId),
+        );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => MatchRevealCelebrationView(
+        localUser: localUser,
+        partnerUser: partnerUser,
+        partnerName: letter.partnerName,
+        isCelebration: true,
+        onReturnHome: () {
+          Navigator.of(ctx).pop();
+        },
       ),
     );
   }

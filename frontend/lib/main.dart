@@ -19,6 +19,7 @@ import 'features/game/bloc/game_bloc.dart';
 import 'features/game/game_view.dart';
 import 'features/game/guide_game_view.dart';
 import 'features/game/screens/dungeon_match_intro_view.dart';
+import 'features/game/widgets/dungeon_victory_dialog.dart';
 import 'features/home_visit/screens/home_visit_view.dart';
 import 'features/lobby/screens/cozy_lobby_view.dart';
 
@@ -66,6 +67,7 @@ class GameLauncherScreen extends StatefulWidget {
 class _GameLauncherScreenState extends State<GameLauncherScreen> {
   String _selectedUserId = 'alice';
   String? _introCompletedRoomId;
+  String? _victoryShownRoomId;
 
   bool _isMatchmakingRequestInFlight = false;
 
@@ -204,6 +206,23 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
               roomConfig: state.partnerRoomConfig ?? state.session.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(partnerId),
               tastes: partnerTastes,
             );
+
+            // Celebrar victoria de mazmorra antes de pasar a la fogata
+            if (_victoryShownRoomId != state.session.roomId) {
+              return Scaffold(
+                backgroundColor: const Color(0xFF0F172A),
+                body: DungeonVictoryDialog(
+                  localAvatar: localProfile.avatarConfig,
+                  partnerAvatar: partnerProfile.avatarConfig,
+                  partnerName: partnerName,
+                  onProceedToCampfire: () {
+                    setState(() {
+                      _victoryShownRoomId = state.session.roomId;
+                    });
+                  },
+                ),
+              );
+            }
 
             return CampfireView(
               key: ValueKey('campfire_${state.session.roomId}'),

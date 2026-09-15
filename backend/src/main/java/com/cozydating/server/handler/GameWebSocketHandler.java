@@ -1,6 +1,7 @@
 package com.cozydating.server.handler;
 
 import com.cozydating.server.model.ChatMessage;
+import com.cozydating.server.model.MailboxMatch;
 import com.cozydating.server.service.DatabaseService;
 import com.cozydating.server.service.GameSessionService;
 import com.cozydating.server.service.MatchmakingService;
@@ -115,6 +116,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "CAMPFIRE_ANSWER":
                 case "CAMPFIRE_NEXT_ROUND":
                 case "CAMPFIRE_EMOTE":
+                case "CAMPFIRE_CHAT":
+                case "BLIND_VOTE":
                 case "HOME_AVATAR_MOVE":
                 case "HOME_AVATAR_SIT":
                 case "HOME_AVATAR_STAND":
@@ -463,6 +466,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         Object avatarConfig = data.get("avatarConfig");
         Object roomConfig = data.get("roomConfig");
         Object tastes = data.get("tastes");
+        Number maxDistanceNum = (Number) data.get("maxDistanceKm");
+        double maxDistanceKm = maxDistanceNum != null ? maxDistanceNum.doubleValue() : 25.0;
 
         logger.info("[SOCKET AUTH] Verifying SESSION_INIT token signature...");
         String userId = jwtUtil.verifyTokenAndGetUserId(token);
@@ -477,7 +482,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         sessionToUserMap.put(session, userId);
         userToSessionMap.put(userId, session);
 
-        boolean queued = matchmakingService.joinQueue(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, tastes);
+        boolean queued = matchmakingService.joinQueue(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, tastes, maxDistanceKm);
         if (!queued) {
             logger.warn("[SOCKET QUEUE FAIL] Could not queue user {}. Ticket balance or duplicate queue state.", userId);
             Map<String, Object> errorResp = new HashMap<>();
@@ -548,7 +553,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         if (userId == null) return;
 
         String type = (String) data.get("type");
-        if ("CAMPFIRE_ANSWER".equalsIgnoreCase(type)) {
+        if ("CAMPFIRE_CHAT".equalsIgnoreCase(type)) {
+            logger.info("[SOCKET CAMPFIRE CHAT] Relaying campfire chat from user {}: {}", userId, data.get("text"));
+        } else if ("CAMPFIRE_ANSWER".equalsIgnoreCase(type)) {
             Object roundObj = data.get("round");
             if (roundObj instanceof Number && ((Number) roundObj).intValue() >= 2) {
                 // Final round of campfire reached - date completed!
@@ -587,6 +594,45 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String userId = sessionToUserMap.get(session);
         if (userId == null) return;
         gameSessionService.handleRoleSwap(userId);
+    }
+
+    public void notifyMutualMatch(MailboxMatch match) {
+        if (match == null || !match.isMatched()) return;
+        sendMutualMatchToUser(match.getUserAId(), match.getUserBId(), match);
+        sendMutualMatchToUser(match.getUserBId(), match.getUserAId(), match);
+    }
+
+    private void sendMutualMatchToUser(String targetUserId, String partnerId, MailboxMatch match) {
+        if (targetUserId == null) return;
+        WebSocketSession session = userToSessionMap.get(targetUserId);
+        if (session == null || !session.isOpen()) return;
+
+        try {
+            boolean isUserA = targetUserId.equals(match.getUserAId());
+            String partnerName = isUserA ? match.getUserBName() : match.getUserAName();
+            String partnerAvatar = isUserA ? match.getUserBAvatar() : match.getUserAAvatar();
+            String partnerPhoto = isUserA ? match.getUserBPhoto() : match.getUserAPhoto();
+            int partnerAge = isUserA ? match.getUserBAge() : match.getUserAAge();
+            String partnerCommune = isUserA ? match.getUserBCommune() : match.getUserACommune();
+            String partnerNote = isUserA ? match.getNoteB() : match.getNoteA();
+
+            Map<String, Object> frame = new HashMap<>();
+            frame.put("type", "MUTUAL_MATCH_REVEAL");
+            frame.put("matchId", match.getId());
+            frame.put("partnerId", partnerId);
+            frame.put("partnerName", partnerName != null ? partnerName : "Compañero");
+            frame.put("partnerAvatar", partnerAvatar);
+            frame.put("partnerPhoto", partnerPhoto);
+            frame.put("partnerAge", partnerAge);
+            frame.put("partnerCommune", partnerCommune);
+            frame.put("partnerNote", partnerNote);
+            frame.put("commonTastes", match.getCommonTastes());
+
+            sendJson(session, frame);
+            logger.info("[SOCKET MATCH] Dispatched MUTUAL_MATCH_REVEAL for match {} to user {}", match.getId(), targetUserId);
+        } catch (Exception e) {
+            logger.error("[SOCKET MATCH ERROR] Failed to send MUTUAL_MATCH_REVEAL to {}: {}", targetUserId, e.getMessage());
+        }
     }
 
     private void sendError(WebSocketSession session, String message) throws IOException {

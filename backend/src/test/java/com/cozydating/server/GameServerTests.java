@@ -45,6 +45,9 @@ public class GameServerTests {
     private GameSessionService gameSessionService;
 
     @Autowired
+    private com.cozydating.server.handler.GameWebSocketHandler gameWebSocketHandler;
+
+    @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
@@ -300,6 +303,35 @@ public class GameServerTests {
         assertTrue(msgB.contains("\"isHomeVisitActive\":true"));
         assertTrue(msgB.contains("\"hostUserId\":\"userA\""));
         assertTrue(msgB.contains("\"mode\":\"HOME\""));
+    }
+
+    @Test
+    public void testCampfireChatRelaying() throws Exception {
+        TestWebSocketSession sessionA = new TestWebSocketSession("ws_chat_a");
+        TestWebSocketSession sessionB = new TestWebSocketSession("ws_chat_b");
+
+        // Authenticate users
+        gameWebSocketHandler.handleMessage(sessionA, new org.springframework.web.socket.TextMessage("{\"type\":\"USER_ONLINE\",\"userId\":\"userA\"}"));
+        gameWebSocketHandler.handleMessage(sessionB, new org.springframework.web.socket.TextMessage("{\"type\":\"USER_ONLINE\",\"userId\":\"userB\"}"));
+
+        // Create game room
+        gameSessionService.createRoom(
+            "room_campfire_chat",
+            "userA", sessionA, null, null, "Alice", "[]",
+            "userB", sessionB, null, null, "Bob", "[]",
+            "CAMPFIRE"
+        );
+
+        // Clear sent messages from sessionB
+        sessionB.sentMessages.clear();
+
+        // User A sends CAMPFIRE_CHAT
+        gameWebSocketHandler.handleMessage(sessionA, new org.springframework.web.socket.TextMessage("{\"type\":\"CAMPFIRE_CHAT\",\"text\":\"¡Qué linda noche en la fogata!\"}"));
+
+        // Verify partner (User B) received the forwarded message
+        assertEquals(1, sessionB.sentMessages.size());
+        assertTrue(sessionB.sentMessages.get(0).contains("\"type\":\"CAMPFIRE_CHAT\""));
+        assertTrue(sessionB.sentMessages.get(0).contains("¡Qué linda noche en la fogata!"));
     }
 
     /**

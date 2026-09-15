@@ -51,10 +51,10 @@ class SpikeTrapComponent extends PositionComponent with CollisionCallbacks {
     if (sprites == null || sprites!.isEmpty) {
       try {
         sprites = [
-          await Sprite.load('spike-off1.png'),
-          await Sprite.load('spike-off2.png'),
-          await Sprite.load('spike-off3.png'),
-          await Sprite.load('spike-off4.png'),
+          await Sprite.load('dungeon/spike-off1.png'),
+          await Sprite.load('dungeon/spike-off2.png'),
+          await Sprite.load('dungeon/spike-off3.png'),
+          await Sprite.load('dungeon/spike-off4.png'),
         ];
       } catch (_) {
         // Fallback gracefully in headless/test environments

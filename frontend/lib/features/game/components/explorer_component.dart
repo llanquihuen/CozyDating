@@ -45,6 +45,33 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     }
   }
 
+  /// Angle in radians for directional lighting based on current facing direction
+  double get facingAngle {
+    switch (avatarRenderer.direction) {
+      case AvatarDirection.east:
+        return 0.0;
+      case AvatarDirection.southEast:
+        return pi / 4;
+      case AvatarDirection.south:
+        return pi / 2;
+      case AvatarDirection.southWest:
+        return 3 * pi / 4;
+      case AvatarDirection.west:
+        return pi;
+      case AvatarDirection.northWest:
+        return -3 * pi / 4;
+      case AvatarDirection.north:
+        return -pi / 2;
+      case AvatarDirection.northEast:
+        return -pi / 4;
+    }
+  }
+
+  void setFacingDirection(AvatarDirection dir) {
+    avatarRenderer.direction = dir;
+    onPositionChangedFull?.call(position, dir, isMoving);
+  }
+
   ExplorerComponent({
     required Vector2 position,
     required Vector2 size,
@@ -117,6 +144,7 @@ class ExplorerComponent extends PositionComponent with HasGameRef<DungeonGame>, 
     } else if (dir.x > 0) {
       avatarRenderer.direction = AvatarDirection.right;
     }
+    gameRef.customFlashlightAngle = null;
 
     // 4. Check collision against walls or obstacles at target grid cell
     if (gameRef.isTileOccupied(targetCellTopLeft)) {

@@ -16,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import com.cozydating.server.model.ChatMessage;
 
 @Service
@@ -70,6 +72,10 @@ public class DatabaseService {
             m.setDecisionB(rs.getString("decision_b"));
             m.setNoteB(rs.getString("note_b"));
             m.setMatched(rs.getBoolean("matched"));
+            try {
+                m.setCelebratedA(rs.getBoolean("celebrated_a"));
+                m.setCelebratedB(rs.getBoolean("celebrated_b"));
+            } catch (Exception ignored) {}
             m.setCreatedAt(rs.getString("created_at"));
             m.setUpdatedAt(rs.getString("updated_at"));
             return m;
@@ -136,6 +142,8 @@ public class DatabaseService {
             "  decision_b VARCHAR(50) DEFAULT 'PENDING'," +
             "  note_b TEXT," +
             "  matched BOOLEAN DEFAULT FALSE," +
+            "  celebrated_a BOOLEAN DEFAULT FALSE," +
+            "  celebrated_b BOOLEAN DEFAULT FALSE," +
             "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
             "  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
             ")"
@@ -162,6 +170,7 @@ public class DatabaseService {
             "  receiver_id VARCHAR(255) NOT NULL," +
             "  text TEXT NOT NULL," +
             "  date_type VARCHAR(50)," +
+            "  is_read BOOLEAN DEFAULT FALSE," +
             "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
             ")"
         );
@@ -188,6 +197,17 @@ public class DatabaseService {
                 jdbcTemplate.execute("ALTER TABLE users ADD COLUMN " + col);
             } catch (Exception ignored) {}
         }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE mailbox_matches ADD COLUMN celebrated_a BOOLEAN DEFAULT FALSE");
+        } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("ALTER TABLE mailbox_matches ADD COLUMN celebrated_b BOOLEAN DEFAULT FALSE");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN DEFAULT FALSE");
+        } catch (Exception ignored) {}
 
         try {
             // Clean up any previously corrupted inverted records from the role swap bug
@@ -500,6 +520,19 @@ public class DatabaseService {
         return match;
     }
 
+    public void markMatchCelebrated(String matchId, String userId) {
+        com.cozydating.server.model.MailboxMatch match = findMailboxMatchById(matchId);
+        if (match == null) return;
+        boolean isUserA = userId.equals(match.getUserAId());
+        boolean isUserB = userId.equals(match.getUserBId());
+        if (isUserA) {
+            jdbcTemplate.update("UPDATE mailbox_matches SET celebrated_a = TRUE WHERE id = ?", matchId);
+        } else if (isUserB) {
+            jdbcTemplate.update("UPDATE mailbox_matches SET celebrated_b = TRUE WHERE id = ?", matchId);
+        }
+        logger.info("[DB MAILBOX] Marked match {} celebrated for user {}", matchId, userId);
+    }
+
     public int getUnreadMailboxCount(String userId) {
         try {
             Integer count = jdbcTemplate.queryForObject(
@@ -508,9 +541,56 @@ public class DatabaseService {
                 userId,
                 userId
             );
+            int chatCount = getUnreadChatCount(userId);
+            return (count != null ? count : 0) + chatCount;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public int getUnreadChatCount(String userId) {
+        try {
+            Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM chat_messages WHERE receiver_id = ? AND is_read = FALSE",
+                Integer.class,
+                userId
+            );
             return count != null ? count : 0;
         } catch (Exception e) {
             return 0;
+        }
+    }
+
+    public Map<String, Integer> getUnreadChatCountsByMatch(String userId) {
+        Map<String, Integer> map = new HashMap<>();
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT match_id, COUNT(*) as cnt FROM chat_messages WHERE receiver_id = ? AND is_read = FALSE GROUP BY match_id",
+                userId
+            );
+            for (Map<String, Object> row : rows) {
+                String matchId = (String) row.get("match_id");
+                Number count = (Number) row.get("cnt");
+                if (matchId != null && count != null) {
+                    map.put(matchId, count.intValue());
+                }
+            }
+        } catch (Exception e) {
+            logger.error("[DB CHAT ERROR] Failed to fetch unread counts by match", e);
+        }
+        return map;
+    }
+
+    public void markChatMessagesAsRead(String matchId, String userId) {
+        try {
+            jdbcTemplate.update(
+                "UPDATE chat_messages SET is_read = TRUE WHERE match_id = ? AND receiver_id = ?",
+                matchId,
+                userId
+            );
+            logger.info("[DB CHAT] Marked chat messages as read for match {} and user {}", matchId, userId);
+        } catch (Exception e) {
+            logger.error("[DB CHAT ERROR] Failed to mark messages as read", e);
         }
     }
 
@@ -530,8 +610,8 @@ public class DatabaseService {
     public void saveChatMessage(ChatMessage msg) {
         try {
             jdbcTemplate.update(
-                "INSERT INTO chat_messages (id, match_id, sender_id, receiver_id, text, date_type, created_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) " +
+                "INSERT INTO chat_messages (id, match_id, sender_id, receiver_id, text, date_type, is_read, created_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, FALSE, CURRENT_TIMESTAMP) " +
                 "ON DUPLICATE KEY UPDATE text = VALUES(text), date_type = VALUES(date_type)",
                 msg.getId(),
                 msg.getMatchId(),

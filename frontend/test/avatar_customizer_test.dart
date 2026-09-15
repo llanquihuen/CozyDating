@@ -137,10 +137,10 @@ void main() {
       expect(find.widgetWithText(Tab, 'Calzado'), findsOneWidget);
       expect(find.widgetWithText(Tab, 'Accesorios'), findsOneWidget);
 
-      // Verify Taste Preferences Panel (Replaces walk/rotate bar)
-      expect(find.textContaining('Mis Gustos'), findsOneWidget);
-      expect(find.textContaining('Gustos'), findsWidgets);
-      expect(find.textContaining('Foto'), findsOneWidget);
+      // Verify Section Switcher Panel (in preview panel)
+      expect(find.text('SECCIONES DE EDICIÓN'), findsOneWidget);
+      expect(find.text('1. Rostro & Cabello'), findsOneWidget);
+      expect(find.text('2. Vestimenta & Estilo'), findsOneWidget);
       expect(find.byIcon(Icons.rotate_left), findsWidgets);
       expect(find.byIcon(Icons.rotate_right), findsWidgets);
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/avatar_config.dart';
@@ -20,10 +21,11 @@ class PrivateChatScreen extends StatefulWidget {
   State<PrivateChatScreen> createState() => _PrivateChatScreenState();
 }
 
-class _PrivateChatScreenState extends State<PrivateChatScreen> {
+class _PrivateChatScreenState extends State<PrivateChatScreen> with WidgetsBindingObserver {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late final ValueNotifier<List<ChatMessage>> _notifier;
+  Timer? _presenceTimer;
 
   final List<String> _icebreakers = [
     '☕ ¡Hola! Me encantó nuestra charla en la fogata',
@@ -35,13 +37,40 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ChatService.activeChatMatchId = widget.letter.id;
+    ChatService.markMessagesAsRead(widget.letter.id);
     _notifier = ChatService.getConversationNotifier(widget.letter);
+    ChatService.fetchHistory(widget.letter.id);
     ChatService.ensureConnected();
     ChatService.checkPresence(widget.letter.partnerId);
+
+    // Periodic presence polling so online/offline stays accurate and doesn't freeze on stale state
+    _presenceTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) {
+        ChatService.checkPresence(widget.letter.partnerId);
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Window or tab regained focus: reconnect if dropped and catch-up missed messages
+      ChatService.ensureConnected();
+      ChatService.fetchHistory(widget.letter.id);
+      ChatService.checkPresence(widget.letter.partnerId);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _presenceTimer?.cancel();
+    _presenceTimer = null;
+    if (ChatService.activeChatMatchId == widget.letter.id) {
+      ChatService.activeChatMatchId = null;
+    }
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();

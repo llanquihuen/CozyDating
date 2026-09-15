@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/preference_tags.dart';
+import '../../../core/models/user_profile.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/avatar_storage_service.dart';
 import '../../chat/screens/private_chat_screen.dart';
 import '../../chat/widgets/date_invite_sheet.dart';
 import '../../chat/services/chat_service.dart';
+import '../../revelation/screens/match_reveal_celebration_view.dart';
 import '../models/mailbox_models.dart';
 import '../services/mailbox_service.dart';
 
@@ -50,6 +54,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
   Future<void> _loadLetters() async {
     setState(() => _isLoading = true);
     final letters = await MailboxService.fetchLetters();
+    await ChatService.fetchUnreadSummary();
     if (mounted) {
       setState(() {
         _letters = letters;
@@ -112,95 +117,90 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
   }
 
   void _showMutualMatchDialog(MailboxLetter letter) {
+    AvatarStorageService.markMatchAcknowledged(letter.id);
+
+    final partnerUser = UserProfile(
+      id: letter.partnerId,
+      username: letter.partnerName,
+      avatarConfig: letter.partnerAvatar,
+      profilePhoto: letter.partnerPhoto ?? (letter.effectivePhotos.isNotEmpty ? letter.effectivePhotos.first : null),
+      photos: letter.effectivePhotos,
+      bio: letter.effectiveBio,
+      intent: letter.effectiveIntent,
+      age: letter.partnerAge,
+      commune: letter.partnerCommune,
+      tastes: letter.commonTastes,
+    );
+
+    final localId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    final localUser = AuthService.currentUser ??
+        UserProfile(
+          id: localId,
+          username: AuthService.currentUser?.username ?? 'Tú',
+          avatarConfig: AvatarStorageService.getUserConfig(localId),
+        );
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1B2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFFFFD54F), width: 2),
-        ),
-        title: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('✨ ¡Conexión Mutua! ✨', style: TextStyle(color: Color(0xFFFFD54F), fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              '¡Ambos eligieron seguir en contacto!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 14),
-            ),
-            const SizedBox(height: 14),
-            if (letter.partnerPhoto != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  letter.partnerPhoto!,
-                  height: 160,
-                  width: 160,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 80, color: Colors.white70),
-                ),
-              ),
-            const SizedBox(height: 12),
-            Text(
-              '${letter.partnerName}, ${letter.partnerAge} años',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            Text('📍 ${letter.partnerCommune}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-            const SizedBox(height: 10),
-            if (letter.partnerNote != null && letter.partnerNote!.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFD54F).withOpacity(0.4)),
-                ),
-                child: Text(
-                  '💬 "${letter.partnerNote}"',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Color(0xFFFFE082), fontStyle: FontStyle.italic, fontSize: 13),
-                ),
-              ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _tabController.animateTo(1); // Go to mutual matches tab
-            },
-            child: const Text('Ver en Cartas', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFD54F),
-              foregroundColor: Colors.black87,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: const Icon(Icons.chat_bubble_rounded, size: 16),
-            label: const Text('Abrir Chat', style: TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _openPrivateChat(letter);
-            },
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (ctx) => MatchRevealCelebrationView(
+        localUser: localUser,
+        partnerUser: partnerUser,
+        partnerName: letter.partnerName,
+        isCelebration: true,
+        onReturnHome: () {
+          Navigator.of(ctx).pop();
+          _tabController.animateTo(1); // Go to mutual matches tab
+        },
+      ),
+    );
+  }
+
+  void _showPartnerFullProfile(MailboxLetter letter) {
+    final partnerUser = UserProfile(
+      id: letter.partnerId,
+      username: letter.partnerName,
+      avatarConfig: letter.partnerAvatar,
+      profilePhoto: letter.partnerPhoto ?? (letter.effectivePhotos.isNotEmpty ? letter.effectivePhotos.first : null),
+      photos: letter.effectivePhotos,
+      bio: letter.effectiveBio,
+      intent: letter.effectiveIntent,
+      age: letter.partnerAge,
+      commune: letter.partnerCommune,
+      tastes: letter.commonTastes,
+    );
+
+    final localId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    final localUser = AuthService.currentUser ??
+        UserProfile(
+          id: localId,
+          username: AuthService.currentUser?.username ?? 'Tú',
+          avatarConfig: AvatarStorageService.getUserConfig(localId),
+        );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => MatchRevealCelebrationView(
+        localUser: localUser,
+        partnerUser: partnerUser,
+        partnerName: letter.partnerName,
+        isCelebration: false,
+        onReturnHome: () {
+          Navigator.of(ctx).pop();
+        },
       ),
     );
   }
 
   void _openPrivateChat(MailboxLetter letter) {
+    ChatService.markMessagesAsRead(letter.id);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PrivateChatScreen(letter: letter),
       ),
-    );
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _onInviteToDatePressed(MailboxLetter letter) {
@@ -279,25 +279,58 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
               ),
             ),
             Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('✨ Mutuas'),
-                  if (mutualMatches.isNotEmpty) ...[
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF66BB6A),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${mutualMatches.length}',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ],
+              child: ValueListenableBuilder<Map<String, int>>(
+                valueListenable: ChatService.unreadMessagesNotifier,
+                builder: (context, unreadMap, _) {
+                  final totalUnreadChat = unreadMap.values.fold(0, (a, b) => a + b);
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('✨ Mutuas'),
+                      if (mutualMatches.isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF66BB6A),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${mutualMatches.length}',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                      if (totalUnreadChat > 0) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF4081),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFF4081).withOpacity(0.5),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('💬', style: TextStyle(fontSize: 9)),
+                              const SizedBox(width: 2),
+                              Text(
+                                '$totalUnreadChat',
+                                style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
               ),
             ),
             const Tab(text: '📜 Baúl'),
@@ -407,7 +440,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Real Photo Polaroid Card
+                // Real Photo Polaroid Card with all photos carousel
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -423,17 +456,9 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
                   ),
                   child: Column(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: letter.partnerPhoto != null && letter.partnerPhoto!.isNotEmpty
-                            ? Image.network(
-                                letter.partnerPhoto!,
-                                height: 200,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _buildAvatarFallback(letter),
-                              )
-                            : _buildAvatarFallback(letter),
+                      _LetterPhotoCarousel(
+                        photos: letter.effectivePhotos,
+                        onTap: () => _showPartnerFullProfile(letter),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -441,13 +466,54 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
                         style: const TextStyle(
                           color: Color(0xFF1E1B2E),
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 18,
                           fontFamily: 'Caveat',
                         ),
                       ),
                       Text(
                         '📍 ${letter.partnerCommune}',
                         style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFFB74D)),
+                        ),
+                        child: Text(
+                          letter.effectiveIntent,
+                          style: const TextStyle(color: Color(0xFFE65100), fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      if (letter.effectiveBio.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            '"${letter.effectiveBio}"',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey[800], fontSize: 11.5, fontStyle: FontStyle.italic),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      TextButton.icon(
+                        onPressed: () => _showPartnerFullProfile(letter),
+                        icon: const Icon(Icons.zoom_in_rounded, size: 16, color: Color(0xFFD97706)),
+                        label: Text(
+                          letter.effectivePhotos.length > 1
+                              ? 'Ver perfil y ${letter.effectivePhotos.length} fotos'
+                              : 'Ver perfil completo',
+                          style: const TextStyle(color: Color(0xFFD97706), fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          visualDensity: VisualDensity.compact,
+                        ),
                       ),
                     ],
                   ),
@@ -575,16 +641,6 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildAvatarFallback(MailboxLetter letter) {
-    return Container(
-      height: 180,
-      width: double.infinity,
-      color: const Color(0xFF28253B),
-      child: const Center(
-        child: Icon(Icons.account_circle, size: 90, color: Color(0xFFFFD54F)),
-      ),
-    );
-  }
 
   // -------------------------------------------------------------------------
   // Tab 2: Mutual Matches (Both said Yes!)
@@ -609,122 +665,184 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: letters.length,
-      itemBuilder: (context, index) {
-        final letter = letters[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
+    return ValueListenableBuilder<Map<String, int>>(
+      valueListenable: ChatService.unreadMessagesNotifier,
+      builder: (context, unreadMap, _) {
+        return ListView.builder(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E1B2E),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFFFD54F), width: 1.5),
-            boxShadow: [
-              BoxShadow(color: const Color(0xFFFFD54F).withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 2)),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: letter.partnerPhoto != null
-                        ? Image.network(letter.partnerPhoto!, width: 64, height: 64, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 40, color: Colors.white))
-                        : const Icon(Icons.person, size: 40, color: Colors.white),
+          itemCount: letters.length,
+          itemBuilder: (context, index) {
+            final letter = letters[index];
+            final photos = letter.effectivePhotos;
+            final photoUrl = photos.isNotEmpty ? photos.first : letter.partnerPhoto;
+            final unreadChatCount = unreadMap[letter.id] ?? 0;
+            final hasUnreadChat = unreadChatCount > 0;
+
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _showPartnerFullProfile(letter),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1B2E),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: hasUnreadChat ? const Color(0xFFFF4081) : const Color(0xFFFFD54F),
+                      width: hasUnreadChat ? 2.0 : 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (hasUnreadChat ? const Color(0xFFFF4081) : const Color(0xFFFFD54F)).withOpacity(hasUnreadChat ? 0.35 : 0.15),
+                        blurRadius: hasUnreadChat ? 14 : 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(letter.partnerName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                            const SizedBox(width: 6),
-                            const Text('✨', style: TextStyle(fontSize: 14)),
-                          ],
-                        ),
-                        Text('${letter.partnerAge} años • ${letter.partnerCommune}', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF66BB6A).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF66BB6A)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _buildThumbnailPhoto(photoUrl, 64, 64),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(letter.partnerName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                    const SizedBox(width: 6),
+                                    const Text('✨', style: TextStyle(fontSize: 14)),
+                                  ],
+                                ),
+                                Text('${letter.partnerAge} años • ${letter.partnerCommune}', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF66BB6A).withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: const Color(0xFF66BB6A)),
+                                      ),
+                                      child: const Text('¡Match Confirmado! 💖', style: TextStyle(color: Color(0xFF81C784), fontSize: 10, fontWeight: FontWeight.bold)),
+                                    ),
+                                    if (hasUnreadChat)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFF4081).withOpacity(0.25),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: const Color(0xFFFF4081)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Text('💬', style: TextStyle(fontSize: 10)),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              unreadChatCount > 1 ? '$unreadChatCount mensajes nuevos' : '¡Mensaje nuevo!',
+                                              style: const TextStyle(color: Color(0xFFFF80AB), fontSize: 10, fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    if (photos.length > 1)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.photo_library_outlined, size: 10, color: Color(0xFFFFD54F)),
+                                            const SizedBox(width: 3),
+                                            Text('${photos.length} fotos', style: const TextStyle(color: Color(0xFFFFD54F), fontSize: 9.5, fontWeight: FontWeight.bold)),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                          child: const Text('¡Match Confirmado! 💖', style: TextStyle(color: Color(0xFF81C784), fontSize: 10, fontWeight: FontWeight.bold)),
+                          const Icon(Icons.chevron_right_rounded, color: Color(0xFFFFD54F), size: 24),
+                        ],
+                      ),
+                      if (letter.partnerNote != null && letter.partnerNote!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFFFD54F).withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            '💬 Su nota: "${letter.partnerNote}"',
+                            style: const TextStyle(color: Color(0xFFFFE082), fontStyle: FontStyle.italic, fontSize: 13),
+                          ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-              if (letter.partnerNote != null && letter.partnerNote!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFD54F).withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    '💬 Su nota: "${letter.partnerNote}"',
-                    style: const TextStyle(color: Color(0xFFFFE082), fontStyle: FontStyle.italic, fontSize: 13),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: hasUnreadChat ? const Color(0xFFFF4081) : const Color(0xFFFFD54F),
+                                  foregroundColor: hasUnreadChat ? Colors.white : const Color(0xFF1E1B2E),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: hasUnreadChat ? 4 : 3,
+                                ),
+                                icon: const Icon(Icons.chat_bubble_rounded, size: 16),
+                                label: Text(
+                                  hasUnreadChat ? 'Chatear ($unreadChatCount)' : 'Chatear',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                onPressed: () => _openPrivateChat(letter),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: SizedBox(
+                              height: 44,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFFFFD54F),
+                                  side: const BorderSide(color: Color(0xFFFFD54F), width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                                icon: const Text('⚔️', style: TextStyle(fontSize: 14)),
+                                label: const Text(
+                                  'Invitar a Cita',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
+                                onPressed: () => _onInviteToDatePressed(letter),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFD54F),
-                          foregroundColor: const Color(0xFF1E1B2E),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 3,
-                        ),
-                        icon: const Icon(Icons.chat_bubble_rounded, size: 16),
-                        label: Text(
-                          'Chatear',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        onPressed: () => _openPrivateChat(letter),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: SizedBox(
-                      height: 44,
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFFFD54F),
-                          side: const BorderSide(color: Color(0xFFFFD54F), width: 1.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        icon: const Text('⚔️', style: TextStyle(fontSize: 14)),
-                        label: const Text(
-                          'Invitar a Cita',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        onPressed: () => _onInviteToDatePressed(letter),
-                      ),
-                    ),
-                  ),
-                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -796,5 +914,171 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
         );
       },
     );
+  }
+
+  Widget _buildThumbnailPhoto(String? photoUrl, double w, double h) {
+    Widget content;
+    if (photoUrl == null || photoUrl.isEmpty) {
+      content = const Center(child: Icon(Icons.person, size: 36, color: Colors.white70));
+    } else if (photoUrl.startsWith('assets/')) {
+      content = Image.asset(photoUrl, width: w, height: h, fit: BoxFit.cover);
+    } else if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+      content = Image.network(
+        photoUrl,
+        width: w,
+        height: h,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.person, size: 36, color: Colors.white70)),
+      );
+    } else {
+      content = const Center(child: Icon(Icons.person, size: 36, color: Colors.white70));
+    }
+
+    return SizedBox(
+      width: w,
+      height: h,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: ColoredBox(
+          color: const Color(0xFF28253B),
+          child: content,
+        ),
+      ),
+    );
+  }
+}
+
+class _LetterPhotoCarousel extends StatefulWidget {
+  final List<String> photos;
+  final VoidCallback? onTap;
+
+  const _LetterPhotoCarousel({
+    required this.photos,
+    this.onTap,
+  });
+
+  @override
+  State<_LetterPhotoCarousel> createState() => _LetterPhotoCarouselState();
+}
+
+class _LetterPhotoCarouselState extends State<_LetterPhotoCarousel> {
+  late final PageController _controller;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.photos.isEmpty) {
+      return Container(
+        height: 200,
+        color: const Color(0xFF28253B),
+        child: const Center(child: Icon(Icons.account_circle, size: 80, color: Color(0xFFFFD54F))),
+      );
+    }
+
+    return SizedBox(
+      height: 210,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _controller,
+            itemCount: widget.photos.length,
+            onPageChanged: (idx) {
+              setState(() => _currentIndex = idx);
+            },
+            itemBuilder: (context, index) {
+              final photo = widget.photos[index];
+              return GestureDetector(
+                onTap: widget.onTap,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _buildPhoto(photo),
+                ),
+              );
+            },
+          ),
+          if (widget.photos.length > 1) ...[
+            // Photo counter badge top-right
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.photo_library_outlined, size: 12, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_currentIndex + 1}/${widget.photos.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Dots indicator at bottom
+            Positioned(
+              bottom: 8,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  widget.photos.length,
+                  (i) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                    width: _currentIndex == i ? 16 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: _currentIndex == i ? const Color(0xFFFFD54F) : Colors.white.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoto(String photo) {
+    if (photo.startsWith('assets/')) {
+      return Image.asset(photo, fit: BoxFit.cover, width: double.infinity);
+    } else if (photo.startsWith('http://') || photo.startsWith('https://')) {
+      return Image.network(
+        photo,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (_, __, ___) => Container(
+          color: const Color(0xFF28253B),
+          child: const Center(child: Icon(Icons.person, size: 60, color: Colors.white30)),
+        ),
+      );
+    } else {
+      return Container(
+        color: const Color(0xFF28253B),
+        child: const Center(child: Icon(Icons.person, size: 60, color: Colors.white30)),
+      );
+    }
   }
 }
