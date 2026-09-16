@@ -206,6 +206,29 @@ class SendCampfireChatEvent extends GameEvent {
   List<Object?> get props => [text];
 }
 
+class SendCampfireStartRelaxationEvent extends GameEvent {
+  const SendCampfireStartRelaxationEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class SendDungeonTimeoutEvent extends GameEvent {
+  const SendDungeonTimeoutEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class SendDungeonLifeLostEvent extends GameEvent {
+  final String reason;
+
+  const SendDungeonLifeLostEvent({this.reason = 'TRAP'});
+
+  @override
+  List<Object?> get props => [reason];
+}
+
 class SendDoubleBlindVoteEvent extends GameEvent {
   final bool wantsMatch;
 
@@ -344,6 +367,9 @@ class ActiveGameState extends GameState {
   final RoomConfig? partnerRoomConfig;
   final String? partnerUsername;
   final List<String>? partnerTastes;
+  final int? partnerAge;
+  final String? partnerCommune;
+  final String? partnerBio;
   final String? latestEmote;
   final int? emoteTrigger;
   final Vector2? trappedPitfallPos;
@@ -359,6 +385,11 @@ class ActiveGameState extends GameState {
   final int? campfireNextRoundTrigger;
   final String? partnerCampfireChatText;
   final int? partnerCampfireChatTrigger;
+  final bool isCampfireRelaxationActive;
+  final int? campfireRelaxationTrigger;
+  final bool isDungeonFailed;
+  final int? dungeonTimeoutTrigger;
+  final int dungeonLives;
   final bool? localBlindVote;
   final bool? partnerBlindVote;
   final bool? blindVoteMatched;
@@ -389,6 +420,9 @@ class ActiveGameState extends GameState {
     this.partnerRoomConfig,
     this.partnerUsername,
     this.partnerTastes,
+    this.partnerAge,
+    this.partnerCommune,
+    this.partnerBio,
     this.latestEmote,
     this.emoteTrigger,
     this.trappedPitfallPos,
@@ -404,6 +438,11 @@ class ActiveGameState extends GameState {
     this.campfireNextRoundTrigger,
     this.partnerCampfireChatText,
     this.partnerCampfireChatTrigger,
+    this.isCampfireRelaxationActive = false,
+    this.campfireRelaxationTrigger,
+    this.isDungeonFailed = false,
+    this.dungeonTimeoutTrigger,
+    this.dungeonLives = 4,
     this.localBlindVote,
     this.partnerBlindVote,
     this.blindVoteMatched,
@@ -435,6 +474,9 @@ class ActiveGameState extends GameState {
     RoomConfig? partnerRoomConfig,
     String? partnerUsername,
     List<String>? partnerTastes,
+    int? partnerAge,
+    String? partnerCommune,
+    String? partnerBio,
     String? latestEmote,
     int? emoteTrigger,
     Vector2? trappedPitfallPos,
@@ -450,6 +492,11 @@ class ActiveGameState extends GameState {
     int? campfireNextRoundTrigger,
     String? partnerCampfireChatText,
     int? partnerCampfireChatTrigger,
+    bool? isCampfireRelaxationActive,
+    int? campfireRelaxationTrigger,
+    bool? isDungeonFailed,
+    int? dungeonTimeoutTrigger,
+    int? dungeonLives,
     bool? localBlindVote,
     bool? partnerBlindVote,
     bool? blindVoteMatched,
@@ -483,6 +530,9 @@ class ActiveGameState extends GameState {
       partnerRoomConfig: partnerRoomConfig ?? this.partnerRoomConfig,
       partnerUsername: partnerUsername ?? this.partnerUsername,
       partnerTastes: partnerTastes ?? this.partnerTastes,
+      partnerAge: partnerAge ?? this.partnerAge,
+      partnerCommune: partnerCommune ?? this.partnerCommune,
+      partnerBio: partnerBio ?? this.partnerBio,
       latestEmote: latestEmote ?? this.latestEmote,
       emoteTrigger: emoteTrigger ?? this.emoteTrigger,
       trappedPitfallPos: clearTrappedPitfall ? null : (trappedPitfallPos ?? this.trappedPitfallPos),
@@ -498,6 +548,11 @@ class ActiveGameState extends GameState {
       campfireNextRoundTrigger: campfireNextRoundTrigger ?? this.campfireNextRoundTrigger,
       partnerCampfireChatText: partnerCampfireChatText ?? this.partnerCampfireChatText,
       partnerCampfireChatTrigger: partnerCampfireChatTrigger ?? this.partnerCampfireChatTrigger,
+      isCampfireRelaxationActive: isCampfireRelaxationActive ?? this.isCampfireRelaxationActive,
+      campfireRelaxationTrigger: campfireRelaxationTrigger ?? this.campfireRelaxationTrigger,
+      isDungeonFailed: isDungeonFailed ?? this.isDungeonFailed,
+      dungeonTimeoutTrigger: dungeonTimeoutTrigger ?? this.dungeonTimeoutTrigger,
+      dungeonLives: dungeonLives ?? this.dungeonLives,
       localBlindVote: localBlindVote ?? this.localBlindVote,
       partnerBlindVote: partnerBlindVote ?? this.partnerBlindVote,
       blindVoteMatched: blindVoteMatched ?? this.blindVoteMatched,
@@ -531,6 +586,9 @@ class ActiveGameState extends GameState {
     partnerRoomConfig,
     partnerUsername,
     partnerTastes,
+    partnerAge,
+    partnerCommune,
+    partnerBio,
     latestEmote,
     emoteTrigger,
     trappedPitfallPos,
@@ -546,6 +604,11 @@ class ActiveGameState extends GameState {
     campfireNextRoundTrigger,
     partnerCampfireChatText,
     partnerCampfireChatTrigger,
+    isCampfireRelaxationActive,
+    campfireRelaxationTrigger,
+    isDungeonFailed,
+    dungeonTimeoutTrigger,
+    dungeonLives,
     localBlindVote,
     partnerBlindVote,
     blindVoteMatched,
@@ -626,6 +689,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<SendCampfireNextRoundEvent>(_onSendCampfireNextRound);
     on<SendCampfireCompletedEvent>(_onSendCampfireCompleted);
     on<SendCampfireChatEvent>(_onSendCampfireChat);
+    on<SendCampfireStartRelaxationEvent>(_onSendCampfireStartRelaxation);
+    on<SendDungeonTimeoutEvent>(_onSendDungeonTimeout);
+    on<SendDungeonLifeLostEvent>(_onSendDungeonLifeLost);
     on<SendDoubleBlindVoteEvent>(_onSendDoubleBlindVote);
     on<SendHomeAvatarMoveEvent>(_onSendHomeAvatarMove);
     on<SendHomeAvatarStandEvent>(_onSendHomeAvatarStand);
@@ -875,6 +941,55 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     });
   }
 
+  void _onSendCampfireStartRelaxation(SendCampfireStartRelaxationEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending CAMPFIRE_START_RELAXATION');
+    webSocketClient.sendMessage({
+      'type': 'CAMPFIRE_START_RELAXATION',
+    });
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      emit(active.copyWith(
+        isCampfireRelaxationActive: true,
+        campfireRelaxationTrigger: DateTime.now().millisecondsSinceEpoch,
+      ));
+    }
+  }
+
+  void _onSendDungeonTimeout(SendDungeonTimeoutEvent event, Emitter<GameState> emit) {
+    print('[BLOC OUT] Sending DUNGEON_TIMEOUT');
+    webSocketClient.sendMessage({
+      'type': 'DUNGEON_TIMEOUT',
+    });
+    if (state is ActiveGameState) {
+      final active = state as ActiveGameState;
+      emit(active.copyWith(
+        isDungeonFailed: true,
+        dungeonTimeoutTrigger: DateTime.now().millisecondsSinceEpoch,
+      ));
+    }
+  }
+
+  void _onSendDungeonLifeLost(SendDungeonLifeLostEvent event, Emitter<GameState> emit) {
+    if (state is! ActiveGameState) return;
+    final active = state as ActiveGameState;
+    final newLives = (active.dungeonLives - 1).clamp(0, 4);
+    print('[BLOC OUT] Sending DUNGEON_LIFE_LOST (remaining: $newLives, reason: ${event.reason})');
+    webSocketClient.sendMessage({
+      'type': 'DUNGEON_LIFE_LOST',
+      'lives': newLives,
+      'reason': event.reason,
+    });
+    if (newLives <= 0) {
+      emit(active.copyWith(
+        dungeonLives: 0,
+        isDungeonFailed: true,
+        dungeonTimeoutTrigger: DateTime.now().millisecondsSinceEpoch,
+      ));
+    } else {
+      emit(active.copyWith(dungeonLives: newLives));
+    }
+  }
+
   void _onSendDoubleBlindVote(SendDoubleBlindVoteEvent event, Emitter<GameState> emit) {
     print('[BLOC OUT] Sending BLIND_VOTE: ${event.wantsMatch}');
     webSocketClient.sendMessage({
@@ -1011,7 +1126,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       print('[BLOC IN] Received SESSION_INIT match! RoomId: ${payload.roomId}, Role: ${payload.role}, Partner: ${payload.partnerId} (${payload.partnerUsername}), PartnerTastes: ${payload.partnerTastes}');
       webSocketClient.setSessionActive(true);
 
-      // Si el backend envió el avatar/cuarto/gustos reales del partner, guardarlos en AvatarStorageService
+      // Si el backend envió el avatar/cuarto/gustos/edad/comuna reales del partner, guardarlos en AvatarStorageService
       if (payload.partnerAvatarConfig != null && payload.partnerId.isNotEmpty) {
         AvatarStorageService.saveUserConfig(payload.partnerId, payload.partnerAvatarConfig!);
       }
@@ -1021,6 +1136,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       if (payload.partnerTastes.isNotEmpty && payload.partnerId.isNotEmpty) {
         AvatarStorageService.saveUserTastes(payload.partnerId, payload.partnerTastes);
       }
+      if (payload.partnerAge != null && payload.partnerAge! > 0 && payload.partnerId.isNotEmpty) {
+        AvatarStorageService.saveUserAge(payload.partnerId, payload.partnerAge!);
+      }
+      if (payload.partnerCommune != null && payload.partnerCommune!.isNotEmpty && payload.partnerId.isNotEmpty) {
+        AvatarStorageService.saveUserCommune(payload.partnerId, payload.partnerCommune!);
+      }
 
       final resolvedAvatar = payload.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(payload.partnerId);
       final resolvedRoom = payload.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(payload.partnerId);
@@ -1028,7 +1149,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           ? payload.partnerTastes
           : AvatarStorageService.getUserTastes(payload.partnerId);
 
-      // Re-enviar inmediatamente nuestro perfil completo (incluyendo gustos) para sincronización simétrica
+      // Re-enviar inmediatamente nuestro perfil completo (incluyendo gustos, edad, comuna y bio) para sincronización simétrica
       final myId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
       final myUsername = AuthService.currentUser?.username ?? myId;
       final myAvatar = AvatarStorageService.getUserConfig(myId);
@@ -1036,6 +1157,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       final myTastes = (AuthService.currentUser?.tastes != null && AuthService.currentUser!.tastes.isNotEmpty)
           ? AuthService.currentUser!.tastes
           : AvatarStorageService.getUserTastes(myId);
+      final myAge = AuthService.currentUser?.age ?? AvatarStorageService.getUserAge(myId);
+      final myCommune = AuthService.currentUser?.commune ?? AvatarStorageService.getUserCommune(myId);
+      final myBio = AuthService.currentUser?.bio.isNotEmpty == true
+          ? AuthService.currentUser!.bio
+          : AvatarStorageService.getUserBio(myId);
 
       webSocketClient.sendMessage({
         'type': 'PROFILE_SYNC',
@@ -1044,6 +1170,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         'avatarConfig': myAvatar.toJson(),
         'roomConfig': myRoom.toMap(),
         'tastes': myTastes,
+        'age': myAge,
+        'commune': myCommune,
+        'bio': myBio,
       });
 
       final isHomeVisit = payload.isHomeVisitActive || payload.mode == 'HOME' || msg['isHomeVisitActive'] == true;
@@ -1055,6 +1184,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         partnerRoomConfig: resolvedRoom,
         partnerUsername: payload.partnerUsername ?? payload.partnerId,
         partnerTastes: resolvedTastes,
+        partnerAge: payload.partnerAge ?? AvatarStorageService.getUserAge(payload.partnerId),
+        partnerCommune: payload.partnerCommune ?? AvatarStorageService.getUserCommune(payload.partnerId),
+        partnerBio: AvatarStorageService.getUserBio(payload.partnerId),
         isCampfireActive: payload.mode == 'CAMPFIRE' || msg['isCampfireActive'] == true,
         isHomeVisitActive: isHomeVisit,
         hostUserId: hostUserId,
@@ -1076,6 +1208,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       final avatarData = msg['avatarConfig'] as Map<String, dynamic>?;
       final roomData = msg['roomConfig'] as Map<String, dynamic>?;
       final rawTastes = msg['tastes'];
+      final senderAge = (msg['age'] as num?)?.toInt();
+      final senderCommune = msg['commune'] as String?;
+      final senderBio = msg['bio'] as String?;
 
       AvatarConfig? partnerAvatar;
       RoomConfig? partnerRoom;
@@ -1110,7 +1245,17 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         AvatarStorageService.saveUserTastes(senderUserId, partnerTastes);
       }
 
-      print('[BLOC IN] Received PROFILE_SYNC from partner $senderUserId (${senderUsername ?? "unknown"}), Tastes: $partnerTastes');
+      if (senderAge != null && senderAge > 0 && senderUserId.isNotEmpty) {
+        AvatarStorageService.saveUserAge(senderUserId, senderAge);
+      }
+      if (senderCommune != null && senderCommune.isNotEmpty && senderUserId.isNotEmpty) {
+        AvatarStorageService.saveUserCommune(senderUserId, senderCommune);
+      }
+      if (senderBio != null && senderBio.isNotEmpty && senderUserId.isNotEmpty) {
+        AvatarStorageService.saveUserBio(senderUserId, senderBio);
+      }
+
+      print('[BLOC IN] Received PROFILE_SYNC from partner $senderUserId (${senderUsername ?? "unknown"}), Age: $senderAge, Commune: $senderCommune, Tastes: $partnerTastes');
 
       if (state is ActiveGameState) {
         final active = state as ActiveGameState;
@@ -1119,6 +1264,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           partnerRoomConfig: partnerRoom ?? active.partnerRoomConfig,
           partnerUsername: senderUsername ?? active.partnerUsername,
           partnerTastes: (partnerTastes != null && partnerTastes.isNotEmpty) ? partnerTastes : active.partnerTastes,
+          partnerAge: senderAge ?? active.partnerAge,
+          partnerCommune: senderCommune ?? active.partnerCommune,
+          partnerBio: senderBio ?? active.partnerBio,
         ));
       }
       return;
@@ -1299,6 +1447,48 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           partnerCampfireChatText: text,
           partnerCampfireChatTrigger: DateTime.now().millisecondsSinceEpoch,
         ));
+      }
+      return;
+    }
+
+    if (type == 'CAMPFIRE_START_RELAXATION') {
+      print('[BLOC IN] Received CAMPFIRE_START_RELAXATION from server');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          isCampfireRelaxationActive: true,
+          campfireRelaxationTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'DUNGEON_TIMEOUT') {
+      print('[BLOC IN] Received DUNGEON_TIMEOUT from server');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        emit(active.copyWith(
+          isDungeonFailed: true,
+          dungeonTimeoutTrigger: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
+      return;
+    }
+
+    if (type == 'DUNGEON_LIFE_LOST') {
+      final lives = (msg['lives'] as num?)?.toInt() ?? 0;
+      print('[BLOC IN] Received DUNGEON_LIFE_LOST from partner: $lives lives remaining');
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        if (lives <= 0) {
+          emit(active.copyWith(
+            dungeonLives: 0,
+            isDungeonFailed: true,
+            dungeonTimeoutTrigger: DateTime.now().millisecondsSinceEpoch,
+          ));
+        } else {
+          emit(active.copyWith(dungeonLives: lives));
+        }
       }
       return;
     }

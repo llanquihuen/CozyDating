@@ -10,6 +10,7 @@ class RoleSwapCinematicView extends StatefulWidget {
   final AvatarConfig? partnerAvatarConfig;
   final String partnerName;
   final VoidCallback onProceed;
+  final int durationSeconds;
 
   const RoleSwapCinematicView({
     super.key,
@@ -18,6 +19,7 @@ class RoleSwapCinematicView extends StatefulWidget {
     this.partnerAvatarConfig,
     required this.partnerName,
     required this.onProceed,
+    this.durationSeconds = 8,
   });
 
   @override
@@ -26,13 +28,14 @@ class RoleSwapCinematicView extends StatefulWidget {
 
 class _RoleSwapCinematicViewState extends State<RoleSwapCinematicView> {
   late final RoleSwapCinematicGame _cinematicGame;
-  int _secondsLeft = 8;
+  late int _secondsLeft;
   async.Timer? _countdownTimer;
   bool _hasProceeded = false;
 
   @override
   void initState() {
     super.initState();
+    _secondsLeft = widget.durationSeconds;
 
     final isNewExplorer = widget.newRole.toUpperCase() == 'EXPLORER';
     final localWasExplorer = !isNewExplorer;
@@ -42,9 +45,7 @@ class _RoleSwapCinematicViewState extends State<RoleSwapCinematicView> {
       partnerAvatarConfig: widget.partnerAvatarConfig,
       localWasExplorer: localWasExplorer,
       onCinematicFinished: () {
-        if (mounted && !_hasProceeded) {
-          _proceed();
-        }
+        // Animation finished: wait strictly for the synchronized timer to complete
       },
     );
 
@@ -54,6 +55,7 @@ class _RoleSwapCinematicViewState extends State<RoleSwapCinematicView> {
         if (_secondsLeft > 1) {
           _secondsLeft--;
         } else {
+          _secondsLeft = 0;
           timer.cancel();
           _proceed();
         }
@@ -210,35 +212,42 @@ class _RoleSwapCinematicViewState extends State<RoleSwapCinematicView> {
                         ),
                       ),
 
-                      // Continue Action Button with countdown
-                      SizedBox(
+                      // Synchronized Countdown Banner (Non-skippable)
+                      Container(
                         width: double.infinity,
                         height: 50,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isNewExplorer ? Colors.deepOrange.shade800 : Colors.teal.shade800,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 4,
+                        decoration: BoxDecoration(
+                          color: (isNewExplorer ? Colors.deepOrange.shade900 : Colors.teal.shade900).withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isNewExplorer ? Colors.deepOrangeAccent : Colors.tealAccent,
+                            width: 1.5,
                           ),
-                          onPressed: _proceed,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.play_arrow_rounded, size: 22),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Entrar al Acto 2 (${_secondsLeft}s)',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  letterSpacing: 0.5,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  isNewExplorer ? Colors.deepOrangeAccent : Colors.tealAccent,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Sincronizando Acto 2 (${_secondsLeft}s)...',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

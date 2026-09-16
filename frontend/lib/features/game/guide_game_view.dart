@@ -10,6 +10,7 @@ import 'services/dungeon_generator.dart';
 import 'widgets/dungeon_escape_countdown_banner.dart';
 import 'widgets/dungeon_mission_hud.dart';
 import 'widgets/emote_wheel_widget.dart';
+import 'widgets/dungeon_danger_vignette_overlay.dart';
 import 'screens/role_swap_cinematic_view.dart';
 
 class GuideGameView extends StatefulWidget {
@@ -28,6 +29,7 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
   int? _lastHandledEmoteTrigger;
   int? _lastHandledSpikeAlertTrigger;
   int? _lastHandledRescueTrigger;
+  Vector2? _lastHandledPitfallPos;
   bool _showSpikeAlert = false;
   async.Timer? _spikeAlertTimer;
   bool _isShowingRoleSwapDialog = false;
@@ -36,6 +38,45 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
   bool _isMapLoaded = false;
   late AnimationController _handAnimController;
   late Animation<double> _handOpacityAnimation;
+
+  int _dungeonSecondsRemaining = 180;
+  async.Timer? _dungeonTimer;
+
+  void _startDungeonTimer() {
+    _dungeonTimer?.cancel();
+    _dungeonSecondsRemaining = 180;
+    _dungeonTimer = async.Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_dungeonSecondsRemaining > 1) {
+        setState(() {
+          _dungeonSecondsRemaining--;
+        });
+      } else {
+        setState(() {
+          _dungeonSecondsRemaining = 0;
+        });
+        timer.cancel();
+        context.read<GameBloc>().add(const SendDungeonTimeoutEvent());
+      }
+    });
+  }
+
+  void _penalizeTrap() {
+    if (_dungeonSecondsRemaining > 15) {
+      setState(() {
+        _dungeonSecondsRemaining -= 15;
+      });
+    } else {
+      setState(() {
+        _dungeonSecondsRemaining = 0;
+      });
+      _dungeonTimer?.cancel();
+      context.read<GameBloc>().add(const SendDungeonTimeoutEvent());
+    }
+  }
 
   @override
   void initState() {
@@ -107,6 +148,7 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
     setState(() {
       _isMapLoaded = true;
     });
+    _startDungeonTimer();
     if (!_hasDrawnFirstStroke) {
       _handAnimController.forward().then((_) {
         if (mounted && !_hasDrawnFirstStroke) {
@@ -118,6 +160,7 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
 
   @override
   void dispose() {
+    _dungeonTimer?.cancel();
     _handAnimController.dispose();
     _spikeAlertTimer?.cancel();
     super.dispose();
@@ -192,6 +235,7 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
           }
           if (state.spikeAlertTrigger != null && state.spikeAlertTrigger != _lastHandledSpikeAlertTrigger) {
             _lastHandledSpikeAlertTrigger = state.spikeAlertTrigger;
+            _penalizeTrap();
             setState(() {
               _showSpikeAlert = true;
             });
@@ -201,6 +245,10 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
                 setState(() => _showSpikeAlert = false);
               }
             });
+          }
+          if (state.trappedPitfallPos != null && state.trappedPitfallPos != _lastHandledPitfallPos) {
+            _lastHandledPitfallPos = state.trappedPitfallPos;
+            _penalizeTrap();
           }
           if (state.pitfallRescueTrigger != null && state.pitfallRescueTrigger != _lastHandledRescueTrigger) {
             _lastHandledRescueTrigger = state.pitfallRescueTrigger;
@@ -244,6 +292,8 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
               targetRuneSequence: secretRunes,
               currentActivatedCount: widget.state.runeActivatedCount,
               portalSecondsRemaining: seconds,
+              dungeonSecondsRemaining: _dungeonSecondsRemaining,
+              dungeonLives: widget.state.dungeonLives,
               onExitPressed: () => _showExitDialog(context),
             ),
             body: Stack(
@@ -439,7 +489,7 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
                                 : Colors.white30,
                           ),
                           label: Text(
-                            'TOCA AQUÍ PARA RESCATAR',
+                            'RESCATAR COMPAÑERO',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -538,6 +588,14 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
                     ],
                   ),
                 ),
+
+                // 7. Low Time Danger Vignette Overlay (pulsing red screen when <= 15s)
+                if (_dungeonSecondsRemaining <= 15)
+                  Positioned.fill(
+                    child: DungeonDangerVignetteOverlay(
+                      secondsRemaining: _dungeonSecondsRemaining,
+                    ),
+                  ),
               ],
             ),
           );

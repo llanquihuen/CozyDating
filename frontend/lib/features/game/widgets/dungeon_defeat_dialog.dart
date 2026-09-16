@@ -4,27 +4,31 @@ import '../../../core/models/avatar_config.dart';
 import '../../avatar/games/character_preview_game.dart';
 import 'package:flame/game.dart';
 
-class DungeonVictoryDialog extends StatefulWidget {
+class DungeonDefeatDialog extends StatefulWidget {
   final AvatarConfig localAvatar;
   final AvatarConfig? partnerAvatar;
   final String partnerName;
   final VoidCallback onProceedToCampfire;
   final int autoProceedSeconds;
+  final String defeatTitle;
+  final String? defeatSubtitle;
 
-  const DungeonVictoryDialog({
+  const DungeonDefeatDialog({
     super.key,
     required this.localAvatar,
     this.partnerAvatar,
     required this.partnerName,
     required this.onProceedToCampfire,
     this.autoProceedSeconds = 8,
+    this.defeatTitle = '¡SE APAGÓ LA LINTERNA!',
+    this.defeatSubtitle,
   });
 
   @override
-  State<DungeonVictoryDialog> createState() => _DungeonVictoryDialogState();
+  State<DungeonDefeatDialog> createState() => _DungeonDefeatDialogState();
 }
 
-class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
+class _DungeonDefeatDialogState extends State<DungeonDefeatDialog>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
@@ -90,16 +94,16 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF2C1E4A),
-                Color(0xFF18122B),
-                Color(0xFF0F0A1C),
+                Color(0xFF2A1C24),
+                Color(0xFF1C131E),
+                Color(0xFF0F0A14),
               ],
             ),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.8), width: 2),
+            border: Border.all(color: Colors.deepOrangeAccent.withValues(alpha: 0.7), width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.amber.withValues(alpha: 0.3),
+                color: Colors.deepOrange.withValues(alpha: 0.25),
                 blurRadius: 28,
                 spreadRadius: 4,
               ),
@@ -109,28 +113,28 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-              // Trophy / Badge Icon
+              // Lantern / Moon Badge Icon
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.amber.withValues(alpha: 0.2),
-                  border: Border.all(color: Colors.amberAccent, width: 2),
+                  color: Colors.deepOrange.withValues(alpha: 0.2),
+                  border: Border.all(color: Colors.deepOrangeAccent, width: 2),
                 ),
                 child: const Icon(
-                  Icons.emoji_events,
-                  color: Colors.amberAccent,
+                  Icons.nightlight_round,
+                  color: Colors.deepOrangeAccent,
                   size: 42,
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Victory Title
-              const Text(
-                '¡MAZMORRA CONQUISTADA!',
+              // Title
+              Text(
+                widget.defeatTitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.amberAccent,
+                style: const TextStyle(
+                  color: Colors.deepOrangeAccent,
                   fontWeight: FontWeight.w900,
                   fontSize: 20,
                   letterSpacing: 1.2,
@@ -138,7 +142,7 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
               ),
               const SizedBox(height: 6),
               Text(
-                '¡Gran trabajo en equipo con ${widget.partnerName}!',
+                widget.defeatSubtitle ?? 'El laberinto se cerró por hoy con ${widget.partnerName}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -152,13 +156,11 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Local Avatar
                   _buildAvatarCircle(widget.localAvatar),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Icon(Icons.handshake, color: Colors.pinkAccent, size: 28),
+                    child: Icon(Icons.favorite, color: Colors.pinkAccent, size: 28),
                   ),
-                  // Partner Avatar
                   if (widget.partnerAvatar != null)
                     _buildAvatarCircle(widget.partnerAvatar!),
                 ],
@@ -174,7 +176,7 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
                   border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                 ),
                 child: const Text(
-                  'Superaron las trampas, descifraron las runas y cruzaron el portal juntos. Ha llegado la hora de relajarse y conocerse mejor.',
+                  'El tiempo de la expedición se ha terminado, pero cuidaron el uno del otro. Vamos al calor de la fogata a charlar de lo ocurrido y relajarse.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFFE2E8F0),
@@ -183,9 +185,9 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Coins Bonus Badge
+              // Coins Consolation Badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
@@ -199,7 +201,7 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
                     Icon(Icons.monetization_on, color: Colors.amber, size: 16),
                     SizedBox(width: 6),
                     Text(
-                      '+100 monedas de expedición',
+                      '+50 monedas de consuelo',
                       style: TextStyle(
                         color: Colors.amberAccent,
                         fontWeight: FontWeight.bold,
@@ -209,9 +211,9 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Big Action Button: Continue to Campfire
+              // Action Button: Continue to Campfire with countdown
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -228,7 +230,7 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
                   onPressed: _proceed,
                   icon: const Icon(Icons.local_fire_department, size: 22),
                   label: Text(
-                    'Descansar en la Fogata 🔥 (${_secondsLeft}s)',
+                    'Ir a la Fogata 🔥 (${_secondsLeft}s)',
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 15,
@@ -240,10 +242,10 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
             ],
           ),
         ),
-        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildAvatarCircle(AvatarConfig config) {
     return Container(
@@ -257,7 +259,7 @@ class _DungeonVictoryDialogState extends State<DungeonVictoryDialog>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: GameWidget(
-          key: ValueKey('victory_avatar_${config.hashCode}'),
+          key: ValueKey('defeat_avatar_${config.hashCode}'),
           game: CharacterPreviewGame(
             config: config,
             initialFaceZoom: false,

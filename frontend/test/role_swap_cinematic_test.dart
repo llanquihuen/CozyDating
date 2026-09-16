@@ -86,7 +86,7 @@ void main() {
       expect(finishedCalled, isTrue);
     });
 
-    testWidgets('RoleSwapCinematicView renders briefing card and triggers onProceed on tap', (tester) async {
+    testWidgets('RoleSwapCinematicView renders briefing card and triggers onProceed only on timer completion', (tester) async {
       bool proceedCalled = false;
 
       await tester.pumpWidget(
@@ -96,6 +96,7 @@ void main() {
             localAvatarConfig: dummyLocalConfig,
             partnerAvatarConfig: dummyPartnerConfig,
             partnerName: 'Camila',
+            durationSeconds: 2,
             onProceed: () {
               proceedCalled = true;
             },
@@ -111,13 +112,17 @@ void main() {
       expect(find.text('TU NUEVO ROL: EXPLORADOR'), findsOneWidget);
       expect(find.textContaining('Ahora tomas la linterna mágica'), findsOneWidget);
 
-      // Verify continue button
-      expect(find.textContaining('Entrar al Acto 2'), findsOneWidget);
+      // Verify synchronized non-skippable countdown banner
+      expect(find.textContaining('Sincronizando Acto 2 (2s)'), findsOneWidget);
+      expect(proceedCalled, isFalse);
 
-      // Tap proceed button
-      await tester.tap(find.textContaining('Entrar al Acto 2'));
-      await tester.pump(const Duration(milliseconds: 100));
+      // Advance 1 second -> still running (1s left)
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.textContaining('Sincronizando Acto 2 (1s)'), findsOneWidget);
+      expect(proceedCalled, isFalse);
 
+      // Advance past completion -> onProceed triggered
+      await tester.pump(const Duration(seconds: 1));
       expect(proceedCalled, isTrue);
     });
 

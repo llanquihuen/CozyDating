@@ -75,6 +75,9 @@ public class GameSessionService {
         userToRoomMap.put(explorerId, roomId);
         userToRoomMap.put(guideId, roomId);
 
+        com.cozydating.server.model.User explorerUser = databaseService.findUserById(explorerId);
+        com.cozydating.server.model.User guideUser = databaseService.findUserById(guideId);
+
         // Send SESSION_INIT to Explorer (Partner is Guide)
         logger.info("[GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer ({}) with partner data ({})", explorerId, guideId);
         Map<String, Object> explorerInit = new HashMap<>();
@@ -88,6 +91,12 @@ public class GameSessionService {
         if (guideAvatar != null) explorerInit.put("partnerAvatarConfig", guideAvatar);
         if (guideRoom != null) explorerInit.put("partnerRoomConfig", guideRoom);
         if (guideTastes != null) explorerInit.put("partnerTastes", guideTastes);
+        if (guideUser != null && guideUser.getAge() > 0) {
+            explorerInit.put("partnerAge", guideUser.getAge());
+        }
+        if (guideUser != null && guideUser.getCommune() != null && !guideUser.getCommune().isEmpty()) {
+            explorerInit.put("partnerCommune", guideUser.getCommune());
+        }
         explorerInit.put("seed", dungeonSeed);
         explorerInit.put("act", 1);
         if ("CAMPFIRE".equalsIgnoreCase(mode)) {
@@ -111,6 +120,12 @@ public class GameSessionService {
         if (explorerAvatar != null) guideInit.put("partnerAvatarConfig", explorerAvatar);
         if (explorerRoom != null) guideInit.put("partnerRoomConfig", explorerRoom);
         if (explorerTastes != null) guideInit.put("partnerTastes", explorerTastes);
+        if (explorerUser != null && explorerUser.getAge() > 0) {
+            guideInit.put("partnerAge", explorerUser.getAge());
+        }
+        if (explorerUser != null && explorerUser.getCommune() != null && !explorerUser.getCommune().isEmpty()) {
+            guideInit.put("partnerCommune", explorerUser.getCommune());
+        }
         guideInit.put("seed", dungeonSeed);
         guideInit.put("act", 1);
         if ("CAMPFIRE".equalsIgnoreCase(mode)) {

@@ -526,6 +526,49 @@ class AvatarStorageService {
     _userMaxDistances[userId] = distanceKm;
   }
 
+  // --- User Age and Commune ---
+  static final Map<String, int> _userAges = {
+    'alice': 24,
+    'userA': 24,
+    'bob': 26,
+    'userB': 26,
+    'charlie': 28,
+    'userC': 28,
+    'david': 25,
+    'userD': 25,
+  };
+
+  static int getUserAge(String userId) {
+    if (_userAges.containsKey(userId)) return _userAges[userId]!;
+    if (userId.isNotEmpty) {
+      return 21 + (userId.hashCode.abs() % 7);
+    }
+    return 24;
+  }
+
+  static void saveUserAge(String userId, int age) {
+    _userAges[userId] = age;
+  }
+
+  static final Map<String, String> _userCommunes = {
+    'alice': 'Santiago',
+    'userA': 'Santiago',
+    'bob': 'Providencia',
+    'userB': 'Providencia',
+    'charlie': 'Las Condes',
+    'userC': 'Las Condes',
+    'david': 'Ñuñoa',
+    'userD': 'Ñuñoa',
+  };
+
+  static String getUserCommune(String userId) {
+    return _userCommunes[userId] ?? 'Santiago';
+  }
+
+  static void saveUserCommune(String userId, String commune) {
+    _userCommunes[userId] = commune;
+  }
+
   // --- Coins Currency System ---
   static final Map<String, int> _userCoins = {
     'alice': 150,

@@ -58,6 +58,7 @@ class _CampfireViewState extends State<CampfireView> {
   int? _lastHandledEmoteTrigger;
   int? _lastHandledNextRoundTrigger;
   int? _lastHandledChatTrigger;
+  int? _lastHandledRelaxationTrigger;
   async.StreamSubscription<GameState>? _blocSub;
 
   @override
@@ -138,6 +139,15 @@ class _CampfireViewState extends State<CampfireView> {
           _advanceToRound(_currentRound + 1);
         }
       }
+
+      // 4. Synchronized campfire relaxation phase (final talk)
+      if (state.isCampfireRelaxationActive &&
+          state.campfireRelaxationTrigger != _lastHandledRelaxationTrigger) {
+        _lastHandledRelaxationTrigger = state.campfireRelaxationTrigger;
+        if (!_isRelaxationPhase) {
+          _startRelaxationPhase();
+        }
+      }
     }
   }
 
@@ -188,6 +198,12 @@ class _CampfireViewState extends State<CampfireView> {
       }
       _advanceToRound(nextRound);
     } else {
+      // Question 3 finished: Signal partner to start synchronized final communication
+      try {
+        context.read<GameBloc>().add(const SendCampfireStartRelaxationEvent());
+      } catch (e) {
+        print('[CAMPFIRE] Offline relaxation trigger: $e');
+      }
       _startRelaxationPhase();
     }
   }
@@ -220,9 +236,10 @@ class _CampfireViewState extends State<CampfireView> {
   }
 
   void _startRelaxationPhase() {
+    if (_isRelaxationPhase) return;
     setState(() {
       _isRelaxationPhase = true;
-      _relaxationSecondsLeft = 20;
+      _relaxationSecondsLeft = 45;
     });
 
     _relaxationTimer?.cancel();
@@ -763,6 +780,33 @@ class _CampfireViewState extends State<CampfireView> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        // Synchronized Final Communication Countdown Banner
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.5), width: 1.2),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.timer_outlined, size: 16, color: Colors.amberAccent),
+              const SizedBox(width: 6),
+              Text(
+                'Momento de Charla Final: ${_relaxationSecondsLeft}s',
+                style: const TextStyle(
+                  color: Colors.amberAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+
         // Floating text input like in HomeVisitView
         if (_showChatInput)
           Container(

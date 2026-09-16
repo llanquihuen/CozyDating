@@ -2,12 +2,10 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import '../avatar/components/modular_avatar_component.dart';
 import 'components/explorer_component.dart';
-import 'components/ping_beacon_component.dart';
 import 'components/spike_trap_component.dart';
 import 'dungeon_game.dart';
-import 'services/dungeon_generator.dart';
 
-class GuideDungeonGame extends DungeonGame with TapCallbacks, DragCallbacks {
+class GuideDungeonGame extends DungeonGame {
   final void Function(Vector2 pingPos)? onPingTap;
   Vector2? _lastSentPoint;
   final double _minDistBetweenPoints = 8.0;

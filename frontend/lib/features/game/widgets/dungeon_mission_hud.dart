@@ -13,6 +13,8 @@ class DungeonMissionHud extends StatelessWidget implements PreferredSizeWidget {
   final List<String> targetRuneSequence;
   final int currentActivatedCount;
   final int portalSecondsRemaining;
+  final int dungeonSecondsRemaining;
+  final int dungeonLives;
   final bool hasKey;
   final VoidCallback? onExitPressed;
 
@@ -22,6 +24,8 @@ class DungeonMissionHud extends StatelessWidget implements PreferredSizeWidget {
     required this.targetRuneSequence,
     required this.currentActivatedCount,
     required this.portalSecondsRemaining,
+    this.dungeonSecondsRemaining = 180,
+    this.dungeonLives = 4,
     this.hasKey = false,
     this.onExitPressed,
   });
@@ -95,6 +99,88 @@ class DungeonMissionHud extends StatelessWidget implements PreferredSizeWidget {
                       fontSize: 11,
                       letterSpacing: 0.5,
                     ),
+                  ),
+                ),
+
+                // Expedition Timer (Max time limit)
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: dungeonSecondsRemaining <= 30
+                        ? Colors.redAccent.withOpacity(0.25)
+                        : (dungeonSecondsRemaining <= 60
+                            ? Colors.orangeAccent.withOpacity(0.2)
+                            : Colors.white.withOpacity(0.08)),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: dungeonSecondsRemaining <= 30
+                          ? Colors.redAccent
+                          : (dungeonSecondsRemaining <= 60
+                              ? Colors.orangeAccent
+                              : Colors.amberAccent.withOpacity(0.5)),
+                      width: dungeonSecondsRemaining <= 30 ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        size: 13,
+                        color: dungeonSecondsRemaining <= 30
+                            ? Colors.redAccent
+                            : (dungeonSecondsRemaining <= 60
+                                ? Colors.orangeAccent
+                                : Colors.amberAccent),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${(dungeonSecondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(dungeonSecondsRemaining % 60).toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          color: dungeonSecondsRemaining <= 30
+                              ? Colors.redAccent
+                              : (dungeonSecondsRemaining <= 60
+                                  ? Colors.orangeAccent
+                                  : Colors.amberAccent),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Dungeon Lives Indicator (4 Hearts)
+                Container(
+                  margin: const EdgeInsets.only(left: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: dungeonLives <= 1
+                        ? Colors.redAccent.withValues(alpha: 0.25)
+                        : Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: dungeonLives <= 1
+                          ? Colors.redAccent
+                          : Colors.pinkAccent.withValues(alpha: 0.45),
+                      width: dungeonLives <= 1 ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(4, (index) {
+                      final isAlive = index < dungeonLives;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                        child: Icon(
+                          isAlive ? Icons.favorite : Icons.favorite_border,
+                          size: 13,
+                          color: isAlive ? Colors.redAccent : Colors.white30,
+                        ),
+                      );
+                    }),
                   ),
                 ),
 
@@ -244,29 +330,31 @@ class DungeonAlertOverlay extends StatelessWidget {
         return GestureDetector(
           onTap: onRescuePressed,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.orange.shade900, Colors.amber.shade900],
+              color: Colors.black.withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Colors.orangeAccent.withValues(alpha: 0.8),
+                width: 1.5,
               ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.amberAccent, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.amber.withOpacity(0.45),
-                  blurRadius: 14,
-                  spreadRadius: 2,
+                  color: Colors.orange.withValues(alpha: 0.25),
+                  blurRadius: 10,
+                  spreadRadius: 1,
                 ),
               ],
             ),
             child: const Row(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.handshake_outlined, color: Colors.amberAccent, size: 20),
+                Icon(Icons.handshake_outlined, color: Colors.amberAccent, size: 18),
                 SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    '🪢 ¡Compañero atrapado! TOCA AQUÍ PARA RESCATAR',
+                    '🪢 ¡Compañero atrapado!',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,

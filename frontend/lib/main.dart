@@ -19,6 +19,7 @@ import 'features/game/bloc/game_bloc.dart';
 import 'features/game/game_view.dart';
 import 'features/game/guide_game_view.dart';
 import 'features/game/screens/dungeon_match_intro_view.dart';
+import 'features/game/widgets/dungeon_defeat_dialog.dart';
 import 'features/game/widgets/dungeon_victory_dialog.dart';
 import 'features/home_visit/screens/home_visit_view.dart';
 import 'features/lobby/screens/cozy_lobby_view.dart';
@@ -166,7 +167,7 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
       builder: (context, state) {
         if (state is ActiveGameState) {
           // Si la fogata está activa, renderizarla directamente
-          if (state.isCampfireActive) {
+          if (state.isCampfireActive || state.isDungeonFailed) {
             final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
             final localTastes = (AuthService.currentUser?.tastes != null && AuthService.currentUser!.tastes.isNotEmpty)
                 ? AuthService.currentUser!.tastes
@@ -207,20 +208,37 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
               tastes: partnerTastes,
             );
 
-            // Celebrar victoria de mazmorra antes de pasar a la fogata
+            // Celebrar victoria o consuelo de derrota de mazmorra antes de pasar a la fogata
             if (_victoryShownRoomId != state.session.roomId) {
               return Scaffold(
                 backgroundColor: const Color(0xFF0F172A),
-                body: DungeonVictoryDialog(
-                  localAvatar: localProfile.avatarConfig,
-                  partnerAvatar: partnerProfile.avatarConfig,
-                  partnerName: partnerName,
-                  onProceedToCampfire: () {
-                    setState(() {
-                      _victoryShownRoomId = state.session.roomId;
-                    });
-                  },
-                ),
+                body: state.isDungeonFailed
+                    ? DungeonDefeatDialog(
+                        localAvatar: localProfile.avatarConfig,
+                        partnerAvatar: partnerProfile.avatarConfig,
+                        partnerName: partnerName,
+                        defeatTitle: state.dungeonLives <= 0
+                            ? '¡SE AGOTARON LAS VIDAS!'
+                            : '¡SE APAGÓ LA LINTERNA!',
+                        defeatSubtitle: state.dungeonLives <= 0
+                            ? 'Las trampas y púas agotaron los corazones de la expedición'
+                            : 'El laberinto se cerró por hoy con $partnerName',
+                        onProceedToCampfire: () {
+                          setState(() {
+                            _victoryShownRoomId = state.session.roomId;
+                          });
+                        },
+                      )
+                    : DungeonVictoryDialog(
+                        localAvatar: localProfile.avatarConfig,
+                        partnerAvatar: partnerProfile.avatarConfig,
+                        partnerName: partnerName,
+                        onProceedToCampfire: () {
+                          setState(() {
+                            _victoryShownRoomId = state.session.roomId;
+                          });
+                        },
+                      ),
               );
             }
 

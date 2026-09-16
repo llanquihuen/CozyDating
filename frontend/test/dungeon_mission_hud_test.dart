@@ -30,6 +30,29 @@ void main() {
       // 1st rune is activated (shows ☀️), remaining 2 are unactivated (show ?)
       expect(find.text('☀️'), findsOneWidget);
       expect(find.text('?'), findsNWidgets(2));
+
+      // 4 hearts are rendered by default
+      expect(find.byIcon(Icons.favorite), findsNWidgets(4));
+    });
+
+    testWidgets('DungeonMissionHud displays correct filled and empty hearts when lives are lost', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: DungeonMissionHud(
+              isGuide: false,
+              targetRuneSequence: ['SOL', 'MOON', 'SNAKE'],
+              currentActivatedCount: 0,
+              portalSecondsRemaining: 0,
+              dungeonLives: 2,
+            ),
+          ),
+        ),
+      );
+
+      // With 2 lives remaining: 2 filled hearts, 2 empty heart borders
+      expect(find.byIcon(Icons.favorite), findsNWidgets(2));
+      expect(find.byIcon(Icons.favorite_border), findsNWidgets(2));
     });
 
     testWidgets('DungeonAlertOverlay displays rescue button when partner is trapped in Guide view', (tester) async {
@@ -49,9 +72,9 @@ void main() {
         ),
       );
 
-      expect(find.text('🪢 ¡Compañero atrapado! TOCA AQUÍ PARA RESCATAR'), findsOneWidget);
+      expect(find.text('🪢 ¡Compañero atrapado!'), findsOneWidget);
 
-      await tester.tap(find.text('🪢 ¡Compañero atrapado! TOCA AQUÍ PARA RESCATAR'));
+      await tester.tap(find.text('🪢 ¡Compañero atrapado!'));
       expect(rescueClicked, isTrue);
     });
 

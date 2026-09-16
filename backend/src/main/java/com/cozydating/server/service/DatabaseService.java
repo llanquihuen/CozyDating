@@ -261,6 +261,11 @@ public class DatabaseService {
         } else {
             // Update existing users if tastes or photos are null or empty
             try {
+                jdbcTemplate.update("UPDATE users SET age = 24, commune = 'Santiago' WHERE id = 'userA' AND (age IS NULL OR age = 0)");
+                jdbcTemplate.update("UPDATE users SET age = 26, commune = 'Providencia' WHERE id = 'userB' AND (age IS NULL OR age = 0)");
+                jdbcTemplate.update("UPDATE users SET age = 28, commune = 'Las Condes' WHERE id = 'userC' AND (age IS NULL OR age = 0)");
+                jdbcTemplate.update("UPDATE users SET age = 25, commune = 'Ñuñoa' WHERE id = 'userD' AND (age IS NULL OR age = 0)");
+
                 jdbcTemplate.update("UPDATE users SET tastes = ? WHERE id = 'userA' AND (tastes IS NULL OR tastes = '' OR tastes = '[]')", defaultTastesA);
                 jdbcTemplate.update("UPDATE users SET tastes = ? WHERE id = 'userB' AND (tastes IS NULL OR tastes = '' OR tastes = '[]')", defaultTastesB);
                 jdbcTemplate.update("UPDATE users SET tastes = ? WHERE id = 'userC' AND (tastes IS NULL OR tastes = '' OR tastes = '[]')", defaultTastesC);

@@ -447,4 +447,23 @@ class PreferenceCatalog {
       furniture: furnitureList,
     );
   }
+
+  static PreferenceItem? getItem(String id) {
+    for (final cat in categories) {
+      for (final item in cat.items) {
+        if (item.id == id) return item;
+      }
+    }
+    return null;
+  }
+
+  static String formatTaste(String id) {
+    final item = getItem(id);
+    if (item != null) {
+      return '${item.emoji} ${item.title}';
+    }
+    // Fallback format
+    final clean = id.replaceAll(RegExp(r'^(game_|cinema_|music_|food_|pet_|life_|tech_|vibe_|intent_)'), '');
+    return '✨ ${clean.replaceAll('_', ' ')}';
+  }
 }

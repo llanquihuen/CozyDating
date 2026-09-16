@@ -73,6 +73,8 @@ class SessionInitPayload extends Equatable {
   final AvatarConfig? partnerAvatarConfig;
   final RoomConfig? partnerRoomConfig;
   final List<String> partnerTastes;
+  final int? partnerAge;
+  final String? partnerCommune;
   final int act;
   final int? seed;
   final bool isHomeVisitActive;
@@ -88,6 +90,8 @@ class SessionInitPayload extends Equatable {
     this.partnerAvatarConfig,
     this.partnerRoomConfig,
     this.partnerTastes = const [],
+    this.partnerAge,
+    this.partnerCommune,
     this.act = 1,
     this.seed,
     this.isHomeVisitActive = false,
@@ -134,6 +138,8 @@ class SessionInitPayload extends Equatable {
       partnerAvatarConfig: avatar,
       partnerRoomConfig: room,
       partnerTastes: tastes,
+      partnerAge: (json['partnerAge'] as num?)?.toInt(),
+      partnerCommune: json['partnerCommune'] as String?,
       act: (json['act'] as num?)?.toInt() ?? 1,
       seed: (json['seed'] as num?)?.toInt(),
       isHomeVisitActive: json['isHomeVisitActive'] == true || (json['mode'] as String? ?? '').toUpperCase() == 'HOME',
@@ -152,6 +158,8 @@ class SessionInitPayload extends Equatable {
       if (partnerAvatarConfig != null) 'partnerAvatarConfig': partnerAvatarConfig!.toJson(),
       if (partnerRoomConfig != null) 'partnerRoomConfig': partnerRoomConfig!.toMap(),
       if (partnerTastes.isNotEmpty) 'partnerTastes': partnerTastes,
+      if (partnerAge != null) 'partnerAge': partnerAge,
+      if (partnerCommune != null) 'partnerCommune': partnerCommune,
       'act': act,
       'seed': seed,
       'isHomeVisitActive': isHomeVisitActive,
@@ -170,6 +178,8 @@ class SessionInitPayload extends Equatable {
     partnerAvatarConfig,
     partnerRoomConfig,
     partnerTastes,
+    partnerAge,
+    partnerCommune,
     act,
     seed,
   ];

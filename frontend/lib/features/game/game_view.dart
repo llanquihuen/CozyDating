@@ -17,6 +17,7 @@ import 'widgets/dpad_widget.dart';
 import 'widgets/dungeon_escape_countdown_banner.dart';
 import 'widgets/dungeon_mission_hud.dart';
 import 'widgets/emote_wheel_widget.dart';
+import 'widgets/dungeon_danger_vignette_overlay.dart';
 import 'widgets/role_swap_transition_dialog.dart';
 import 'screens/role_swap_cinematic_view.dart';
 import '../campfire/screens/campfire_view.dart';
@@ -48,6 +49,45 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
   int? _lastHandledGateTrigger;
   int? _lastHandledEmoteTrigger;
   int? _lastHandledRescueTrigger;
+
+  int _dungeonSecondsRemaining = 180;
+  Timer? _dungeonTimer;
+
+  void _startDungeonTimer() {
+    _dungeonTimer?.cancel();
+    _dungeonSecondsRemaining = 180;
+    _dungeonTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_dungeonSecondsRemaining > 1) {
+        setState(() {
+          _dungeonSecondsRemaining--;
+        });
+      } else {
+        setState(() {
+          _dungeonSecondsRemaining = 0;
+        });
+        timer.cancel();
+        context.read<GameBloc>().add(const SendDungeonTimeoutEvent());
+      }
+    });
+  }
+
+  void _penalizeTrap() {
+    if (_dungeonSecondsRemaining > 15) {
+      setState(() {
+        _dungeonSecondsRemaining -= 15;
+      });
+    } else {
+      setState(() {
+        _dungeonSecondsRemaining = 0;
+      });
+      _dungeonTimer?.cancel();
+      context.read<GameBloc>().add(const SendDungeonTimeoutEvent());
+    }
+  }
 
   @override
   void initState() {
@@ -111,10 +151,12 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
       },
       onExplorerTrapped: (tilePos) {
         if (!mounted) return;
+        context.read<GameBloc>().add(const SendDungeonLifeLostEvent(reason: 'PITFALL'));
         context.read<GameBloc>().add(SendPitfallTrappedEvent(tilePos.x, tilePos.y));
       },
       onExplorerSpikeHit: () {
         if (!mounted) return;
+        context.read<GameBloc>().add(const SendDungeonLifeLostEvent(reason: 'SPIKE'));
         context.read<GameBloc>().add(const SendSpikeAlertEvent());
       },
       onRuneProgress: (correct, total, rune, isCorrect) {
@@ -142,6 +184,7 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
     setState(() {
       _isMapLoaded = true;
     });
+    _startDungeonTimer();
     if (!_hasAimedFlashlight) {
       _aimHandAnimController.forward().then((_) {
         if (mounted && !_hasAimedFlashlight) {
@@ -160,6 +203,7 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
+    _dungeonTimer?.cancel();
     _aimHandAnimController.dispose();
     super.dispose();
   }
@@ -293,6 +337,8 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
               targetRuneSequence: _dungeonGame.dungeonMapData?.secretRuneSequence ?? const ['SOL', 'MOON', 'SNAKE'],
               currentActivatedCount: _dungeonGame.currentSteppedSequence.length,
               portalSecondsRemaining: seconds,
+              dungeonSecondsRemaining: _dungeonSecondsRemaining,
+              dungeonLives: widget.state.dungeonLives,
               hasKey: _hasKey,
               onExitPressed: () => _showExitDialog(context),
             ),
@@ -444,6 +490,14 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
                           secondsRemaining: seconds,
                         ),
                       ),
+                    ),
+                  ),
+
+                // 6. Low Time Danger Vignette Overlay (pulsing red screen when <= 15s)
+                if (_dungeonSecondsRemaining <= 15)
+                  Positioned.fill(
+                    child: DungeonDangerVignetteOverlay(
+                      secondsRemaining: _dungeonSecondsRemaining,
                     ),
                   ),
               ],

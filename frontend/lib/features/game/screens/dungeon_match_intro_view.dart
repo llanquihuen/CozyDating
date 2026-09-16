@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/avatar_config.dart';
+import '../../../core/models/preference_tags.dart';
 import '../../../core/models/room_config.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
@@ -320,6 +321,24 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
     final localReady = widget.state.localReady;
     final partnerReady = widget.state.partnerReady;
 
+    final partnerName = widget.state.partnerUsername ??
+        (widget.state.session.partnerUsername != null && widget.state.session.partnerUsername!.isNotEmpty
+            ? widget.state.session.partnerUsername!
+            : _formatUserName(_partnerUserId));
+    final partnerBio = widget.state.partnerBio ??
+        AvatarStorageService.getUserBio(_partnerUserId);
+    final partnerIntent = AvatarStorageService.getUserIntent(_partnerUserId);
+    final partnerAge = widget.state.partnerAge ??
+        widget.state.session.partnerAge ??
+        AvatarStorageService.getUserAge(_partnerUserId);
+    final partnerCommune = widget.state.partnerCommune ??
+        widget.state.session.partnerCommune ??
+        AvatarStorageService.getUserCommune(_partnerUserId);
+    final partnerTastes = widget.state.partnerTastes ??
+        (widget.state.session.partnerTastes.isNotEmpty
+            ? widget.state.session.partnerTastes
+            : AvatarStorageService.getUserTastes(_partnerUserId));
+
     return Scaffold(
       backgroundColor: const Color(0xFF130F26),
       body: Container(
@@ -399,68 +418,63 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   child: Column(
                     children: [
-                      // Match Diorama: Two Cards
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Left: Local Player
-                          Expanded(
-                            child: _buildPlayerCard(
-                              name: 'Tú (${_formatUserName(_localUserId)})',
-                              roleTitle: isExplorer ? 'Explorador 🔦' : 'Guía 🗺️',
-                              roleColor: isExplorer ? const Color(0xFFFF9800) : const Color(0xFF00E5FF),
-                              avatarConfig: _localAvatar,
-                              roomConfig: _localRoom,
-                              isReady: localReady,
-                              isLocal: true,
-                            ),
-                          ),
+                      // 1. Local Player: Compact Face Only Header (No Room)
+                      _buildLocalPlayerHeader(
+                        name: 'Tú (${_formatUserName(_localUserId)})',
+                        roleTitle: isExplorer ? 'Explorador 🔦' : 'Guía 🗺️',
+                        roleColor: isExplorer ? const Color(0xFFFF9800) : const Color(0xFF00E5FF),
+                        avatarConfig: _localAvatar,
+                        isReady: localReady,
+                      ),
 
-                          // Center Connection
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 50.0),
-                            child: ScaleTransition(
-                              scale: _pulseScale,
-                              child: Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.pinkAccent.withValues(alpha: 0.2),
-                                  border: Border.all(color: Colors.pinkAccent, width: 2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.pinkAccent.withValues(alpha: 0.4),
-                                      blurRadius: 16,
-                                      spreadRadius: 2,
+                      // Romantic Connection Divider
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                        child: Row(
+                          children: [
+                            const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              child: ScaleTransition(
+                                scale: _pulseScale,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.favorite, color: Colors.pinkAccent, size: 16),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'TU CITA EN LA MAZMORRA',
+                                      style: TextStyle(
+                                        color: Colors.pinkAccent.shade100,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                        letterSpacing: 1.0,
+                                      ),
                                     ),
+                                    const SizedBox(width: 6),
+                                    const Icon(Icons.favorite, color: Colors.pinkAccent, size: 16),
                                   ],
-                                ),
-                                child: const Icon(
-                                  Icons.favorite,
-                                  color: Colors.pinkAccent,
-                                  size: 24,
                                 ),
                               ),
                             ),
-                          ),
+                            const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
+                          ],
+                        ),
+                      ),
 
-                          // Right: Partner Player
-                          Expanded(
-                            child: _buildPlayerCard(
-                              name: widget.state.partnerUsername ?? _formatUserName(_partnerUserId),
-                              roleTitle: !isExplorer ? 'Explorador 🔦' : 'Guía 🗺️',
-                              roleColor: !isExplorer ? const Color(0xFFFF9800) : const Color(0xFF00E5FF),
-                              avatarConfig: _partnerAvatar,
-                              roomConfig: _partnerRoom,
-                              isReady: partnerReady,
-                              isLocal: false,
-                              bio: AvatarStorageService.getUserBio(_partnerUserId),
-                              intent: AvatarStorageService.getUserIntent(_partnerUserId),
-                              age: 24,
-                              commune: 'Santiago',
-                            ),
-                          ),
-                        ],
+                      // 2. Partner: Featured Full-Width Card (Age, Full Bio, Room, Tastes)
+                      _buildPartnerFeaturedCard(
+                        name: partnerName,
+                        roleTitle: !isExplorer ? 'Explorador 🔦' : 'Guía 🗺️',
+                        roleColor: !isExplorer ? const Color(0xFFFF9800) : const Color(0xFF00E5FF),
+                        avatarConfig: _partnerAvatar,
+                        roomConfig: _partnerRoom,
+                        isReady: partnerReady,
+                        bio: partnerBio,
+                        intent: partnerIntent,
+                        age: partnerAge,
+                        commune: partnerCommune,
+                        tastes: partnerTastes,
                       ),
 
                       const SizedBox(height: 18),
@@ -498,267 +512,504 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
     }
   }
 
-  Widget _buildPlayerCard({
+  Widget _buildLocalPlayerHeader({
+    required String name,
+    required String roleTitle,
+    required Color roleColor,
+    required AvatarConfig avatarConfig,
+    required bool isReady,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1638).withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isReady ? Colors.greenAccent : Colors.white.withValues(alpha: 0.15),
+          width: isReady ? 1.8 : 1.0,
+        ),
+        boxShadow: isReady
+            ? [
+                BoxShadow(
+                  color: Colors.greenAccent.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                ),
+              ]
+            : null,
+      ),
+      child: Row(
+        children: [
+          // Face only: circular zoomed avatar
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: roleColor, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: roleColor.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: GameWidget(
+                key: ValueKey('preview_local_face_${avatarConfig.hashCode}_${avatarConfig.hairStyle}'),
+                game: CharacterPreviewGame(
+                  config: avatarConfig,
+                  initialFaceZoom: true,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: roleColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: roleColor.withValues(alpha: 0.6)),
+                      ),
+                      child: Text(
+                        roleTitle,
+                        style: TextStyle(
+                          color: roleColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  isReady ? '✓ Confirmado para la expedición' : 'Esperando tu confirmación...',
+                  style: TextStyle(
+                    color: isReady ? Colors.greenAccent : Colors.white54,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: isReady ? Colors.green.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isReady ? Colors.greenAccent : Colors.white24),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isReady ? Icons.check_circle : Icons.hourglass_empty,
+                  size: 13,
+                  color: isReady ? Colors.greenAccent : Colors.white54,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  isReady ? 'LISTO' : 'PENDIENTE',
+                  style: TextStyle(
+                    color: isReady ? Colors.greenAccent : Colors.white54,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPartnerFeaturedCard({
     required String name,
     required String roleTitle,
     required Color roleColor,
     required AvatarConfig avatarConfig,
     required RoomConfig roomConfig,
     required bool isReady,
-    required bool isLocal,
-    String? bio,
-    String? intent,
-    int? age,
-    String? commune,
+    required String bio,
+    required String intent,
+    required int age,
+    required String commune,
+    required List<String> tastes,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1638).withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF1E1638).withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isReady ? Colors.greenAccent : Colors.white.withValues(alpha: 0.15),
-          width: isReady ? 2.0 : 1.0,
+          color: isReady ? Colors.greenAccent : const Color(0xFFFF80AB).withValues(alpha: 0.4),
+          width: isReady ? 2.0 : 1.4,
         ),
-        boxShadow: isReady
-            ? [
-                BoxShadow(
-                  color: Colors.greenAccent.withValues(alpha: 0.25),
-                  blurRadius: 12,
-                  spreadRadius: 1,
-                ),
-              ]
-            : null,
+        boxShadow: [
+          BoxShadow(
+            color: isReady
+                ? Colors.greenAccent.withValues(alpha: 0.2)
+                : const Color(0xFFFF80AB).withValues(alpha: 0.12),
+            blurRadius: 16,
+            spreadRadius: 1,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Role Banner
+          // Top Banner: Rol & Ready Pill
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: roleColor.withValues(alpha: 0.18),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(15),
-                topRight: Radius.circular(15),
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
               ),
             ),
-            child: Text(
-              roleTitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: roleColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Avatar Frame
-          Center(
-            child: SizedBox(
-              height: 120,
-              width: 95,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: GameWidget(
-                  key: ValueKey('preview_${isLocal ? "local" : "partner"}_${avatarConfig.hashCode}_${avatarConfig.hairStyle}_${avatarConfig.topStyle}'),
-                  game: CharacterPreviewGame(
-                    config: avatarConfig,
-                    initialFaceZoom: false,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Player Name, Age & Commune
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: Column(
+            child: Row(
               children: [
+                Icon(Icons.stars_rounded, color: roleColor, size: 16),
+                const SizedBox(width: 6),
                 Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  'TU CITA • $roleTitle',
+                  style: TextStyle(
+                    color: roleColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                if (!isLocal && age != null)
-                  Text(
-                    '$age años • ${commune ?? "Santiago"}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 11,
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isReady
+                        ? Colors.green.withValues(alpha: 0.25)
+                        : Colors.amber.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isReady ? Colors.greenAccent : Colors.amberAccent,
                     ),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isReady ? Icons.check_circle : Icons.hourglass_top,
+                        size: 12,
+                        color: isReady ? Colors.greenAccent : Colors.amberAccent,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isReady ? 'LISTO' : 'PREPARANDO',
+                        style: TextStyle(
+                          color: isReady ? Colors.greenAccent : Colors.amberAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
 
-          // Partner Dating Intent Badge
-          if (!isLocal && intent != null && intent.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
-                ),
-                child: Text(
-                  _formatIntentTitle(intent),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFFFBBF24),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-
-          // Partner Bio ("Acerca de mí")
-          if (!isLocal && bio != null && bio.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '«$bio»',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 10,
-                    fontStyle: FontStyle.italic,
-                    height: 1.2,
-                  ),
-                ),
-              ),
-            ),
-
-          // Sneakpeek Interactivo de Habitación (Toca para explorar modal completo)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => _showRoomPreviewDialog(
-                  context: context,
-                  name: name,
-                  avatar: avatarConfig,
-                  room: roomConfig,
-                  isLocal: isLocal,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF281C48).withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: const Color(0xFFFFB74D).withValues(alpha: 0.5),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFFFB74D).withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFB74D).withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+            padding: const EdgeInsets.all(14.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Avatar + Primary Info Row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date Avatar
+                    Container(
+                      height: 125,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFFFFD54F).withValues(alpha: 0.4),
+                          width: 1.2,
                         ),
-                        child: const Icon(Icons.cottage_rounded, color: Color(0xFFFFB74D), size: 16),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    isLocal ? 'Tu Habitación' : 'Cuarto de ${name.split(" ").first}',
-                                    style: const TextStyle(
-                                      color: Color(0xFFFFB74D),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const Icon(Icons.visibility, color: Color(0xFFFFD54F), size: 13),
-                              ],
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(13),
+                        child: GameWidget(
+                          key: ValueKey('preview_partner_full_${avatarConfig.hashCode}_${avatarConfig.hairStyle}_${avatarConfig.topStyle}'),
+                          game: CharacterPreviewGame(
+                            config: avatarConfig,
+                            initialFaceZoom: false,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+
+                    // Name, Age, Commune, Intent
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              letterSpacing: 0.3,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${_getRoomStyleName(roomConfig)} • Toca para ver',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 9,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.cake_outlined, size: 14, color: Color(0xFFFFD54F)),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$age años',
+                                style: const TextStyle(
+                                  color: Color(0xFFFFD54F),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text('•', style: TextStyle(color: Colors.white.withValues(alpha: 0.3))),
+                              ),
+                              const Icon(Icons.location_on_outlined, size: 14, color: Colors.white70),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: Text(
+                                  commune,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Intent Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
+                            ),
+                            child: Text(
+                              _formatIntentTitle(intent),
+                              style: const TextStyle(
+                                color: Color(0xFFFBBF24),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                // Full Description (Se ve ENTERA, sin truncar)
+                if (bio.isNotEmpty) ...[
+                  const Row(
+                    children: [
+                      Icon(Icons.format_quote_rounded, size: 16, color: Color(0xFFFFD54F)),
+                      SizedBox(width: 6),
+                      Text(
+                        'Acerca de mí',
+                        style: TextStyle(
+                          color: Color(0xFFFFD54F),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 0.4,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-            ),
-          ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Text(
+                      '«$bio»',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        fontSize: 12,
+                        height: 1.35,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
 
-          const SizedBox(height: 4),
+                // Sus Gustos (Tastes chips)
+                if (tastes.isNotEmpty) ...[
+                  const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, size: 15, color: Color(0xFFFFB74D)),
+                      SizedBox(width: 6),
+                      Text(
+                        'Sus Gustos & Intereses',
+                        style: TextStyle(
+                          color: Color(0xFFFFB74D),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: tastes.map((t) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2E204F),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFFFFB74D).withValues(alpha: 0.35),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Text(
+                          PreferenceCatalog.formatTaste(t),
+                          style: const TextStyle(
+                            color: Color(0xFFFFE082),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 14),
+                ],
 
-          // Ready Status Indicator
-          Container(
-            margin: const EdgeInsets.all(8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isReady
-                  ? Colors.green.withValues(alpha: 0.2)
-                  : Colors.grey.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isReady ? Colors.greenAccent : Colors.white24,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isReady ? Icons.check_circle : Icons.hourglass_empty,
-                  color: isReady ? Colors.greenAccent : Colors.white54,
-                  size: 14,
+                // La Habitación (Interactive sneakpeek card)
+                const Row(
+                  children: [
+                    Icon(Icons.cottage_rounded, size: 16, color: Color(0xFFFFB74D)),
+                    SizedBox(width: 6),
+                    Text(
+                      'Su Habitación',
+                      style: TextStyle(
+                        color: Color(0xFFFFB74D),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  isReady ? 'LISTO' : 'PREPARANDO',
-                  style: TextStyle(
-                    color: isReady ? Colors.greenAccent : Colors.white70,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
+                const SizedBox(height: 6),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _showRoomPreviewDialog(
+                      context: context,
+                      name: name,
+                      avatar: avatarConfig,
+                      room: roomConfig,
+                      isLocal: false,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF281C48).withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFFFB74D).withValues(alpha: 0.6),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFFB74D).withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFB74D).withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.cottage_rounded, color: Color(0xFFFFB74D), size: 18),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Cuarto de ${name.split(" ").first}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFFFB74D),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${_getRoomStyleName(roomConfig)} • Toca para explorar en 3D 🔍',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.85),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFFFD54F), size: 14),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],

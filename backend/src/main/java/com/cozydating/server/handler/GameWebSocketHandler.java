@@ -118,6 +118,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "CAMPFIRE_EMOTE":
                 case "CAMPFIRE_CHAT":
                 case "BLIND_VOTE":
+                case "CAMPFIRE_START_RELAXATION":
+                case "DUNGEON_TIMEOUT":
+                case "DUNGEON_LIFE_LOST":
                 case "HOME_AVATAR_MOVE":
                 case "HOME_AVATAR_SIT":
                 case "HOME_AVATAR_STAND":
