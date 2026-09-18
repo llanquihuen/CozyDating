@@ -28,6 +28,8 @@ public class LightsailStorageService implements StorageService {
     private static final Logger logger = LoggerFactory.getLogger(LightsailStorageService.class);
 
     private final String bucketName;
+    private final String region;
+    private final String endpoint;
     private final String publicBaseUrl;
     private final S3Client s3Client;
 
@@ -40,6 +42,8 @@ public class LightsailStorageService implements StorageService {
             @Value("${storage.s3.public-base-url:}") String publicBaseUrl) {
 
         this.bucketName = bucketName;
+        this.region = region;
+        this.endpoint = endpoint;
         this.publicBaseUrl = publicBaseUrl != null && !publicBaseUrl.isBlank()
                 ? (publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1) : publicBaseUrl)
                 : null;
@@ -105,10 +109,13 @@ public class LightsailStorageService implements StorageService {
         }
 
         String fileUrl;
-        if (publicBaseUrl != null) {
+        if (publicBaseUrl != null && !publicBaseUrl.isBlank()) {
             fileUrl = publicBaseUrl + "/" + key;
+        } else if (endpoint != null && !endpoint.isBlank()) {
+            String base = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
+            fileUrl = base + "/" + bucketName + "/" + key;
         } else {
-            fileUrl = String.format("https://%s.s3.amazonaws.com/%s", bucketName, key);
+            fileUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
         }
 
         logger.info("[LightsailStorageService] Uploaded to S3: {} -> URL: {}", key, fileUrl);
@@ -122,8 +129,27 @@ public class LightsailStorageService implements StorageService {
             String key;
             if (publicBaseUrl != null && fileUrl.startsWith(publicBaseUrl)) {
                 key = fileUrl.substring(publicBaseUrl.length());
+            } else if (endpoint != null && fileUrl.startsWith(endpoint)) {
+                String afterEndpoint = fileUrl.substring(endpoint.length());
+                if (afterEndpoint.startsWith("/")) afterEndpoint = afterEndpoint.substring(1);
+                if (afterEndpoint.startsWith(bucketName + "/")) {
+                    key = afterEndpoint.substring(bucketName.length() + 1);
+                } else {
+                    key = afterEndpoint;
+                }
             } else {
-                key = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+                int photosIdx = fileUrl.indexOf("photos/");
+                int avatarsIdx = fileUrl.indexOf("avatars/");
+                int verifIdx = fileUrl.indexOf("verification/");
+                if (photosIdx != -1) {
+                    key = fileUrl.substring(photosIdx);
+                } else if (avatarsIdx != -1) {
+                    key = fileUrl.substring(avatarsIdx);
+                } else if (verifIdx != -1) {
+                    key = fileUrl.substring(verifIdx);
+                } else {
+                    key = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+                }
             }
             if (key.startsWith("/")) {
                 key = key.substring(1);

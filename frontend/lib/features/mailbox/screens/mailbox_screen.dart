@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/models/preference_tags.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/auth_service.dart';
@@ -885,7 +886,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: letter.partnerPhoto != null
-                    ? Image.network(letter.partnerPhoto!, width: 48, height: 48, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white54))
+                    ? Image.network(AppConfig.resolveMediaUrl(letter.partnerPhoto!), width: 48, height: 48, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white54))
                     : const Icon(Icons.person, color: Colors.white54),
               ),
               const SizedBox(width: 12),
@@ -924,7 +925,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
       content = Image.asset(photoUrl, width: w, height: h, fit: BoxFit.cover);
     } else if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
       content = Image.network(
-        photoUrl,
+        AppConfig.resolveMediaUrl(photoUrl),
         width: w,
         height: h,
         fit: BoxFit.cover,

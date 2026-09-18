@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/network/websocket_client.dart';
@@ -133,7 +134,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> with WidgetsBindi
                         radius: 20,
                         backgroundColor: const Color(0xFFFFD54F),
                         backgroundImage: partner.partnerPhoto != null && partner.partnerPhoto!.isNotEmpty
-                            ? NetworkImage(partner.partnerPhoto!)
+                            ? NetworkImage(AppConfig.resolveMediaUrl(partner.partnerPhoto!))
                             : null,
                         child: partner.partnerPhoto == null || partner.partnerPhoto!.isEmpty
                             ? const Icon(Icons.person, color: Colors.black87)

@@ -41,7 +41,25 @@ class AppConfig {
   /// (p. ej. reemplaza localhost por 10.0.2.2 en emuladores Android).
   static String resolveMediaUrl(String? url) {
     if (url == null || url.trim().isEmpty) return '';
-    final trimmed = url.trim();
+    var trimmed = url.trim();
+
+    // Auto-fix para URLs legacy de S3 que se guardaron sin región ni prefijo de bucket
+    if (trimmed.contains('cozy-dating.s3.amazonaws.com/photos/')) {
+      trimmed = trimmed.replaceAll(
+        'cozy-dating.s3.amazonaws.com/photos/',
+        'cozy-dating.s3.us-east-1.amazonaws.com/cozy-dating/photos/',
+      );
+    } else if (trimmed.contains('cozy-dating.s3.amazonaws.com/verification/')) {
+      trimmed = trimmed.replaceAll(
+        'cozy-dating.s3.amazonaws.com/verification/',
+        'cozy-dating.s3.us-east-1.amazonaws.com/cozy-dating/verification/',
+      );
+    } else if (trimmed.contains('cozy-dating.s3.amazonaws.com/avatars/')) {
+      trimmed = trimmed.replaceAll(
+        'cozy-dating.s3.amazonaws.com/avatars/',
+        'cozy-dating.s3.us-east-1.amazonaws.com/cozy-dating/avatars/',
+      );
+    }
 
     // Si es ruta relativa (/media/...)
     if (trimmed.startsWith('/')) {
