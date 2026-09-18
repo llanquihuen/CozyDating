@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../config/app_config.dart';
 import '../models/avatar_config.dart';
 import '../models/room_config.dart';
@@ -257,6 +258,103 @@ class AuthService {
     return false;
   }
 
+  /// Upload a photo to backend media storage (multipart/form-data).
+  /// Works across mobile and web using raw bytes.
+  /// Returns the public URL of the uploaded image, or null if failed.
+  static Future<String?> uploadMediaPhoto(List<int> bytes, String filename, {bool setAsProfile = false}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/api/media/upload');
+      final request = http.MultipartRequest('POST', uri);
+
+      if (_token != null) {
+        request.headers['Authorization'] = 'Bearer $_token';
+      }
+      final activeUserId = _currentUser?.id ?? AvatarStorageService.activeUserId;
+      if (activeUserId.isNotEmpty) {
+        request.fields['userId'] = activeUserId;
+      }
+      request.fields['folder'] = 'photos';
+      request.fields['setAsProfile'] = setAsProfile.toString();
+
+      String subType = 'jpeg';
+      final lowerName = filename.toLowerCase();
+      if (lowerName.endsWith('.png')) {
+        subType = 'png';
+      } else if (lowerName.endsWith('.webp')) {
+        subType = 'webp';
+      } else if (lowerName.endsWith('.gif')) {
+        subType = 'gif';
+      }
+
+      final multipartFile = http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+        contentType: MediaType('image', subType),
+      );
+      request.files.add(multipartFile);
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final fileUrl = data['url'] as String?;
+        if (fileUrl != null && setAsProfile && _currentUser != null) {
+          _currentUser = _currentUser!.copyWith(profilePhoto: fileUrl);
+          AvatarStorageService.saveUserPhoto(_currentUser!.id, fileUrl);
+        }
+        return fileUrl;
+      } else {
+        print('[UPLOAD ERROR] Status: ${response.statusCode}, Body: ${response.body}');
+      }
+    } catch (e) {
+      print('[UPLOAD EXCEPTION] $e');
+    }
+    return null;
+  }
+
+  /// Update user profile photos array and primary profile photo in backend MySQL
+  static Future<bool> updateProfilePhotos(List<String> photos) async {
+    final activeUserId = _currentUser?.id ?? AvatarStorageService.activeUserId;
+    if (activeUserId.isEmpty) return false;
+
+    final primaryPhoto = photos.isNotEmpty ? photos.first : null;
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(
+        photos: photos,
+        profilePhoto: primaryPhoto,
+      );
+    }
+    AvatarStorageService.saveUserPhotos(activeUserId, photos);
+    if (primaryPhoto != null) {
+      AvatarStorageService.saveUserPhoto(activeUserId, primaryPhoto);
+    }
+
+    try {
+      final url = Uri.parse('$_baseUrl/auth/profile');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+      final body = jsonEncode({
+        'userId': activeUserId,
+        'profilePhoto': primaryPhoto,
+        'photos': photos,
+      });
+
+      final response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _currentUser = UserProfile.fromMap(data);
+        return true;
+      }
+    } catch (e) {
+      print('[PHOTOS SAVE ERROR] $e');
+    }
+    return false;
+  }
+
   /// Update user real profile photo
   static Future<bool> updateProfilePhoto(String photo) async {
     if (_currentUser == null) return false;
@@ -290,24 +388,117 @@ class AuthService {
     return false;
   }
 
+  /// Verify user identity by uploading a live selfie to compare with profilePhoto
+  static Future<Map<String, dynamic>> verifyIdentity(List<int> selfieBytes, String filename) async {
+    try {
+      final activeUserId = _currentUser?.id ?? AvatarStorageService.activeUserId;
+      if (activeUserId.isEmpty) {
+        return {'verified': false, 'error': 'No hay sesión activa.'};
+      }
+
+      final uri = Uri.parse('$_baseUrl/api/verification/verify');
+      final request = http.MultipartRequest('POST', uri);
+
+      if (_token != null) {
+        request.headers['Authorization'] = 'Bearer $_token';
+      }
+      request.fields['userId'] = activeUserId;
+
+      String subType = 'jpeg';
+      final lowerName = filename.toLowerCase();
+      if (lowerName.endsWith('.png')) {
+        subType = 'png';
+      } else if (lowerName.endsWith('.webp')) {
+        subType = 'webp';
+      }
+
+      final multipartFile = http.MultipartFile.fromBytes(
+        'selfie',
+        selfieBytes,
+        filename: filename,
+        contentType: MediaType('image', subType),
+      );
+      request.files.add(multipartFile);
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final isSuccess = response.statusCode == 200 &&
+          (data['verified'] == true || data['isVerified'] == true || data['success'] == true);
+
+      if (isSuccess) {
+        final selfieUrl = (data['selfieUrl'] ?? data['verificationSelfie']) as String?;
+        if (_currentUser != null) {
+          _currentUser = _currentUser!.copyWith(
+            isVerified: true,
+            verificationSelfie: selfieUrl,
+          );
+        }
+        return {
+          ...data,
+          'verified': true,
+          'isVerified': true,
+        };
+      } else {
+        return {
+          ...data,
+          'verified': false,
+          'isVerified': false,
+          'error': data['error'] ?? data['message'] ?? 'No se pudo verificar la identidad facial.',
+        };
+      }
+    } catch (e) {
+      print('[VERIFICATION EXCEPTION] $e');
+      return {'verified': false, 'error': 'Error de conexión durante la verificación: $e'};
+    }
+  }
+
+  /// Check verification status from backend
+  static Future<bool> checkVerificationStatus() async {
+    final activeUserId = _currentUser?.id ?? AvatarStorageService.activeUserId;
+    if (activeUserId.isEmpty) return false;
+    try {
+      final uri = Uri.parse('$_baseUrl/api/verification/status?userId=$activeUserId');
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final isVerified = data['isVerified'] == true;
+        if (_currentUser != null) {
+          _currentUser = _currentUser!.copyWith(
+            isVerified: isVerified,
+            verificationSelfie: data['verificationSelfie'] as String?,
+          );
+        }
+        return isVerified;
+      }
+    } catch (e) {
+      print('[VERIFICATION STATUS EXCEPTION] $e');
+    }
+    return _currentUser?.isVerified ?? false;
+  }
+
   /// Update dating profile fields in current session user
   static void updateDatingProfile({
     List<String>? photos,
+    String? profilePhoto,
     String? bio,
     String? intent,
     double? maxDistanceKm,
     int? age,
     String? commune,
+    bool? isVerified,
   }) {
     if (_currentUser == null) return;
     _currentUser = _currentUser!.copyWith(
       photos: photos,
-      profilePhoto: (photos != null && photos.isNotEmpty) ? photos.first : _currentUser!.profilePhoto,
+      profilePhoto: profilePhoto ?? _currentUser!.profilePhoto,
       bio: bio,
       intent: intent,
       maxDistanceKm: maxDistanceKm,
       age: age,
       commune: commune,
+      isVerified: isVerified,
     );
   }
 

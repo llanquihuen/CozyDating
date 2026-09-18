@@ -187,11 +187,12 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     }
   }
 
-  void _openWardrobe() {
+  void _openWardrobe({int initialMode = 0}) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => CharacterCreatorScreen(
           initialConfig: _currentAvatarConfig,
+          initialScreenMode: initialMode,
           onSaved: (newConfig) {
             AvatarStorageService.saveUserConfig(widget.activeUserId, newConfig);
             AuthService.saveAvatarConfig(newConfig);
@@ -199,11 +200,13 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             setState(() {
               _currentAvatarConfig = newConfig;
             });
-            _showTopNotification('✨ Avatar guardado en la nube');
+            _showTopNotification('✨ Perfil y avatar actualizados');
           },
         ),
       ),
-    );
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _openMailbox() {
@@ -342,6 +345,12 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   void _startMatchmaking() {
+    final user = AuthService.currentUser;
+    if (user != null && !user.isVerified) {
+      _showUnverifiedDialog();
+      return;
+    }
+
     if (widget.onStartMatchmaking != null) {
       widget.onStartMatchmaking!();
       return;
@@ -368,6 +377,63 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             mode: 'VOICE',
           ));
     }
+  }
+
+  void _showUnverifiedDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.shield_outlined, color: Color(0xFFF59E0B), size: 26),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Identidad Sin Certificar',
+                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Aquí nos cuidamos entre todos. Para que cada cita sea segura y con personas 100% reales, verificamos cada perfil con una selfie rápida.',
+              style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13.5, height: 1.35),
+            ),
+            SizedBox(height: 10),
+            Text(
+              '¡Solo te tomará un minuto y desbloqueará el emparejamiento!',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12.5, height: 1.3),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Más tarde', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0284C7),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.verified_user, size: 18),
+            label: const Text('Certificar Ahora'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _openWardrobe(initialMode: 1);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _cancelMatchmaking() {
@@ -643,7 +709,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                                 radius: 15,
                                 backgroundColor: const Color(0xFFFFB300),
                                 backgroundImage: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
-                                    ? NetworkImage(user.profilePhoto!)
+                                    ? NetworkImage(AppConfig.resolveMediaUrl(user.profilePhoto!))
                                     : null,
                                 child: (user.profilePhoto == null || user.profilePhoto!.isEmpty)
                                     ? const Icon(Icons.person, size: 18, color: Colors.black)
@@ -683,6 +749,13 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
+                                    if (user.isVerified) ...[
+                                      const SizedBox(width: 4),
+                                      const Tooltip(
+                                        message: 'Identidad Certificada 🛡️',
+                                        child: Icon(Icons.verified, color: Color(0xFF10B981), size: 14),
+                                      ),
+                                    ],
                                     const SizedBox(width: 4),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),

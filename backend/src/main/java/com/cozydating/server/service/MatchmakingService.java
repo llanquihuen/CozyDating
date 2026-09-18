@@ -93,10 +93,23 @@ public class MatchmakingService {
                                (resolvedTastes instanceof List && ((List<?>) resolvedTastes).isEmpty()) ||
                                (resolvedTastes instanceof String && (((String) resolvedTastes).trim().isEmpty() || "[]".equals(((String) resolvedTastes).trim())));
 
+        String dbUserId = databaseService.resolveDbUserId(userId);
+        com.cozydating.server.model.User userEntity = databaseService.findUserById(dbUserId);
+        if (userEntity != null && !userEntity.isVerified()) {
+            logger.warn("[MATCHMAKING REJECTED] User {} ({}) is NOT verified. Only verified users can join matchmaking.", userId, dbUserId);
+            try {
+                if (session != null && session.isOpen()) {
+                    session.sendMessage(new org.springframework.web.socket.TextMessage(
+                        "{\"type\":\"ERROR\",\"code\":\"NOT_VERIFIED\",\"message\":\"Debes certificar tu identidad con una selfie antes de buscar pareja.\"}"
+                    ));
+                }
+            } catch (Exception ignored) {}
+            return false;
+        }
+
         if (isEmptyTastes) {
-            com.cozydating.server.model.User u = databaseService.findUserById(userId);
-            if (u != null && u.getTastes() != null && !u.getTastes().trim().isEmpty() && !"[]".equals(u.getTastes().trim())) {
-                resolvedTastes = u.getTastes();
+            if (userEntity != null && userEntity.getTastes() != null && !userEntity.getTastes().trim().isEmpty() && !"[]".equals(userEntity.getTastes().trim())) {
+                resolvedTastes = userEntity.getTastes();
             }
         }
 

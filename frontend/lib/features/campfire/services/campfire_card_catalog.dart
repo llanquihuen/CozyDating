@@ -557,12 +557,210 @@ class CampfireCardCatalog {
         ],
       ),
     ],
+
+    'pet_exotic': [
+      const CampfireCard(
+        id: 'shared_exotic_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🐰🦔 PASIÓN COMPARTIDA: MASCOTAS EXÓTICAS & PEQUEÑAS',
+        question: 'Ambos aman las mascotas no tradicionales (conejos, hurones, erizos, reptiles): ¿Qué es lo que más los enamora de ellos?',
+        options: [
+          CampfireOption(id: 'a', text: 'Ver cómo exploran todo con curiosidad silenciosa', emoji: '🔍'),
+          CampfireOption(id: 'b', text: 'Que tienen personalidades únicas y no ladran ni hacen ruido', emoji: '🤫'),
+          CampfireOption(id: 'c', text: 'Prepararles casitas, túneles y comida fresca gourmet', emoji: '🥬'),
+          CampfireOption(id: 'd', text: 'Lo suaves o fascinantes que son al tenerlos en brazos', emoji: '🥰'),
+        ],
+      ),
+    ],
+
+    // --- PLATAFORMAS GAMER COMPARTIDAS ---
+    'plat_pc': [
+      const CampfireCard(
+        id: 'shared_pc_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🖥️ PASIÓN COMPARTIDA: PC MASTER RACE',
+        question: 'Ambos juegan en PC: ¿Cuál es su mayor orgullo de su rincón gamer?',
+        options: [
+          CampfireOption(id: 'a', text: 'La biblioteca de Steam llena de rebajas que juramos jugar', emoji: '💸'),
+          CampfireOption(id: 'b', text: 'El teclado mecánico con luces RGB y sonido satisfactorio', emoji: '⌨️'),
+          CampfireOption(id: 'c', text: 'Modear un juego hasta que parezca del año 2040', emoji: '🛠️'),
+          CampfireOption(id: 'd', text: 'Charlar horas por Discord con la pantalla compartida', emoji: '🎧'),
+        ],
+      ),
+      const CampfireCard(
+        id: 'shared_pc_2',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🖥️ PASIÓN COMPARTIDA: PC MASTER RACE',
+        question: '¿Qué tipo de juego en PC les gustaría estrenar juntos en una tarde libre?',
+        options: [
+          CampfireOption(id: 'a', text: 'Supervivencia cooperativa construyendo una base gigante', emoji: '🪵'),
+          CampfireOption(id: 'b', text: 'Un MMO o RPG con miles de horas de aventura', emoji: '📜'),
+          CampfireOption(id: 'c', text: 'Roguelikes frenéticos pasándonos trucos y consejos', emoji: '⚡'),
+          CampfireOption(id: 'd', text: 'Juegos indie relajantes con banda sonora bonita', emoji: '🌸'),
+        ],
+      ),
+    ],
+
+    'plat_nintendo': [
+      const CampfireCard(
+        id: 'shared_nintendo_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🍄 PASIÓN COMPARTIDA: UNIVERSO NINTENDO',
+        question: 'Ambos son fans de Nintendo Switch: ¿Cómo es la partida ideal de a dos?',
+        options: [
+          CampfireOption(id: 'a', text: 'Acostados en el sillón con los Joy-Cons jugando relajados', emoji: '🛋️'),
+          CampfireOption(id: 'b', text: 'Duelo a muerte en Mario Kart lanzando caparazones azules', emoji: '🏎️'),
+          CampfireOption(id: 'c', text: 'Cuidar una isla o granja compartida a nuestro propio ritmo', emoji: '🏝️'),
+          CampfireOption(id: 'd', text: 'Cooperativos de plataformas como Mario Wonder o Kirby', emoji: '⭐'),
+        ],
+      ),
+    ],
+
+    'plat_playstation': [
+      const CampfireCard(
+        id: 'shared_ps_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🟦 PASIÓN COMPARTIDA: PLAYSTATION',
+        question: 'Ambos juegan en PlayStation: ¿Cuál es el ritual definitivo frente a la TV?',
+        options: [
+          CampfireOption(id: 'a', text: 'Pasarse el control por turnos en una historia cinematográfica', emoji: '🎬'),
+          CampfireOption(id: 'b', text: 'Competir sanamente o jugar cooperativos con pantalla dividida', emoji: '🤝'),
+          CampfireOption(id: 'c', text: 'Cazar trofeos de platino hasta completar el 100%', emoji: '🏆'),
+          CampfireOption(id: 'd', text: 'Acompañar al otro con snacks mientras se sumerge en la trama', emoji: '🍿'),
+        ],
+      ),
+    ],
+
+    'plat_xbox': [
+      const CampfireCard(
+        id: 'shared_xbox_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🟩 PASIÓN COMPARTIDA: XBOX & GAME PASS',
+        question: 'Ambos tienen Xbox y Game Pass: ¿Cuál es su plan estrella de fin de semana?',
+        options: [
+          CampfireOption(id: 'a', text: 'Instalar 3 juegos al azar de Game Pass y probar cuál nos atrapa', emoji: '🎲'),
+          CampfireOption(id: 'b', text: 'Explorar planetas o galaxias juntos en cooperativo online', emoji: '🚀'),
+          CampfireOption(id: 'c', text: 'Noche de carreras o simuladores con música de fondo', emoji: '🏎️'),
+          CampfireOption(id: 'd', text: 'Jugar clásicos nostálgicos gracias a la retrocompatibilidad', emoji: '📼'),
+        ],
+      ),
+    ],
+
+    // --- COMBUSTIBLE DIARIO COMPARTIDO ---
+    'fuel_coffee': [
+      const CampfireCard(
+        id: 'shared_coffee_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '☕ PASIÓN COMPARTIDA: CAFÉ DE ESPECIALIDAD',
+        question: 'Ambos son amantes del buen café: ¿Cómo sería su cafetería de ensueño?',
+        options: [
+          CampfireOption(id: 'a', text: 'Música Lo-Fi bajita, sillones de terciopelo y olor a café recién molido', emoji: '☕'),
+          CampfireOption(id: 'b', text: 'Ventanales grandes con vista a un jardín japonés o lluvia', emoji: '🌧️'),
+          CampfireOption(id: 'c', text: 'Librería-café donde puedes sacar novelas mientras tomas tu taza', emoji: '📚'),
+          CampfireOption(id: 'd', text: 'Mesitas con enchufes para llevar la laptop y dibujar o jugar juntos', emoji: '💻'),
+        ],
+      ),
+    ],
+
+    'fuel_tea': [
+      const CampfireCard(
+        id: 'shared_tea_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🍵 PASIÓN COMPARTIDA: TÉ & INFUSIONES',
+        question: 'Ambos disfrutan del té: ¿Qué momento del día con tetera humeante es sagrado?',
+        options: [
+          CampfireOption(id: 'a', text: 'El té reconfortante antes de dormir leyendo un libro', emoji: '🌙'),
+          CampfireOption(id: 'b', text: 'El té verde o matcha de media tarde para renovar energía', emoji: '🍃'),
+          CampfireOption(id: 'c', text: 'Probar mezclas raras con especias, canela o flores secas', emoji: '🌺'),
+          CampfireOption(id: 'd', text: 'Té con tostadas o pastelitos recién horneados en un día frío', emoji: '🥮'),
+        ],
+      ),
+    ],
+
+    'fuel_energy': [
+      const CampfireCard(
+        id: 'shared_energy_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '⚡ PASIÓN COMPARTIDA: BEBIDAS ENERGÉTICAS',
+        question: '¡Ambos tienen el turbo encendido! ¿Cuál es la ocasión perfecta para una energética bien fría?',
+        options: [
+          CampfireOption(id: 'a', text: 'Noche maratónica de videojuegos o serie que no podemos soltar', emoji: '🎮'),
+          CampfireOption(id: 'b', text: 'Tarde de proyectos creativos donde la inspiración explota', emoji: '🎨'),
+          CampfireOption(id: 'c', text: 'Viaje por carretera con música a todo volumen cantando a dúo', emoji: '🚗'),
+          CampfireOption(id: 'd', text: 'Coleccionar y probar las latas de sabores exóticos que llegan de afuera', emoji: '🥫'),
+        ],
+      ),
+    ],
+
+    'fuel_mate': [
+      const CampfireCard(
+        id: 'shared_mate_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🧉 PASIÓN COMPARTIDA: LA RONDA DEL MATE',
+        question: 'Ambos aman el mate: ¿Cuál es la ley innegociable en su ronda cebada?',
+        options: [
+          CampfireOption(id: 'a', text: 'El agua a temperatura justa: que no hierva jamás', emoji: '🌡️'),
+          CampfireOption(id: 'b', text: 'Acompañar con cosas ricas: pan amasado, medialunas o tortas fritas', emoji: '🥐'),
+          CampfireOption(id: 'c', text: 'Conversar de temas profundos mientras el termo va bajando', emoji: '💬'),
+          CampfireOption(id: 'd', text: 'Llevarlo al parque o plaza para tomarlo bajo el sol', emoji: '🌳'),
+        ],
+      ),
+    ],
+
+    // --- VACACIONES SOÑADAS COMPARTIDAS ---
+    'vacation_cabin': [
+      const CampfireCard(
+        id: 'shared_cabin_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🌲🪵 PASIÓN COMPARTIDA: CABAÑA EN LA MONTAÑA',
+        question: 'Ambos sueñan con una cabaña en el bosque frío: ¿Cuál sería el momento más mágico?',
+        options: [
+          CampfireOption(id: 'a', text: 'Ver la lluvia golpear los cristales mientras la leña chisporrotea', emoji: '🔥'),
+          CampfireOption(id: 'b', text: 'Sumergirse en una tinaja de agua caliente bajo las estrellas', emoji: '🛁'),
+          CampfireOption(id: 'c', text: 'Salir a caminar bien abrigados respirando aire a pino y tierra húmeda', emoji: '🥾'),
+          CampfireOption(id: 'd', text: 'Cocinar una sopa casera o chocolate espeso escuchando música suave', emoji: '🍫'),
+        ],
+      ),
+    ],
+
+    'vacation_beach': [
+      const CampfireCard(
+        id: 'shared_beach_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🏖️ PASIÓN COMPARTIDA: PLAYA & ATARDECER',
+        question: 'Ambos sueñan con el mar: ¿Cuál es su momento favorito en la costa?',
+        options: [
+          CampfireOption(id: 'a', text: 'El atardecer dorado caminando con los pies en la arena', emoji: '🌅'),
+          CampfireOption(id: 'b', text: 'Comer mariscos frescos o helado en un restaurante con vista al mar', emoji: '🍨'),
+          CampfireOption(id: 'c', text: 'Dormir una siesta con el sonido de las olas de fondo', emoji: '🌊'),
+          CampfireOption(id: 'd', text: 'Bañarse en el mar al caer la tarde cuando el sol ya no quema', emoji: '🏊'),
+        ],
+      ),
+    ],
+
+    'vacation_city': [
+      const CampfireCard(
+        id: 'shared_city_1',
+        type: CampfireCardType.sharedPassion,
+        categoryHeader: '🏙️ PASIÓN COMPARTIDA: METRÓPOLIS & CULTURA',
+        question: 'Ambos aman las grandes ciudades: ¿Qué es lo primero que hacen al llegar a una metrópolis nueva?',
+        options: [
+          CampfireOption(id: 'a', text: 'Perderse por barrios bohemios buscando cafeterías y tiendas vintage', emoji: '🧭'),
+          CampfireOption(id: 'b', text: 'Subir al mirador más alto de un rascacielos a contemplar las luces nocturnas', emoji: '🌃'),
+          CampfireOption(id: 'c', text: 'Visitar museos de arte o ciencia y librerías monumentales', emoji: '🏛️'),
+          CampfireOption(id: 'd', text: 'Hacer un tour gastronómico probando comida callejera auténtica', emoji: '🍜'),
+        ],
+      ),
+    ],
   };
 
   // =========================================================================
   // 2. Preguntas de Contraste & Complementariedad (Curious Contrast)
   // =========================================================================
   static const List<CampfireCard> contrastCards = [
+    // -------------------------------------------------------------------------
+    // 1. Ejes Esenciales
+    // -------------------------------------------------------------------------
     // Contraste 0: Ritmos (Nocturno vs Madrugador)
     CampfireCard(
       id: 'contrast_rhythm_1',
@@ -616,6 +814,332 @@ class CampfireCardCatalog {
         CampfireOption(id: 'b', text: 'Itinerario organizado para no perderse nada importante', emoji: '📅'),
         CampfireOption(id: 'c', text: 'Cero planes: caminar y ver qué sorpresas encontramos', emoji: '🧭'),
         CampfireOption(id: 'd', text: 'Uno planifica la mañana y el otro improvisa la tarde', emoji: '🤝'),
+      ],
+    ),
+
+    // -------------------------------------------------------------------------
+    // 2. Dilemas Gamer (Ecosistemas de Juego)
+    // -------------------------------------------------------------------------
+    // PC vs PlayStation
+    CampfireCard(
+      id: 'contrast_plat_pc_ps',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🕹️ EL CONTRASTE GAMER: PC MASTER RACE VS. PLAYSTATION',
+      question: 'Uno juega en PC con teclado, ratón y mods, y el otro en PlayStation cómodo en el sillón... ¿Cómo organizan su sesión de juegos?',
+      options: [
+        CampfireOption(id: 'a', text: 'Juegos cross-play cooperativos donde cada quien usa su trono', emoji: '🌐'),
+        CampfireOption(id: 'b', text: 'Conectar la PC a la TV y jugar juntos en la pantalla grande', emoji: '📺'),
+        CampfireOption(id: 'c', text: 'Alternar: una tarde de exclusivos en PS5 y otra de vicio en Steam', emoji: '🎮'),
+        CampfireOption(id: 'd', text: 'Uno juega concentrado y el otro hace de copiloto con snacks y consejos', emoji: '🍿'),
+      ],
+    ),
+
+    // PC vs Xbox
+    CampfireCard(
+      id: 'contrast_plat_pc_xbox',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🕹️ EL CONTRASTE GAMER: PC VS. XBOX GAME PASS',
+      question: 'Uno es de PC a medida y el otro de Xbox con Game Pass... ¿Cuál sería su aventura ideal para estrenar juntos?',
+      options: [
+        CampfireOption(id: 'a', text: 'Un cooperativo de supervivencia o construcción en Game Pass', emoji: '⛏️'),
+        CampfireOption(id: 'b', text: 'Un RPG espacial o de fantasía compartiendo pantalla por Discord', emoji: '🚀'),
+        CampfireOption(id: 'c', text: 'Un juego de carreras o disparos para competir sanamente', emoji: '🏎️'),
+        CampfireOption(id: 'd', text: 'Probar juegos indie sorpresa cada semana hasta hallar su favorito', emoji: '🎲'),
+      ],
+    ),
+
+    // PC vs Nintendo
+    CampfireCard(
+      id: 'contrast_plat_pc_nintendo',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🕹️ EL CONTRASTE GAMER: POTENCIA PC VS. MAGIA NINTENDO',
+      question: 'Uno busca altos FPS y gráficos ультра, y el otro adora la calidez portátil y familiar de Nintendo Switch... ¿Cuál es el punto de encuentro?',
+      options: [
+        CampfireOption(id: 'a', text: 'Acostarse juntos en la cama jugando Switch en modo portátil', emoji: '🛋️'),
+        CampfireOption(id: 'b', text: 'Stardew Valley o Terraria con cross-play o en mundos compartidos', emoji: '🌾'),
+        CampfireOption(id: 'c', text: 'Una partida épica de Mario Kart o Smash donde no hay piedad', emoji: '🍌'),
+        CampfireOption(id: 'd', text: 'Emular clásicos retro juntos en la PC', emoji: '🕹️'),
+      ],
+    ),
+
+    // PlayStation vs Xbox
+    CampfireCard(
+      id: 'contrast_plat_ps_xbox',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🕹️ EL CONTRASTE GAMER: PLAYSTATION VS. XBOX',
+      question: '¡El clásico duelo azul vs verde! Si tuvieran que firmar una tregua y jugar en una sola consola por una tarde: ¿Cuál eligen?',
+      options: [
+        CampfireOption(id: 'a', text: 'PlayStation: aventura cinematográfica para pasarse el control', emoji: '🟦'),
+        CampfireOption(id: 'b', text: 'Xbox: catálogo cooperativo inagotable en Game Pass', emoji: '🟩'),
+        CampfireOption(id: 'c', text: 'Juegos de mesa o party games para no favorecer a ninguna', emoji: '🎲'),
+        CampfireOption(id: 'd', text: 'Una consola en la sala y otra en la pieza jugando online', emoji: '🎧'),
+      ],
+    ),
+
+    // Consola vs Nintendo
+    CampfireCard(
+      id: 'contrast_plat_console_nintendo',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🕹️ EL CONTRASTE GAMER: CONSOLA CLÁSICA VS. NINTENDO',
+      question: 'Uno prefiere historias épicas en pantalla grande y el otro la diversión pura de Nintendo... ¿Cómo es su tarde gamer perfecta?',
+      options: [
+        CampfireOption(id: 'a', text: 'Pizzas, helado y torneo caótico de Mario Party / Kart', emoji: '🍕'),
+        CampfireOption(id: 'b', text: 'Acompañar al otro en su historia favorita con mates y comentarios', emoji: '☕'),
+        CampfireOption(id: 'c', text: 'Cooperativo a pantalla dividida estilo It Takes Two', emoji: '🤝'),
+        CampfireOption(id: 'd', text: 'Cada quien en su juego pero sentados juntos en el sillón', emoji: '🛋️'),
+      ],
+    ),
+
+    // Mobile vs PC/Consola
+    CampfireCard(
+      id: 'contrast_plat_mobile_any',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🕹️ EL CONTRASTE GAMER: PORTABILIDAD MÓVIL VS. SETUP FIJO',
+      question: 'Uno juega cómodo desde el celular en cualquier rincón y el otro tiene su santuario fijo de PC o consola... ¿Cómo comparten la partida?',
+      options: [
+        CampfireOption(id: 'a', text: 'Genshin Impact u otro juego con crossplay total móvil-PC/consola', emoji: '⚔️'),
+        CampfireOption(id: 'b', text: 'Juegos de acertijos, cartas o deducción para pensar juntos', emoji: '🃏'),
+        CampfireOption(id: 'c', text: 'El del celular le transmite pantalla o comparte la emoción', emoji: '📱'),
+        CampfireOption(id: 'd', text: 'Convencer al jugador móvil de probar el mando o el teclado una tarde', emoji: '🎮'),
+      ],
+    ),
+
+    // -------------------------------------------------------------------------
+    // 3. Dilemas de Combustible Diario (Café, Té, Energéticas, Mate)
+    // -------------------------------------------------------------------------
+    // Café vs Té
+    CampfireCard(
+      id: 'contrast_fuel_coffee_tea',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '☕ EL CONTRASTE: ESPRESSO INTENSO VS. CALMA DE TÉ',
+      question: 'Uno necesita el shot de cafeína de un café aromático y el otro prefiere la sutileza de un té caliente... ¿Cómo es su cita de cafetería ideal?',
+      options: [
+        CampfireOption(id: 'a', text: 'Cafetería de especialidad con buena repostería para compartir', emoji: '🥐'),
+        CampfireOption(id: 'b', text: 'Tarde de lluvia en casa con tetera humeante y cafetera italiana', emoji: '🌧️'),
+        CampfireOption(id: 'c', text: 'Paseo con vasos térmicos caminando por un parque con brisa fresca', emoji: '🍂'),
+        CampfireOption(id: 'd', text: 'Probar cada quien la bebida del otro a ver si cambia de opinión', emoji: '🔄'),
+      ],
+    ),
+
+    // Café vs Energética
+    CampfireCard(
+      id: 'contrast_fuel_coffee_energy',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '⚡ EL CONTRASTE: EL RITUAL DEL CAFÉ VS. LA FURIA ENERGÉTICA',
+      question: 'Uno se despierta con el aroma de un café preparado con calma y el otro destapa una lata de energética bien fría... ¿Cómo enfrentan una noche de desvelo o vicio?',
+      options: [
+        CampfireOption(id: 'a', text: 'La energética para las partidas intensas y el café para la mañana siguiente', emoji: '⚡☕'),
+        CampfireOption(id: 'b', text: 'Buscar una bebida híbrida: café helado con toque dulce', emoji: '🧋'),
+        CampfireOption(id: 'c', text: 'Cuidar que el de la energética coma algo sólido para no temblar', emoji: '🥪'),
+        CampfireOption(id: 'd', text: 'Ver quién aguanta despierto más horas sin perder los reflejos', emoji: '👁️'),
+      ],
+    ),
+
+    // Té vs Energética
+    CampfireCard(
+      id: 'contrast_fuel_tea_energy',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '⚡ EL CONTRASTE: PAZ ZEN VS. TURBO ELÉCTRICO',
+      question: '¡Polo opuesto total! Uno busca calma y antioxidantes en un té herbal y el otro vive a 200 km/h con taurina y gas... ¿Cómo se contagian sus energías?',
+      options: [
+        CampfireOption(id: 'a', text: 'El del té le enseña a respirar y bajar revoluciones en momentos clave', emoji: '🧘'),
+        CampfireOption(id: 'b', text: 'El de la energética pone la música y el entusiasmo para salir de la cama', emoji: '🚀'),
+        CampfireOption(id: 'c', text: 'Punto medio: té verde matcha bien cargado que da foco sin taquicardia', emoji: '🍵'),
+        CampfireOption(id: 'd', text: 'Reírse de lo diferentes que son sus ritmos cardíacos a las 4 de la tarde', emoji: '💓'),
+      ],
+    ),
+
+    // Mate vs Café / Té
+    CampfireCard(
+      id: 'contrast_fuel_mate_other',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🧉 EL CONTRASTE: LA RONDA DEL MATE VS. TAZAS INDIVIDUALES',
+      question: 'Uno no concibe la vida sin termo y cebar mate, y el otro tiene su taza individual... ¿Se ceba mate en la primera cita?',
+      options: [
+        CampfireOption(id: 'a', text: '¡Obvio! El mate se comparte y es el mejor rompehielos que existe', emoji: '🧉'),
+        CampfireOption(id: 'b', text: 'Primero unos mates dulces o tereré suave por si no está acostumbrado', emoji: '🍊'),
+        CampfireOption(id: 'c', text: 'Cada uno con lo suyo pero sentados cerquita charlando de la vida', emoji: '☕'),
+        CampfireOption(id: 'd', text: 'Acompañar con chipá, medialunas o galletitas caseras', emoji: '🥐'),
+      ],
+    ),
+
+    // -------------------------------------------------------------------------
+    // 4. Dilemas de Mascotas (Gatos, Perros, Sin Mascotas)
+    // -------------------------------------------------------------------------
+    // Gatos vs Perros
+    CampfireCard(
+      id: 'contrast_pet_cat_dog',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🐾 EL CONTRASTE: MISTERIO FELINO VS. FIESTA PERRUNA',
+      question: 'Uno es team gatos (paz, ronroneos y respeto de espacio) y el otro team perros (saludos efusivos, colitas felices y paseos)... ¿Cómo sería la casa soñada si convivieran?',
+      options: [
+        CampfireOption(id: 'a', text: 'Un perro tranquilo y un gato con carácter que mande en la casa', emoji: '🐱🐶'),
+        CampfireOption(id: 'b', text: 'Pasear al perro de día y acurrucarse con el gato a ver series de noche', emoji: '🦮'),
+        CampfireOption(id: 'c', text: 'Ver cómo sus personalidades imitan a sus mascotas: uno misterioso y otro leal', emoji: '✨'),
+        CampfireOption(id: 'd', text: 'Llenar la casa de rascadores y juguetes para que convivan en paz', emoji: '🎾'),
+      ],
+    ),
+
+    // Amante de mascotas vs Sin Mascotas / Plantas
+    CampfireCard(
+      id: 'contrast_pet_vs_plants',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🪴 EL CONTRASTE: PELOS Y TRAVESURAS VS. SILENCIO Y PLANTAS',
+      question: 'Uno tiene una jungla de plantas o prefiere la paz de un hogar silencioso, y el otro ama el caos tierno de las mascotas... ¿Cuál es el acuerdo?',
+      options: [
+        CampfireOption(id: 'a', text: 'Plantas colgantes a prueba de saltos y mascotas bien educadas', emoji: '🌿'),
+        CampfireOption(id: 'b', text: 'Empezar cuidando un terrario o planta juntos antes de dar otro paso', emoji: '🌱'),
+        CampfireOption(id: 'c', text: 'Disfrutar de las mascotas de amigos o pasear perros ajenos sin adoptarlos', emoji: '🐕'),
+        CampfireOption(id: 'd', text: 'Zona libre de mascotas para el descanso y zona de juegos para la diversión', emoji: '🚪'),
+      ],
+    ),
+
+    // Mascotas No Tradicionales vs Perros / Gatos
+    CampfireCard(
+      id: 'contrast_pet_exotic_traditional',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🐰🐾 EL CONTRASTE: MUNDO EXÓTICO VS. MASCOTAS CLÁSICAS',
+      question: 'Uno convive con mascotas no tradicionales (conejos, erizos, hurones, reptiles) y el otro con perros o gatos... ¿Cómo sería presentarles a sus compañeros de vida?',
+      options: [
+        CampfireOption(id: 'a', text: 'Presentación súper cuidadosa y supervisada para ver si se hacen amigos', emoji: '🔍'),
+        CampfireOption(id: 'b', text: 'Tener espacios seguros y separados en casa para que cada uno reine en paz', emoji: '🏡'),
+        CampfireOption(id: 'c', text: 'Aprender con curiosidad los cuidados especiales y travesuras de la mascota exótica', emoji: '🐇'),
+        CampfireOption(id: 'd', text: 'Sacarles fotos divertidas juntos para presumirlos en redes', emoji: '📷'),
+      ],
+    ),
+
+    // -------------------------------------------------------------------------
+    // 5. Dilemas de Vacaciones (Cabaña/Bosque, Playa, Ciudad, Quedarse en Casa)
+    // -------------------------------------------------------------------------
+    // Playa vs Cabaña en Bosque
+    CampfireCard(
+      id: 'contrast_vacation_beach_cabin',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🏖️🌲 EL CONTRASTE: CALOR DE PLAYA VS. FRÍO DE CABAÑA',
+      question: 'Uno sueña con arena blanca, atardeceres dorados y el mar, y el otro con cabaña de madera, lluvia en el techo y chocolate caliente... ¿A dónde van?',
+      options: [
+        CampfireOption(id: 'a', text: 'Sur de Chile / Patagonia: bosque que llega hasta el agua fría con vistas increíbles', emoji: '🏞️'),
+        CampfireOption(id: 'b', text: 'Turnarse las vacaciones: un año playa y verano, al siguiente frío y montaña', emoji: '🔄'),
+        CampfireOption(id: 'c', text: 'Cabaña con piscina temperada o tinaja caliente al aire libre', emoji: '🛁'),
+        CampfireOption(id: 'd', text: 'Una semana en la playa al atardecer y un fin de semana largo en la nieve', emoji: '❄️'),
+      ],
+    ),
+
+    // Naturaleza (Playa o Bosque) vs Metrópolis Urbana
+    CampfireCard(
+      id: 'contrast_vacation_nature_city',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🏙️🌲 EL CONTRASTE: LUCES DE LA CIUDAD VS. PAZ NATURAL',
+      question: 'Uno quiere perderse en librerías, rascacielos, cafés temáticos y museos, y el otro busca desconectar del mundo bajo las estrellas... ¿Cuál es el itinerario?',
+      options: [
+        CampfireOption(id: 'a', text: 'Viajar a una ciudad rodeada de montañas y naturaleza (como Kioto o Vancouver)', emoji: '🗾'),
+        CampfireOption(id: 'b', text: 'Días de paseos urbanos intensos y rematar el viaje descansando en un hotel de campo', emoji: '🌿'),
+        CampfireOption(id: 'c', text: 'Comer rico y salir de noche en la ciudad, pero dormir en una zona verde y tranquila', emoji: '🍜'),
+        CampfireOption(id: 'd', text: 'El urbano elige los restaurantes y el de naturaleza las caminatas y miradores', emoji: '🗺️'),
+      ],
+    ),
+
+    // Viajar vs Quedarse en Casa (Staycation)
+    CampfireCard(
+      id: 'contrast_vacation_travel_home',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🏡✈️ EL CONTRASTE: EL MUNDO ENTERO VS. EL NIDO PROPIO',
+      question: 'Uno quiere empacar valijas e irse lejos, y el otro considera que las mejores vacaciones son no poner alarma, pedir delivery y jugar en pijama... ¿Cómo concilian?',
+      options: [
+        CampfireOption(id: 'a', text: 'Escapadas muy cortas de fin de semana para no quemar energía de viaje', emoji: '🚗'),
+        CampfireOption(id: 'b', text: 'Alquilar una casa bonita con jacuzzi y comodidades cerca de la ciudad', emoji: '🏡'),
+        CampfireOption(id: 'c', text: 'Hacer una "Staycation gourmet": cocinar cosas raras o pedir lo mejor sin salir', emoji: '🍣'),
+        CampfireOption(id: 'd', text: 'Viajar a un lugar donde el plan principal sea relajarse sin horarios exigentes', emoji: '🧘'),
+      ],
+    ),
+
+    // -------------------------------------------------------------------------
+    // 6. Contrastes de Ritmo Flexible y Fin de Semana Equilibrado
+    // -------------------------------------------------------------------------
+    // Ritmo Extremo (Búho o Alondra) vs Ritmo Flexible / Caótico
+    CampfireCard(
+      id: 'contrast_rhythm_flexible',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '☕⏰ EL CONTRASTE: HORARIOS FIJOS VS. RITMO FLUIDO',
+      question: 'Uno tiene un horario marcado (madrugador o nocturno) y el otro fluye con la tarde o según el día... ¿Cómo coordinan sus mejores momentos?',
+      options: [
+        CampfireOption(id: 'a', text: 'Almorzar tarde y pasar la tarde entera compartiendo actividades', emoji: '🥪'),
+        CampfireOption(id: 'b', text: 'Avisarse espontáneamente cuando tengan ganas y energía de verse', emoji: '📱'),
+        CampfireOption(id: 'c', text: 'El de horario fijo le da estructura al día y el flexible aporta espontaneidad', emoji: '✨'),
+        CampfireOption(id: 'd', text: 'Reunirse sin prisas los fines de semana donde el reloj no importa', emoji: '🛋️'),
+      ],
+    ),
+
+    // Fin de Semana Urbano vs Naturaleza / Casa
+    CampfireCard(
+      id: 'contrast_weekend_urban_other',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🏛️🛋️ EL CONTRASTE: CAFETERÍAS Y CIUDAD VS. PLAN CHILL O MONTE',
+      question: 'Uno adora pasear por librerías, museos y probar cafeterías, y el otro prefiere perderse en la montaña o quedarse en cama... ¿Cómo arman el sábado?',
+      options: [
+        CampfireOption(id: 'a', text: 'Café de especialidad por la mañana y tarde de películas o monte', emoji: '☕'),
+        CampfireOption(id: 'b', text: 'Buscar ferias al aire libre o cafés botánicos que unan ciudad y verde', emoji: '🌿'),
+        CampfireOption(id: 'c', text: 'Un sábado urbano cultural y al siguiente desconexión absoluta', emoji: '🔄'),
+        CampfireOption(id: 'd', text: 'Comprar comida rica en la ciudad y llevarla para picnic o comerla en el sillón', emoji: '🧺'),
+      ],
+    ),
+
+    // -------------------------------------------------------------------------
+    // 7. Contrastes de Música, Cine, Anime y Vibes
+    // -------------------------------------------------------------------------
+    // Contraste Musical: Lo-Fi/Calma vs Rock/Metal/Frenesí
+    CampfireCard(
+      id: 'contrast_music_chill_vs_intense',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🎧🎸 EL CONTRASTE MUSICAL: PAZ CHILLHOP VS. GUITARRAS PESADAS',
+      question: 'Uno escucha Lo-Fi, jazz o acústicos para relajarse y el otro sube el volumen con rock, metal o electrónica potente... ¿Qué suena en el auto o la habitación?',
+      options: [
+        CampfireOption(id: 'a', text: 'Una playlist compartida alternando una canción tranquila y una intensa', emoji: '🔀'),
+        CampfireOption(id: 'b', text: 'Música potente para cocinar o salir, y chill suave para descansar', emoji: '🛋️'),
+        CampfireOption(id: 'c', text: 'Post-rock o synthwave instrumental que une energía y atmósfera', emoji: '🌆'),
+        CampfireOption(id: 'd', text: 'Cada uno con sus audífonos compartiendo miradas cómplices', emoji: '🎧'),
+      ],
+    ),
+
+    // Contraste Audiovisual: Terror/Misterio vs Slice of Life/Comedia Confort
+    CampfireCard(
+      id: 'contrast_cinema_horror_vs_cozy',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🍿👻 EL CONTRASTE DE PANTALLA: SUSTOS Y SUSPENSO VS. COBIJA Y RISAS',
+      question: 'Uno ama las películas de terror psicológico o thrillers oscuros, y el otro prefiere comedias confort, romance o Studio Ghibli... ¿Qué eligen un viernes de cine?',
+      options: [
+        CampfireOption(id: 'a', text: 'Terror al atardecer para abrazarse en los sustos, y caricatura feliz después', emoji: '🫣'),
+        CampfireOption(id: 'b', text: 'Fantasía con misterio (estilo Stranger Things o Gravity Falls)', emoji: '🌲'),
+        CampfireOption(id: 'c', text: 'Turnarse una película cada fin de semana sin quejas', emoji: '🎟️'),
+        CampfireOption(id: 'd', text: 'Muchos pochoclos / cabritas y ver los errores ridículos de las de miedo', emoji: '🍿'),
+      ],
+    ),
+
+    // Contraste Anime: Romance/Slice of Life vs Shonen/Peleas Épicas
+    CampfireCard(
+      id: 'contrast_anime_romance_vs_shonen',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🍙🔥 EL CONTRASTE ANIME: CORAZONES TIERNOS VS. BATALLAS ÉPICAS',
+      question: 'Uno se emociona con historias de amor y vida cotidiana, y el otro vibra con batallas legendarias y gritos de poder... ¿Cuál es la serie que verían juntos?',
+      options: [
+        CampfireOption(id: 'a', text: 'Un anime que tenga ambas: acción descomunal pero con romance de fondo', emoji: '⚔️❤️'),
+        CampfireOption(id: 'b', text: 'Maratón de películas autoconclusivas (Makoto Shinkai o Ghibli)', emoji: '🎬'),
+        CampfireOption(id: 'c', text: 'El del shonen le explica los poderes y el de romance se fija en los sentimientos', emoji: '🧠'),
+        CampfireOption(id: 'd', text: 'Comentar los capítulos comiendo ramen casero calientito', emoji: '🍜'),
+      ],
+    ),
+
+    // Contraste de Salida: Cocinar en Casa vs Explorar Restaurantes
+    CampfireCard(
+      id: 'contrast_food_home_vs_out',
+      type: CampfireCardType.curiousContrast,
+      categoryHeader: '🍳🍕 EL CONTRASTE GASTRONÓMICO: CHEF CASERO VS. EXPLORADOR DE CALLE',
+      question: 'Uno disfruta amasar, experimentar recetas y poner la mesa bonita en casa, y el otro ama cazar restaurantes secretos y comida callejera... ¿Cómo es la cena perfecta?',
+      options: [
+        CampfireOption(id: 'a', text: 'Ir de compras juntos a una feria local y cocinar con ingredientes exóticos', emoji: '🥬'),
+        CampfireOption(id: 'b', text: 'Cena gourmet afuera y postre casero con té o trago en el balcón', emoji: '🍰'),
+        CampfireOption(id: 'c', text: 'Pedir comida sorpresa a domicilio y armar un picnic sobre la alfombra', emoji: '🍱'),
+        CampfireOption(id: 'd', text: 'Recrear en casa un plato famoso que probaron en la calle', emoji: '👩‍🍳'),
       ],
     ),
   ];
@@ -926,6 +1450,7 @@ class CampfireCardCatalog {
     // -----------------------------------------------------------------------
     // RONDA 2: Contraste Divertido vs. Complicidad de Espejo (Especifica quién tiene A y quién tiene B)
     // -----------------------------------------------------------------------
+    // 1. Ejes Esenciales
     final hasNightOwlA = setA.contains('vibe_night_owl');
     final hasNightOwlB = setB.contains('vibe_night_owl');
     final hasEarlyBirdA = setA.contains('vibe_early_bird');
@@ -945,30 +1470,222 @@ class CampfireCardCatalog {
     final isEnergyContrast = (hasAdventurerA && hasHomebodyB) || (hasHomebodyA && hasAdventurerB);
     final isSocialContrast = (hasIntrovertA && hasExtrovertB) || (hasExtrovertA && hasIntrovertB);
 
+    // 2. Dilemas Gamer (Ecosistemas)
+    final platA = setA.firstWhere((id) => id.startsWith('plat_'), orElse: () => '');
+    final platB = setB.firstWhere((id) => id.startsWith('plat_'), orElse: () => '');
+    final isPlatContrast = platA.isNotEmpty && platB.isNotEmpty && platA != platB;
+
+    // 3. Combustible Diario
+    final fuelA = setA.firstWhere((id) => id.startsWith('fuel_'), orElse: () => '');
+    final fuelB = setB.firstWhere((id) => id.startsWith('fuel_'), orElse: () => '');
+    final isFuelContrast = fuelA.isNotEmpty && fuelB.isNotEmpty && fuelA != fuelB;
+
+    // 4. Mascotas
+    final petA = setA.firstWhere((id) => id.startsWith('pet_'), orElse: () => '');
+    final petB = setB.firstWhere((id) => id.startsWith('pet_'), orElse: () => '');
+    final isPetContrast = petA.isNotEmpty && petB.isNotEmpty && petA != petB;
+
+    // 5. Vacaciones
+    final vacA = setA.firstWhere((id) => id.startsWith('vacation_'), orElse: () => '');
+    final vacB = setB.firstWhere((id) => id.startsWith('vacation_'), orElse: () => '');
+    final isVacContrast = vacA.isNotEmpty && vacB.isNotEmpty && vacA != vacB;
+
     CampfireCard round2Card;
     String round2Reason;
 
+    // Evaluamos candidatos a contraste en una lista para dar variedad inteligente
+    List<Map<String, dynamic>> contrastCandidates = [];
+
     if (isRhythmContrast) {
-      round2Card = contrastCards[0];
       final traitA = hasNightOwlA ? 'Criatura Nocturna 🌙' : 'Madrugador(a) ☀️';
       final traitB = hasNightOwlB ? 'Criatura Nocturna 🌙' : 'Madrugador(a) ☀️';
-      round2Reason = '⚖️ El Contraste: [$nameA: $traitA] vs [$nameB: $traitB]';
-    } else if (isEnergyContrast) {
-      round2Card = contrastCards[1];
+      contrastCandidates.add({
+        'card': contrastCards[0],
+        'reason': '⚖️ El Contraste: [$nameA: $traitA] vs [$nameB: $traitB]',
+      });
+    }
+
+    if (isEnergyContrast) {
       final traitA = hasAdventurerA ? 'Modo Mochila 🎒' : 'Modo Mantita 🛋️';
       final traitB = hasAdventurerB ? 'Modo Mochila 🎒' : 'Modo Mantita 🛋️';
-      round2Reason = '⚖️ El Contraste: [$nameA: $traitA] vs [$nameB: $traitB]';
-    } else if (isSocialContrast) {
-      round2Card = contrastCards[2];
+      contrastCandidates.add({
+        'card': contrastCards[1],
+        'reason': '⚖️ El Contraste: [$nameA: $traitA] vs [$nameB: $traitB]',
+      });
+    }
+
+    if (isSocialContrast) {
       final traitA = hasIntrovertA ? 'Introvertido(a) 🔋' : 'Extrovertido(a) ⚡';
       final traitB = hasIntrovertB ? 'Introvertido(a) 🔋' : 'Extrovertido(a) ⚡';
-      round2Reason = '⚖️ El Contraste: [$nameA: $traitA] vs [$nameB: $traitB]';
+      contrastCandidates.add({
+        'card': contrastCards[2],
+        'reason': '⚖️ El Contraste: [$nameA: $traitA] vs [$nameB: $traitB]',
+      });
+    }
+
+    if (isPlatContrast) {
+      final titleA = getTagTitle(platA);
+      final titleB = getTagTitle(platB);
+      CampfireCard card;
+      if ((platA == 'plat_pc' && platB == 'plat_playstation') || (platA == 'plat_playstation' && platB == 'plat_pc')) {
+        card = contrastCards[4]; // contrast_plat_pc_ps
+      } else if ((platA == 'plat_pc' && platB == 'plat_xbox') || (platA == 'plat_xbox' && platB == 'plat_pc')) {
+        card = contrastCards[5]; // contrast_plat_pc_xbox
+      } else if ((platA == 'plat_pc' && platB == 'plat_nintendo') || (platA == 'plat_nintendo' && platB == 'plat_pc')) {
+        card = contrastCards[6]; // contrast_plat_pc_nintendo
+      } else if ((platA == 'plat_playstation' && platB == 'plat_xbox') || (platA == 'plat_xbox' && platB == 'plat_playstation')) {
+        card = contrastCards[7]; // contrast_plat_ps_xbox
+      } else if (platA == 'plat_nintendo' || platB == 'plat_nintendo') {
+        card = contrastCards[8]; // contrast_plat_console_nintendo
+      } else {
+        card = contrastCards[9]; // contrast_plat_mobile_any
+      }
+      contrastCandidates.add({
+        'card': card,
+        'reason': '🕹️ Duelo Gamer: [$nameA: $titleA] vs [$nameB: $titleB]',
+      });
+    }
+
+    if (isFuelContrast) {
+      final titleA = getTagTitle(fuelA);
+      final titleB = getTagTitle(fuelB);
+      CampfireCard card;
+      if ((fuelA == 'fuel_coffee' && fuelB == 'fuel_tea') || (fuelA == 'fuel_tea' && fuelB == 'fuel_coffee')) {
+        card = contrastCards[10]; // contrast_fuel_coffee_tea
+      } else if ((fuelA == 'fuel_coffee' && fuelB == 'fuel_energy') || (fuelA == 'fuel_energy' && fuelB == 'fuel_coffee')) {
+        card = contrastCards[11]; // contrast_fuel_coffee_energy
+      } else if ((fuelA == 'fuel_tea' && fuelB == 'fuel_energy') || (fuelA == 'fuel_energy' && fuelB == 'fuel_tea')) {
+        card = contrastCards[12]; // contrast_fuel_tea_energy
+      } else {
+        card = contrastCards[13]; // contrast_fuel_mate_other
+      }
+      contrastCandidates.add({
+        'card': card,
+        'reason': '☕ El Combustible: [$nameA: $titleA] vs [$nameB: $titleB]',
+      });
+    }
+
+    if (isPetContrast) {
+      final titleA = getTagTitle(petA);
+      final titleB = getTagTitle(petB);
+      CampfireCard card;
+      if (petA == 'pet_exotic' || petB == 'pet_exotic') {
+        card = contrastCards[19]; // contrast_pet_exotic_traditional
+      } else if ((petA == 'pet_cat' && petB == 'pet_dog') || (petA == 'pet_dog' && petB == 'pet_cat')) {
+        card = contrastCards[14]; // contrast_pet_cat_dog
+      } else {
+        card = contrastCards[15]; // contrast_pet_vs_plants
+      }
+      contrastCandidates.add({
+        'card': card,
+        'reason': '🐾 Mascotas & Hogar: [$nameA: $titleA] vs [$nameB: $titleB]',
+      });
+    }
+
+    if (isVacContrast) {
+      final titleA = getTagTitle(vacA);
+      final titleB = getTagTitle(vacB);
+      CampfireCard card;
+      if ((vacA == 'vacation_beach' && vacB == 'vacation_cabin') || (vacA == 'vacation_cabin' && vacB == 'vacation_beach')) {
+        card = contrastCards[16]; // contrast_vacation_beach_cabin
+      } else if (vacA == 'vacation_city' || vacB == 'vacation_city') {
+        card = contrastCards[17]; // contrast_vacation_nature_city
+      } else {
+        card = contrastCards[18]; // contrast_vacation_travel_home
+      }
+      contrastCandidates.add({
+        'card': card,
+        'reason': '✈️ Destino Soñado: [$nameA: $titleA] vs [$nameB: $titleB]',
+      });
+    }
+
+    // 6. Contraste de Ritmo Flexible vs Fijo
+    final isFlexibleRhythmA = setA.contains('vibe_flexible_rhythm') || setA.contains('vibe_chaotic_rhythm');
+    final isFlexibleRhythmB = setB.contains('vibe_flexible_rhythm') || setB.contains('vibe_chaotic_rhythm');
+    final isFixedRhythmA = setA.contains('vibe_night_owl') || setA.contains('vibe_early_bird');
+    final isFixedRhythmB = setB.contains('vibe_night_owl') || setB.contains('vibe_early_bird');
+
+    if ((isFlexibleRhythmA && isFixedRhythmB) || (isFixedRhythmA && isFlexibleRhythmB)) {
+      final rhythmA = setA.firstWhere((id) => id.startsWith('vibe_'), orElse: () => '');
+      final rhythmB = setB.firstWhere((id) => id.startsWith('vibe_'), orElse: () => '');
+      contrastCandidates.add({
+        'card': contrastCards[20], // contrast_rhythm_flexible
+        'reason': '⏰ El Ritmo: [$nameA: ${getTagTitle(rhythmA)}] vs [$nameB: ${getTagTitle(rhythmB)}]',
+      });
+    }
+
+    // 7. Contraste de Fin de Semana Urbano vs Naturaleza / Casa
+    final isUrbanWeekendA = setA.contains('vibe_urban_walks');
+    final isUrbanWeekendB = setB.contains('vibe_urban_walks');
+    final isOtherWeekendA = setA.contains('vibe_homebody') || setA.contains('vibe_adventurer');
+    final isOtherWeekendB = setB.contains('vibe_homebody') || setB.contains('vibe_adventurer');
+
+    if ((isUrbanWeekendA && isOtherWeekendB) || (isOtherWeekendA && isUrbanWeekendB)) {
+      contrastCandidates.add({
+        'card': contrastCards[21], // contrast_weekend_urban_other
+        'reason': '🏛️ El Fin de Semana: Plan Urbano vs. Plan Chill / Naturaleza',
+      });
+    }
+
+    // 8. Contraste Musical (Lo-Fi/Chill vs Rock/Metal)
+    final hasChillMusicA = setA.contains('music_lofi') || setA.contains('music_jazz');
+    final hasChillMusicB = setB.contains('music_lofi') || setB.contains('music_jazz');
+    final hasIntenseMusicA = setA.contains('music_rock_metal') || setA.contains('music_synthwave');
+    final hasIntenseMusicB = setB.contains('music_rock_metal') || setB.contains('music_synthwave');
+    if ((hasChillMusicA && hasIntenseMusicB) || (hasIntenseMusicA && hasChillMusicB)) {
+      contrastCandidates.add({
+        'card': contrastCards[22], // contrast_music_chill_vs_intense
+        'reason': '🎧 El Contraste Musical: Calma Lo-Fi vs. Guitarras Potentes',
+      });
+    }
+
+    // 9. Contraste Cine (Terror vs Comedia / Ghibli)
+    final hasHorrorA = setA.contains('cinema_horror');
+    final hasHorrorB = setB.contains('cinema_horror');
+    final hasCozyCinemaA = setA.contains('cinema_ghibli') || setA.contains('cinema_sitcoms');
+    final hasCozyCinemaB = setB.contains('cinema_ghibli') || setB.contains('cinema_sitcoms');
+    if ((hasHorrorA && hasCozyCinemaB) || (hasCozyCinemaA && hasHorrorB)) {
+      contrastCandidates.add({
+        'card': contrastCards[23], // contrast_cinema_horror_vs_cozy
+        'reason': '🍿 Pantalla & Emociones: Terror Psicológico vs. Cobija y Risas',
+      });
+    }
+
+    // 10. Contraste Anime (Romance vs Shonen de Acción)
+    final hasAnimeRomanceA = setA.contains('anime_romance');
+    final hasAnimeRomanceB = setB.contains('anime_romance');
+    final hasAnimeActionA = setA.contains('anime_shonen') || setA.contains('anime_seinen');
+    final hasAnimeActionB = setB.contains('anime_shonen') || setB.contains('anime_seinen');
+    if ((hasAnimeRomanceA && hasAnimeActionB) || (hasAnimeActionA && hasAnimeRomanceB)) {
+      contrastCandidates.add({
+        'card': contrastCards[24], // contrast_anime_romance_vs_shonen
+        'reason': '🍙 Anime: Emociones Cotidianas vs. Batallas Épicas',
+      });
+    }
+
+    // 11. Contraste Gastronómico (Cocinar en Casa vs Explorar Restaurantes)
+    final hasCookingA = setA.contains('life_cooking');
+    final hasCookingB = setB.contains('life_cooking');
+    final hasEatOutA = setA.contains('life_coffee_tea');
+    final hasEatOutB = setB.contains('life_coffee_tea');
+    if ((hasCookingA && hasEatOutB) || (hasEatOutA && hasCookingB)) {
+      contrastCandidates.add({
+        'card': contrastCards[25], // contrast_food_home_vs_out
+        'reason': '🍳 Salidas & Comida: Chef Casero vs. Explorador de Restaurantes',
+      });
+    }
+
+    if (contrastCandidates.isNotEmpty) {
+      // Elegir aleatoriamente uno de los contrastes reales detectados
+      final chosen = contrastCandidates[rng.nextInt(contrastCandidates.length)];
+      round2Card = chosen['card'] as CampfireCard;
+      round2Reason = chosen['reason'] as String;
     } else if (commonTastes.length >= 3) {
       // Mucha afinidad idéntica ➔ Complicidad de Espejo
       round2Card = mirrorComplicityCards[rng.nextInt(mirrorComplicityCards.length)];
       round2Reason = '✨ Complicidad de Espejo: Coinciden en múltiples gustos y tienen una sintonía idéntica';
     } else {
-      round2Card = contrastCards[3];
+      round2Card = contrastCards[3]; // Planificación vs Improvisación fallback
       round2Reason = '⚖️ El Contraste: Planificación organizada vs. Aventura espontánea';
     }
     selected.add(round2Card.copyWith(matchReason: round2Reason));

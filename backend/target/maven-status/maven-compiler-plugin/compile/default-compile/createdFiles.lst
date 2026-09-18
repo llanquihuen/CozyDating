@@ -1,2 +1,11 @@
-com\cozydating\server\util\GeoDistanceUtil.class
+com\cozydating\server\service\verification\MockFaceVerificationService.class
+com\cozydating\server\controller\MediaController.class
+com\cozydating\server\service\storage\LightsailStorageService.class
+com\cozydating\server\service\storage\LocalStorageService.class
+com\cozydating\server\controller\VerificationController.class
 com\cozydating\server\util\GeoDistanceUtil$Coordinates.class
+com\cozydating\server\service\verification\FaceVerificationService$VerificationResult.class
+com\cozydating\server\service\storage\StorageService.class
+com\cozydating\server\util\GeoDistanceUtil.class
+com\cozydating\server\service\verification\FaceVerificationService.class
+com\cozydating\server\config\WebMvcConfig.class

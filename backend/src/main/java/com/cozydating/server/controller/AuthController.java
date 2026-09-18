@@ -265,6 +265,12 @@ public class AuthController {
             user.setProfilePhoto(photo);
         }
 
+        if (body.containsKey("photos")) {
+            String photosJson = extractJsonString(body.get("photos"));
+            databaseService.updateUserPhotos(resolvedUserId, photosJson);
+            user.setPhotos(photosJson);
+        }
+
         return ResponseEntity.ok(formatUserResponse(user));
     }
 
@@ -279,6 +285,9 @@ public class AuthController {
         map.put("avatarConfig", user.getAvatarConfig());
         map.put("tastes", user.getTastes());
         map.put("profilePhoto", user.getProfilePhoto());
+        map.put("photos", user.getPhotos());
+        map.put("isVerified", user.isVerified());
+        map.put("verificationSelfie", user.getVerificationSelfie());
         map.put("roomConfig", user.getRoomConfig());
         return map;
     }

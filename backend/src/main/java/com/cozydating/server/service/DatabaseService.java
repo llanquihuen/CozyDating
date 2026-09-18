@@ -44,6 +44,13 @@ public class DatabaseService {
             user.setAvatarConfig(rs.getString("avatar_config"));
             user.setTastes(rs.getString("tastes"));
             user.setProfilePhoto(rs.getString("profile_photo"));
+            try {
+                user.setPhotos(rs.getString("photos"));
+            } catch (Exception ignored) {}
+            try {
+                user.setVerified(rs.getBoolean("is_verified"));
+                user.setVerificationSelfie(rs.getString("verification_selfie"));
+            } catch (Exception ignored) {}
             user.setRoomConfig(rs.getString("room_config"));
             return user;
         }
@@ -114,11 +121,26 @@ public class DatabaseService {
             "  avatar_config LONGTEXT," +
             "  tastes LONGTEXT," +
             "  profile_photo LONGTEXT," +
+            "  photos LONGTEXT," +
+            "  is_verified BOOLEAN DEFAULT FALSE," +
+            "  verification_selfie LONGTEXT," +
             "  room_config LONGTEXT," +
             "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
             "  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
             ")"
         );
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN photos LONGTEXT");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN verification_selfie LONGTEXT");
+        } catch (Exception ignored) {}
 
         // Create mailbox_matches table for asynchronous letterbox post-game decisions
         jdbcTemplate.execute(
@@ -235,30 +257,33 @@ public class DatabaseService {
 
             // Seed userA: Alice
             jdbcTemplate.update(
-                "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, tastes, profile_photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                "userA", "Alice", "alice@example.com", defaultHash, 24, "Santiago", 5, defaultTastesA, photoA
+                "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, tastes, profile_photo, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "userA", "Alice", "alice@example.com", defaultHash, 24, "Santiago", 5, defaultTastesA, photoA, true
             );
 
             // Seed userB: Bob
             jdbcTemplate.update(
-                "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, tastes, profile_photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                "userB", "Bob", "bob@example.com", defaultHash, 26, "Providencia", 3, defaultTastesB, photoB
+                "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, tastes, profile_photo, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "userB", "Bob", "bob@example.com", defaultHash, 26, "Providencia", 3, defaultTastesB, photoB, true
             );
 
             // Seed userC: Charlie
             jdbcTemplate.update(
-                "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, tastes, profile_photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                "userC", "Charlie", "charlie@example.com", defaultHash, 28, "Las Condes", 0, defaultTastesC, photoC
+                "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, tastes, profile_photo, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "userC", "Charlie", "charlie@example.com", defaultHash, 28, "Las Condes", 0, defaultTastesC, photoC, true
             );
 
             // Seed userD: David
             jdbcTemplate.update(
-                "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, tastes, profile_photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                "userD", "David", "david@example.com", defaultHash, 25, "Ñuñoa", 10, defaultTastesD, photoD
+                "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, tastes, profile_photo, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "userD", "David", "david@example.com", defaultHash, 25, "Ñuñoa", 10, defaultTastesD, photoD, true
             );
 
             logger.info("[DB SEED] Seeding complete: Alice(5), Bob(3), Charlie(0), David(10).");
         } else {
+            try {
+                jdbcTemplate.update("UPDATE users SET is_verified = TRUE WHERE id IN ('userA', 'userB', 'userC', 'userD')");
+            } catch (Exception ignored) {}
             // Update existing users if tastes or photos are null or empty
             try {
                 jdbcTemplate.update("UPDATE users SET age = 24, commune = 'Santiago' WHERE id = 'userA' AND (age IS NULL OR age = 0)");
@@ -286,8 +311,8 @@ public class DatabaseService {
     @Transactional
     public void createUser(User user) {
         jdbcTemplate.update(
-            "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, avatar_config, tastes, room_config) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, avatar_config, tastes, profile_photo, photos, is_verified, verification_selfie, room_config) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             user.getId(),
             user.getUsername(),
             user.getEmail(),
@@ -297,6 +322,10 @@ public class DatabaseService {
             user.getTicketsBalance(),
             user.getAvatarConfig(),
             user.getTastes(),
+            user.getProfilePhoto(),
+            user.getPhotos(),
+            user.isVerified(),
+            user.getVerificationSelfie(),
             user.getRoomConfig()
         );
     }
@@ -432,7 +461,47 @@ public class DatabaseService {
 
     @Transactional
     public void updateProfilePhoto(String userId, String photoData) {
-        jdbcTemplate.update("UPDATE users SET profile_photo = ? WHERE id = ?", photoData, userId);
+        if (userId == null || userId.isBlank()) return;
+        String dbUserId = userId;
+        if ("alice".equalsIgnoreCase(userId)) dbUserId = "userA";
+        else if ("bob".equalsIgnoreCase(userId)) dbUserId = "userB";
+        else if ("charlie".equalsIgnoreCase(userId)) dbUserId = "userC";
+        else if ("david".equalsIgnoreCase(userId)) dbUserId = "userD";
+
+        // Al cambiar la foto de perfil oficial, se invalida la certificación anterior
+        int rows = jdbcTemplate.update("UPDATE users SET profile_photo = ?, is_verified = FALSE WHERE id = ?", photoData, dbUserId);
+        logger.info("[DB UPDATE PHOTO] Updated profile photo for userId='{}' (dbUserId='{}') to '{}'. Verification revoked (rows={})",
+                userId, dbUserId, photoData, rows);
+    }
+
+    public String resolveDbUserId(String userId) {
+        if (userId == null) return null;
+        if ("alice".equalsIgnoreCase(userId)) return "userA";
+        if ("bob".equalsIgnoreCase(userId)) return "userB";
+        if ("charlie".equalsIgnoreCase(userId)) return "userC";
+        if ("david".equalsIgnoreCase(userId)) return "userD";
+        return userId;
+    }
+
+    @Transactional
+    public void updateUserPhotos(String userId, String photosJson) {
+        if (userId == null || userId.isBlank()) return;
+        String dbUserId = resolveDbUserId(userId);
+        int rows = jdbcTemplate.update("UPDATE users SET photos = ? WHERE id = ?", photosJson, dbUserId);
+        logger.info("[DB UPDATE PHOTOS] Updated photos array for userId='{}' (dbUserId='{}') (rows={})",
+                userId, dbUserId, rows);
+    }
+
+    @Transactional
+    public void updateVerificationStatus(String userId, boolean isVerified, String selfieUrl) {
+        if (userId == null || userId.isBlank()) return;
+        String dbUserId = resolveDbUserId(userId);
+
+        int rows = jdbcTemplate.update(
+                "UPDATE users SET is_verified = ?, verification_selfie = ? WHERE id = ?",
+                isVerified, selfieUrl, dbUserId);
+        logger.info("[DB UPDATE VERIFICATION] Updated verification for userId='{}' (dbUserId='{}'): isVerified={}, rows={}",
+                userId, dbUserId, isVerified, rows);
     }
 
     @Transactional

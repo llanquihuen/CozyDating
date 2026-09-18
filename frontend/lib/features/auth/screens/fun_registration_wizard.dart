@@ -51,12 +51,16 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
 
   // Step 3: Tastes Data
   final Set<String> _selectedTastes = {
-    'intent_slow', // Default friendly intention
-    'vibe_homebody',
-    'game_cozy',
+    'intent_slow',     // 1. Intención: Slow Dating
+    'vibe_introvert',   // 2. Batería Social: Introvertido
+    'vibe_night_owl',   // 3. Ritmo: Criatura Nocturna
+    'vibe_homebody',    // 4. Fin de semana: Casa & Mantita
+    'plat_pc',          // Dilema Gamer: PC
+    'fuel_coffee',      // Dilema Combustible: Café
+    'pet_cat',          // Dilema Mascotas: Gatos
+    'vacation_cabin',   // Dilema Vacaciones: Cabaña
+    'game_cozy',        // Gustos libres
     'music_lofi',
-    'life_coffee_tea',
-    'pet_cat',
   };
 
   // Step 4: Room & Theme Data
@@ -271,6 +275,22 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
       _updateRoomPreview();
     }
     if (_currentStep == 2) {
+      // Validar que los 4 ejes obligatorios estén seleccionados
+      final missingRequired = PreferenceCatalog.categories
+          .where((cat) => cat.isRequired && !cat.items.any((it) => _selectedTastes.contains(it.id)))
+          .toList();
+
+      if (missingRequired.isNotEmpty) {
+        final missingTitles = missingRequired.map((c) => '${c.emoji} ${c.title}').join('\n• ');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Por favor completa los ejes obligatorios para conectar en sintonía:\n• $missingTitles'),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
       _updateRoomPreview();
     }
     if (_currentStep < 3) {
@@ -1383,7 +1403,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                       ),
                     ),
-                    if (cat.isSingleSelect)
+                    if (cat.isRequired)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
@@ -1391,6 +1411,15 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text('Obligatorio', style: TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                      )
+                    else if (cat.isSingleSelect)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF38BDF8).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('1 Favorito', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                   ],
                 ),

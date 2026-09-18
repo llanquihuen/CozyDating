@@ -36,4 +36,23 @@ class AppConfig {
     if (kIsWeb) return 'ws://localhost:8080/game';
     return Platform.isAndroid ? 'ws://10.0.2.2:8080/game' : 'ws://localhost:8080/game';
   }
+
+  /// Normaliza una URL de imagen/media para que sea visible en cualquier entorno
+  /// (p. ej. reemplaza localhost por 10.0.2.2 en emuladores Android).
+  static String resolveMediaUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return '';
+    final trimmed = url.trim();
+
+    // Si es ruta relativa (/media/...)
+    if (trimmed.startsWith('/')) {
+      return '$baseUrl$trimmed';
+    }
+
+    // En emulador Android, reemplazar localhost:8080 por 10.0.2.2:8080
+    if (!kIsWeb && Platform.isAndroid && trimmed.contains('localhost:8080')) {
+      return trimmed.replaceAll('localhost:8080', '10.0.2.2:8080');
+    }
+
+    return trimmed;
+  }
 }

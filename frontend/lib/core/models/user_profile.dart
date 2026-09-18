@@ -18,6 +18,8 @@ class UserProfile {
   final String intent;
   final double maxDistanceKm;
   final RoomConfig roomConfig;
+  final bool isVerified;
+  final String? verificationSelfie;
 
   const UserProfile({
     required this.id,
@@ -35,16 +37,27 @@ class UserProfile {
     this.intent = 'intent_slow',
     this.maxDistanceKm = 25.0,
     this.roomConfig = const RoomConfig(),
+    this.isVerified = false,
+    this.verificationSelfie,
   });
 
   /// Primary photo for fallback/compatibility
-  String? get primaryPhoto => photos.isNotEmpty ? photos.first : profilePhoto;
+  String? get primaryPhoto => (profilePhoto != null && profilePhoto!.isNotEmpty)
+      ? profilePhoto
+      : (photos.isNotEmpty ? photos.first : null);
 
   /// Guaranteed list of photos (minimum 1 fallback if photo exists)
   List<String> get allPhotos {
-    if (photos.isNotEmpty) return photos;
-    if (profilePhoto != null && profilePhoto!.isNotEmpty) return [profilePhoto!];
-    return const [];
+    final list = <String>[];
+    if (profilePhoto != null && profilePhoto!.isNotEmpty) {
+      list.add(profilePhoto!);
+    }
+    for (final p in photos) {
+      if (!list.contains(p)) {
+        list.add(p);
+      }
+    }
+    return list;
   }
 
   UserProfile copyWith({
@@ -63,6 +76,8 @@ class UserProfile {
     String? intent,
     double? maxDistanceKm,
     RoomConfig? roomConfig,
+    bool? isVerified,
+    String? verificationSelfie,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -80,6 +95,8 @@ class UserProfile {
       intent: intent ?? this.intent,
       maxDistanceKm: maxDistanceKm ?? this.maxDistanceKm,
       roomConfig: roomConfig ?? this.roomConfig,
+      isVerified: isVerified ?? this.isVerified,
+      verificationSelfie: verificationSelfie ?? this.verificationSelfie,
     );
   }
 
@@ -95,11 +112,13 @@ class UserProfile {
       'avatarConfig': jsonEncode(avatarConfig.toJson()),
       'tastes': jsonEncode(tastes),
       if (primaryPhoto != null) 'profilePhoto': primaryPhoto,
-      'photos': jsonEncode(allPhotos),
+      'photos': jsonEncode(photos),
       'bio': bio,
       'intent': intent,
       'maxDistanceKm': maxDistanceKm,
       'roomConfig': roomConfig.toJson(),
+      'isVerified': isVerified,
+      if (verificationSelfie != null) 'verificationSelfie': verificationSelfie,
     };
   }
 
@@ -188,6 +207,8 @@ class UserProfile {
       intent: map['intent'] as String? ?? 'intent_slow',
       maxDistanceKm: (map['maxDistanceKm'] as num?)?.toDouble() ?? 25.0,
       roomConfig: room,
+      isVerified: map['isVerified'] == true || map['is_verified'] == true || map['is_verified'] == 1,
+      verificationSelfie: map['verificationSelfie'] as String? ?? map['verification_selfie'] as String?,
     );
   }
 

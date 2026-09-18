@@ -120,6 +120,13 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
         }
       }
 
+      if (AuthService.currentUser != null && !AuthService.currentUser!.isVerified) {
+        if (mounted) {
+          _showUnverifiedDialog(context);
+        }
+        return;
+      }
+
       if (mounted) {
         context.read<GameBloc>().add(JoinQueueEvent(
               socketUrl: _wsUrl,
@@ -142,6 +149,38 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
         _isMatchmakingRequestInFlight = false;
       }
     }
+  }
+
+  void _showUnverifiedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.shield_outlined, color: Color(0xFFF59E0B), size: 26),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Identidad Sin Certificar',
+                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Aquí nos cuidamos entre todos. Para que cada cita sea segura y con personas 100% reales, verificamos cada perfil con una selfie rápida. ¡Solo te tomará un minuto!',
+          style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13, height: 1.35),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Entendido', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showErrorSnackBar(BuildContext context, String message) {

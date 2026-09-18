@@ -11,6 +11,9 @@ public class User {
     private String avatarConfig; // JSON string
     private String tastes;       // JSON string
     private String profilePhoto;  // Base64 or URL string
+    private String photos;        // JSON array string of up to 6 photos
+    private boolean isVerified;   // Identity verified via selfie comparison
+    private String verificationSelfie; // URL to private verification selfie
     private String roomConfig;    // JSON string
     private String createdAt;
     private String updatedAt;
@@ -116,6 +119,30 @@ public class User {
 
     public void setProfilePhoto(String profilePhoto) {
         this.profilePhoto = profilePhoto;
+    }
+
+    public String getPhotos() {
+        return photos;
+    }
+
+    public void setPhotos(String photos) {
+        this.photos = photos;
+    }
+
+    public boolean isVerified() {
+        return isVerified;
+    }
+
+    public void setVerified(boolean verified) {
+        isVerified = verified;
+    }
+
+    public String getVerificationSelfie() {
+        return verificationSelfie;
+    }
+
+    public void setVerificationSelfie(String verificationSelfie) {
+        this.verificationSelfie = verificationSelfie;
     }
 
     public String getRoomConfig() {

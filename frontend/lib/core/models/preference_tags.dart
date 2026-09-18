@@ -24,6 +24,7 @@ class PreferenceCategory {
   final String description;
   final List<PreferenceItem> items;
   final bool isSingleSelect;
+  final bool isRequired;
 
   const PreferenceCategory({
     required this.id,
@@ -32,47 +33,154 @@ class PreferenceCategory {
     required this.description,
     required this.items,
     this.isSingleSelect = false,
+    this.isRequired = false,
   });
 }
 
 class PreferenceCatalog {
   static const List<PreferenceCategory> categories = [
-    // 1. Intención de Cita (Selección única o principal)
+    // =========================================================================
+    // 🌟 LOS 4 EJES OBLIGATORIOS (Selección Única - Universales)
+    // =========================================================================
+
+    // 1. Intención de Cita
     PreferenceCategory(
       id: 'dating_intentions',
       title: '¿Qué buscas en Cozy Dating?',
       emoji: '🎯',
-      description: 'Elige tu intención para encontrar gente en la misma sintonía',
+      description: 'Define tu intención para conectar en la misma sintonía',
       isSingleSelect: true,
+      isRequired: true,
       items: [
         PreferenceItem(id: 'intent_serious', title: 'Relación seria & bonita', emoji: '💍', category: 'dating_intentions'),
-        PreferenceItem(id: 'intent_slow', title: 'Conocer gente sin prisa (Slow Dating)', emoji: '🌱', category: 'dating_intentions'),
-        PreferenceItem(id: 'intent_gaming_duo', title: 'Dúo gamer & nuevas amistades', emoji: '🎮', category: 'dating_intentions'),
-        PreferenceItem(id: 'intent_cozy_chats', title: 'Charlas de café y buena compañía', emoji: '☕', category: 'dating_intentions'),
+        PreferenceItem(id: 'intent_slow', title: 'Conocer sin prisa (Slow Dating)', emoji: '🌱', category: 'dating_intentions'),
+        PreferenceItem(id: 'intent_gaming_duo', title: 'Dúo gamer & complicidad', emoji: '🎮', category: 'dating_intentions'),
+        PreferenceItem(id: 'intent_cozy_chats', title: 'Charlas de café y amistad', emoji: '☕', category: 'dating_intentions'),
       ],
     ),
 
-    // 2. Personalidad & Vibes
+    // 2. Batería Social
     PreferenceCategory(
-      id: 'personality',
-      title: 'Tu Energía & Batería Social',
+      id: 'social_battery',
+      title: 'Tu Batería Social',
       emoji: '🧠',
-      description: 'Tu ritmo diario y forma de compartir',
+      description: '¿Cómo recargas tu energía al compartir con otros?',
+      isSingleSelect: true,
+      isRequired: true,
       items: [
-        PreferenceItem(id: 'vibe_introvert', title: 'Introvertido(a) reflexivo', emoji: '🔋', category: 'personality'),
-        PreferenceItem(id: 'vibe_extrovert', title: 'Extrovertido(a) sociable', emoji: '⚡', category: 'personality'),
-        PreferenceItem(id: 'vibe_ambivert', title: 'Ambivertido(a) adaptable', emoji: '⚖️', category: 'personality'),
-        PreferenceItem(id: 'vibe_night_owl', title: 'Criatura nocturna', emoji: '🌙', category: 'personality'),
-        PreferenceItem(id: 'vibe_early_bird', title: 'Madrugador(a) activo', emoji: '☀️', category: 'personality'),
-        PreferenceItem(id: 'vibe_homebody', title: 'Modo Casa & Mantita', emoji: '🛋️', category: 'personality'),
-        PreferenceItem(id: 'vibe_adventurer', title: 'Modo Mochila & Explorar', emoji: '🎒', category: 'personality'),
+        PreferenceItem(id: 'vibe_introvert', title: 'Introvertido(a) reflexivo', emoji: '🔋', category: 'social_battery'),
+        PreferenceItem(id: 'vibe_extrovert', title: 'Extrovertido(a) sociable', emoji: '⚡', category: 'social_battery'),
+        PreferenceItem(id: 'vibe_ambivert', title: 'Ambivertido(a) adaptable', emoji: '⚖️', category: 'social_battery'),
       ],
     ),
 
-    // 3. Tipos de Videojuegos
+    // 3. Ritmo de Vida / Cronotipo
+    PreferenceCategory(
+      id: 'life_rhythm',
+      title: 'Tu Ritmo Diario',
+      emoji: '⏰',
+      description: '¿En qué momento del día funciona mejor tu mundo?',
+      isSingleSelect: true,
+      isRequired: true,
+      items: [
+        PreferenceItem(id: 'vibe_night_owl', title: 'Criatura nocturna (Búho)', emoji: '🌙', category: 'life_rhythm'),
+        PreferenceItem(id: 'vibe_early_bird', title: 'Madrugador(a) activo (Alondra)', emoji: '☀️', category: 'life_rhythm'),
+        PreferenceItem(id: 'vibe_flexible_rhythm', title: 'Ritmo flexible / Tarde activa (Colibrí)', emoji: '☕', category: 'life_rhythm'),
+        PreferenceItem(id: 'vibe_chaotic_rhythm', title: 'Caótico / Según el día y humor', emoji: '🎲', category: 'life_rhythm'),
+      ],
+    ),
+
+    // 4. Fin de Semana Ideal
+    PreferenceCategory(
+      id: 'weekend_vibe',
+      title: 'Tu Fin de Semana Ideal',
+      emoji: '🛋️',
+      description: 'Tu plan perfecto para desconectar',
+      isSingleSelect: true,
+      isRequired: true,
+      items: [
+        PreferenceItem(id: 'vibe_homebody', title: 'Modo Casa & Mantita (Chill)', emoji: '🛋️', category: 'weekend_vibe'),
+        PreferenceItem(id: 'vibe_adventurer', title: 'Modo Mochila & Salir (Naturaleza)', emoji: '🎒', category: 'weekend_vibe'),
+        PreferenceItem(id: 'vibe_urban_walks', title: 'Modo Cafeterías, Museos & Ciudad', emoji: '🏛️', category: 'weekend_vibe'),
+        PreferenceItem(id: 'vibe_balanced_weekend', title: 'Equilibrio 50/50 (Un día afuera, un día chill)', emoji: '⚖️', category: 'weekend_vibe'),
+      ],
+    ),
+
+    // =========================================================================
+    // ⚔️ DILEMAS DE UN SOLO BANDO (Selección Única - Elige tu Favorito)
+    // =========================================================================
+
+    // 5. Ecosistema Gamer Principal
+    PreferenceCategory(
+      id: 'gaming_platform',
+      title: 'Tu Ecosistema Gamer',
+      emoji: '🕹️',
+      description: '¿Cuál es tu templo de juego principal?',
+      isSingleSelect: true,
+      items: [
+        PreferenceItem(id: 'plat_pc', title: 'PC Master Race / Steam Deck', emoji: '🖥️', category: 'gaming_platform'),
+        PreferenceItem(id: 'plat_playstation', title: 'PlayStation', emoji: '🟦', category: 'gaming_platform'),
+        PreferenceItem(id: 'plat_xbox', title: 'Xbox & Game Pass', emoji: '🟩', category: 'gaming_platform'),
+        PreferenceItem(id: 'plat_nintendo', title: 'Nintendo Switch', emoji: '🍄', category: 'gaming_platform'),
+        PreferenceItem(id: 'plat_mobile', title: 'Mobile Gamer', emoji: '📱', category: 'gaming_platform'),
+      ],
+    ),
+
+    // 6. Combustible Diario
+    PreferenceCategory(
+      id: 'daily_fuel',
+      title: 'Tu Combustible Diario',
+      emoji: '☕',
+      description: 'La bebida que activa tus días y tardes',
+      isSingleSelect: true,
+      items: [
+        PreferenceItem(id: 'fuel_coffee', title: 'Café de especialidad / Espresso', emoji: '☕', category: 'daily_fuel'),
+        PreferenceItem(id: 'fuel_tea', title: 'Té caliente / Matcha / Infusión', emoji: '🍵', category: 'daily_fuel'),
+        PreferenceItem(id: 'fuel_energy', title: 'Bebidas Energéticas (Monster/RedBull)', emoji: '⚡', category: 'daily_fuel'),
+        PreferenceItem(id: 'fuel_mate', title: 'Mate tradicional o tereré', emoji: '🧉', category: 'daily_fuel'),
+        PreferenceItem(id: 'fuel_water', title: 'Solo Agua pura bien fresca', emoji: '💧', category: 'daily_fuel'),
+      ],
+    ),
+
+    // 7. Mascotas & Convivencia
+    PreferenceCategory(
+      id: 'pets_dilemma',
+      title: 'Mascotas & Convivencia',
+      emoji: '🐾',
+      description: '¿Quién manda en tu corazón animal?',
+      isSingleSelect: true,
+      items: [
+        PreferenceItem(id: 'pet_cat', title: 'Team Gatos (Misterio y ronroneo)', emoji: '🐱', category: 'pets_dilemma'),
+        PreferenceItem(id: 'pet_dog', title: 'Team Perros (Alegría incondicional)', emoji: '🐶', category: 'pets_dilemma'),
+        PreferenceItem(id: 'pet_exotic', title: 'Team Mascotas No Tradicionales (Conejos, erizos, hurones, otros)', emoji: '🐰', category: 'pets_dilemma'),
+        PreferenceItem(id: 'pet_all', title: 'Amo a todos los animales por igual', emoji: '🐾', category: 'pets_dilemma'),
+        PreferenceItem(id: 'pet_plants', title: 'Prefiero plantas / Sin mascotas', emoji: '🪴', category: 'pets_dilemma'),
+      ],
+    ),
+
+    // 8. Vacaciones Soñadas
+    PreferenceCategory(
+      id: 'dream_vacation',
+      title: 'Tu Escapada Soñada',
+      emoji: '✈️',
+      description: '¿Hacia qué paisaje apunta tu brújula?',
+      isSingleSelect: true,
+      items: [
+        PreferenceItem(id: 'vacation_cabin', title: 'Cabaña en bosque / Montaña fría', emoji: '🌲', category: 'dream_vacation'),
+        PreferenceItem(id: 'vacation_beach', title: 'Playa cálida, mar y atardeceres', emoji: '🏖️', category: 'dream_vacation'),
+        PreferenceItem(id: 'vacation_city', title: 'Metrópolis, museos & cafés urbanos', emoji: '🏙️', category: 'dream_vacation'),
+        PreferenceItem(id: 'vacation_home', title: 'Vacaciones en casa jugando y descansando', emoji: '🏡', category: 'dream_vacation'),
+      ],
+    ),
+
+    // =========================================================================
+    // 🎨 GUSTOS LIBRES & PASIONES (Multi-Selección)
+    // =========================================================================
+
+    // 9. Géneros de Videojuegos
     PreferenceCategory(
       id: 'gaming',
-      title: 'Tus Videojuegos Favoritos',
+      title: 'Tus Géneros de Juegos Favoritos',
       emoji: '🎮',
       description: '¿Qué te gusta jugar en tu tiempo libre?',
       items: [
@@ -87,21 +195,7 @@ class PreferenceCatalog {
       ],
     ),
 
-    // 4. Tecnología & Geek
-    PreferenceCategory(
-      id: 'tech',
-      title: 'Tecnología & Espacio Geek',
-      emoji: '💻',
-      description: 'Herramientas, setups y aficiones digitales',
-      items: [
-        PreferenceItem(id: 'tech_pc_gamer', title: 'PC Gaming & Setup RGB', emoji: '🖥️', category: 'tech'),
-        PreferenceItem(id: 'tech_programming', title: 'Programación & Desarrollo', emoji: '🧑‍💻', category: 'tech'),
-        PreferenceItem(id: 'tech_retro', title: 'Consolas Retro & Emuladores', emoji: '🕹️', category: 'tech'),
-        PreferenceItem(id: 'tech_gadgets', title: 'Gadgets & Domótica', emoji: '⚙️', category: 'tech'),
-      ],
-    ),
-
-    // 5. Música & Sonido
+    // 10. Música
     PreferenceCategory(
       id: 'music',
       title: 'Música & Paisajes Sonoros',
@@ -119,12 +213,12 @@ class PreferenceCatalog {
       ],
     ),
 
-    // 6. Cine & Series
+    // 11. Cine & Series
     PreferenceCategory(
       id: 'cinema',
       title: 'Cine, Series & Animación',
       emoji: '🎬',
-      description: 'Tus géneros y estilos audiovisuales',
+      description: 'Tus estilos audiovisuales favoritos',
       items: [
         PreferenceItem(id: 'cinema_ghibli', title: 'Studio Ghibli & Animación', emoji: '🍃', category: 'cinema'),
         PreferenceItem(id: 'cinema_scifi', title: 'Sci-Fi & Cyberpunk', emoji: '🚀', category: 'cinema'),
@@ -135,7 +229,7 @@ class PreferenceCatalog {
       ],
     ),
 
-    // 7. Anime & Manga
+    // 12. Anime & Manga
     PreferenceCategory(
       id: 'anime',
       title: 'Anime & Manga',
@@ -150,14 +244,14 @@ class PreferenceCatalog {
       ],
     ),
 
-    // 8. Hobbies & Estilo de Vida
+    // 13. Hobbies & Estilo de Vida
     PreferenceCategory(
       id: 'lifestyle',
       title: 'Pasatiempos & Estilo de Vida',
       emoji: '🌿',
       description: 'Actividades que disfrutas fuera de la pantalla',
       items: [
-        PreferenceItem(id: 'life_coffee_tea', title: 'Café de Especialidad & Té', emoji: '🫖', category: 'lifestyle'),
+        PreferenceItem(id: 'life_coffee_tea', title: 'Cafeterías & Probar Comida', emoji: '🥐', category: 'lifestyle'),
         PreferenceItem(id: 'life_plants', title: 'Plantas & Botánica (Plant Lover)', emoji: '🪴', category: 'lifestyle'),
         PreferenceItem(id: 'life_photography', title: 'Fotografía Polaroid & Analógica', emoji: '📷', category: 'lifestyle'),
         PreferenceItem(id: 'life_travel', title: 'Viajes, Mochilazo & Trekking', emoji: '🏕️', category: 'lifestyle'),
@@ -165,19 +259,6 @@ class PreferenceCatalog {
         PreferenceItem(id: 'life_books', title: 'Lectura & Novelas Fantásticas', emoji: '📚', category: 'lifestyle'),
         PreferenceItem(id: 'life_art', title: 'Dibujo, Pintura & Manualidades', emoji: '🎨', category: 'lifestyle'),
         PreferenceItem(id: 'life_cooking', title: 'Cocina & Repostería Casera', emoji: '🍰', category: 'lifestyle'),
-      ],
-    ),
-
-    // 9. Mascotas
-    PreferenceCategory(
-      id: 'pets',
-      title: 'Mascotas & Animales',
-      emoji: '🐾',
-      description: 'Tus compañeros peludos',
-      items: [
-        PreferenceItem(id: 'pet_cat', title: 'Team Gatos 🐱', emoji: '🐱', category: 'pets'),
-        PreferenceItem(id: 'pet_dog', title: 'Team Perros 🐶', emoji: '🐶', category: 'pets'),
-        PreferenceItem(id: 'pet_all', title: 'Amante de todos los animales', emoji: '🐾', category: 'pets'),
       ],
     ),
   ];
@@ -463,7 +544,7 @@ class PreferenceCatalog {
       return '${item.emoji} ${item.title}';
     }
     // Fallback format
-    final clean = id.replaceAll(RegExp(r'^(game_|cinema_|music_|food_|pet_|life_|tech_|vibe_|intent_)'), '');
+    final clean = id.replaceAll(RegExp(r'^(game_|cinema_|music_|food_|pet_|life_|tech_|vibe_|intent_|plat_|fuel_|vacation_)'), '');
     return '✨ ${clean.replaceAll('_', ' ')}';
   }
 }
