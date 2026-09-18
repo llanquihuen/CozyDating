@@ -263,6 +263,10 @@ public class AuthController {
             String photo = (String) body.get("profilePhoto");
             databaseService.updateProfilePhoto(resolvedUserId, photo);
             user.setProfilePhoto(photo);
+            User reloaded = databaseService.findUserById(resolvedUserId);
+            if (reloaded != null) {
+                user.setVerified(reloaded.isVerified());
+            }
         }
 
         if (body.containsKey("photos")) {

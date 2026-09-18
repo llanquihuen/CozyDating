@@ -187,9 +187,6 @@ class UserProfile {
     }
 
     final singlePhoto = map['profilePhoto'] as String?;
-    if (parsedPhotos.isEmpty && singlePhoto != null && singlePhoto.isNotEmpty) {
-      parsedPhotos = [singlePhoto];
-    }
 
     return UserProfile(
       id: map['id'] ?? '',

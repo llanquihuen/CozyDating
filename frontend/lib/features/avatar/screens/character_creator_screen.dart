@@ -78,11 +78,6 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     
     final loadedPhotos = AuthService.currentUser?.photos ?? AvatarStorageService.getUserPhotos(activeId);
     _userPhotos = List<String>.from(loadedPhotos);
-    if (_currentPhoto == null && _userPhotos.isNotEmpty) {
-      _currentPhoto = _userPhotos.removeAt(0);
-    } else if (_currentPhoto != null && _userPhotos.contains(_currentPhoto)) {
-      _userPhotos.remove(_currentPhoto);
-    }
 
     _bioController = TextEditingController(
       text: AuthService.currentUser?.bio.isNotEmpty == true
@@ -188,7 +183,10 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     AvatarStorageService.saveUserIntent(activeId, _selectedIntent);
     AvatarStorageService.saveUserMaxDistance(activeId, _selectedDistanceKm);
 
-    AuthService.updateProfilePhoto(_currentPhoto!);
+    final initialPhoto = AuthService.currentUser?.profilePhoto;
+    if (_currentPhoto != null && _currentPhoto != initialPhoto) {
+      AuthService.updateProfilePhoto(_currentPhoto!);
+    }
     AuthService.updateProfilePhotos(_userPhotos);
 
     AuthService.updateDatingProfile(
@@ -1031,55 +1029,94 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
 
   Future<void> _pickAndUploadHobbyPhoto(ImageSource source, BuildContext dialogContext) async {
     try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
-        source: source,
-        maxWidth: 1600,
-        maxHeight: 1600,
-        imageQuality: 85,
-      );
-
-      if (pickedFile == null) return;
-      if (dialogContext.mounted) Navigator.pop(dialogContext);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                ),
-                SizedBox(width: 12),
-                Text('Subiendo foto a la galería...'),
-              ],
+      final availableSlots = 5 - _userPhotos.length;
+      if (availableSlots <= 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ya alcanzaste el límite máximo de 5 fotos en la galería'),
+              backgroundColor: Colors.orange,
             ),
-            duration: Duration(seconds: 4),
-          ),
-        );
+          );
+        }
+        return;
       }
 
-      final bytes = await pickedFile.readAsBytes();
-      final filename = pickedFile.name.isNotEmpty
-          ? pickedFile.name
-          : 'hobby_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final picker = ImagePicker();
+      List<XFile> pickedFiles = [];
 
-      final uploadedUrl = await AuthService.uploadMediaPhoto(bytes, filename, setAsProfile: false);
-      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
-        if (_userPhotos.length < 5) {
-          setState(() {
-            _userPhotos.add(uploadedUrl);
-          });
-          AuthService.updateProfilePhotos(_userPhotos);
+      if (source == ImageSource.gallery) {
+        pickedFiles = await picker.pickMultiImage(
+          maxWidth: 1600,
+          maxHeight: 1600,
+          imageQuality: 85,
+        );
+      } else {
+        final single = await picker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: 1600,
+          maxHeight: 1600,
+          imageQuality: 85,
+        );
+        if (single != null) {
+          pickedFiles.add(single);
         }
+      }
+
+      if (pickedFiles.isEmpty) return;
+      if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+      final toUpload = pickedFiles.take(availableSlots).toList();
+      final List<String> newlyUploaded = [];
+
+      for (int i = 0; i < toUpload.length; i++) {
+        final file = toUpload[i];
         if (mounted) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('¡Foto añadida a tu galería de pasatiempos!'),
-              backgroundColor: Color(0xFF059669),
+            SnackBar(
+              content: Row(
+                children: [
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(toUpload.length > 1
+                      ? 'Subiendo foto ${i + 1} de ${toUpload.length} a la galería...'
+                      : 'Subiendo foto a la galería...'),
+                ],
+              ),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+
+        final bytes = await file.readAsBytes();
+        final filename = file.name.isNotEmpty
+            ? file.name
+            : 'hobby_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+
+        final uploadedUrl = await AuthService.uploadMediaPhoto(bytes, filename, setAsProfile: false);
+        if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+          newlyUploaded.add(uploadedUrl);
+        }
+      }
+
+      if (newlyUploaded.isNotEmpty) {
+        setState(() {
+          _userPhotos.addAll(newlyUploaded);
+        });
+        await AuthService.updateProfilePhotos(_userPhotos);
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(newlyUploaded.length == 1
+                  ? '¡Foto añadida a tu galería de pasatiempos!'
+                  : '¡${newlyUploaded.length} fotos añadidas a tu galería!'),
+              backgroundColor: const Color(0xFF059669),
             ),
           );
         }
@@ -1119,7 +1156,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Sube una foto de tus pasatiempos o momentos:',
+                  'Sube fotos de tus pasatiempos o momentos (puedes seleccionar varias):',
                   style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
@@ -1134,7 +1171,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         icon: const Icon(Icons.photo_library, size: 18),
-                        label: const Text('Galería', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        label: const Text('Galería (Múltiples)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                         onPressed: () => _pickAndUploadHobbyPhoto(ImageSource.gallery, dialogContext),
                       ),
                     ),

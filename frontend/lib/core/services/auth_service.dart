@@ -314,22 +314,17 @@ class AuthService {
     return null;
   }
 
-  /// Update user profile photos array and primary profile photo in backend MySQL
+  /// Update user profile photos gallery array in backend MySQL (independent of profilePhoto)
   static Future<bool> updateProfilePhotos(List<String> photos) async {
     final activeUserId = _currentUser?.id ?? AvatarStorageService.activeUserId;
     if (activeUserId.isEmpty) return false;
 
-    final primaryPhoto = photos.isNotEmpty ? photos.first : null;
     if (_currentUser != null) {
       _currentUser = _currentUser!.copyWith(
         photos: photos,
-        profilePhoto: primaryPhoto,
       );
     }
     AvatarStorageService.saveUserPhotos(activeUserId, photos);
-    if (primaryPhoto != null) {
-      AvatarStorageService.saveUserPhoto(activeUserId, primaryPhoto);
-    }
 
     try {
       final url = Uri.parse('$_baseUrl/auth/profile');
@@ -339,7 +334,6 @@ class AuthService {
       };
       final body = jsonEncode({
         'userId': activeUserId,
-        'profilePhoto': primaryPhoto,
         'photos': photos,
       });
 

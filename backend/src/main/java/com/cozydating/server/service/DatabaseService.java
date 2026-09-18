@@ -462,13 +462,16 @@ public class DatabaseService {
     @Transactional
     public void updateProfilePhoto(String userId, String photoData) {
         if (userId == null || userId.isBlank()) return;
-        String dbUserId = userId;
-        if ("alice".equalsIgnoreCase(userId)) dbUserId = "userA";
-        else if ("bob".equalsIgnoreCase(userId)) dbUserId = "userB";
-        else if ("charlie".equalsIgnoreCase(userId)) dbUserId = "userC";
-        else if ("david".equalsIgnoreCase(userId)) dbUserId = "userD";
+        String dbUserId = resolveDbUserId(userId);
 
-        // Al cambiar la foto de perfil oficial, se invalida la certificación anterior
+        User current = findUserById(dbUserId);
+        if (current != null && photoData != null && photoData.trim().equals(current.getProfilePhoto())) {
+            logger.info("[DB UPDATE PHOTO] Profile photo unchanged for userId='{}' (dbUserId='{}'). Preserving is_verified={}",
+                    userId, dbUserId, current.isVerified());
+            return;
+        }
+
+        // Al cambiar efectivamente la foto de perfil oficial por otra distinta, se invalida la certificación anterior
         int rows = jdbcTemplate.update("UPDATE users SET profile_photo = ?, is_verified = FALSE WHERE id = ?", photoData, dbUserId);
         logger.info("[DB UPDATE PHOTO] Updated profile photo for userId='{}' (dbUserId='{}') to '{}'. Verification revoked (rows={})",
                 userId, dbUserId, photoData, rows);
