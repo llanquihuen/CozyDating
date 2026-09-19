@@ -23,6 +23,7 @@ import 'features/game/widgets/dungeon_defeat_dialog.dart';
 import 'features/game/widgets/dungeon_victory_dialog.dart';
 import 'features/home_visit/screens/home_visit_view.dart';
 import 'features/lobby/screens/cozy_lobby_view.dart';
+import 'features/mailbox/services/mailbox_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -386,6 +387,7 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
             key: ValueKey('lobby_${AuthService.currentUser?.id ?? _selectedUserId}'),
             activeUserId: AuthService.currentUser?.id ?? _selectedUserId,
             onUserChanged: (newId) async {
+              MailboxService.clear();
               setState(() {
                 _selectedUserId = newId;
                 AvatarStorageService.setActiveUser(newId);
@@ -394,10 +396,13 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
               await ChatService.reconnectAsUser(newId);
             },
             onLogout: () {
-              setState(() {
-                AuthService.logout();
-                WebSocketClient.shared?.disconnect();
-              });
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              ChatService.resetSession();
+              context.read<GameBloc>().add(const ResetGameEvent());
+              AuthService.logout();
+              MailboxService.clear();
+              WebSocketClient.shared?.disconnect();
+              setState(() {});
             },
             onStartMatchmaking: () => _startMatchmaking(context),
           );

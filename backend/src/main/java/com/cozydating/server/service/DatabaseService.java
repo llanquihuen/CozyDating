@@ -589,8 +589,14 @@ public class DatabaseService {
             return null;
         }
 
-        boolean isUserA = userId.equals(match.getUserAId());
-        boolean isUserB = userId.equals(match.getUserBId());
+        String resolvedUserId = resolveDbUserId(userId);
+        String resolvedUserA = resolveDbUserId(match.getUserAId());
+        String resolvedUserB = resolveDbUserId(match.getUserBId());
+
+        boolean isUserA = (userId != null && userId.equals(match.getUserAId())) ||
+                          (resolvedUserId != null && (resolvedUserId.equals(match.getUserAId()) || resolvedUserId.equals(resolvedUserA)));
+        boolean isUserB = (userId != null && userId.equals(match.getUserBId())) ||
+                          (resolvedUserId != null && (resolvedUserId.equals(match.getUserBId()) || resolvedUserId.equals(resolvedUserB)));
         if (!isUserA && !isUserB) {
             return null;
         }
@@ -624,8 +630,14 @@ public class DatabaseService {
     public void markMatchCelebrated(String matchId, String userId) {
         com.cozydating.server.model.MailboxMatch match = findMailboxMatchById(matchId);
         if (match == null) return;
-        boolean isUserA = userId.equals(match.getUserAId());
-        boolean isUserB = userId.equals(match.getUserBId());
+        String resolvedUserId = resolveDbUserId(userId);
+        String resolvedUserA = resolveDbUserId(match.getUserAId());
+        String resolvedUserB = resolveDbUserId(match.getUserBId());
+
+        boolean isUserA = (userId != null && userId.equals(match.getUserAId())) ||
+                          (resolvedUserId != null && (resolvedUserId.equals(match.getUserAId()) || resolvedUserId.equals(resolvedUserA)));
+        boolean isUserB = (userId != null && userId.equals(match.getUserBId())) ||
+                          (resolvedUserId != null && (resolvedUserId.equals(match.getUserBId()) || resolvedUserId.equals(resolvedUserB)));
         if (isUserA) {
             jdbcTemplate.update("UPDATE mailbox_matches SET celebrated_a = TRUE WHERE id = ?", matchId);
         } else if (isUserB) {

@@ -96,6 +96,68 @@ void main() {
       expect(MailboxService.unreadLettersCount.value, equals(0));
     });
 
+    testWidgets('Tapping "Ver perfil completo" on pending letter displays Cita en la Fogata instead of Conexión Mutua', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      MailboxService.addDateLetter(
+        MailboxLetter(
+          id: 'pending_sofia_1',
+          partnerId: 'user_sofia',
+          partnerName: 'Sofia',
+          partnerAvatar: const AvatarConfig(),
+          partnerPhoto: 'https://example.com/sofia1.jpg',
+          partnerPhotos: const [
+            'https://example.com/sofia1.jpg',
+            'https://example.com/sofia2.jpg',
+          ],
+          partnerBio: 'Amante de los juegos y la música.',
+          partnerIntent: 'Amistad y ver qué surge ✨',
+          partnerAge: 23,
+          partnerCommune: 'Providencia',
+          commonTastes: const ['game_coop'],
+          myDecision: MailboxDecision.pending,
+          isMutualMatch: false,
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MailboxScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify pending card shows Sofia and carousel
+      expect(find.text('Carta de la Fogata'), findsOneWidget);
+      expect(find.text('Sofia, 23'), findsOneWidget);
+      final viewProfileBtn = find.text('Ver perfil y 2 fotos');
+      expect(viewProfileBtn, findsOneWidget);
+
+      // Tap to open full profile modal
+      await tester.tap(viewProfileBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Header should show Cita en la Fogata / Decisión pendiente, NOT Conexión Mutua
+      expect(find.text('CITA EN LA FOGATA'), findsOneWidget);
+      expect(find.text('Decisión pendiente • Sofia'), findsOneWidget);
+      expect(find.textContaining('Conexión Mutua'), findsNothing);
+
+      // Actions should show 'Volver a tomar decisión', NOT 'Escribir a Sofia'
+      expect(find.text('Volver a tomar decisión'), findsOneWidget);
+      expect(find.text('Escribir a Sofia'), findsNothing);
+
+      // Tap 'Volver a tomar decisión' to close modal
+      await tester.tap(find.text('Volver a tomar decisión'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('CITA EN LA FOGATA'), findsNothing);
+    });
+
     testWidgets('Tapping a Mutual Match card opens full profile with all photos and bio', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
@@ -193,6 +255,59 @@ void main() {
       expect(restoredLetters.first.partnerName, equals('Sofia'));
       expect(restoredLetters.first.myDecision, equals(MailboxDecision.pending));
       expect(MailboxService.unreadLettersCount.value, equals(1));
+    });
+
+    test('Different users do not leak letters to each other (strict isolation)', () async {
+      SharedPreferences.setMockInitialValues({});
+      MailboxService.clear();
+
+      const userA = 'user_luis';
+      const userB = 'user_seth';
+
+      // User A finishes a date with Sofia
+      final letterA = MailboxLetter(
+        id: 'date_luis_sofia',
+        partnerId: 'sofia_123',
+        partnerName: 'Sofia',
+        partnerAvatar: const AvatarConfig(),
+        myDecision: MailboxDecision.pending,
+        createdAt: DateTime.now(),
+      );
+      await MailboxService.addDateLetter(letterA, userId: userA);
+      expect(MailboxService.unreadLettersCount.value, equals(1));
+
+      // User A logs out (MailboxService.clear is called)
+      MailboxService.clear();
+
+      // User B logs in and fetches letters
+      final sethLetters = await MailboxService.fetchLetters(userId: userB);
+      // Seth has 0 letters, and must NOT have Sofia's letter from Luis!
+      expect(sethLetters.isEmpty, isTrue);
+      expect(MailboxService.unreadLettersCount.value, equals(0));
+
+      // User B finishes a date with Blaze
+      final letterB = MailboxLetter(
+        id: 'date_seth_blaze',
+        partnerId: 'blaze_456',
+        partnerName: 'Blaze',
+        partnerAvatar: const AvatarConfig(),
+        myDecision: MailboxDecision.pending,
+        createdAt: DateTime.now(),
+      );
+      await MailboxService.addDateLetter(letterB, userId: userB);
+      expect(MailboxService.unreadLettersCount.value, equals(1));
+
+      // Switch back to User A without clearing manually (simulate dirty switch)
+      final luisLetters = await MailboxService.fetchLetters(userId: userA);
+      // Luis must ONLY have Sofia, NOT Blaze!
+      expect(luisLetters.length, equals(1));
+      expect(luisLetters.first.partnerName, equals('Sofia'));
+
+      // Switch back to User B
+      final sethLettersAgain = await MailboxService.fetchLetters(userId: userB);
+      // Seth must ONLY have Blaze, NOT Sofia!
+      expect(sethLettersAgain.length, equals(1));
+      expect(sethLettersAgain.first.partnerName, equals('Blaze'));
     });
   });
 }

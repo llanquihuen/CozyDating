@@ -186,6 +186,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
         partnerUser: partnerUser,
         partnerName: letter.partnerName,
         isCelebration: false,
+        isMutualMatch: letter.isMutualMatch,
         onReturnHome: () {
           Navigator.of(ctx).pop();
         },
@@ -982,94 +983,237 @@ class _LetterPhotoCarouselState extends State<_LetterPhotoCarousel> {
   Widget build(BuildContext context) {
     if (widget.photos.isEmpty) {
       return Container(
-        height: 200,
-        color: const Color(0xFF28253B),
-        child: const Center(child: Icon(Icons.account_circle, size: 80, color: Color(0xFFFFD54F))),
+        height: 350,
+        decoration: BoxDecoration(
+          color: const Color(0xFF28253B),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: Icon(Icons.account_circle, size: 90, color: Color(0xFFFFD54F)),
+        ),
       );
     }
 
     return SizedBox(
-      height: 210,
-      child: Stack(
-        children: [
-          PageView.builder(
-            controller: _controller,
-            itemCount: widget.photos.length,
-            onPageChanged: (idx) {
-              setState(() => _currentIndex = idx);
-            },
-            itemBuilder: (context, index) {
-              final photo = widget.photos[index];
-              return GestureDetector(
-                onTap: widget.onTap,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: _buildPhoto(photo),
+      height: 350,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            PageView.builder(
+              controller: _controller,
+              itemCount: widget.photos.length,
+              onPageChanged: (idx) {
+                setState(() => _currentIndex = idx);
+              },
+              itemBuilder: (context, index) {
+                final photo = widget.photos[index];
+                return _buildPhoto(photo);
+              },
+            ),
+
+            // Left / Right touch zones for quick tapping between photos
+            if (widget.photos.length > 1)
+              Positioned.fill(
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          if (_currentIndex > 0) {
+                            _controller.previousPage(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                            );
+                          } else {
+                            widget.onTap?.call();
+                          }
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      flex: 4,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: widget.onTap,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: () {
+                          if (_currentIndex < widget.photos.length - 1) {
+                            _controller.nextPage(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                            );
+                          } else {
+                            widget.onTap?.call();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
-          if (widget.photos.length > 1) ...[
+              )
+            else
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: widget.onTap,
+                ),
+              ),
+
+            // Story-style dash indicators on top
+            if (widget.photos.length > 1)
+              Positioned(
+                top: 10,
+                left: 12,
+                right: 12,
+                child: Row(
+                  children: List.generate(
+                    widget.photos.length,
+                    (i) => Expanded(
+                      child: Container(
+                        height: 3.5,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          color: _currentIndex == i
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.4),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             // Photo counter badge top-right
+            if (widget.photos.length > 1)
+              Positioned(
+                top: 20,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.photo_library_outlined, size: 12, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_currentIndex + 1}/${widget.photos.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Bottom gradient hint overlay
             Positioned(
-              top: 8,
-              right: 8,
+              bottom: 0,
+              left: 0,
+              right: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.65),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white24),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.65),
+                      Colors.black.withOpacity(0.0),
+                    ],
+                  ),
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.photo_library_outlined, size: 12, color: Colors.white),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${_currentIndex + 1}/${widget.photos.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    if (widget.photos.length > 1)
+                      Row(
+                        children: [
+                          Icon(Icons.touch_app_rounded, size: 13, color: Colors.white.withOpacity(0.85)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Toca laterales o desliza',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.85),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    Row(
+                      children: [
+                        Icon(Icons.fullscreen_rounded, size: 14, color: Colors.white.withOpacity(0.85)),
+                        const SizedBox(width: 2),
+                        Text(
+                          'Ampliar',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-            // Dots indicator at bottom
-            Positioned(
-              bottom: 8,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  widget.photos.length,
-                  (i) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                    width: _currentIndex == i ? 16 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: _currentIndex == i ? const Color(0xFFFFD54F) : Colors.white.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildPhoto(String photo) {
-    if (photo.startsWith('assets/')) {
-      return Image.asset(photo, fit: BoxFit.cover, width: double.infinity);
-    } else if (photo.startsWith('http://') || photo.startsWith('https://')) {
+    final resolved = AppConfig.resolveMediaUrl(photo);
+    if (resolved.startsWith('assets/')) {
+      return Image.asset(resolved, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    } else if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
       return Image.network(
-        photo,
+        resolved,
         fit: BoxFit.cover,
         width: double.infinity,
+        height: double.infinity,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            color: const Color(0xFF28253B),
+            child: Center(
+              child: CircularProgressIndicator(
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                    : null,
+                color: const Color(0xFFFFD54F),
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
         errorBuilder: (_, __, ___) => Container(
           color: const Color(0xFF28253B),
           child: const Center(child: Icon(Icons.person, size: 60, color: Colors.white30)),

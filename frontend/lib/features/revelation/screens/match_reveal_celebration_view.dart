@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../chat/screens/private_chat_screen.dart';
@@ -9,6 +10,7 @@ class MatchRevealCelebrationView extends StatefulWidget {
   final UserProfile partnerUser;
   final String partnerName;
   final bool isCelebration;
+  final bool isMutualMatch;
   final VoidCallback onReturnHome;
 
   const MatchRevealCelebrationView({
@@ -17,6 +19,7 @@ class MatchRevealCelebrationView extends StatefulWidget {
     required this.partnerUser,
     required this.partnerName,
     this.isCelebration = true,
+    this.isMutualMatch = true,
     required this.onReturnHome,
   });
 
@@ -90,9 +93,10 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
   }
 
   Widget _buildPhotoSlot(String photoUrl) {
-    if (photoUrl.startsWith('assets/')) {
+    final resolvedUrl = AppConfig.resolveMediaUrl(photoUrl);
+    if (resolvedUrl.startsWith('assets/')) {
       return Image.asset(
-        photoUrl,
+        resolvedUrl,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Container(
           color: const Color(0xFF1E293B),
@@ -101,10 +105,19 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
           ),
         ),
       );
-    } else if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+    } else if (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://')) {
       return Image.network(
-        photoUrl,
+        resolvedUrl,
         fit: BoxFit.cover,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: const Color(0xFF1E293B),
+            child: const Center(
+              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFD54F)),
+            ),
+          );
+        },
         errorBuilder: (_, __, ___) => Container(
           color: const Color(0xFF1E293B),
           child: const Center(
@@ -119,7 +132,11 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.favorite_rounded, size: 48, color: Color(0xFFE11D48)),
+              Icon(
+                (widget.isCelebration || widget.isMutualMatch) ? Icons.favorite_rounded : Icons.local_fire_department_rounded,
+                size: 48,
+                color: (widget.isCelebration || widget.isMutualMatch) ? const Color(0xFFE11D48) : const Color(0xFFFF6D00),
+              ),
               const SizedBox(height: 8),
               Text(
                 widget.partnerName,
@@ -156,27 +173,34 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
 
   @override
   Widget build(BuildContext context) {
+    final isPendingDate = !widget.isCelebration && !widget.isMutualMatch;
+
     return Dialog(
       backgroundColor: const Color(0xFF0F172A),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: Color(0xFFE11D48), width: 2),
+        side: BorderSide(
+          color: isPendingDate ? const Color(0xFFFFB74D) : const Color(0xFFE11D48),
+          width: 2,
+        ),
       ),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 420, maxHeight: 660),
+        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 720),
         child: Column(
           children: [
-            // Top Header: Confetti / Match badge
+            // Top Header
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFE11D48), Color(0xFF9333EA)],
+                  colors: isPendingDate
+                      ? const [Color(0xFFFF6D00), Color(0xFFD97706)]
+                      : const [Color(0xFFE11D48), Color(0xFF9333EA)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
               ),
               child: Row(
                 children: [
@@ -184,7 +208,10 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                     scale: Tween<double>(begin: 0.9, end: 1.15).animate(
                       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
                     ),
-                    child: const Text('✨💖✨', style: TextStyle(fontSize: 22)),
+                    child: Text(
+                      isPendingDate ? '🔥💌✨' : '✨💖✨',
+                      style: const TextStyle(fontSize: 22),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -192,7 +219,9 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.isCelebration ? '¡ES UN MATCH MUTUO!' : 'PERFIL COMPLETO',
+                          widget.isCelebration
+                              ? '¡ES UN MATCH MUTUO!'
+                              : (widget.isMutualMatch ? 'PERFIL COMPLETO' : 'CITA EN LA FOGATA'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -201,7 +230,11 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                           ),
                         ),
                         Text(
-                          widget.isCelebration ? 'Ambos han elegido conectar' : 'Conexión Mutua • ${widget.partnerName}',
+                          widget.isCelebration
+                              ? 'Ambos han elegido conectar'
+                              : (widget.isMutualMatch
+                                  ? 'Conexión Mutua • ${widget.partnerName}'
+                                  : 'Decisión pendiente • ${widget.partnerName}'),
                           style: const TextStyle(
                             color: Color(0xFFFDE68A),
                             fontSize: 12,
@@ -222,9 +255,9 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Photos Carousel (1 to 6 photos)
+                    // Expansive Photos Carousel
                     SizedBox(
-                      height: 280,
+                      height: 360,
                       width: double.infinity,
                       child: Stack(
                         alignment: Alignment.bottomCenter,
@@ -241,59 +274,109 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                               return _buildPhotoSlot(_photos[index]);
                             },
                           ),
+
+                          // Left & Right tap zones for quick photo flip
+                          if (_photos.length > 1)
+                            Positioned.fill(
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        if (_currentPhotoIndex > 0) {
+                                          _photoPageController.previousPage(
+                                            duration: const Duration(milliseconds: 220),
+                                            curve: Curves.easeInOut,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        if (_currentPhotoIndex < _photos.length - 1) {
+                                          _photoPageController.nextPage(
+                                            duration: const Duration(milliseconds: 220),
+                                            curve: Curves.easeInOut,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // Top Story-style dash indicators
+                          if (_photos.length > 1)
+                            Positioned(
+                              top: 10,
+                              left: 12,
+                              right: 12,
+                              child: Row(
+                                children: List.generate(_photos.length, (idx) {
+                                  final isActive = idx == _currentPhotoIndex;
+                                  return Expanded(
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                                      height: 3.5,
+                                      decoration: BoxDecoration(
+                                        color: isActive ? Colors.white : Colors.white.withOpacity(0.35),
+                                        borderRadius: BorderRadius.circular(2),
+                                        boxShadow: [
+                                          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 2),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ),
+
                           // Subtle gradient shadow at bottom
                           Positioned(
                             bottom: 0,
                             left: 0,
                             right: 0,
-                            height: 60,
+                            height: 70,
                             child: Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.bottomCenter,
                                   end: Alignment.topCenter,
                                   colors: [
-                                    Colors.black.withOpacity(0.7),
+                                    Colors.black.withOpacity(0.75),
                                     Colors.transparent,
                                   ],
                                 ),
                               ),
                             ),
                           ),
-                          // Dots Indicator
-                          if (_photos.length > 1)
-                            Positioned(
-                              bottom: 12,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: List.generate(_photos.length, (idx) {
-                                  final isActive = idx == _currentPhotoIndex;
-                                  return AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                                    width: isActive ? 16 : 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: isActive ? Colors.white : Colors.white54,
-                                      borderRadius: BorderRadius.circular(3),
-                                    ),
-                                  );
-                                }),
-                              ),
-                            ),
+
                           // Photos counter tag (top right)
                           Positioned(
-                            top: 10,
-                            right: 10,
+                            top: 22,
+                            right: 12,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(10),
+                                color: Colors.black.withOpacity(0.65),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white24),
                               ),
-                              child: Text(
-                                '${_currentPhotoIndex + 1}/${_photos.length} fotos',
-                                style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.photo_camera_rounded, size: 12, color: Colors.white),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${_currentPhotoIndex + 1}/${_photos.length}',
+                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -315,7 +398,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 20,
+                                  fontSize: 21,
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -393,7 +476,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
               ),
             ),
 
-            // Bottom Actions: Aceptar (on first celebration) or Chat & Close (on full profile)
+            // Bottom Actions
             Padding(
               padding: const EdgeInsets.all(16),
               child: widget.isCelebration
@@ -414,37 +497,56 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                         ),
                       ),
                     )
-                  : Column(
-                      children: [
-                        SizedBox(
+                  : (isPendingDate
+                      ? SizedBox(
                           width: double.infinity,
                           height: 48,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE11D48),
+                              backgroundColor: const Color(0xFFFF6D00),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               elevation: 4,
                             ),
-                            icon: const Icon(Icons.chat_bubble_rounded, size: 20),
-                            label: Text(
-                              'Escribir a ${widget.partnerName}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                            label: const Text(
+                              'Volver a tomar decisión',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                             ),
-                            onPressed: _openPrivateChat,
+                            onPressed: widget.onReturnHome,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: widget.onReturnHome,
-                          style: TextButton.styleFrom(foregroundColor: Colors.white54),
-                          child: const Text(
-                            'Cerrar perfil',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
+                        )
+                      : Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE11D48),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 4,
+                                ),
+                                icon: const Icon(Icons.chat_bubble_rounded, size: 20),
+                                label: Text(
+                                  'Escribir a ${widget.partnerName}',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                ),
+                                onPressed: _openPrivateChat,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: widget.onReturnHome,
+                              style: TextButton.styleFrom(foregroundColor: Colors.white54),
+                              child: const Text(
+                                'Cerrar perfil',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        )),
             ),
           ],
         ),

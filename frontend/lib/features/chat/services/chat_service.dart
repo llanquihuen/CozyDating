@@ -660,4 +660,16 @@ class ChatService {
       ).catchError((e) => http.Response('', 500));
     } catch (_) {}
   }
+
+  /// Reset all session state when user logs out
+  static void resetSession() {
+    incomingDateInviteNotifier.value = null;
+    outgoingDateInviteNotifier.value = null;
+    activeInvitesNotifier.value = {};
+    unreadMessagesNotifier.value = {};
+    partnerPresenceNotifier.value = {};
+    activeChatMatchId = null;
+    _messages.clear();
+    _notifiers.clear();
+  }
 }

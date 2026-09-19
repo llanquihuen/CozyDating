@@ -5,6 +5,7 @@ import '../config/app_config.dart';
 import '../models/avatar_config.dart';
 import '../models/room_config.dart';
 import '../models/user_profile.dart';
+import '../../features/mailbox/services/mailbox_service.dart';
 import 'avatar_storage_service.dart';
 
 class AuthService {
@@ -95,6 +96,7 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _token = data['token'];
+        MailboxService.clear();
         if (data['user'] != null) {
           _currentUser = UserProfile.fromMap(data['user']);
           if (_currentUser!.tastes.isEmpty) {
@@ -128,6 +130,7 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _token = data['token'];
+        MailboxService.clear();
         if (data['user'] != null) {
           _currentUser = UserProfile.fromMap(data['user']);
           if (_currentUser!.tastes.isEmpty) {
@@ -526,6 +529,7 @@ class AuthService {
   static void logout() {
     _token = null;
     _currentUser = null;
+    MailboxService.clear();
   }
 }
 

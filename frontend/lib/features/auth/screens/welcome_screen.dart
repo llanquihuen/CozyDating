@@ -27,90 +27,91 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<bool> _performLogin(void Function(void Function()) setSheetState) async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
 
     if (username.isEmpty || password.isEmpty) {
-      setState(() {
+      setSheetState(() {
         _errorMessage = 'Por favor ingresa usuario y contraseña';
       });
-      return;
+      return false;
     }
 
-    setState(() {
+    setSheetState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     final result = await AuthService.login(username: username, password: password);
 
-    setState(() {
+    if (!mounted) return false;
+
+    setSheetState(() {
       _isLoading = false;
+      if (!result.success) {
+        _errorMessage = result.errorMessage ?? 'Credenciales incorrectas';
+      }
     });
 
-    if (result.success && mounted) {
-      widget.onAuthenticated();
-    } else if (mounted) {
-      setState(() {
-        _errorMessage = result.errorMessage ?? 'Credenciales incorrectas';
-      });
-    }
+    return result.success;
   }
 
-  Future<void> _handleQuickTestLogin(String testUserId) async {
-    setState(() {
+  Future<bool> _performQuickTestLogin(void Function(void Function()) setSheetState, String testUserId) async {
+    setSheetState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     final result = await AuthService.loginTestUser(testUserId);
 
-    setState(() {
+    if (!mounted) return false;
+
+    setSheetState(() {
       _isLoading = false;
+      if (!result.success) {
+        _errorMessage = result.errorMessage ?? 'Error al conectar usuario de prueba';
+      }
     });
 
-    if (result.success && mounted) {
-      widget.onAuthenticated();
-    } else if (mounted) {
-      setState(() {
-        _errorMessage = result.errorMessage ?? 'Error al conectar usuario de prueba';
-      });
-    }
+    return result.success;
   }
 
-  void _openRegistration() {
-    Navigator.of(context).push(
+  Future<void> _openRegistration() async {
+    final bool? registered = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) => FunRegistrationWizardScreen(
+        builder: (wizardContext) => FunRegistrationWizardScreen(
           onRegistrationSuccess: () {
-            if (mounted && Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
+            if (Navigator.of(wizardContext).canPop()) {
+              Navigator.of(wizardContext).pop(true);
             }
-            widget.onAuthenticated();
           },
         ),
       ),
     );
+
+    if (registered == true && mounted) {
+      widget.onAuthenticated();
+    }
   }
 
-  void _showLoginSheet() {
-    showModalBottomSheet(
+  Future<void> _showLoginSheet() async {
+    final bool? authenticated = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF1E1C27),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return StatefulBuilder(
-          builder: (context, setSheetState) {
+          builder: (builderContext, setSheetState) {
             return Padding(
               padding: EdgeInsets.only(
                 left: 24,
                 right: 24,
                 top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                bottom: MediaQuery.of(builderContext).viewInsets.bottom + 24,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -125,7 +126,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.white70),
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(sheetContext).pop(false),
                       ),
                     ],
                   ),
@@ -177,14 +178,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: _isLoading ? null : () async {
-                      await _handleLogin();
-                      if (AuthService.isAuthenticated && mounted) {
-                        Navigator.of(context).pop();
-                      } else {
-                        setSheetState(() {});
-                      }
-                    },
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            final success = await _performLogin(setSheetState);
+                            if (success && sheetContext.mounted) {
+                              Navigator.of(sheetContext).pop(true);
+                            }
+                          },
                     child: _isLoading
                         ? const SizedBox(
                             width: 20,
@@ -207,10 +208,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     runSpacing: 8,
                     alignment: WrapAlignment.center,
                     children: [
-                      _buildQuickUserBtn('alice', '🧑‍🦰 Alice'),
-                      _buildQuickUserBtn('bob', '👩‍🦱 Bob'),
-                      _buildQuickUserBtn('charlie', '🧔 Charlie'),
-                      _buildQuickUserBtn('david', '👱‍♀️ David'),
+                      _buildQuickUserBtn(sheetContext, setSheetState, 'alice', '🧑‍🦰 Alice'),
+                      _buildQuickUserBtn(sheetContext, setSheetState, 'bob', '👩‍🦱 Bob'),
+                      _buildQuickUserBtn(sheetContext, setSheetState, 'charlie', '🧔 Charlie'),
+                      _buildQuickUserBtn(sheetContext, setSheetState, 'david', '👱‍♀️ David'),
                     ],
                   ),
                 ],
@@ -220,19 +221,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         );
       },
     );
+
+    if (authenticated == true && mounted) {
+      widget.onAuthenticated();
+    }
   }
 
-  Widget _buildQuickUserBtn(String id, String label) {
+  Widget _buildQuickUserBtn(
+    BuildContext sheetContext,
+    void Function(void Function()) setSheetState,
+    String id,
+    String label,
+  ) {
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.white70,
         side: const BorderSide(color: Colors.white24),
         visualDensity: VisualDensity.compact,
       ),
-      onPressed: () async {
-        Navigator.of(context).pop();
-        await _handleQuickTestLogin(id);
-      },
+      onPressed: _isLoading
+          ? null
+          : () async {
+              final success = await _performQuickTestLogin(setSheetState, id);
+              if (success && sheetContext.mounted) {
+                Navigator.of(sheetContext).pop(true);
+              }
+            },
       child: Text(label, style: const TextStyle(fontSize: 12)),
     );
   }

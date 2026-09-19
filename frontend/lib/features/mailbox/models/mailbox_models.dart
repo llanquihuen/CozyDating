@@ -10,6 +10,7 @@ enum MailboxDecision {
 
 class MailboxLetter {
   final String id;
+  final String? ownerId;
   final String partnerId;
   final String partnerName;
   final AvatarConfig partnerAvatar;
@@ -29,6 +30,7 @@ class MailboxLetter {
 
   const MailboxLetter({
     required this.id,
+    this.ownerId,
     required this.partnerId,
     required this.partnerName,
     required this.partnerAvatar,
@@ -71,6 +73,7 @@ class MailboxLetter {
 
   MailboxLetter copyWith({
     String? id,
+    String? ownerId,
     String? partnerId,
     String? partnerName,
     AvatarConfig? partnerAvatar,
@@ -90,6 +93,7 @@ class MailboxLetter {
   }) {
     return MailboxLetter(
       id: id ?? this.id,
+      ownerId: ownerId ?? this.ownerId,
       partnerId: partnerId ?? this.partnerId,
       partnerName: partnerName ?? this.partnerName,
       partnerAvatar: partnerAvatar ?? this.partnerAvatar,
@@ -177,6 +181,7 @@ class MailboxLetter {
 
     return MailboxLetter(
       id: map['id']?.toString() ?? '',
+      ownerId: map['ownerId']?.toString(),
       partnerId: pId,
       partnerName: map['partnerName']?.toString() ?? 'Compañero',
       partnerAvatar: avatar,
@@ -199,6 +204,7 @@ class MailboxLetter {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'ownerId': ownerId,
       'partnerId': partnerId,
       'partnerName': partnerName,
       'partnerAvatar': partnerAvatar.toJson(),
@@ -209,7 +215,9 @@ class MailboxLetter {
       'partnerAge': partnerAge,
       'partnerCommune': partnerCommune,
       'commonTastes': commonTastes,
-      'myDecision': myDecision.name,
+      'myDecision': myDecision == MailboxDecision.keepInTouch
+          ? 'KEEP_IN_TOUCH'
+          : (myDecision == MailboxDecision.archived ? 'ARCHIVE' : 'PENDING'),
       'myNote': myNote,
       'partnerNote': partnerNote,
       'isMutualMatch': isMutualMatch,

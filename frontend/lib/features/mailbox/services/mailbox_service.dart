@@ -14,6 +14,7 @@ class MailboxService {
   static final ValueNotifier<int> unreadLettersCount = ValueNotifier<int>(0);
   static final ValueNotifier<MailboxLetter?> mutualMatchCelebrationNotifier = ValueNotifier<MailboxLetter?>(null);
   static final List<MailboxLetter> _cachedLetters = [];
+  static String? _loadedUserId;
 
   static Future<void> _saveLettersToStorage(String userId, [List<MailboxLetter>? lettersToSave]) async {
     if (userId.isEmpty) return;
@@ -39,7 +40,12 @@ class MailboxService {
         final loaded = <MailboxLetter>[];
         for (var item in list) {
           if (item is Map<String, dynamic>) {
-            loaded.add(MailboxLetter.fromMap(item));
+            final letter = MailboxLetter.fromMap(item);
+            // Skip any letter explicitly saved under another user
+            if (letter.ownerId != null && letter.ownerId!.isNotEmpty && letter.ownerId != userId) {
+              continue;
+            }
+            loaded.add(letter.copyWith(ownerId: userId));
           }
         }
         return loaded;
@@ -65,6 +71,7 @@ class MailboxService {
 
   static void clear() {
     _cachedLetters.clear();
+    _loadedUserId = null;
     unreadLettersCount.value = 0;
     mutualMatchCelebrationNotifier.value = null;
     ChatService.clearUnread();
@@ -107,10 +114,19 @@ class MailboxService {
             : AvatarStorageService.activeUserId);
     if (activeId.isEmpty) return [];
 
+    // Reset memory cache if user changed or not yet loaded
+    if (_loadedUserId != activeId) {
+      _cachedLetters.clear();
+      _loadedUserId = activeId;
+    }
+
     // 1. Load locally persisted letters immediately
     final localStored = await _loadLettersFromStorage(activeId);
     if (localStored.isNotEmpty) {
       for (final letter in localStored) {
+        if (letter.ownerId != null && letter.ownerId!.isNotEmpty && letter.ownerId != activeId) {
+          continue;
+        }
         final existingIdx = _cachedLetters.indexWhere((l) => l.id == letter.id);
         if (existingIdx == -1) {
           _cachedLetters.add(letter);
@@ -146,17 +162,27 @@ class MailboxService {
         final serverLetters = <MailboxLetter>[];
         for (var item in data) {
           if (item is Map<String, dynamic>) {
-            serverLetters.add(MailboxLetter.fromMap(item));
+            serverLetters.add(MailboxLetter.fromMap(item).copyWith(ownerId: activeId));
           }
         }
 
         // Merge server letters with local cache:
-        // Local letters with pending decision that might not yet be in server are preserved!
+        // Server letters are authoritative for this user.
+        // Local letters are ONLY preserved if they belong to activeId, are pending, and created recently (< 24 hours).
+        // Any phantom/stale letters from previous test sessions or other users are pruned!
         final merged = <MailboxLetter>[...serverLetters];
         for (final local in _cachedLetters) {
+          if (local.ownerId != null && local.ownerId!.isNotEmpty && local.ownerId != activeId) {
+            continue;
+          }
+
           final serverIdx = merged.indexWhere((s) => s.id == local.id);
           if (serverIdx == -1) {
-            merged.add(local);
+            final isRecentPending = local.myDecision == MailboxDecision.pending &&
+                DateTime.now().difference(local.createdAt).inHours < 24;
+            if (isRecentPending) {
+              merged.add(local.copyWith(ownerId: activeId));
+            }
           } else {
             if (local.myDecision != MailboxDecision.pending && merged[serverIdx].myDecision == MailboxDecision.pending) {
               merged[serverIdx] = merged[serverIdx].copyWith(
@@ -273,14 +299,21 @@ class MailboxService {
             ? AuthService.currentUser!.id
             : AvatarStorageService.activeUserId);
 
-    _cachedLetters.removeWhere((l) => l.id == letter.id);
-    _cachedLetters.insert(0, letter);
+    if (_loadedUserId != activeId) {
+      _cachedLetters.clear();
+      _loadedUserId = activeId;
+    }
+
+    final taggedLetter = letter.copyWith(ownerId: activeId);
+
+    _cachedLetters.removeWhere((l) => l.id == taggedLetter.id);
+    _cachedLetters.insert(0, taggedLetter);
     _updateBadgeCount();
 
     if (activeId.isNotEmpty) {
       final snapshot = List<MailboxLetter>.from(_cachedLetters);
       await _saveLettersToStorage(activeId, snapshot);
-      _syncLetterRecordToServer(letter, activeId);
+      _syncLetterRecordToServer(taggedLetter, activeId);
     }
   }
 

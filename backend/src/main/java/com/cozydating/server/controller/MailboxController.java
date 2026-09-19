@@ -60,8 +60,22 @@ public class MailboxController {
         List<MailboxMatch> matches = databaseService.getUserMailboxMatches(userId);
         List<Map<String, Object>> responseList = new ArrayList<>();
 
+        String resolvedUserId = databaseService.resolveDbUserId(userId);
+
         for (MailboxMatch m : matches) {
-            boolean isUserA = userId.equals(m.getUserAId());
+            String resolvedUserA = databaseService.resolveDbUserId(m.getUserAId());
+            String resolvedUserB = databaseService.resolveDbUserId(m.getUserBId());
+
+            boolean isUserA = (userId != null && userId.equals(m.getUserAId())) ||
+                              (resolvedUserId != null && (resolvedUserId.equals(m.getUserAId()) || resolvedUserId.equals(resolvedUserA)));
+            boolean isUserB = (userId != null && userId.equals(m.getUserBId())) ||
+                              (resolvedUserId != null && (resolvedUserId.equals(m.getUserBId()) || resolvedUserId.equals(resolvedUserB)));
+
+            if (!isUserA && !isUserB) {
+                // Skip any match that does not involve the requesting user
+                continue;
+            }
+
             String partnerId = isUserA ? m.getUserBId() : m.getUserAId();
             String partnerName = isUserA ? m.getUserBName() : m.getUserAName();
             String partnerAvatar = isUserA ? m.getUserBAvatar() : m.getUserAAvatar();
@@ -134,7 +148,10 @@ public class MailboxController {
         resp.put("myDecision", decision);
         resp.put("isMutualMatch", updated.isMatched());
         if (updated.isMatched()) {
-            boolean isUserA = userId.equals(updated.getUserAId());
+            String resolvedUserId = databaseService.resolveDbUserId(userId);
+            String resolvedUserA = databaseService.resolveDbUserId(updated.getUserAId());
+            boolean isUserA = (userId != null && userId.equals(updated.getUserAId())) ||
+                              (resolvedUserId != null && (resolvedUserId.equals(updated.getUserAId()) || resolvedUserId.equals(resolvedUserA)));
             resp.put("partnerNote", isUserA ? updated.getNoteB() : updated.getNoteA());
 
             if (gameWebSocketHandler != null) {
