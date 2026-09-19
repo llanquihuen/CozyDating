@@ -33,14 +33,12 @@ public class MailboxController {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             String verified = jwtUtil.verifyTokenAndGetUserId(token);
-            if (verified != null) return verified;
+            if (verified != null) {
+                return databaseService.resolveDbUserId(verified);
+            }
         }
         if (queryUserId != null && !queryUserId.trim().isEmpty()) {
-            if ("alice".equalsIgnoreCase(queryUserId)) return "userA";
-            if ("bob".equalsIgnoreCase(queryUserId)) return "userB";
-            if ("charlie".equalsIgnoreCase(queryUserId)) return "userC";
-            if ("david".equalsIgnoreCase(queryUserId)) return "userD";
-            return queryUserId;
+            return databaseService.resolveDbUserId(queryUserId.trim());
         }
         return null;
     }
@@ -184,5 +182,77 @@ public class MailboxController {
         }
 
         return ResponseEntity.ok(Map.of("status", "SUCCESS", "matchId", matchId != null ? matchId : ""));
+    }
+
+    /**
+     * Record a newly finished date letter directly into the mailbox.
+     */
+    @PostMapping("/record")
+    public ResponseEntity<?> recordDateLetter(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody Map<String, Object> body) {
+
+        String queryUserId = (String) body.get("userId");
+        String userId = resolveUserId(authHeader, queryUserId);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Usuario no autenticado"));
+        }
+
+        String matchId = (String) body.get("id");
+        if (matchId == null || matchId.isBlank()) {
+            matchId = (String) body.get("matchId");
+        }
+        if (matchId == null || matchId.isBlank()) {
+            matchId = "date_" + System.currentTimeMillis();
+        }
+
+        String partnerId = (String) body.get("partnerId");
+        if (partnerId == null || partnerId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "partnerId es requerido"));
+        }
+        String resolvedPartnerId = databaseService.resolveDbUserId(partnerId);
+
+        String partnerName = (String) body.get("partnerName");
+        Object partnerAvatar = body.get("partnerAvatar");
+        String partnerPhoto = (String) body.get("partnerPhoto");
+        int partnerAge = body.get("partnerAge") instanceof Number ? ((Number) body.get("partnerAge")).intValue() : 24;
+        String partnerCommune = (String) body.get("partnerCommune");
+        Object commonTastes = body.get("commonTastes");
+        String commonTastesStr = commonTastes != null ? commonTastes.toString() : "";
+
+        User currentUser = databaseService.findUserById(userId);
+        String myName = currentUser != null ? currentUser.getUsername() : userId;
+        String myAvatar = currentUser != null ? currentUser.getAvatarConfig() : null;
+        String myPhoto = currentUser != null ? currentUser.getProfilePhoto() : null;
+        int myAge = currentUser != null ? currentUser.getAge() : 24;
+        String myCommune = currentUser != null ? currentUser.getCommune() : "Santiago";
+
+        MailboxMatch match = new MailboxMatch(
+            matchId,
+            userId,
+            resolvedPartnerId,
+            myName,
+            partnerName != null ? partnerName : "Compañero",
+            myAvatar,
+            partnerAvatar != null ? partnerAvatar.toString() : null,
+            myPhoto,
+            partnerPhoto,
+            myAge,
+            partnerAge,
+            myCommune,
+            partnerCommune != null ? partnerCommune : "Santiago",
+            commonTastesStr,
+            "PENDING",
+            null,
+            "PENDING",
+            null,
+            false
+        );
+
+        databaseService.saveOrUpdateMailboxMatch(match);
+        logger.info("[MAILBOX REST] Successfully recorded date letter {} for user {} with partner {}",
+                matchId, userId, resolvedPartnerId);
+
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "matchId", matchId));
     }
 }

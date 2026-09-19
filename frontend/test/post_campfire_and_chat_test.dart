@@ -3,16 +3,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/models/user_profile.dart';
 import 'package:frontend/core/services/avatar_storage_service.dart';
-import 'package:frontend/features/chat/models/chat_message.dart';
 import 'package:frontend/features/chat/screens/private_chat_screen.dart';
 import 'package:frontend/features/chat/services/chat_service.dart';
 import 'package:frontend/features/chat/widgets/global_date_invite_overlay.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/features/mailbox/models/mailbox_models.dart';
 import 'package:frontend/features/mailbox/screens/mailbox_screen.dart';
 import 'package:frontend/features/mailbox/services/mailbox_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
   group('Post-Campfire Coins, Mailbox and Private Chat Tests', () {
     const testUser = UserProfile(

@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/features/mailbox/models/mailbox_models.dart';
 import 'package:frontend/features/mailbox/screens/mailbox_screen.dart';
@@ -10,6 +10,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     MailboxService.clear();
   });
 
@@ -161,6 +162,37 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('PERFIL COMPLETO'), findsNothing);
+    });
+
+    test('Pending date letters persist across app restarts and restore badge count', () async {
+      const testUserId = 'luis_test';
+      final letter = MailboxLetter(
+        id: 'date_persisted_1',
+        partnerId: 'sofia_123',
+        partnerName: 'Sofia',
+        partnerAvatar: const AvatarConfig(),
+        partnerAge: 24,
+        partnerCommune: 'Santiago',
+        commonTastes: const ['game_coop', 'intent_slow'],
+        myDecision: MailboxDecision.pending,
+        createdAt: DateTime.now(),
+      );
+
+      // Add letter to mailbox (simulating date completion)
+      await MailboxService.addDateLetter(letter, userId: testUserId);
+      expect(MailboxService.unreadLettersCount.value, equals(1));
+
+      // Simulate app restart: RAM cache is cleared completely
+      MailboxService.clear();
+      expect(MailboxService.unreadLettersCount.value, equals(0));
+
+      // Fetch letters on new app start
+      final restoredLetters = await MailboxService.fetchLetters(userId: testUserId);
+      expect(restoredLetters.length, equals(1));
+      expect(restoredLetters.first.id, equals('date_persisted_1'));
+      expect(restoredLetters.first.partnerName, equals('Sofia'));
+      expect(restoredLetters.first.myDecision, equals(MailboxDecision.pending));
+      expect(MailboxService.unreadLettersCount.value, equals(1));
     });
   });
 }

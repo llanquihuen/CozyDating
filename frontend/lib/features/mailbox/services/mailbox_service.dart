@@ -1,17 +1,54 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../chat/services/chat_service.dart';
 import '../models/mailbox_models.dart';
 
 class MailboxService {
-  static const String _baseUrl = 'http://localhost:8080';
+  static String get _baseUrl => AppConfig.baseUrl;
 
   static final ValueNotifier<int> unreadLettersCount = ValueNotifier<int>(0);
   static final ValueNotifier<MailboxLetter?> mutualMatchCelebrationNotifier = ValueNotifier<MailboxLetter?>(null);
   static final List<MailboxLetter> _cachedLetters = [];
+
+  static Future<void> _saveLettersToStorage(String userId, [List<MailboxLetter>? lettersToSave]) async {
+    if (userId.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'mailbox_letters_$userId';
+      final list = lettersToSave ?? _cachedLetters;
+      final jsonList = list.map((l) => l.toMap()).toList();
+      await prefs.setString(key, jsonEncode(jsonList));
+    } catch (e) {
+      print('[MAILBOX STORAGE SAVE ERROR] $e');
+    }
+  }
+
+  static Future<List<MailboxLetter>> _loadLettersFromStorage(String userId) async {
+    if (userId.isEmpty) return [];
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'mailbox_letters_$userId';
+      final raw = prefs.getString(key);
+      if (raw != null && raw.isNotEmpty) {
+        final List list = jsonDecode(raw);
+        final loaded = <MailboxLetter>[];
+        for (var item in list) {
+          if (item is Map<String, dynamic>) {
+            loaded.add(MailboxLetter.fromMap(item));
+          }
+        }
+        return loaded;
+      }
+    } catch (e) {
+      print('[MAILBOX STORAGE LOAD ERROR] $e');
+    }
+    return [];
+  }
 
   static void triggerMutualMatchCelebration(MailboxLetter letter) {
     if (letter.isCelebrated || AvatarStorageService.isMatchAcknowledged(letter.id)) return;
@@ -19,6 +56,8 @@ class MailboxService {
     final index = _cachedLetters.indexWhere((l) => l.id == letter.id);
     if (index != -1) {
       _cachedLetters[index] = _cachedLetters[index].copyWith(isCelebrated: true);
+      final activeId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+      _saveLettersToStorage(activeId);
     }
     markMatchCelebratedOnServer(letter.id);
     mutualMatchCelebrationNotifier.value = letter;
@@ -61,8 +100,38 @@ class MailboxService {
 
   /// Get all mailbox letters for active user
   static Future<List<MailboxLetter>> fetchLetters({String? userId}) async {
-    final activeId = userId ?? AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    final activeId = (userId != null && userId.isNotEmpty)
+        ? userId
+        : (AuthService.currentUser?.id.isNotEmpty == true
+            ? AuthService.currentUser!.id
+            : AvatarStorageService.activeUserId);
     if (activeId.isEmpty) return [];
+
+    // 1. Load locally persisted letters immediately
+    final localStored = await _loadLettersFromStorage(activeId);
+    if (localStored.isNotEmpty) {
+      for (final letter in localStored) {
+        final existingIdx = _cachedLetters.indexWhere((l) => l.id == letter.id);
+        if (existingIdx == -1) {
+          _cachedLetters.add(letter);
+        } else {
+          // If local stored has a decision that RAM didn't have, or vice versa, update
+          if (_cachedLetters[existingIdx].myDecision == MailboxDecision.pending &&
+              letter.myDecision != MailboxDecision.pending) {
+            _cachedLetters[existingIdx] = letter;
+          }
+        }
+      }
+      _updateBadgeCount();
+      checkForUncelebratedMatches();
+    }
+
+    // 2. Fetch from backend API if authenticated or token present
+    if (!AuthService.isAuthenticated && AuthService.token == null) {
+      _updateBadgeCount();
+      checkForUncelebratedMatches();
+      return List.from(_cachedLetters);
+    }
 
     try {
       final url = Uri.parse('$_baseUrl/api/mailbox?userId=$activeId');
@@ -74,12 +143,36 @@ class MailboxService {
       final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
-        _cachedLetters.clear();
+        final serverLetters = <MailboxLetter>[];
         for (var item in data) {
           if (item is Map<String, dynamic>) {
-            _cachedLetters.add(MailboxLetter.fromMap(item));
+            serverLetters.add(MailboxLetter.fromMap(item));
           }
         }
+
+        // Merge server letters with local cache:
+        // Local letters with pending decision that might not yet be in server are preserved!
+        final merged = <MailboxLetter>[...serverLetters];
+        for (final local in _cachedLetters) {
+          final serverIdx = merged.indexWhere((s) => s.id == local.id);
+          if (serverIdx == -1) {
+            merged.add(local);
+          } else {
+            if (local.myDecision != MailboxDecision.pending && merged[serverIdx].myDecision == MailboxDecision.pending) {
+              merged[serverIdx] = merged[serverIdx].copyWith(
+                myDecision: local.myDecision,
+                myNote: local.myNote,
+              );
+            }
+            if (local.isCelebrated && !merged[serverIdx].isCelebrated) {
+              merged[serverIdx] = merged[serverIdx].copyWith(isCelebrated: true);
+            }
+          }
+        }
+
+        _cachedLetters.clear();
+        _cachedLetters.addAll(merged);
+        await _saveLettersToStorage(activeId);
         _updateBadgeCount();
         checkForUncelebratedMatches();
         return List.from(_cachedLetters);
@@ -100,7 +193,11 @@ class MailboxService {
     String? note,
     String? userId,
   }) async {
-    final activeId = userId ?? AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    final activeId = (userId != null && userId.isNotEmpty)
+        ? userId
+        : (AuthService.currentUser?.id.isNotEmpty == true
+            ? AuthService.currentUser!.id
+            : AvatarStorageService.activeUserId);
     final decisionStr = decision == MailboxDecision.keepInTouch ? 'KEEP_IN_TOUCH' : 'ARCHIVE';
 
     // Local update
@@ -118,6 +215,11 @@ class MailboxService {
         partnerNote: willMatchLocally ? '¡Me encantó nuestra charla en la fogata! Ojalá juguemos pronto ☕✨' : current.partnerNote,
       );
       _updateBadgeCount();
+      _saveLettersToStorage(activeId);
+    }
+
+    if (!AuthService.isAuthenticated && AuthService.token == null) {
+      return true;
     }
 
     try {
@@ -141,6 +243,7 @@ class MailboxService {
             isMutualMatch: data['isMutualMatch'] == true,
             partnerNote: data['partnerNote']?.toString() ?? _cachedLetters[index].partnerNote,
           );
+          _saveLettersToStorage(activeId);
         }
         return true;
       }
@@ -162,11 +265,48 @@ class MailboxService {
     unreadLettersCount.value = unreadLetters + unreadChats;
   }
 
-  /// Add a newly finished game date letter directly to mailbox
-  static void addDateLetter(MailboxLetter letter) {
+  /// Add a newly finished game date letter directly to mailbox and persist it
+  static Future<void> addDateLetter(MailboxLetter letter, {String? userId}) async {
+    final activeId = (userId != null && userId.isNotEmpty)
+        ? userId
+        : (AuthService.currentUser?.id.isNotEmpty == true
+            ? AuthService.currentUser!.id
+            : AvatarStorageService.activeUserId);
+
     _cachedLetters.removeWhere((l) => l.id == letter.id);
     _cachedLetters.insert(0, letter);
     _updateBadgeCount();
+
+    if (activeId.isNotEmpty) {
+      final snapshot = List<MailboxLetter>.from(_cachedLetters);
+      await _saveLettersToStorage(activeId, snapshot);
+      _syncLetterRecordToServer(letter, activeId);
+    }
+  }
+
+  static Future<void> _syncLetterRecordToServer(MailboxLetter letter, String userId) async {
+    if (!AuthService.isAuthenticated && AuthService.token == null) return;
+    try {
+      final url = Uri.parse('$_baseUrl/api/mailbox/record');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (AuthService.token != null) 'Authorization': 'Bearer ${AuthService.token}',
+      };
+      final body = jsonEncode({
+        'id': letter.id,
+        'userId': userId,
+        'partnerId': letter.partnerId,
+        'partnerName': letter.partnerName,
+        'partnerAvatar': letter.partnerAvatar.toJson(),
+        'partnerPhoto': letter.partnerPhoto,
+        'partnerAge': letter.partnerAge,
+        'partnerCommune': letter.partnerCommune,
+        'commonTastes': letter.commonTastes,
+      });
+      await http.post(url, headers: headers, body: body).timeout(const Duration(seconds: 4));
+    } catch (e) {
+      print('[MAILBOX RECORD SYNC ERROR] $e');
+    }
   }
 
   /// Sample demo letters for initial experience

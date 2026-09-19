@@ -60,10 +60,10 @@ public class GameServerTests {
         jdbcTemplate.execute("DELETE FROM users");
         
         // Seed users
-        jdbcTemplate.update("INSERT INTO users (id, username, tickets_balance) VALUES (?, ?, ?)", "userA", "Alice", 5);
-        jdbcTemplate.update("INSERT INTO users (id, username, tickets_balance) VALUES (?, ?, ?)", "userB", "Bob", 3);
-        jdbcTemplate.update("INSERT INTO users (id, username, tickets_balance) VALUES (?, ?, ?)", "userC", "Charlie", 0);
-        jdbcTemplate.update("INSERT INTO users (id, username, tickets_balance) VALUES (?, ?, ?)", "userD", "David", 1);
+        jdbcTemplate.update("INSERT INTO users (id, username, tickets_balance, is_verified) VALUES (?, ?, ?, true)", "userA", "Alice", 5);
+        jdbcTemplate.update("INSERT INTO users (id, username, tickets_balance, is_verified) VALUES (?, ?, ?, true)", "userB", "Bob", 3);
+        jdbcTemplate.update("INSERT INTO users (id, username, tickets_balance, is_verified) VALUES (?, ?, ?, true)", "userC", "Charlie", 0);
+        jdbcTemplate.update("INSERT INTO users (id, username, tickets_balance, is_verified) VALUES (?, ?, ?, true)", "userD", "David", 1);
 
         // Reset stateful singletons
         matchmakingService.clearQueue();

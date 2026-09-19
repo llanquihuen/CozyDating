@@ -483,6 +483,8 @@ public class DatabaseService {
         if ("bob".equalsIgnoreCase(userId)) return "userB";
         if ("charlie".equalsIgnoreCase(userId)) return "userC";
         if ("david".equalsIgnoreCase(userId)) return "userD";
+        User user = findUserByUsername(userId);
+        if (user != null) return user.getId();
         return userId;
     }
 
@@ -550,12 +552,34 @@ public class DatabaseService {
     }
 
     public java.util.List<com.cozydating.server.model.MailboxMatch> getUserMailboxMatches(String userId) {
+        String dbUserId = resolveDbUserId(userId);
         return jdbcTemplate.query(
-            "SELECT * FROM mailbox_matches WHERE user_a_id = ? OR user_b_id = ? ORDER BY created_at DESC",
+            "SELECT * FROM mailbox_matches WHERE user_a_id = ? OR user_b_id = ? OR user_a_id = ? OR user_b_id = ? ORDER BY created_at DESC",
             mailboxRowMapper,
+            dbUserId,
+            dbUserId,
             userId,
             userId
         );
+    }
+
+    @Transactional
+    public void saveOrUpdateMailboxMatch(com.cozydating.server.model.MailboxMatch match) {
+        com.cozydating.server.model.MailboxMatch existing = findMailboxMatchById(match.getId());
+        if (existing == null) {
+            createMailboxMatch(match);
+        } else {
+            jdbcTemplate.update(
+                "UPDATE mailbox_matches SET user_a_name = COALESCE(?, user_a_name), user_b_name = COALESCE(?, user_b_name), " +
+                "user_a_avatar = COALESCE(?, user_a_avatar), user_b_avatar = COALESCE(?, user_b_avatar), " +
+                "user_a_photo = COALESCE(?, user_a_photo), user_b_photo = COALESCE(?, user_b_photo) " +
+                "WHERE id = ?",
+                match.getUserAName(), match.getUserBName(),
+                match.getUserAAvatar(), match.getUserBAvatar(),
+                match.getUserAPhoto(), match.getUserBPhoto(),
+                match.getId()
+            );
+        }
     }
 
     @Transactional

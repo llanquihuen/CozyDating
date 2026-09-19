@@ -340,7 +340,7 @@ class _CampfireViewState extends State<CampfireView> {
       myDecision: MailboxDecision.pending,
       createdAt: DateTime.now(),
     );
-    MailboxService.addDateLetter(dateLetter);
+    MailboxService.addDateLetter(dateLetter, userId: localId);
 
     // 3. Reset GameBloc
     try {

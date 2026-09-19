@@ -115,6 +115,11 @@ class MailboxLetter {
       final rawAvatar = map['partnerAvatar'];
       if (rawAvatar is Map<String, dynamic>) {
         avatar = AvatarConfig.fromJson(rawAvatar);
+      } else if (rawAvatar is String && rawAvatar.isNotEmpty) {
+        final decoded = jsonDecode(rawAvatar);
+        if (decoded is Map<String, dynamic>) {
+          avatar = AvatarConfig.fromJson(decoded);
+        }
       }
     } catch (_) {}
 
