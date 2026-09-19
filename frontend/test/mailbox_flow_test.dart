@@ -309,5 +309,58 @@ void main() {
       expect(sethLettersAgain.length, equals(1));
       expect(sethLettersAgain.first.partnerName, equals('Blaze'));
     });
+
+    testWidgets('Both profile photo and additional photos are combined together in card and full profile modal', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final letter = MailboxLetter(
+        id: 'date_combined_photos',
+        partnerId: 'user_combined',
+        partnerName: 'Camila',
+        partnerAvatar: const AvatarConfig(),
+        partnerPhoto: 'https://example.com/camila_profile.jpg',
+        partnerPhotos: const [
+          'https://example.com/camila_extra1.jpg',
+          'https://example.com/camila_extra2.jpg',
+        ],
+        partnerBio: 'Fotógrafa aficionada y jugadora de rol.',
+        partnerAge: 26,
+        partnerCommune: 'Ñuñoa',
+        commonTastes: const ['game_rpg'],
+        myDecision: MailboxDecision.pending,
+        createdAt: DateTime.now(),
+      );
+
+      // Verify effectivePhotos contains both profile photo and all additional photos
+      expect(letter.effectivePhotos.length, equals(3));
+      expect(letter.effectivePhotos[0], equals('https://example.com/camila_profile.jpg'));
+      expect(letter.effectivePhotos[1], equals('https://example.com/camila_extra1.jpg'));
+      expect(letter.effectivePhotos[2], equals('https://example.com/camila_extra2.jpg'));
+
+      MailboxService.addDateLetter(letter);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MailboxScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Card shows all 3 photos
+      expect(find.text('Ver perfil y 3 fotos'), findsOneWidget);
+      expect(find.text('1/3'), findsOneWidget);
+
+      // Tap to open full profile modal
+      await tester.tap(find.text('Ver perfil y 3 fotos'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Modal is open, showing full profile with all 3 photos combined
+      expect(find.text('CITA EN LA FOGATA'), findsOneWidget);
+      expect(find.text('Decisión pendiente • Camila'), findsOneWidget);
+      expect(find.text('1/3'), findsNWidgets(2)); // 1 on card behind + 1 on modal dialog
+    });
   });
 }

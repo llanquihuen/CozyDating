@@ -309,10 +309,22 @@ class _CampfireViewState extends State<CampfireView> {
       partnerName = (localId == 'userA' || localId == 'alice') ? 'Bob' : 'Alice';
     }
 
-    final partnerPhotos = (partner?.photos != null && partner!.photos.isNotEmpty)
-        ? partner.photos
+    final rawPartnerPhotos = (partner?.photos != null && partner!.photos.isNotEmpty)
+        ? partner!.photos
         : AvatarStorageService.getUserPhotos(partnerId);
-    final partnerPhoto = partner?.profilePhoto ?? (partnerPhotos.isNotEmpty ? partnerPhotos.first : AvatarStorageService.getUserPhoto(partnerId));
+    final partnerPhoto = partner?.profilePhoto ?? AvatarStorageService.getUserPhoto(partnerId);
+
+    final allPartnerPhotos = <String>[];
+    if (partnerPhoto != null && partnerPhoto.trim().isNotEmpty) {
+      allPartnerPhotos.add(partnerPhoto.trim());
+    }
+    for (final p in rawPartnerPhotos) {
+      final trimmed = p.trim();
+      if (trimmed.isNotEmpty && !allPartnerPhotos.contains(trimmed)) {
+        allPartnerPhotos.add(trimmed);
+      }
+    }
+
     final partnerBio = (partner?.bio != null && partner!.bio.isNotEmpty)
         ? partner.bio
         : AvatarStorageService.getUserBio(partnerId);
@@ -330,8 +342,8 @@ class _CampfireViewState extends State<CampfireView> {
       partnerId: partnerId,
       partnerName: partnerName,
       partnerAvatar: widget.partnerAvatarConfig ?? partner?.avatarConfig ?? AvatarStorageService.getUserConfig(partnerId),
-      partnerPhoto: partnerPhoto,
-      partnerPhotos: partnerPhotos,
+      partnerPhoto: partnerPhoto ?? (allPartnerPhotos.isNotEmpty ? allPartnerPhotos.first : null),
+      partnerPhotos: allPartnerPhotos,
       partnerBio: partnerBio,
       partnerIntent: partnerIntent,
       partnerAge: partnerAge,

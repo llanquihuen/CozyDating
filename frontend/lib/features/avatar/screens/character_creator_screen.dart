@@ -5,8 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/preference_tags.dart';
+import '../../../core/models/user_profile.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
+import '../../revelation/screens/match_reveal_celebration_view.dart';
 import '../games/character_preview_game.dart';
 
 class CharacterCreatorScreen extends StatefulWidget {
@@ -206,6 +208,60 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     }
   }
 
+  void _showDatingProfilePreview() {
+    final activeId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
+    final username = AuthService.currentUser?.username ?? 'Tu Perfil';
+
+    final combinedPhotos = <String>[];
+    void addPhoto(String? p) {
+      if (p != null) {
+        final trimmed = p.trim();
+        if (trimmed.isNotEmpty && !combinedPhotos.contains(trimmed)) {
+          combinedPhotos.add(trimmed);
+        }
+      }
+    }
+
+    addPhoto(_currentPhoto);
+    for (final p in _userPhotos) {
+      addPhoto(p);
+    }
+    if (combinedPhotos.isEmpty) {
+      addPhoto(AvatarStorageService.getUserPhoto(activeId));
+      for (final p in AvatarStorageService.getUserPhotos(activeId)) {
+        addPhoto(p);
+      }
+    }
+
+    final previewUser = UserProfile(
+      id: activeId,
+      username: username,
+      avatarConfig: _currentConfig,
+      profilePhoto: _currentPhoto ?? (combinedPhotos.isNotEmpty ? combinedPhotos.first : null),
+      photos: combinedPhotos,
+      bio: _bioController.text.trim().isNotEmpty
+          ? _bioController.text.trim()
+          : 'Aventurero(a) en busca de momentos genuinos, buenas charlas y partidas cooperativas ✨.',
+      intent: _selectedIntent.isNotEmpty ? _selectedIntent : 'Citas con calma 🌱',
+      age: _userAge,
+      commune: _userCommune,
+      tastes: _selectedTastes.toList(),
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => MatchRevealCelebrationView(
+        localUser: previewUser,
+        partnerUser: previewUser,
+        partnerName: username,
+        isCelebration: false,
+        isMutualMatch: false,
+        isPreview: true,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width >= 800;
@@ -283,6 +339,21 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           ),
           onPressed: _randomizeAvatar,
         ),
+        if (_screenModeIndex == 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 8, right: 4),
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF38BDF8),
+                side: const BorderSide(color: Color(0xFF0284C7)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+              ),
+              onPressed: _showDatingProfilePreview,
+              icon: const Icon(Icons.visibility_outlined, size: 16),
+              label: const Text('Vista previa', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.only(right: 12.0, top: 8, bottom: 8, left: 4),
           child: ElevatedButton.icon(
@@ -402,6 +473,10 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 0. Previsualización de Perfil de Citas
+              _buildPreviewBanner(),
+              const SizedBox(height: 20),
+
               // 1. Foto de Perfil Oficial & Verificación Facial
               _buildOfficialPhotoAndVerificationSection(),
               const SizedBox(height: 20),
@@ -424,6 +499,79 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0284C7), Color(0xFF4F46E5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0284C7).withOpacity(0.35),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.18),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Vista Previa de tu Perfil',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  'Comprueba cómo verán tu perfil y fotos al terminar la Fogata',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.88),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          ElevatedButton.icon(
+            onPressed: _showDatingProfilePreview,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF0284C7),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+            ),
+            icon: const Icon(Icons.visibility_rounded, size: 16),
+            label: const Text(
+              'Ver perfil',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1589,24 +1737,21 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
               ),
               const SizedBox(width: 14),
               SizedBox(
-                width: 100,
+                width: 120,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Edad:', style: TextStyle(color: Colors.white70, fontSize: 12)),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       decoration: BoxDecoration(
                         color: const Color(0xFF0F172A),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: const Color(0xFF475569)),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('$_userAge años', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        ],
+                      child: Center(
+                        child: Text('$_userAge años', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],

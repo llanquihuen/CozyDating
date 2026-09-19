@@ -50,11 +50,36 @@ class MailboxLetter {
   });
 
   List<String> get effectivePhotos {
-    if (partnerPhotos.isNotEmpty) return partnerPhotos;
-    final stored = AvatarStorageService.getUserPhotos(partnerId);
-    if (stored.isNotEmpty) return stored;
-    if (partnerPhoto != null && partnerPhoto!.isNotEmpty) return [partnerPhoto!];
-    return const [];
+    final list = <String>[];
+    void addPhoto(String? p) {
+      if (p != null) {
+        final trimmed = p.trim();
+        if (trimmed.isNotEmpty && !list.contains(trimmed)) {
+          list.add(trimmed);
+        }
+      }
+    }
+
+    // 1. Primary profile photo
+    if (partnerPhoto != null && partnerPhoto!.trim().isNotEmpty) {
+      addPhoto(partnerPhoto);
+    } else {
+      addPhoto(AvatarStorageService.getUserPhoto(partnerId));
+    }
+
+    // 2. Extra photos
+    if (partnerPhotos.isNotEmpty) {
+      for (final p in partnerPhotos) {
+        addPhoto(p);
+      }
+    } else {
+      final storedPhotos = AvatarStorageService.getUserPhotos(partnerId);
+      for (final p in storedPhotos) {
+        addPhoto(p);
+      }
+    }
+
+    return list;
   }
 
   String get effectiveBio {
@@ -143,20 +168,27 @@ class MailboxLetter {
     List<String> parsedPhotos = [];
     final rawPhotos = map['partnerPhotos'];
     if (rawPhotos is List) {
-      parsedPhotos = rawPhotos.map((e) => e.toString()).toList();
+      parsedPhotos = rawPhotos.map((e) => e.toString().trim()).where((s) => s.isNotEmpty).toList();
     } else if (rawPhotos is String && rawPhotos.isNotEmpty) {
       try {
         final decoded = jsonDecode(rawPhotos);
         if (decoded is List) {
-          parsedPhotos = decoded.map((e) => e.toString()).toList();
+          parsedPhotos = decoded.map((e) => e.toString().trim()).where((s) => s.isNotEmpty).toList();
         }
       } catch (_) {}
     }
-    if (parsedPhotos.isEmpty && map['partnerPhoto'] != null && map['partnerPhoto'].toString().isNotEmpty) {
-      parsedPhotos = [map['partnerPhoto'].toString()];
+    final singlePhoto = map['partnerPhoto']?.toString().trim();
+    if (singlePhoto != null && singlePhoto.isNotEmpty && !parsedPhotos.contains(singlePhoto)) {
+      parsedPhotos.insert(0, singlePhoto);
     }
     if (parsedPhotos.isEmpty && pId.isNotEmpty) {
-      parsedPhotos = AvatarStorageService.getUserPhotos(pId);
+      final storedPhotos = AvatarStorageService.getUserPhotos(pId);
+      for (final sp in storedPhotos) {
+        final trimmed = sp.trim();
+        if (trimmed.isNotEmpty && !parsedPhotos.contains(trimmed)) {
+          parsedPhotos.add(trimmed);
+        }
+      }
     }
 
     final bio = map['partnerBio']?.toString() ?? (pId.isNotEmpty ? AvatarStorageService.getUserBio(pId) : null);

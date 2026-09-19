@@ -11,7 +11,8 @@ class MatchRevealCelebrationView extends StatefulWidget {
   final String partnerName;
   final bool isCelebration;
   final bool isMutualMatch;
-  final VoidCallback onReturnHome;
+  final bool isPreview;
+  final VoidCallback? onReturnHome;
 
   const MatchRevealCelebrationView({
     super.key,
@@ -20,7 +21,8 @@ class MatchRevealCelebrationView extends StatefulWidget {
     required this.partnerName,
     this.isCelebration = true,
     this.isMutualMatch = true,
-    required this.onReturnHome,
+    this.isPreview = false,
+    this.onReturnHome,
   });
 
   @override
@@ -52,18 +54,39 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
     final partner = widget.partnerUser;
     final partnerId = partner.id;
 
-    _photos = (partner.photos.isNotEmpty)
-        ? partner.photos
-        : AvatarStorageService.getUserPhotos(partnerId);
-
-    if (_photos.isEmpty) {
-      final singlePhoto = partner.profilePhoto ?? AvatarStorageService.getUserPhoto(partnerId);
-      if (singlePhoto != null && singlePhoto.isNotEmpty) {
-        _photos = [singlePhoto];
-      } else {
-        _photos = ['assets/images/default_avatar.png'];
+    final combinedPhotos = <String>[];
+    void addPhoto(String? photo) {
+      if (photo != null) {
+        final trimmed = photo.trim();
+        if (trimmed.isNotEmpty && !combinedPhotos.contains(trimmed)) {
+          combinedPhotos.add(trimmed);
+        }
       }
     }
+
+    // 1. Primary profile photo from partnerUser or storage
+    if (partner.profilePhoto != null && partner.profilePhoto!.trim().isNotEmpty) {
+      addPhoto(partner.profilePhoto);
+    } else {
+      addPhoto(AvatarStorageService.getUserPhoto(partnerId));
+    }
+
+    // 2. Photos from partnerUser
+    if (partner.photos.isNotEmpty) {
+      for (final p in partner.photos) {
+        addPhoto(p);
+      }
+    } else {
+      for (final p in AvatarStorageService.getUserPhotos(partnerId)) {
+        addPhoto(p);
+      }
+    }
+
+    if (combinedPhotos.isEmpty) {
+      combinedPhotos.add('assets/images/default_avatar.png');
+    }
+
+    _photos = combinedPhotos;
 
     _bio = partner.bio.isNotEmpty
         ? partner.bio
@@ -180,7 +203,9 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
         side: BorderSide(
-          color: isPendingDate ? const Color(0xFFFFB74D) : const Color(0xFFE11D48),
+          color: widget.isPreview
+              ? const Color(0xFF38BDF8)
+              : (isPendingDate ? const Color(0xFFFFB74D) : const Color(0xFFE11D48)),
           width: 2,
         ),
       ),
@@ -194,9 +219,11 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: isPendingDate
-                      ? const [Color(0xFFFF6D00), Color(0xFFD97706)]
-                      : const [Color(0xFFE11D48), Color(0xFF9333EA)],
+                  colors: widget.isPreview
+                      ? const [Color(0xFF0284C7), Color(0xFF6366F1)]
+                      : (isPendingDate
+                          ? const [Color(0xFFFF6D00), Color(0xFFD97706)]
+                          : const [Color(0xFFE11D48), Color(0xFF9333EA)]),
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -209,7 +236,9 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
                     ),
                     child: Text(
-                      isPendingDate ? '🔥💌✨' : '✨💖✨',
+                      widget.isPreview
+                          ? '👁️✨'
+                          : (isPendingDate ? '🔥💌✨' : '✨💖✨'),
                       style: const TextStyle(fontSize: 22),
                     ),
                   ),
@@ -219,9 +248,11 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.isCelebration
-                              ? '¡ES UN MATCH MUTUO!'
-                              : (widget.isMutualMatch ? 'PERFIL COMPLETO' : 'CITA EN LA FOGATA'),
+                          widget.isPreview
+                              ? 'VISTA PREVIA DE TU PERFIL'
+                              : (widget.isCelebration
+                                  ? '¡ES UN MATCH MUTUO!'
+                                  : (widget.isMutualMatch ? 'PERFIL COMPLETO' : 'CITA EN LA FOGATA')),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -230,11 +261,13 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                           ),
                         ),
                         Text(
-                          widget.isCelebration
-                              ? 'Ambos han elegido conectar'
-                              : (widget.isMutualMatch
-                                  ? 'Conexión Mutua • ${widget.partnerName}'
-                                  : 'Decisión pendiente • ${widget.partnerName}'),
+                          widget.isPreview
+                              ? 'Así te verán tus citas al terminar la Fogata'
+                              : (widget.isCelebration
+                                  ? 'Ambos han elegido conectar'
+                                  : (widget.isMutualMatch
+                                      ? 'Conexión Mutua • ${widget.partnerName}'
+                                      : 'Decisión pendiente • ${widget.partnerName}')),
                           style: const TextStyle(
                             color: Color(0xFFFDE68A),
                             fontSize: 12,
@@ -479,74 +512,117 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
             // Bottom Actions
             Padding(
               padding: const EdgeInsets.all(16),
-              child: widget.isCelebration
+              child: widget.isPreview
                   ? SizedBox(
                       width: double.infinity,
                       height: 48,
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE11D48),
+                          backgroundColor: const Color(0xFF0284C7),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           elevation: 4,
                         ),
-                        onPressed: widget.onReturnHome,
-                        child: const Text(
-                          'Aceptar',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        icon: const Icon(Icons.edit_note_rounded, size: 22),
+                        label: const Text(
+                          'Volver a editar mi perfil',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                         ),
+                        onPressed: () {
+                          if (widget.onReturnHome != null) {
+                            widget.onReturnHome!();
+                          } else {
+                            Navigator.of(context).pop();
+                          }
+                        },
                       ),
                     )
-                  : (isPendingDate
+                  : (widget.isCelebration
                       ? SizedBox(
                           width: double.infinity,
                           height: 48,
-                          child: ElevatedButton.icon(
+                          child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF6D00),
+                              backgroundColor: const Color(0xFFE11D48),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               elevation: 4,
                             ),
-                            icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                            label: const Text(
-                              'Volver a tomar decisión',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            onPressed: () {
+                              if (widget.onReturnHome != null) {
+                                widget.onReturnHome!();
+                              } else {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                            child: const Text(
+                              'Aceptar',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                             ),
-                            onPressed: widget.onReturnHome,
                           ),
                         )
-                      : Column(
-                          children: [
-                            SizedBox(
+                      : (isPendingDate
+                          ? SizedBox(
                               width: double.infinity,
                               height: 48,
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE11D48),
+                                  backgroundColor: const Color(0xFFFF6D00),
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                   elevation: 4,
                                 ),
-                                icon: const Icon(Icons.chat_bubble_rounded, size: 20),
-                                label: Text(
-                                  'Escribir a ${widget.partnerName}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                                label: const Text(
+                                  'Volver a tomar decisión',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                 ),
-                                onPressed: _openPrivateChat,
+                                onPressed: () {
+                                  if (widget.onReturnHome != null) {
+                                    widget.onReturnHome!();
+                                  } else {
+                                    Navigator.of(context).pop();
+                                  }
+                                },
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: widget.onReturnHome,
-                              style: TextButton.styleFrom(foregroundColor: Colors.white54),
-                              child: const Text(
-                                'Cerrar perfil',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        )),
+                            )
+                          : Column(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFE11D48),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      elevation: 4,
+                                    ),
+                                    icon: const Icon(Icons.chat_bubble_rounded, size: 20),
+                                    label: Text(
+                                      'Escribir a ${widget.partnerName}',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    ),
+                                    onPressed: _openPrivateChat,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextButton(
+                                  onPressed: () {
+                                    if (widget.onReturnHome != null) {
+                                      widget.onReturnHome!();
+                                    } else {
+                                      Navigator.of(context).pop();
+                                    }
+                                  },
+                                  style: TextButton.styleFrom(foregroundColor: Colors.white54),
+                                  child: const Text(
+                                    'Cerrar perfil',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ))),
             ),
           ],
         ),

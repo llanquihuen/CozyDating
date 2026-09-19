@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import '../config/app_config.dart';
@@ -15,6 +16,14 @@ class AuthService {
   static String? get token => _token;
   static UserProfile? get currentUser => _currentUser;
   static bool get isAuthenticated => _token != null && _currentUser != null;
+
+  @visibleForTesting
+  static void setCurrentUserForTesting(UserProfile? user) {
+    _currentUser = user;
+    if (user != null) {
+      AvatarStorageService.setActiveUser(user.id);
+    }
+  }
 
   static String get _baseUrl => AppConfig.baseUrl;
 

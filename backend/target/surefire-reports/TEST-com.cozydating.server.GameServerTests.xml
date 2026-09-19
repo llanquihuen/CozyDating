@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.cozydating.server.GameServerTests" time="0.764" tests="11" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.cozydating.server.GameServerTests" time="0.734" tests="11" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="25"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -15,7 +15,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="CL"/>
     <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-25.0.1\bin"/>
-    <property name="sun.java.command" value="C:\Users\Asus\AppData\Local\Temp\surefire13240444074610909987\surefirebooter-20260918224752567_3.jar C:\Users\Asus\AppData\Local\Temp\surefire13240444074610909987 2026-09-18T22-47-52_458-jvmRun1 surefire-20260918224752567_1tmp surefire_0-20260918224752567_2tmp"/>
+    <property name="sun.java.command" value="C:\Users\Asus\AppData\Local\Temp\surefire7268424411048724502\surefirebooter-20260918231911508_3.jar C:\Users\Asus\AppData\Local\Temp\surefire7268424411048724502 2026-09-18T23-19-11_353-jvmRun1 surefire-20260918231911508_1tmp surefire_0-20260918231911508_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="C:\Users\Asus\ProyectoJuegoDating\backend\target\test-classes;C:\Users\Asus\ProyectoJuegoDating\backend\target\classes;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-starter-web\3.2.2\spring-boot-starter-web-3.2.2.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-starter\3.2.2\spring-boot-starter-3.2.2.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot\3.2.2\spring-boot-3.2.2.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-autoconfigure\3.2.2\spring-boot-autoconfigure-3.2.2.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-starter-logging\3.2.2\spring-boot-starter-logging-3.2.2.jar;C:\Users\Asus\.m2\repository\ch\qos\logback\logback-classic\1.4.14\logback-classic-1.4.14.jar;C:\Users\Asus\.m2\repository\ch\qos\logback\logback-core\1.4.14\logback-core-1.4.14.jar;C:\Users\Asus\.m2\repository\org\apache\logging\log4j\log4j-to-slf4j\2.21.1\log4j-to-slf4j-2.21.1.jar;C:\Users\Asus\.m2\repository\org\apache\logging\log4j\log4j-api\2.21.1\log4j-api-2.21.1.jar;C:\Users\Asus\.m2\repository\org\slf4j\jul-to-slf4j\2.0.11\jul-to-slf4j-2.0.11.jar;C:\Users\Asus\.m2\repository\jakarta\annotation\jakarta.annotation-api\2.1.1\jakarta.annotation-api-2.1.1.jar;C:\Users\Asus\.m2\repository\org\yaml\snakeyaml\2.2\snakeyaml-2.2.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-starter-json\3.2.2\spring-boot-starter-json-3.2.2.jar;C:\Users\Asus\.m2\repository\com\fasterxml\jackson\datatype\jackson-datatype-jdk8\2.15.3\jackson-datatype-jdk8-2.15.3.jar;C:\Users\Asus\.m2\repository\com\fasterxml\jackson\datatype\jackson-datatype-jsr310\2.15.3\jackson-datatype-jsr310-2.15.3.jar;C:\Users\Asus\.m2\repository\com\fasterxml\jackson\module\jackson-module-parameter-names\2.15.3\jackson-module-parameter-names-2.15.3.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-starter-tomcat\3.2.2\spring-boot-starter-tomcat-3.2.2.jar;C:\Users\Asus\.m2\repository\org\apache\tomcat\embed\tomcat-embed-core\10.1.18\tomcat-embed-core-10.1.18.jar;C:\Users\Asus\.m2\repository\org\apache\tomcat\embed\tomcat-embed-el\10.1.18\tomcat-embed-el-10.1.18.jar;C:\Users\Asus\.m2\repository\org\apache\tomcat\embed\tomcat-embed-websocket\10.1.18\tomcat-embed-websocket-10.1.18.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-web\6.1.3\spring-web-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-beans\6.1.3\spring-beans-6.1.3.jar;C:\Users\Asus\.m2\repository\io\micrometer\micrometer-observation\1.12.2\micrometer-observation-1.12.2.jar;C:\Users\Asus\.m2\repository\io\micrometer\micrometer-commons\1.12.2\micrometer-commons-1.12.2.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-webmvc\6.1.3\spring-webmvc-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-aop\6.1.3\spring-aop-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-context\6.1.3\spring-context-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-expression\6.1.3\spring-expression-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-starter-websocket\3.2.2\spring-boot-starter-websocket-3.2.2.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-messaging\6.1.3\spring-messaging-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-websocket\6.1.3\spring-websocket-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-starter-jdbc\3.2.2\spring-boot-starter-jdbc-3.2.2.jar;C:\Users\Asus\.m2\repository\com\zaxxer\HikariCP\5.0.1\HikariCP-5.0.1.jar;C:\Users\Asus\.m2\repository\org\slf4j\slf4j-api\2.0.11\slf4j-api-2.0.11.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-jdbc\6.1.3\spring-jdbc-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-tx\6.1.3\spring-tx-6.1.3.jar;C:\Users\Asus\.m2\repository\com\mysql\mysql-connector-j\8.3.0\mysql-connector-j-8.3.0.jar;C:\Users\Asus\.m2\repository\com\h2database\h2\2.2.224\h2-2.2.224.jar;C:\Users\Asus\.m2\repository\com\auth0\java-jwt\4.4.0\java-jwt-4.4.0.jar;C:\Users\Asus\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.15.3\jackson-databind-2.15.3.jar;C:\Users\Asus\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.15.3\jackson-annotations-2.15.3.jar;C:\Users\Asus\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.15.3\jackson-core-2.15.3.jar;C:\Users\Asus\.m2\repository\org\springframework\security\spring-security-crypto\6.2.1\spring-security-crypto-6.2.1.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\s3\2.25.16\s3-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\aws-xml-protocol\2.25.16\aws-xml-protocol-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\aws-query-protocol\2.25.16\aws-query-protocol-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\protocol-core\2.25.16\protocol-core-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\arns\2.25.16\arns-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\profiles\2.25.16\profiles-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\crt-core\2.25.16\crt-core-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\http-auth\2.25.16\http-auth-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\identity-spi\2.25.16\identity-spi-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\http-auth-spi\2.25.16\http-auth-spi-2.25.16.jar;C:\Users\Asus\.m2\repository\org\reactivestreams\reactive-streams\1.0.4\reactive-streams-1.0.4.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\http-auth-aws\2.25.16\http-auth-aws-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\checksums\2.25.16\checksums-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\checksums-spi\2.25.16\checksums-spi-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\sdk-core\2.25.16\sdk-core-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\auth\2.25.16\auth-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\eventstream\eventstream\1.0.1\eventstream-1.0.1.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\http-client-spi\2.25.16\http-client-spi-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\regions\2.25.16\regions-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\annotations\2.25.16\annotations-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\utils\2.25.16\utils-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\aws-core\2.25.16\aws-core-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\metrics-spi\2.25.16\metrics-spi-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\json-utils\2.25.16\json-utils-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\third-party-jackson-core\2.25.16\third-party-jackson-core-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\endpoints-spi\2.25.16\endpoints-spi-2.25.16.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\apache-client\2.25.16\apache-client-2.25.16.jar;C:\Users\Asus\.m2\repository\org\apache\httpcomponents\httpclient\4.5.13\httpclient-4.5.13.jar;C:\Users\Asus\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\Asus\.m2\repository\org\apache\httpcomponents\httpcore\4.4.16\httpcore-4.4.16.jar;C:\Users\Asus\.m2\repository\commons-codec\commons-codec\1.16.0\commons-codec-1.16.0.jar;C:\Users\Asus\.m2\repository\software\amazon\awssdk\netty-nio-client\2.25.16\netty-nio-client-2.25.16.jar;C:\Users\Asus\.m2\repository\io\netty\netty-codec-http\4.1.105.Final\netty-codec-http-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-codec-http2\4.1.105.Final\netty-codec-http2-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-codec\4.1.105.Final\netty-codec-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-transport\4.1.105.Final\netty-transport-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-common\4.1.105.Final\netty-common-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-buffer\4.1.105.Final\netty-buffer-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-handler\4.1.105.Final\netty-handler-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-transport-native-unix-common\4.1.105.Final\netty-transport-native-unix-common-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-transport-classes-epoll\4.1.105.Final\netty-transport-classes-epoll-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\io\netty\netty-resolver\4.1.105.Final\netty-resolver-4.1.105.Final.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-starter-test\3.2.2\spring-boot-starter-test-3.2.2.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-test\3.2.2\spring-boot-test-3.2.2.jar;C:\Users\Asus\.m2\repository\org\springframework\boot\spring-boot-test-autoconfigure\3.2.2\spring-boot-test-autoconfigure-3.2.2.jar;C:\Users\Asus\.m2\repository\com\jayway\jsonpath\json-path\2.8.0\json-path-2.8.0.jar;C:\Users\Asus\.m2\repository\jakarta\xml\bind\jakarta.xml.bind-api\4.0.1\jakarta.xml.bind-api-4.0.1.jar;C:\Users\Asus\.m2\repository\jakarta\activation\jakarta.activation-api\2.1.2\jakarta.activation-api-2.1.2.jar;C:\Users\Asus\.m2\repository\net\minidev\json-smart\2.5.0\json-smart-2.5.0.jar;C:\Users\Asus\.m2\repository\net\minidev\accessors-smart\2.5.0\accessors-smart-2.5.0.jar;C:\Users\Asus\.m2\repository\org\ow2\asm\asm\9.3\asm-9.3.jar;C:\Users\Asus\.m2\repository\org\assertj\assertj-core\3.24.2\assertj-core-3.24.2.jar;C:\Users\Asus\.m2\repository\net\bytebuddy\byte-buddy\1.14.11\byte-buddy-1.14.11.jar;C:\Users\Asus\.m2\repository\org\awaitility\awaitility\4.2.0\awaitility-4.2.0.jar;C:\Users\Asus\.m2\repository\org\hamcrest\hamcrest\2.2\hamcrest-2.2.jar;C:\Users\Asus\.m2\repository\org\junit\jupiter\junit-jupiter\5.10.1\junit-jupiter-5.10.1.jar;C:\Users\Asus\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.1\junit-jupiter-api-5.10.1.jar;C:\Users\Asus\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\Asus\.m2\repository\org\junit\platform\junit-platform-commons\1.10.1\junit-platform-commons-1.10.1.jar;C:\Users\Asus\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\Asus\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.10.1\junit-jupiter-params-5.10.1.jar;C:\Users\Asus\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.1\junit-jupiter-engine-5.10.1.jar;C:\Users\Asus\.m2\repository\org\junit\platform\junit-platform-engine\1.10.1\junit-platform-engine-1.10.1.jar;C:\Users\Asus\.m2\repository\org\mockito\mockito-core\5.7.0\mockito-core-5.7.0.jar;C:\Users\Asus\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.11\byte-buddy-agent-1.14.11.jar;C:\Users\Asus\.m2\repository\org\objenesis\objenesis\3.3\objenesis-3.3.jar;C:\Users\Asus\.m2\repository\org\mockito\mockito-junit-jupiter\5.7.0\mockito-junit-jupiter-5.7.0.jar;C:\Users\Asus\.m2\repository\org\skyscreamer\jsonassert\1.5.1\jsonassert-1.5.1.jar;C:\Users\Asus\.m2\repository\com\vaadin\external\google\android-json\0.0.20131108.vaadin1\android-json-0.0.20131108.vaadin1.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-core\6.1.3\spring-core-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-jcl\6.1.3\spring-jcl-6.1.3.jar;C:\Users\Asus\.m2\repository\org\springframework\spring-test\6.1.3\spring-test-6.1.3.jar;C:\Users\Asus\.m2\repository\org\xmlunit\xmlunit-core\2.9.1\xmlunit-core-2.9.1.jar;"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -32,7 +32,7 @@
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="FILE_LOG_CHARSET" value="UTF-8"/>
     <property name="java.awt.headless" value="true"/>
-    <property name="surefire.real.class.path" value="C:\Users\Asus\AppData\Local\Temp\surefire13240444074610909987\surefirebooter-20260918224752567_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\Asus\AppData\Local\Temp\surefire7268424411048724502\surefirebooter-20260918231911508_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="25.0.1+8-27"/>
@@ -51,7 +51,7 @@
     <property name="user.dir" value="C:\Users\Asus\ProyectoJuegoDating\backend"/>
     <property name="os.arch" value="amd64"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="PID" value="33348"/>
+    <property name="PID" value="33968"/>
     <property name="sun.os.patch.level" value=""/>
     <property name="CONSOLE_LOG_CHARSET" value="UTF-8"/>
     <property name="native.encoding" value="Cp1252"/>
@@ -64,9 +64,9 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="69.0"/>
   </properties>
-  <testcase name="testDatabaseTicketAtomicTransactions" classname="com.cozydating.server.GameServerTests" time="0.022">
-    <system-out><![CDATA[2026-09-18T22:47:57.819-03:00  INFO 33348 --- [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.cozydating.server.GameServerTests]: GameServerTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T22:47:57.821-03:00  INFO 33348 --- [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.cozydating.server.ServerApplication for test class com.cozydating.server.GameServerTests
+  <testcase name="testDatabaseTicketAtomicTransactions" classname="com.cozydating.server.GameServerTests" time="0.027">
+    <system-out><![CDATA[2026-09-18T23:19:16.656-03:00  INFO 33968 --- [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.cozydating.server.GameServerTests]: GameServerTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-18T23:19:16.669-03:00  INFO 33968 --- [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.cozydating.server.ServerApplication for test class com.cozydating.server.GameServerTests
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -76,232 +76,232 @@
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v3.2.2)
 
-2026-09-18T22:47:57.895-03:00  INFO 33348 --- [           main] com.cozydating.server.GameServerTests    : Starting GameServerTests using Java 25.0.1 with PID 33348 (started by Asus in C:\Users\Asus\ProyectoJuegoDating\backend)
-2026-09-18T22:47:57.895-03:00  INFO 33348 --- [           main] com.cozydating.server.GameServerTests    : The following 1 profile is active: "test"
-2026-09-18T22:47:58.199-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB INIT] Initializing MySQL database schema and tables...
-2026-09-18T22:47:58.199-03:00  INFO 33348 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
-2026-09-18T22:47:58.201-03:00  INFO 33348 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:testdb user=SA
-2026-09-18T22:47:58.201-03:00  INFO 33348 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
-2026-09-18T22:47:58.231-03:00  INFO 33348 --- [           main] c.c.s.s.storage.LocalStorageService      : [LocalStorageService] Initialized with baseDir='uploads/' and baseUrl='http://localhost:8080/media'
-2026-09-18T22:47:58.354-03:00  INFO 33348 --- [           main] com.cozydating.server.GameServerTests    : Started GameServerTests in 0.528 seconds (process running for 5.653)
-2026-09-18T22:47:58.367-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.368-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.370-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userA
-2026-09-18T22:47:58.373-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userA. New Balance: 4
-2026-09-18T22:47:58.375-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting ticket refund process for userId: userA
-2026-09-18T22:47:58.377-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION REFUNDED] Refunded 1 voice ticket to userId: userA. Updated Balance: 5
-2026-09-18T22:47:58.378-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userC
-2026-09-18T22:47:58.378-03:00  WARN 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION REJECT] Cannot reserve ticket for userId: userC. Current Balance: 0
+2026-09-18T23:19:16.741-03:00  INFO 33968 --- [           main] com.cozydating.server.GameServerTests    : Starting GameServerTests using Java 25.0.1 with PID 33968 (started by Asus in C:\Users\Asus\ProyectoJuegoDating\backend)
+2026-09-18T23:19:16.742-03:00  INFO 33968 --- [           main] com.cozydating.server.GameServerTests    : The following 1 profile is active: "test"
+2026-09-18T23:19:16.982-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB INIT] Initializing MySQL database schema and tables...
+2026-09-18T23:19:16.982-03:00  INFO 33968 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-09-18T23:19:16.984-03:00  INFO 33968 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:testdb user=SA
+2026-09-18T23:19:16.985-03:00  INFO 33968 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-09-18T23:19:17.010-03:00  INFO 33968 --- [           main] c.c.s.s.storage.LocalStorageService      : [LocalStorageService] Initialized with baseDir='uploads/' and baseUrl='http://localhost:8080/media'
+2026-09-18T23:19:17.176-03:00  INFO 33968 --- [           main] com.cozydating.server.GameServerTests    : Started GameServerTests in 0.497 seconds (process running for 5.52)
+2026-09-18T23:19:17.190-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.191-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.194-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userA
+2026-09-18T23:19:17.198-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userA. New Balance: 4
+2026-09-18T23:19:17.199-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting ticket refund process for userId: userA
+2026-09-18T23:19:17.201-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION REFUNDED] Refunded 1 voice ticket to userId: userA. Updated Balance: 5
+2026-09-18T23:19:17.202-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userC
+2026-09-18T23:19:17.203-03:00  WARN 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION REJECT] Cannot reserve ticket for userId: userC. Current Balance: 0
 ]]></system-out>
   </testcase>
   <testcase name="testCampfireChatRelaying" classname="com.cozydating.server.GameServerTests" time="0.017">
-    <system-out><![CDATA[2026-09-18T22:47:58.391-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.391-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.392-03:00  INFO 33348 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET RECV] Raw frame received from session ws_chat_a: {"type":"USER_ONLINE","userId":"userA"}
-2026-09-18T22:47:58.394-03:00  INFO 33348 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET USER_ONLINE] User userA registered online. Presence mode: ONLINE
-2026-09-18T22:47:58.395-03:00  INFO 33348 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET RECV] Raw frame received from session ws_chat_b: {"type":"USER_ONLINE","userId":"userB"}
-2026-09-18T22:47:58.395-03:00  INFO 33348 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET USER_ONLINE] User userB registered online. Presence mode: ONLINE
-2026-09-18T22:47:58.395-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_campfire_chat [Explorer: userA (Alice), Guide: userB (Bob), Mode: CAMPFIRE]
-2026-09-18T22:47:58.398-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userB)
-2026-09-18T22:47:58.399-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userB) with partner data (userA)
-2026-09-18T22:47:58.399-03:00  INFO 33348 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET RECV] Raw frame received from session ws_chat_a: {"type":"CAMPFIRE_CHAT","text":"¡Qué linda noche en la fogata!"}
-2026-09-18T22:47:58.399-03:00  INFO 33348 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET CAMPFIRE CHAT] Relaying campfire chat from user userA: ¡Qué linda noche en la fogata!
+    <system-out><![CDATA[2026-09-18T23:19:17.216-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.216-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.217-03:00  INFO 33968 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET RECV] Raw frame received from session ws_chat_a: {"type":"USER_ONLINE","userId":"userA"}
+2026-09-18T23:19:17.220-03:00  INFO 33968 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET USER_ONLINE] User userA registered online. Presence mode: ONLINE
+2026-09-18T23:19:17.221-03:00  INFO 33968 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET RECV] Raw frame received from session ws_chat_b: {"type":"USER_ONLINE","userId":"userB"}
+2026-09-18T23:19:17.221-03:00  INFO 33968 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET USER_ONLINE] User userB registered online. Presence mode: ONLINE
+2026-09-18T23:19:17.221-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_campfire_chat [Explorer: userA (Alice), Guide: userB (Bob), Mode: CAMPFIRE]
+2026-09-18T23:19:17.223-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userB)
+2026-09-18T23:19:17.224-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userB) with partner data (userA)
+2026-09-18T23:19:17.224-03:00  INFO 33968 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET RECV] Raw frame received from session ws_chat_a: {"type":"CAMPFIRE_CHAT","text":"¡Qué linda noche en la fogata!"}
+2026-09-18T23:19:17.224-03:00  INFO 33968 --- [           main] c.c.server.handler.GameWebSocketHandler  : [SOCKET CAMPFIRE CHAT] Relaying campfire chat from user userA: ¡Qué linda noche en la fogata!
 ]]></system-out>
   </testcase>
-  <testcase name="testBlocklistExcludesMatch" classname="com.cozydating.server.GameServerTests" time="0.034">
-    <system-out><![CDATA[2026-09-18T22:47:58.408-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.408-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.409-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK INSERT] Creating directional block entry: userA -> userB
-2026-09-18T22:47:58.423-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK SUCCESS] Directional block entry committed to MySQL database.
-2026-09-18T22:47:58.423-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
-2026-09-18T22:47:58.426-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userA tickets balance: 5
-2026-09-18T22:47:58.426-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
-2026-09-18T22:47:58.426-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
-2026-09-18T22:47:58.426-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
-2026-09-18T22:47:58.426-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userB (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
-2026-09-18T22:47:58.427-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userB tickets balance: 3
-2026-09-18T22:47:58.428-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userB successfully added to queue. Current Queue Size: 2
-2026-09-18T22:47:58.428-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
-2026-09-18T22:47:58.429-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
-2026-09-18T22:47:58.432-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: BLOCKED (Match Excluded)
-2026-09-18T22:47:58.433-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: false, NotPreviouslyMet: true
+  <testcase name="testBlocklistExcludesMatch" classname="com.cozydating.server.GameServerTests" time="0.024">
+    <system-out><![CDATA[2026-09-18T23:19:17.233-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.233-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.235-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK INSERT] Creating directional block entry: userA -> userB
+2026-09-18T23:19:17.235-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK SUCCESS] Directional block entry committed to MySQL database.
+2026-09-18T23:19:17.235-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
+2026-09-18T23:19:17.237-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userA tickets balance: 5
+2026-09-18T23:19:17.238-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
+2026-09-18T23:19:17.238-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
+2026-09-18T23:19:17.238-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
+2026-09-18T23:19:17.238-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userB (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
+2026-09-18T23:19:17.239-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userB tickets balance: 3
+2026-09-18T23:19:17.239-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userB successfully added to queue. Current Queue Size: 2
+2026-09-18T23:19:17.239-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
+2026-09-18T23:19:17.242-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
+2026-09-18T23:19:17.246-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: BLOCKED (Match Excluded)
+2026-09-18T23:19:17.248-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: false, NotPreviouslyMet: true
 ]]></system-out>
   </testcase>
-  <testcase name="testEmergencyDisconnectAndPermanentBlock" classname="com.cozydating.server.GameServerTests" time="0.018">
-    <system-out><![CDATA[2026-09-18T22:47:58.447-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.447-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.448-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
-2026-09-18T22:47:58.450-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
-2026-09-18T22:47:58.450-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
-2026-09-18T22:47:58.450-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
-2026-09-18T22:47:58.450-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userB (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
-2026-09-18T22:47:58.451-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userB successfully added to queue. Current Queue Size: 2
-2026-09-18T22:47:58.451-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
-2026-09-18T22:47:58.451-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
-2026-09-18T22:47:58.452-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
-2026-09-18T22:47:58.453-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
-2026-09-18T22:47:58.453-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userB for mode SILENT (Distance: {:.1f} km)
-2026-09-18T22:47:58.453-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_26d79a70 for Explorer userA (userA) and Guide userB (userB) [Mode: SILENT]
-2026-09-18T22:47:58.453-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_26d79a70 [Explorer: userA (userA), Guide: userB (userB), Mode: SILENT]
-2026-09-18T22:47:58.454-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userB)
-2026-09-18T22:47:58.455-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userB) with partner data (userA)
-2026-09-18T22:47:58.455-03:00  WARN 33348 --- [           main] c.c.server.service.GameSessionService    : [EXIT DISCONNECT] User userA triggered exit (ShouldBlock: true)! Destroying room room_26d79a70 in 0ms.
-2026-09-18T22:47:58.455-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [EXIT BLOCK] Registering reciprocal permanent block between userA and userB in MySQL...
-2026-09-18T22:47:58.455-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK INSERT] Creating directional block entry: userA -> userB
-2026-09-18T22:47:58.455-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK SUCCESS] Directional block entry committed to MySQL database.
-2026-09-18T22:47:58.455-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: BLOCKED (Match Excluded)
+  <testcase name="testEmergencyDisconnectAndPermanentBlock" classname="com.cozydating.server.GameServerTests" time="0.022">
+    <system-out><![CDATA[2026-09-18T23:19:17.260-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.261-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.261-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
+2026-09-18T23:19:17.264-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
+2026-09-18T23:19:17.264-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
+2026-09-18T23:19:17.264-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
+2026-09-18T23:19:17.264-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userB (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
+2026-09-18T23:19:17.266-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userB successfully added to queue. Current Queue Size: 2
+2026-09-18T23:19:17.266-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
+2026-09-18T23:19:17.266-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
+2026-09-18T23:19:17.267-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
+2026-09-18T23:19:17.268-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
+2026-09-18T23:19:17.268-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userB for mode SILENT (Distance: {:.1f} km)
+2026-09-18T23:19:17.269-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_042124bd for Explorer userA (userA) and Guide userB (userB) [Mode: SILENT]
+2026-09-18T23:19:17.269-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_042124bd [Explorer: userA (userA), Guide: userB (userB), Mode: SILENT]
+2026-09-18T23:19:17.270-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userB)
+2026-09-18T23:19:17.270-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userB) with partner data (userA)
+2026-09-18T23:19:17.270-03:00  WARN 33968 --- [           main] c.c.server.service.GameSessionService    : [EXIT DISCONNECT] User userA triggered exit (ShouldBlock: true)! Destroying room room_042124bd in 0ms.
+2026-09-18T23:19:17.270-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [EXIT BLOCK] Registering reciprocal permanent block between userA and userB in MySQL...
+2026-09-18T23:19:17.270-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK INSERT] Creating directional block entry: userA -> userB
+2026-09-18T23:19:17.271-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK SUCCESS] Directional block entry committed to MySQL database.
+2026-09-18T23:19:17.271-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: BLOCKED (Match Excluded)
 ]]></system-out>
   </testcase>
-  <testcase name="testMatchmakingAndTicketReservation" classname="com.cozydating.server.GameServerTests" time="0.018">
-    <system-out><![CDATA[2026-09-18T22:47:58.463-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.463-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.464-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
-2026-09-18T22:47:58.465-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userA tickets balance: 5
-2026-09-18T22:47:58.465-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
-2026-09-18T22:47:58.465-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
-2026-09-18T22:47:58.466-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
-2026-09-18T22:47:58.466-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userB (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
-2026-09-18T22:47:58.467-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userB tickets balance: 3
-2026-09-18T22:47:58.467-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userB successfully added to queue. Current Queue Size: 2
-2026-09-18T22:47:58.467-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
-2026-09-18T22:47:58.467-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
-2026-09-18T22:47:58.468-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
-2026-09-18T22:47:58.469-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
-2026-09-18T22:47:58.469-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userB for mode VOICE (Distance: {:.1f} km)
-2026-09-18T22:47:58.469-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING TRANSACTION] Executing voice ticket reservation for userA and userB...
-2026-09-18T22:47:58.469-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userA
-2026-09-18T22:47:58.470-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userA. New Balance: 4
-2026-09-18T22:47:58.471-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userB
-2026-09-18T22:47:58.472-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userB. New Balance: 2
-2026-09-18T22:47:58.472-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_514f1853 for Explorer userA (userA) and Guide userB (userB) [Mode: VOICE]
-2026-09-18T22:47:58.472-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_514f1853 [Explorer: userA (userA), Guide: userB (userB), Mode: VOICE]
-2026-09-18T22:47:58.472-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION LIVEKIT] Signing LiveKit JWT access tokens for roomId: room_514f1853
-2026-09-18T22:47:58.475-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userB)
-2026-09-18T22:47:58.475-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userB) with partner data (userA)
+  <testcase name="testMatchmakingAndTicketReservation" classname="com.cozydating.server.GameServerTests" time="0.021">
+    <system-out><![CDATA[2026-09-18T23:19:17.282-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.282-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.282-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
+2026-09-18T23:19:17.285-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userA tickets balance: 5
+2026-09-18T23:19:17.285-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
+2026-09-18T23:19:17.285-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
+2026-09-18T23:19:17.285-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
+2026-09-18T23:19:17.285-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userB (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
+2026-09-18T23:19:17.286-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userB tickets balance: 3
+2026-09-18T23:19:17.286-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userB successfully added to queue. Current Queue Size: 2
+2026-09-18T23:19:17.287-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
+2026-09-18T23:19:17.287-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
+2026-09-18T23:19:17.287-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
+2026-09-18T23:19:17.288-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
+2026-09-18T23:19:17.288-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userB for mode VOICE (Distance: {:.1f} km)
+2026-09-18T23:19:17.288-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING TRANSACTION] Executing voice ticket reservation for userA and userB...
+2026-09-18T23:19:17.288-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userA
+2026-09-18T23:19:17.289-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userA. New Balance: 4
+2026-09-18T23:19:17.290-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userB
+2026-09-18T23:19:17.290-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userB. New Balance: 2
+2026-09-18T23:19:17.290-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_b4b48a8a for Explorer userA (userA) and Guide userB (userB) [Mode: VOICE]
+2026-09-18T23:19:17.290-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_b4b48a8a [Explorer: userA (userA), Guide: userB (userB), Mode: VOICE]
+2026-09-18T23:19:17.290-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION LIVEKIT] Signing LiveKit JWT access tokens for roomId: room_b4b48a8a
+2026-09-18T23:19:17.294-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userB)
+2026-09-18T23:19:17.294-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userB) with partner data (userA)
 ]]></system-out>
   </testcase>
   <testcase name="testReciprocalBlocks" classname="com.cozydating.server.GameServerTests" time="0.011">
-    <system-out><![CDATA[2026-09-18T22:47:58.486-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.486-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.487-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
-2026-09-18T22:47:58.488-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK INSERT] Creating directional block entry: userA -> userB
-2026-09-18T22:47:58.488-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK SUCCESS] Directional block entry committed to MySQL database.
-2026-09-18T22:47:58.489-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: BLOCKED (Match Excluded)
-2026-09-18T22:47:58.490-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userB and userA: BLOCKED (Match Excluded)
+    <system-out><![CDATA[2026-09-18T23:19:17.303-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.303-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.304-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
+2026-09-18T23:19:17.305-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK INSERT] Creating directional block entry: userA -> userB
+2026-09-18T23:19:17.305-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK SUCCESS] Directional block entry committed to MySQL database.
+2026-09-18T23:19:17.306-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: BLOCKED (Match Excluded)
+2026-09-18T23:19:17.308-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userB and userA: BLOCKED (Match Excluded)
 ]]></system-out>
   </testcase>
-  <testcase name="testWaitingReconnectGraceTimeoutRefunds" classname="com.cozydating.server.GameServerTests" time="0.026">
-    <system-out><![CDATA[2026-09-18T22:47:58.498-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.498-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.499-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
-2026-09-18T22:47:58.501-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userA tickets balance: 5
-2026-09-18T22:47:58.502-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
-2026-09-18T22:47:58.502-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
-2026-09-18T22:47:58.502-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
-2026-09-18T22:47:58.502-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userD (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
-2026-09-18T22:47:58.503-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userD tickets balance: 1
-2026-09-18T22:47:58.503-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userD successfully added to queue. Current Queue Size: 2
-2026-09-18T22:47:58.503-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
-2026-09-18T22:47:58.503-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userD, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
-2026-09-18T22:47:58.504-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userD: NO BLOCKS FOUND (Clean)
-2026-09-18T22:47:58.505-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userD): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
-2026-09-18T22:47:58.505-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userD for mode VOICE (Distance: {:.1f} km)
-2026-09-18T22:47:58.505-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING TRANSACTION] Executing voice ticket reservation for userA and userD...
-2026-09-18T22:47:58.505-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userA
-2026-09-18T22:47:58.507-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userA. New Balance: 4
-2026-09-18T22:47:58.507-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userD
-2026-09-18T22:47:58.508-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userD. New Balance: 0
-2026-09-18T22:47:58.509-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_e4e28ace for Explorer userA (userA) and Guide userD (userD) [Mode: VOICE]
-2026-09-18T22:47:58.509-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_e4e28ace [Explorer: userA (userA), Guide: userD (userD), Mode: VOICE]
-2026-09-18T22:47:58.509-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION LIVEKIT] Signing LiveKit JWT access tokens for roomId: room_e4e28ace
-2026-09-18T22:47:58.510-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userD)
-2026-09-18T22:47:58.511-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userD) with partner data (userA)
-2026-09-18T22:47:58.512-03:00  WARN 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION PAUSE] User userA disconnected from room room_e4e28ace. Transitioning to WAITING_RECONNECT (20s grace period).
-2026-09-18T22:47:58.512-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Sending GAME_PAUSED frame to connected partner...
-2026-09-18T22:47:58.514-03:00  WARN 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION TIMEOUT] 20-second grace window EXPIRED for room room_e4e28ace. Terminating game session.
-2026-09-18T22:47:58.514-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION REFUND CHECK] Both players confirmed start: false. Mode: VOICE
-2026-09-18T22:47:58.514-03:00  WARN 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION REFUND TRIGGERED] Game start not confirmed. Executing automatic ticket refunds for Explorer (userA) and Guide (userD).
-2026-09-18T22:47:58.515-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting ticket refund process for userId: userA
-2026-09-18T22:47:58.516-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION REFUNDED] Refunded 1 voice ticket to userId: userA. Updated Balance: 5
-2026-09-18T22:47:58.517-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting ticket refund process for userId: userD
-2026-09-18T22:47:58.517-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION REFUNDED] Refunded 1 voice ticket to userId: userD. Updated Balance: 1
+  <testcase name="testWaitingReconnectGraceTimeoutRefunds" classname="com.cozydating.server.GameServerTests" time="0.022">
+    <system-out><![CDATA[2026-09-18T23:19:17.314-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.315-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.315-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
+2026-09-18T23:19:17.317-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userA tickets balance: 5
+2026-09-18T23:19:17.317-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
+2026-09-18T23:19:17.317-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
+2026-09-18T23:19:17.317-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
+2026-09-18T23:19:17.317-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userD (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
+2026-09-18T23:19:17.318-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userD tickets balance: 1
+2026-09-18T23:19:17.318-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userD successfully added to queue. Current Queue Size: 2
+2026-09-18T23:19:17.318-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
+2026-09-18T23:19:17.318-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userD, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
+2026-09-18T23:19:17.318-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userD: NO BLOCKS FOUND (Clean)
+2026-09-18T23:19:17.319-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userD): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
+2026-09-18T23:19:17.319-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userD for mode VOICE (Distance: {:.1f} km)
+2026-09-18T23:19:17.320-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING TRANSACTION] Executing voice ticket reservation for userA and userD...
+2026-09-18T23:19:17.320-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userA
+2026-09-18T23:19:17.322-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userA. New Balance: 4
+2026-09-18T23:19:17.322-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userD
+2026-09-18T23:19:17.323-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userD. New Balance: 0
+2026-09-18T23:19:17.324-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_831dfea8 for Explorer userA (userA) and Guide userD (userD) [Mode: VOICE]
+2026-09-18T23:19:17.324-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_831dfea8 [Explorer: userA (userA), Guide: userD (userD), Mode: VOICE]
+2026-09-18T23:19:17.324-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION LIVEKIT] Signing LiveKit JWT access tokens for roomId: room_831dfea8
+2026-09-18T23:19:17.327-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userD)
+2026-09-18T23:19:17.327-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userD) with partner data (userA)
+2026-09-18T23:19:17.327-03:00  WARN 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION PAUSE] User userA disconnected from room room_831dfea8. Transitioning to WAITING_RECONNECT (20s grace period).
+2026-09-18T23:19:17.328-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Sending GAME_PAUSED frame to connected partner...
+2026-09-18T23:19:17.328-03:00  WARN 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION TIMEOUT] 20-second grace window EXPIRED for room room_831dfea8. Terminating game session.
+2026-09-18T23:19:17.329-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION REFUND CHECK] Both players confirmed start: false. Mode: VOICE
+2026-09-18T23:19:17.329-03:00  WARN 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION REFUND TRIGGERED] Game start not confirmed. Executing automatic ticket refunds for Explorer (userA) and Guide (userD).
+2026-09-18T23:19:17.329-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting ticket refund process for userId: userA
+2026-09-18T23:19:17.330-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION REFUNDED] Refunded 1 voice ticket to userId: userA. Updated Balance: 5
+2026-09-18T23:19:17.330-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting ticket refund process for userId: userD
+2026-09-18T23:19:17.331-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION REFUNDED] Refunded 1 voice ticket to userId: userD. Updated Balance: 1
 ]]></system-out>
   </testcase>
-  <testcase name="testHomeVisitDateRoomCreation" classname="com.cozydating.server.GameServerTests" time="0.01">
-    <system-out><![CDATA[2026-09-18T22:47:58.530-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.530-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.531-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_home_visit [Explorer: userA (Alice), Guide: userB (Bob), Mode: HOME]
-2026-09-18T22:47:58.532-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userB)
-2026-09-18T22:47:58.532-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userB) with partner data (userA)
+  <testcase name="testHomeVisitDateRoomCreation" classname="com.cozydating.server.GameServerTests" time="0.009">
+    <system-out><![CDATA[2026-09-18T23:19:17.338-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.339-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.339-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_home_visit [Explorer: userA (Alice), Guide: userB (Bob), Mode: HOME]
+2026-09-18T23:19:17.340-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userB)
+2026-09-18T23:19:17.342-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userB) with partner data (userA)
 ]]></system-out>
   </testcase>
-  <testcase name="testAuthenticationTokens" classname="com.cozydating.server.GameServerTests" time="0.009">
-    <system-out><![CDATA[2026-09-18T22:47:58.543-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.543-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.545-03:00  WARN 33348 --- [           main] com.cozydating.server.util.JwtUtil       : JWT token verification failed: The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256
+  <testcase name="testAuthenticationTokens" classname="com.cozydating.server.GameServerTests" time="0.008">
+    <system-out><![CDATA[2026-09-18T23:19:17.349-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.349-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.351-03:00  WARN 33968 --- [           main] com.cozydating.server.util.JwtUtil       : JWT token verification failed: The Token's Signature resulted invalid when verified using the Algorithm: HmacSHA256
 ]]></system-out>
   </testcase>
   <testcase name="testNoRefundIfGameStarted" classname="com.cozydating.server.GameServerTests" time="0.015">
-    <system-out><![CDATA[2026-09-18T22:47:58.551-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.551-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.552-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
-2026-09-18T22:47:58.553-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userA tickets balance: 5
-2026-09-18T22:47:58.553-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
-2026-09-18T22:47:58.553-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
-2026-09-18T22:47:58.553-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
-2026-09-18T22:47:58.553-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userD (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
-2026-09-18T22:47:58.554-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userD tickets balance: 1
-2026-09-18T22:47:58.554-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userD successfully added to queue. Current Queue Size: 2
-2026-09-18T22:47:58.554-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
-2026-09-18T22:47:58.554-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userD, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
-2026-09-18T22:47:58.554-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userD: NO BLOCKS FOUND (Clean)
-2026-09-18T22:47:58.555-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userD): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
-2026-09-18T22:47:58.555-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userD for mode VOICE (Distance: {:.1f} km)
-2026-09-18T22:47:58.555-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING TRANSACTION] Executing voice ticket reservation for userA and userD...
-2026-09-18T22:47:58.555-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userA
-2026-09-18T22:47:58.556-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userA. New Balance: 4
-2026-09-18T22:47:58.557-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userD
-2026-09-18T22:47:58.558-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userD. New Balance: 0
-2026-09-18T22:47:58.558-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_2837d8c5 for Explorer userA (userA) and Guide userD (userD) [Mode: VOICE]
-2026-09-18T22:47:58.558-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_2837d8c5 [Explorer: userA (userA), Guide: userD (userD), Mode: VOICE]
-2026-09-18T22:47:58.558-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION LIVEKIT] Signing LiveKit JWT access tokens for roomId: room_2837d8c5
-2026-09-18T22:47:58.559-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userD)
-2026-09-18T22:47:58.559-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userD) with partner data (userA)
-2026-09-18T22:47:58.560-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION READY] User userA confirmed GAME_READY in room room_2837d8c5
-2026-09-18T22:47:58.560-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION READY] User userD confirmed GAME_READY in room room_2837d8c5
-2026-09-18T22:47:58.560-03:00  WARN 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION PAUSE] User userA disconnected from room room_2837d8c5. Transitioning to WAITING_RECONNECT (20s grace period).
-2026-09-18T22:47:58.560-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Sending GAME_PAUSED frame to connected partner...
-2026-09-18T22:47:58.560-03:00  WARN 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION TIMEOUT] 20-second grace window EXPIRED for room room_2837d8c5. Terminating game session.
-2026-09-18T22:47:58.560-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION REFUND CHECK] Both players confirmed start: true. Mode: VOICE
+    <system-out><![CDATA[2026-09-18T23:19:17.359-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.359-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.360-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userA tickets balance: 5
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userD (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: VOICE]
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING VOICE CHECK] User userD tickets balance: 1
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userD successfully added to queue. Current Queue Size: 2
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
+2026-09-18T23:19:17.361-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userD, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
+2026-09-18T23:19:17.362-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userD: NO BLOCKS FOUND (Clean)
+2026-09-18T23:19:17.362-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userD): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
+2026-09-18T23:19:17.362-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userD for mode VOICE (Distance: {:.1f} km)
+2026-09-18T23:19:17.362-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING TRANSACTION] Executing voice ticket reservation for userA and userD...
+2026-09-18T23:19:17.362-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userA
+2026-09-18T23:19:17.363-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userA. New Balance: 4
+2026-09-18T23:19:17.364-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION] Starting atomic ticket reservation for userId: userD
+2026-09-18T23:19:17.364-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB TRANSACTION SUCCESS] Reserved 1 voice ticket for userId: userD. New Balance: 0
+2026-09-18T23:19:17.364-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_b2b69b8b for Explorer userA (userA) and Guide userD (userD) [Mode: VOICE]
+2026-09-18T23:19:17.365-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_b2b69b8b [Explorer: userA (userA), Guide: userD (userD), Mode: VOICE]
+2026-09-18T23:19:17.365-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION LIVEKIT] Signing LiveKit JWT access tokens for roomId: room_b2b69b8b
+2026-09-18T23:19:17.366-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userD)
+2026-09-18T23:19:17.366-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userD) with partner data (userA)
+2026-09-18T23:19:17.366-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION READY] User userA confirmed GAME_READY in room room_b2b69b8b
+2026-09-18T23:19:17.366-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION READY] User userD confirmed GAME_READY in room room_b2b69b8b
+2026-09-18T23:19:17.366-03:00  WARN 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION PAUSE] User userA disconnected from room room_b2b69b8b. Transitioning to WAITING_RECONNECT (20s grace period).
+2026-09-18T23:19:17.366-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Sending GAME_PAUSED frame to connected partner...
+2026-09-18T23:19:17.367-03:00  WARN 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION TIMEOUT] 20-second grace window EXPIRED for room room_b2b69b8b. Terminating game session.
+2026-09-18T23:19:17.367-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION REFUND CHECK] Both players confirmed start: true. Mode: VOICE
 ]]></system-out>
   </testcase>
-  <testcase name="testMatchmakingExcludesPreviouslyMetOrMatchedUsers" classname="com.cozydating.server.GameServerTests" time="0.018">
-    <system-out><![CDATA[2026-09-18T22:47:58.567-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
-2026-09-18T22:47:58.567-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
-2026-09-18T22:47:58.570-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
-2026-09-18T22:47:58.571-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
-2026-09-18T22:47:58.571-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
-2026-09-18T22:47:58.571-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
-2026-09-18T22:47:58.571-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userB (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
-2026-09-18T22:47:58.572-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userB successfully added to queue. Current Queue Size: 2
-2026-09-18T22:47:58.572-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
-2026-09-18T22:47:58.572-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
-2026-09-18T22:47:58.573-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
-2026-09-18T22:47:58.574-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: false
-2026-09-18T22:47:58.575-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userD (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
-2026-09-18T22:47:58.575-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userD successfully added to queue. Current Queue Size: 3
-2026-09-18T22:47:58.575-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 3 candidates...
-2026-09-18T22:47:58.575-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
-2026-09-18T22:47:58.576-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
-2026-09-18T22:47:58.577-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: false
-2026-09-18T22:47:58.577-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userD, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
-2026-09-18T22:47:58.577-03:00  INFO 33348 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userD: NO BLOCKS FOUND (Clean)
-2026-09-18T22:47:58.577-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userD): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
-2026-09-18T22:47:58.577-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userD for mode SILENT (Distance: {:.1f} km)
-2026-09-18T22:47:58.577-03:00  INFO 33348 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_8f8709a0 for Explorer userA (userA) and Guide userD (userD) [Mode: SILENT]
-2026-09-18T22:47:58.577-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_8f8709a0 [Explorer: userA (userA), Guide: userD (userD), Mode: SILENT]
-2026-09-18T22:47:58.578-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userD)
-2026-09-18T22:47:58.578-03:00  INFO 33348 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userD) with partner data (userA)
+  <testcase name="testMatchmakingExcludesPreviouslyMetOrMatchedUsers" classname="com.cozydating.server.GameServerTests" time="0.016">
+    <system-out><![CDATA[2026-09-18T23:19:17.373-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING CLEAR] Queue reset.
+2026-09-18T23:19:17.373-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION CLEAR] All rooms reset.
+2026-09-18T23:19:17.375-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userA (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
+2026-09-18T23:19:17.377-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userA successfully added to queue. Current Queue Size: 1
+2026-09-18T23:19:17.377-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 1 candidates...
+2026-09-18T23:19:17.377-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Insufficient candidates (<2) in queue. Waiting for more users.
+2026-09-18T23:19:17.377-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userB (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
+2026-09-18T23:19:17.378-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userB successfully added to queue. Current Queue Size: 2
+2026-09-18T23:19:17.378-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 2 candidates...
+2026-09-18T23:19:17.378-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
+2026-09-18T23:19:17.379-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
+2026-09-18T23:19:17.380-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: false
+2026-09-18T23:19:17.380-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING REQUEST] User userD (null) requesting to join queue [Commune: Santiago, MaxDist: 25.0 km, TimeSlot: 20, Mode: SILENT]
+2026-09-18T23:19:17.380-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING QUEUED] User userD successfully added to queue. Current Queue Size: 3
+2026-09-18T23:19:17.380-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING SCAN] Scanning active queue of 3 candidates...
+2026-09-18T23:19:17.382-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userB, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
+2026-09-18T23:19:17.382-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userB: NO BLOCKS FOUND (Clean)
+2026-09-18T23:19:17.382-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userB): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: false
+2026-09-18T23:19:17.382-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL] Comparing candidate A (userA, Santiago) with candidate B (userD, Santiago). Distance: {:.1f} km, RadA: {:.1f} km, RadB: {:.1f} km
+2026-09-18T23:19:17.383-03:00  INFO 33968 --- [           main] c.c.server.service.DatabaseService       : [DB BLOCK CHECK] Block check between userA and userD: NO BLOCKS FOUND (Clean)
+2026-09-18T23:19:17.383-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING EVAL RESULT] Candidates (userA vs userD): Mode: true, DistMatch: true, Slot: true, DiffUser: true, NotBlocked: true, NotPreviouslyMet: true
+2026-09-18T23:19:17.383-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING MATCH FOUND] Valid pair identified: userA <-> userD for mode SILENT (Distance: {:.1f} km)
+2026-09-18T23:19:17.383-03:00  INFO 33968 --- [           main] c.c.server.service.MatchmakingService    : [MATCHMAKING ROOM INIT] Creating room room_5cca680b for Explorer userA (userA) and Guide userD (userD) [Mode: SILENT]
+2026-09-18T23:19:17.384-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION INIT] Building room room_5cca680b [Explorer: userA (userA), Guide: userD (userD), Mode: SILENT]
+2026-09-18T23:19:17.384-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Explorer (userA) with partner data (userD)
+2026-09-18T23:19:17.384-03:00  INFO 33968 --- [           main] c.c.server.service.GameSessionService    : [GAME SESSION NOTIFY] Dispatching SESSION_INIT packet to Guide (userD) with partner data (userA)
 ]]></system-out>
   </testcase>
 </testsuite>

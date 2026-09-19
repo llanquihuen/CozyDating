@@ -83,6 +83,21 @@ public class MailboxController {
             int partnerAge = isUserA ? m.getUserBAge() : m.getUserAAge();
             String partnerCommune = isUserA ? m.getUserBCommune() : m.getUserACommune();
 
+            User partnerUser = null;
+            if (partnerId != null && !partnerId.trim().isEmpty()) {
+                partnerUser = databaseService.findUserById(partnerId.trim());
+            }
+            if (partnerUser == null && partnerName != null && !partnerName.trim().isEmpty()) {
+                partnerUser = databaseService.findUserByUsername(partnerName.trim());
+            }
+            String partnerPhotos = null;
+            if (partnerUser != null) {
+                partnerPhotos = partnerUser.getPhotos();
+                if (partnerPhoto == null || partnerPhoto.trim().isEmpty()) {
+                    partnerPhoto = partnerUser.getProfilePhoto();
+                }
+            }
+
             String myDecision = isUserA ? m.getDecisionA() : m.getDecisionB();
             String myNote = isUserA ? m.getNoteA() : m.getNoteB();
             String partnerDecision = isUserA ? m.getDecisionB() : m.getDecisionA();
@@ -97,6 +112,9 @@ public class MailboxController {
             item.put("partnerName", partnerName != null ? partnerName : "Compañero");
             item.put("partnerAvatar", partnerAvatar);
             item.put("partnerPhoto", partnerPhoto);
+            if (partnerPhotos != null && !partnerPhotos.trim().isEmpty()) {
+                item.put("partnerPhotos", partnerPhotos);
+            }
             item.put("partnerAge", partnerAge);
             item.put("partnerCommune", partnerCommune);
             item.put("commonTastes", m.getCommonTastes());
