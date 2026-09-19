@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/avatar_storage_service.dart';
+import '../../../core/widgets/fullscreen_photo_viewer.dart';
 import '../../chat/screens/private_chat_screen.dart';
 import '../../mailbox/models/mailbox_models.dart';
 
@@ -308,12 +309,13 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                             },
                           ),
 
-                          // Left & Right tap zones for quick photo flip
+                          // Left & Right tap zones for quick photo flip + Center tap to open fullscreen
                           if (_photos.length > 1)
                             Positioned.fill(
                               child: Row(
                                 children: [
                                   Expanded(
+                                    flex: 3,
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.translucent,
                                       onTap: () {
@@ -322,11 +324,33 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                                             duration: const Duration(milliseconds: 220),
                                             curve: Curves.easeInOut,
                                           );
+                                        } else {
+                                          FullScreenPhotoViewer.open(
+                                            context,
+                                            photos: _photos,
+                                            initialIndex: _currentPhotoIndex,
+                                            title: widget.partnerName,
+                                          );
                                         }
                                       },
                                     ),
                                   ),
                                   Expanded(
+                                    flex: 4,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: () {
+                                        FullScreenPhotoViewer.open(
+                                          context,
+                                          photos: _photos,
+                                          initialIndex: _currentPhotoIndex,
+                                          title: widget.partnerName,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 3,
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.translucent,
                                       onTap: () {
@@ -335,11 +359,32 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                                             duration: const Duration(milliseconds: 220),
                                             curve: Curves.easeInOut,
                                           );
+                                        } else {
+                                          FullScreenPhotoViewer.open(
+                                            context,
+                                            photos: _photos,
+                                            initialIndex: _currentPhotoIndex,
+                                            title: widget.partnerName,
+                                          );
                                         }
                                       },
                                     ),
                                   ),
                                 ],
+                              ),
+                            )
+                          else
+                            Positioned.fill(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.translucent,
+                                onTap: () {
+                                  FullScreenPhotoViewer.open(
+                                    context,
+                                    photos: _photos,
+                                    initialIndex: 0,
+                                    title: widget.partnerName,
+                                  );
+                                },
                               ),
                             ),
 
@@ -410,6 +455,52 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                                     style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
                                 ],
+                              ),
+                            ),
+                          ),
+
+                          // Fullscreen "Ampliar" button (bottom right)
+                          Positioned(
+                            bottom: 12,
+                            right: 12,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                FullScreenPhotoViewer.open(
+                                  context,
+                                  photos: _photos,
+                                  initialIndex: _currentPhotoIndex,
+                                  title: widget.partnerName,
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.55),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.white30, width: 0.9),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.4),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.fullscreen_rounded, size: 16, color: Colors.white.withOpacity(0.95)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Ampliar',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.95),
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

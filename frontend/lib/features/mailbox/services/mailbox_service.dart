@@ -178,8 +178,14 @@ class MailboxService {
 
           final serverIdx = merged.indexWhere((s) => s.id == local.id);
           if (serverIdx == -1) {
-            final isRecentPending = local.myDecision == MailboxDecision.pending &&
-                DateTime.now().difference(local.createdAt).inHours < 24;
+            // If the letter is a server room (starts with 'room_') but the server doesn't return it for this user,
+            // it means it belongs to another user or was pruned on the server. Do NOT adopt it!
+            if (local.id.startsWith('room_')) {
+              continue;
+            }
+            final isRecentPending = local.ownerId == activeId &&
+                local.myDecision == MailboxDecision.pending &&
+                DateTime.now().difference(local.createdAt).inHours < 2;
             if (isRecentPending) {
               merged.add(local.copyWith(ownerId: activeId));
             }

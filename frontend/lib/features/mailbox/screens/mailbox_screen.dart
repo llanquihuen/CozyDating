@@ -4,6 +4,7 @@ import '../../../core/models/preference_tags.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
+import '../../../core/widgets/fullscreen_photo_viewer.dart';
 import '../../chat/screens/private_chat_screen.dart';
 import '../../chat/widgets/date_invite_sheet.dart';
 import '../../chat/services/chat_service.dart';
@@ -461,6 +462,14 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
                       _LetterPhotoCarousel(
                         photos: letter.effectivePhotos,
                         onTap: () => _showPartnerFullProfile(letter),
+                        onExpand: (photoIndex) {
+                          FullScreenPhotoViewer.open(
+                            context,
+                            photos: letter.effectivePhotos,
+                            initialIndex: photoIndex,
+                            title: letter.partnerName,
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -953,10 +962,12 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
 class _LetterPhotoCarousel extends StatefulWidget {
   final List<String> photos;
   final VoidCallback? onTap;
+  final void Function(int index)? onExpand;
 
   const _LetterPhotoCarousel({
     required this.photos,
     this.onTap,
+    this.onExpand,
   });
 
   @override
@@ -1166,18 +1177,38 @@ class _LetterPhotoCarouselState extends State<_LetterPhotoCarousel> {
                       )
                     else
                       const SizedBox.shrink(),
-                    Row(
-                      children: [
-                        Icon(Icons.fullscreen_rounded, size: 14, color: Colors.white.withOpacity(0.85)),
-                        const SizedBox(width: 2),
-                        Text(
-                          'Ampliar',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontSize: 11,
-                          ),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (widget.onExpand != null) {
+                          widget.onExpand!(_currentIndex);
+                        } else {
+                          widget.onTap?.call();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.45),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white30, width: 0.8),
                         ),
-                      ],
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.fullscreen_rounded, size: 15, color: Colors.white.withOpacity(0.95)),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Ampliar',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.95),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),

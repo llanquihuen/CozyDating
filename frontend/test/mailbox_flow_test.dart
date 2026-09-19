@@ -362,5 +362,58 @@ void main() {
       expect(find.text('Decisión pendiente • Camila'), findsOneWidget);
       expect(find.text('1/3'), findsNWidgets(2)); // 1 on card behind + 1 on modal dialog
     });
+
+    testWidgets('Tapping Ampliar button launches FullScreenPhotoViewer with zoom and full navigation', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      MailboxService.addDateLetter(
+        MailboxLetter(
+          id: 'fullscreen_test_1',
+          partnerId: 'user_fullscreen',
+          partnerName: 'Lucas',
+          partnerAvatar: const AvatarConfig(),
+          partnerPhoto: 'https://example.com/lucas1.jpg',
+          partnerPhotos: const [
+            'https://example.com/lucas2.jpg',
+          ],
+          partnerAge: 25,
+          partnerCommune: 'Providencia',
+          commonTastes: const ['game_coop'],
+          myDecision: MailboxDecision.pending,
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MailboxScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find Ampliar button and tap it
+      final ampliarFinder = find.text('Ampliar');
+      expect(ampliarFinder, findsWidgets);
+
+      await tester.tap(ampliarFinder.first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Visor Inmersivo Fullscreen should be open with Lucas' name, reset zoom and zoom hint
+      expect(find.text('Lucas'), findsOneWidget);
+      expect(find.text('Pellizca para hacer zoom • Desliza para navegar'), findsOneWidget);
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.byType(InteractiveViewer), findsOneWidget);
+
+      // Close fullscreen viewer
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Returned safely back to mailbox
+      expect(find.text('Buzón de Recuerdos'), findsOneWidget);
+    });
   });
 }
