@@ -118,4 +118,105 @@ public class MailboxControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unreadCount").value(0));
     }
+
+    @Test
+    public void testTernaryRomanceMeetsFriendshipAsymmetricPrivacy() throws Exception {
+        User userA = new User("userA", "Alice", "alice@test.com", "hash", 24, "Santiago", 5, "{}", "[\"game_coop\"]", "photoA", "{}");
+        User userB = new User("userB", "Bob", "bob@test.com", "hash", 26, "Providencia", 3, "{}", "[\"game_coop\"]", "photoB", "{}");
+        databaseService.createUser(userA);
+        databaseService.createUser(userB);
+
+        String matchId = "match_ternary_1";
+        MailboxMatch match = new MailboxMatch(
+            matchId, "userA", "userB", "Alice", "Bob", "{}", "{}", "photoA", "photoB",
+            24, 26, "Santiago", "Providencia", "[]", "PENDING", null, "PENDING", null, false
+        );
+        databaseService.createMailboxMatch(match);
+
+        // Alice votes ROMANCE
+        mockMvc.perform(post("/api/mailbox/decision")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"userId\":\"userA\",\"matchId\":\"match_ternary_1\",\"decision\":\"ROMANCE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isMutualMatch").value(false));
+
+        // Bob votes FRIENDSHIP -> Mutual Match downgraded gracefully to FRIENDSHIP!
+        mockMvc.perform(post("/api/mailbox/decision")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"userId\":\"userB\",\"matchId\":\"match_ternary_1\",\"decision\":\"FRIENDSHIP\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isMutualMatch").value(true))
+                .andExpect(jsonPath("$.matchType").value("FRIENDSHIP"));
+
+        // Bob fetches his mailbox: PRIVACY SHIELD!
+        // Bob must NOT see that Alice voted ROMANCE. He must only see FRIENDSHIP!
+        mockMvc.perform(get("/api/mailbox?userId=userB"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].isMutualMatch").value(true))
+                .andExpect(jsonPath("$[0].matchType").value("FRIENDSHIP"))
+                .andExpect(jsonPath("$[0].partnerDecision").value("FRIENDSHIP"));
+    }
+
+    @Test
+    public void testTernaryBothRomanceMatch() throws Exception {
+        User userA = new User("userA", "Alice", "alice@test.com", "hash", 24, "Santiago", 5, "{}", "[\"game_coop\"]", "photoA", "{}");
+        User userB = new User("userB", "Bob", "bob@test.com", "hash", 26, "Providencia", 3, "{}", "[\"game_coop\"]", "photoB", "{}");
+        databaseService.createUser(userA);
+        databaseService.createUser(userB);
+
+        String matchId = "match_romance_spark";
+        MailboxMatch match = new MailboxMatch(
+            matchId, "userA", "userB", "Alice", "Bob", "{}", "{}", "photoA", "photoB",
+            24, 26, "Santiago", "Providencia", "[]", "PENDING", null, "PENDING", null, false
+        );
+        databaseService.createMailboxMatch(match);
+
+        // Alice votes ROMANCE
+        mockMvc.perform(post("/api/mailbox/decision")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"userId\":\"userA\",\"matchId\":\"match_romance_spark\",\"decision\":\"ROMANCE\"}"))
+                .andExpect(status().isOk());
+
+        // Bob votes ROMANCE -> SPARK MUTUAL MATCH!
+        mockMvc.perform(post("/api/mailbox/decision")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"userId\":\"userB\",\"matchId\":\"match_romance_spark\",\"decision\":\"ROMANCE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isMutualMatch").value(true))
+                .andExpect(jsonPath("$.matchType").value("ROMANCE"));
+
+        mockMvc.perform(get("/api/mailbox?userId=userA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].isMutualMatch").value(true))
+                .andExpect(jsonPath("$[0].matchType").value("ROMANCE"));
+    }
+
+    @Test
+    public void testTernaryPassResultsInZeroMatch() throws Exception {
+        User userA = new User("userA", "Alice", "alice@test.com", "hash", 24, "Santiago", 5, "{}", "[\"game_coop\"]", "photoA", "{}");
+        User userB = new User("userB", "Bob", "bob@test.com", "hash", 26, "Providencia", 3, "{}", "[\"game_coop\"]", "photoB", "{}");
+        databaseService.createUser(userA);
+        databaseService.createUser(userB);
+
+        String matchId = "match_pass_1";
+        MailboxMatch match = new MailboxMatch(
+            matchId, "userA", "userB", "Alice", "Bob", "{}", "{}", "photoA", "photoB",
+            24, 26, "Santiago", "Providencia", "[]", "PENDING", null, "PENDING", null, false
+        );
+        databaseService.createMailboxMatch(match);
+
+        // Alice votes ROMANCE
+        mockMvc.perform(post("/api/mailbox/decision")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"userId\":\"userA\",\"matchId\":\"match_pass_1\",\"decision\":\"ROMANCE\"}"))
+                .andExpect(status().isOk());
+
+        // Bob votes PASS
+        mockMvc.perform(post("/api/mailbox/decision")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"userId\":\"userB\",\"matchId\":\"match_pass_1\",\"decision\":\"PASS\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isMutualMatch").value(false))
+                .andExpect(jsonPath("$.matchType").value("NONE"));
+    }
 }

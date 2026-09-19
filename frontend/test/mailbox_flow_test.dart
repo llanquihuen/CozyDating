@@ -82,14 +82,15 @@ void main() {
       expect(find.text('📍 Santiago'), findsOneWidget);
 
       // Verify decision buttons
-      final keepInTouchFinder = find.text('💌 Seguir en contacto');
-      expect(keepInTouchFinder, findsOneWidget);
-      expect(find.text('🕊️ Guardar recuerdo'), findsOneWidget);
+      final romanceFinder = find.text('Chispa');
+      expect(romanceFinder, findsOneWidget);
+      expect(find.text('Amistad'), findsOneWidget);
+      expect(find.text('Pasar'), findsOneWidget);
 
       // Ensure visible and tap
-      await tester.ensureVisible(keepInTouchFinder);
+      await tester.ensureVisible(romanceFinder);
       await tester.pumpAndSettle();
-      await tester.tap(keepInTouchFinder);
+      await tester.tap(romanceFinder);
       await tester.pumpAndSettle();
 
       // Unread count should update to 0
@@ -210,8 +211,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Full profile modal should be displayed
-      expect(find.text('PERFIL COMPLETO'), findsOneWidget);
-      expect(find.text('Conexión Mutua • Claire'), findsOneWidget);
+      expect(find.text('CHISPA MUTUA'), findsOneWidget);
+      expect(find.text('Conexión Romántica • Claire'), findsOneWidget);
       expect(find.text('Claire, 25'), findsOneWidget);
       expect(find.text('Las Condes'), findsOneWidget);
       expect(find.text('Amante de la astronomía y el buen café.'), findsOneWidget);
@@ -223,7 +224,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('PERFIL COMPLETO'), findsNothing);
+      expect(find.text('CHISPA MUTUA'), findsNothing);
     });
 
     test('Pending date letters persist across app restarts and restore badge count', () async {

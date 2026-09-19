@@ -622,6 +622,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             Map<String, Object> frame = new HashMap<>();
             frame.put("type", "MUTUAL_MATCH_REVEAL");
             frame.put("matchId", match.getId());
+            frame.put("matchType", match.getMatchType() != null ? match.getMatchType() : "NONE");
             frame.put("partnerId", partnerId);
             frame.put("partnerName", partnerName != null ? partnerName : "Compañero");
             frame.put("partnerAvatar", partnerAvatar);

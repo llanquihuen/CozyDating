@@ -93,16 +93,18 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
     await _loadLetters();
 
     if (mounted) {
-      if (decision == MailboxDecision.keepInTouch) {
+      if (decision == MailboxDecision.romance ||
+          decision == MailboxDecision.friendship ||
+          decision == MailboxDecision.keepInTouch) {
         final updated = _letters.firstWhere((l) => l.id == letter.id, orElse: () => letter);
         if (updated.isMutualMatch) {
           _showMutualMatchDialog(updated);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('💌 Carta enviada con cariño... Llegará si el destino coincide ✨'),
-              backgroundColor: Color(0xFF2E7D32),
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Text('💌 Carta enviada con cariño... Llegará si ${letter.partnerName} coincide ✨'),
+              backgroundColor: const Color(0xFF2E7D32),
+              duration: const Duration(seconds: 3),
             ),
           );
         }
@@ -150,6 +152,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
         partnerUser: partnerUser,
         partnerName: letter.partnerName,
         isCelebration: true,
+        matchType: letter.matchType,
         onReturnHome: () {
           Navigator.of(ctx).pop();
           _tabController.animateTo(1); // Go to mutual matches tab
@@ -188,6 +191,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
         partnerName: letter.partnerName,
         isCelebration: false,
         isMutualMatch: letter.isMutualMatch,
+        matchType: letter.matchType,
         onReturnHome: () {
           Navigator.of(ctx).pop();
         },
@@ -228,7 +232,11 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     final pendingLetters = _letters.where((l) => l.myDecision == MailboxDecision.pending).toList();
     final mutualMatches = _letters.where((l) => l.isMutualMatch).toList();
-    final archivedLetters = _letters.where((l) => l.myDecision == MailboxDecision.archived || (l.myDecision == MailboxDecision.keepInTouch && !l.isMutualMatch)).toList();
+    final archivedLetters = _letters.where((l) =>
+        l.myDecision == MailboxDecision.archived ||
+        ((l.myDecision == MailboxDecision.romance ||
+          l.myDecision == MailboxDecision.friendship ||
+          l.myDecision == MailboxDecision.keepInTouch) && !l.isMutualMatch)).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFF14121F),
@@ -609,13 +617,75 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                // Privacy notice banner
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161B2E),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE11D48).withOpacity(0.35)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Text('🔒', style: TextStyle(fontSize: 13)),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Tu voto es secreto: Si eliges Romance y la otra persona Amistad, conectarán como amigos.',
+                          style: TextStyle(color: Color(0xFFFDA4AF), fontSize: 10.5, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-                // Friendly Decision Buttons (Zero-rejection)
+                // Friendly Decision Buttons (Ternary Matching)
                 Row(
                   children: [
                     Expanded(
-                      flex: 4,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE11D48),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 2,
+                        ),
+                        onPressed: () => _handleDecision(letter, MailboxDecision.romance),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('💖', style: TextStyle(fontSize: 14)),
+                            SizedBox(width: 4),
+                            Text('Chispa', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D9488),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 2,
+                        ),
+                        onPressed: () => _handleDecision(letter, MailboxDecision.friendship),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('🤝', style: TextStyle(fontSize: 14)),
+                            SizedBox(width: 4),
+                            Text('Amistad', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white60,
@@ -624,22 +694,14 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: () => _handleDecision(letter, MailboxDecision.archived),
-                        child: const Text('🕊️ Guardar recuerdo', style: TextStyle(fontSize: 12)),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 6,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFD54F),
-                          foregroundColor: Colors.black87,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          elevation: 2,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('🕊️', style: TextStyle(fontSize: 14)),
+                            SizedBox(width: 4),
+                            Text('Pasar', style: TextStyle(fontSize: 11.5)),
+                          ],
                         ),
-                        onPressed: () => _handleDecision(letter, MailboxDecision.keepInTouch),
-                        child: const Text('💌 Seguir en contacto', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     ),
                   ],
@@ -739,11 +801,29 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF66BB6A).withOpacity(0.2),
+                                        color: (letter.matchType == ConnectionType.friendship
+                                                ? const Color(0xFF0D9488)
+                                                : const Color(0xFFE11D48))
+                                            .withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: const Color(0xFF66BB6A)),
+                                        border: Border.all(
+                                          color: letter.matchType == ConnectionType.friendship
+                                              ? const Color(0xFF0D9488)
+                                              : const Color(0xFFE11D48),
+                                        ),
                                       ),
-                                      child: const Text('¡Match Confirmado! 💖', style: TextStyle(color: Color(0xFF81C784), fontSize: 10, fontWeight: FontWeight.bold)),
+                                      child: Text(
+                                        letter.matchType == ConnectionType.friendship
+                                            ? '🤝 Amistad / Dúo'
+                                            : '💖 Chispa Mutua',
+                                        style: TextStyle(
+                                          color: letter.matchType == ConnectionType.friendship
+                                              ? const Color(0xFF2DD4BF)
+                                              : const Color(0xFFFDA4AF),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                     if (hasUnreadChat)
                                       Container(
@@ -881,7 +961,10 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
       itemCount: letters.length,
       itemBuilder: (context, index) {
         final letter = letters[index];
-        final isSentWaiting = letter.myDecision == MailboxDecision.keepInTouch && !letter.isMutualMatch;
+        final isSentWaiting = (letter.myDecision == MailboxDecision.romance ||
+                letter.myDecision == MailboxDecision.friendship ||
+                letter.myDecision == MailboxDecision.keepInTouch) &&
+            !letter.isMutualMatch;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),

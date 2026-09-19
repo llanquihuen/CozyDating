@@ -69,6 +69,9 @@ class MailboxService {
     mutualMatchCelebrationNotifier.value = letter;
   }
 
+  static List<MailboxLetter> get letters => List.unmodifiable(_cachedLetters);
+  static List<MailboxLetter> getLetters() => List.unmodifiable(_cachedLetters);
+
   static void clear() {
     _cachedLetters.clear();
     _loadedUserId = null;
@@ -230,20 +233,35 @@ class MailboxService {
         : (AuthService.currentUser?.id.isNotEmpty == true
             ? AuthService.currentUser!.id
             : AvatarStorageService.activeUserId);
-    final decisionStr = decision == MailboxDecision.keepInTouch ? 'KEEP_IN_TOUCH' : 'ARCHIVE';
+    String decisionStr = 'ARCHIVE';
+    if (decision == MailboxDecision.romance) {
+      decisionStr = 'ROMANCE';
+    } else if (decision == MailboxDecision.friendship) {
+      decisionStr = 'FRIENDSHIP';
+    } else if (decision == MailboxDecision.keepInTouch) {
+      decisionStr = 'KEEP_IN_TOUCH';
+    }
 
     // Local update
     final index = _cachedLetters.indexWhere((l) => l.id == matchId);
     if (index != -1) {
       final current = _cachedLetters[index];
-      // In local demo mode, if partner is a sample user, simulate mutual match if keeping in touch
-      final willMatchLocally = decision == MailboxDecision.keepInTouch &&
+      // In local demo mode, if partner is a sample user, simulate mutual match
+      final willMatchLocally = (decision == MailboxDecision.romance ||
+              decision == MailboxDecision.friendship ||
+              decision == MailboxDecision.keepInTouch) &&
           (current.partnerId == 'bob' || current.partnerId == 'userB' || current.partnerId == 'charlie' || current.partnerId == 'alice');
+
+      ConnectionType localMatchType = ConnectionType.none;
+      if (willMatchLocally) {
+        localMatchType = decision == MailboxDecision.romance ? ConnectionType.romance : ConnectionType.friendship;
+      }
 
       _cachedLetters[index] = current.copyWith(
         myDecision: decision,
         myNote: note,
         isMutualMatch: willMatchLocally || current.isMutualMatch,
+        matchType: willMatchLocally ? localMatchType : current.matchType,
         partnerNote: willMatchLocally ? '¡Me encantó nuestra charla en la fogata! Ojalá juguemos pronto ☕✨' : current.partnerNote,
       );
       _updateBadgeCount();
@@ -271,8 +289,17 @@ class MailboxService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (index != -1) {
+          final serverMatchTypeStr = data['matchType']?.toString().toUpperCase();
+          ConnectionType serverMatchType = ConnectionType.none;
+          if (serverMatchTypeStr == 'ROMANCE') {
+            serverMatchType = ConnectionType.romance;
+          } else if (serverMatchTypeStr == 'FRIENDSHIP') {
+            serverMatchType = ConnectionType.friendship;
+          }
+
           _cachedLetters[index] = _cachedLetters[index].copyWith(
             isMutualMatch: data['isMutualMatch'] == true,
+            matchType: serverMatchType != ConnectionType.none ? serverMatchType : _cachedLetters[index].matchType,
             partnerNote: data['partnerNote']?.toString() ?? _cachedLetters[index].partnerNote,
           );
           _saveLettersToStorage(activeId);

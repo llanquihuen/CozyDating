@@ -13,6 +13,8 @@ import '../games/campfire_scene_game.dart';
 import '../models/campfire_models.dart';
 import '../services/campfire_card_catalog.dart';
 import '../widgets/campfire_summary_dialog.dart';
+import '../widgets/post_campfire_decision_dialog.dart';
+import '../../revelation/screens/match_reveal_celebration_view.dart';
 
 class CampfireView extends StatefulWidget {
   final UserProfile localUser;
@@ -261,8 +263,6 @@ class _CampfireViewState extends State<CampfireView> {
 
   void _showCompletionDialog() {
     _relaxationTimer?.cancel();
-    final hasFriendship = widget.localUser.tastes.contains('intent_gaming_duo') ||
-        widget.localUser.tastes.contains('intent_cozy_chats');
 
     // Send date completion signal to server to record mailbox match
     try {
@@ -271,32 +271,108 @@ class _CampfireViewState extends State<CampfireView> {
       print('[CAMPFIRE] Offline completion: $e');
     }
 
+    final dateLetter = _generateDateLetter();
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => CampfireSummaryDialog(
-        partnerName: widget.partnerName,
-        localAvatar: widget.localUser.avatarConfig,
-        partnerAvatar: widget.partnerAvatarConfig,
+      builder: (ctx) => PostCampfireDecisionDialog(
+        letter: dateLetter,
         coinsEarned: 150,
-        connectionTypeTitle: hasFriendship ? '¡DÚO DE AVENTURAS!' : '¡CONEXIÓN ESPECIAL!',
-        connectionTypeEmoji: hasFriendship ? '🤝' : '❤️',
-        onReturnHome: () {
-          Navigator.of(context).pop();
-          _handleReturnHome();
+        onPostponeToHome: () {
+          Navigator.of(ctx).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🕊️ Sin prisa ✨ Tu carta te esperará en el buzón'),
+              backgroundColor: Color(0xFF455A64),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          _finishAndReturnHome();
+        },
+        onDecision: (decision) async {
+          final localId = widget.localUser.id;
+          await MailboxService.submitDecision(
+            matchId: dateLetter.id,
+            decision: decision,
+            userId: localId,
+          );
+
+          if (!mounted) return;
+          Navigator.of(ctx).pop();
+
+          if (decision == MailboxDecision.archived) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('🕊️ Guardado con cariño en tu Baúl de Recuerdos'),
+                backgroundColor: Color(0xFF455A64),
+                duration: Duration(seconds: 2),
+              ),
+            );
+            _finishAndReturnHome();
+          } else {
+            // Check if mutual match occurred
+            final letters = MailboxService.getLetters();
+            final updated = letters.firstWhere((l) => l.id == dateLetter.id, orElse: () => dateLetter);
+
+            if (updated.isMutualMatch) {
+              _showMutualCelebration(updated);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('💌 Carta sellada... Llegará si ${dateLetter.partnerName} coincide ✨'),
+                  backgroundColor: const Color(0xFF2E7D32),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+              _finishAndReturnHome();
+            }
+          }
         },
       ),
     );
   }
 
-  void _handleReturnHome() {
-    // 1. Accrue coins to user profile & storage
+  void _showMutualCelebration(MailboxLetter letter) {
+    AvatarStorageService.markMatchAcknowledged(letter.id);
+
+    final partner = widget.partnerUser;
+    final partnerUser = UserProfile(
+      id: letter.partnerId,
+      username: letter.partnerName,
+      avatarConfig: letter.partnerAvatar,
+      profilePhoto: letter.partnerPhoto ?? (letter.effectivePhotos.isNotEmpty ? letter.effectivePhotos.first : null),
+      photos: letter.effectivePhotos,
+      bio: letter.effectiveBio,
+      intent: letter.effectiveIntent,
+      age: letter.partnerAge,
+      commune: letter.partnerCommune,
+      tastes: letter.commonTastes,
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => MatchRevealCelebrationView(
+        localUser: widget.localUser,
+        partnerUser: partnerUser,
+        partnerName: letter.partnerName,
+        isCelebration: true,
+        matchType: letter.matchType,
+        onReturnHome: () {
+          Navigator.of(ctx).pop();
+          _finishAndReturnHome();
+        },
+      ),
+    );
+  }
+
+  MailboxLetter _generateDateLetter() {
     final localId = widget.localUser.id;
     final localName = widget.localUser.username;
     AvatarStorageService.addCoins(localId, 150);
     AuthService.addCoins(150);
 
-    // 2. Generate Tinder-like date letter in mailbox with all photos, bio and intent
     final partner = widget.partnerUser;
     var partnerId = partner?.id ?? widget.partnerName.toLowerCase();
     var partnerName = widget.partnerName;
@@ -353,16 +429,19 @@ class _CampfireViewState extends State<CampfireView> {
       createdAt: DateTime.now(),
     );
     MailboxService.addDateLetter(dateLetter, userId: localId);
+    return dateLetter;
+  }
 
-    // 3. Reset GameBloc
+  void _finishAndReturnHome() {
     try {
       context.read<GameBloc>().add(const ResetGameEvent());
     } catch (e) {
       print('[CAMPFIRE] ResetGameEvent: $e');
     }
-
     widget.onReturnHome();
   }
+
+  void _handleReturnHome() => _finishAndReturnHome();
 
   void _sendReactionEmote(String emote) {
     _game.triggerEmote(emote, onLeft: true);

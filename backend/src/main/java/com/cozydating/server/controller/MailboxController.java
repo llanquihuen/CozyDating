@@ -105,6 +105,17 @@ public class MailboxController {
 
             boolean isMutual = m.isMatched();
             boolean isCelebrated = isUserA ? m.isCelebratedA() : m.isCelebratedB();
+            String matchType = m.getMatchType() != null ? m.getMatchType() : "NONE";
+
+            // Asymmetric privacy protection:
+            // If matchType is FRIENDSHIP and partnerDecision was ROMANCE, sanitize partnerDecision so it never leaks
+            String sanitizedPartnerDecision = partnerDecision;
+            if ("FRIENDSHIP".equalsIgnoreCase(matchType) && ("ROMANCE".equalsIgnoreCase(partnerDecision) || "KEEP_IN_TOUCH".equalsIgnoreCase(partnerDecision))) {
+                sanitizedPartnerDecision = "FRIENDSHIP";
+            }
+            if (!isMutual) {
+                sanitizedPartnerDecision = null;
+            }
 
             Map<String, Object> item = new HashMap<>();
             item.put("id", m.getId());
@@ -121,8 +132,10 @@ public class MailboxController {
             item.put("myDecision", myDecision != null ? myDecision : "PENDING");
             item.put("myNote", myNote);
             item.put("isMutualMatch", isMutual);
+            item.put("matchType", matchType);
             item.put("isCelebrated", isCelebrated);
             if (isMutual) {
+                item.put("partnerDecision", sanitizedPartnerDecision);
                 item.put("partnerNote", partnerNote);
             }
             item.put("createdAt", m.getCreatedAt());
@@ -165,6 +178,7 @@ public class MailboxController {
         resp.put("matchId", matchId);
         resp.put("myDecision", decision);
         resp.put("isMutualMatch", updated.isMatched());
+        resp.put("matchType", updated.getMatchType() != null ? updated.getMatchType() : "NONE");
         if (updated.isMatched()) {
             String resolvedUserId = databaseService.resolveDbUserId(userId);
             String resolvedUserA = databaseService.resolveDbUserId(updated.getUserAId());

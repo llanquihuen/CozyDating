@@ -4,8 +4,16 @@ import '../../../core/services/avatar_storage_service.dart';
 
 enum MailboxDecision {
   pending,
-  keepInTouch,
+  romance,
+  friendship,
   archived,
+  keepInTouch,
+}
+
+enum ConnectionType {
+  none,
+  romance,
+  friendship,
 }
 
 class MailboxLetter {
@@ -25,6 +33,7 @@ class MailboxLetter {
   final String? myNote;
   final String? partnerNote;
   final bool isMutualMatch;
+  final ConnectionType matchType;
   final bool isCelebrated;
   final DateTime createdAt;
 
@@ -45,6 +54,7 @@ class MailboxLetter {
     this.myNote,
     this.partnerNote,
     this.isMutualMatch = false,
+    this.matchType = ConnectionType.none,
     this.isCelebrated = false,
     required this.createdAt,
   });
@@ -113,6 +123,7 @@ class MailboxLetter {
     String? myNote,
     String? partnerNote,
     bool? isMutualMatch,
+    ConnectionType? matchType,
     bool? isCelebrated,
     DateTime? createdAt,
   }) {
@@ -133,6 +144,7 @@ class MailboxLetter {
       myNote: myNote ?? this.myNote,
       partnerNote: partnerNote ?? this.partnerNote,
       isMutualMatch: isMutualMatch ?? this.isMutualMatch,
+      matchType: matchType ?? this.matchType,
       isCelebrated: isCelebrated ?? this.isCelebrated,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -196,10 +208,22 @@ class MailboxLetter {
 
     final decisionStr = (map['myDecision'] as String? ?? 'PENDING').toUpperCase();
     MailboxDecision decision = MailboxDecision.pending;
-    if (decisionStr == 'KEEP_IN_TOUCH') {
+    if (decisionStr == 'ROMANCE') {
+      decision = MailboxDecision.romance;
+    } else if (decisionStr == 'FRIENDSHIP') {
+      decision = MailboxDecision.friendship;
+    } else if (decisionStr == 'KEEP_IN_TOUCH') {
       decision = MailboxDecision.keepInTouch;
-    } else if (decisionStr == 'ARCHIVED' || decisionStr == 'ARCHIVE') {
+    } else if (decisionStr == 'ARCHIVED' || decisionStr == 'ARCHIVE' || decisionStr == 'PASS') {
       decision = MailboxDecision.archived;
+    }
+
+    final matchTypeStr = (map['matchType'] as String? ?? 'NONE').toUpperCase();
+    ConnectionType matchType = ConnectionType.none;
+    if (matchTypeStr == 'ROMANCE') {
+      matchType = ConnectionType.romance;
+    } else if (matchTypeStr == 'FRIENDSHIP') {
+      matchType = ConnectionType.friendship;
     }
 
     DateTime parsedDate;
@@ -228,12 +252,31 @@ class MailboxLetter {
       myNote: map['myNote']?.toString(),
       partnerNote: map['partnerNote']?.toString(),
       isMutualMatch: map['isMutualMatch'] == true,
+      matchType: matchType,
       isCelebrated: map['isCelebrated'] == true,
       createdAt: parsedDate,
     );
   }
 
   Map<String, dynamic> toMap() {
+    String decisionStr = 'PENDING';
+    if (myDecision == MailboxDecision.romance) {
+      decisionStr = 'ROMANCE';
+    } else if (myDecision == MailboxDecision.friendship) {
+      decisionStr = 'FRIENDSHIP';
+    } else if (myDecision == MailboxDecision.keepInTouch) {
+      decisionStr = 'KEEP_IN_TOUCH';
+    } else if (myDecision == MailboxDecision.archived) {
+      decisionStr = 'ARCHIVE';
+    }
+
+    String matchTypeStr = 'NONE';
+    if (matchType == ConnectionType.romance) {
+      matchTypeStr = 'ROMANCE';
+    } else if (matchType == ConnectionType.friendship) {
+      matchTypeStr = 'FRIENDSHIP';
+    }
+
     return {
       'id': id,
       'ownerId': ownerId,
@@ -247,9 +290,8 @@ class MailboxLetter {
       'partnerAge': partnerAge,
       'partnerCommune': partnerCommune,
       'commonTastes': commonTastes,
-      'myDecision': myDecision == MailboxDecision.keepInTouch
-          ? 'KEEP_IN_TOUCH'
-          : (myDecision == MailboxDecision.archived ? 'ARCHIVE' : 'PENDING'),
+      'myDecision': decisionStr,
+      'matchType': matchTypeStr,
       'myNote': myNote,
       'partnerNote': partnerNote,
       'isMutualMatch': isMutualMatch,

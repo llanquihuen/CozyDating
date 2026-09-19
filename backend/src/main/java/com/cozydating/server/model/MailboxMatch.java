@@ -20,6 +20,7 @@ public class MailboxMatch {
     private String decisionB; // PENDING, KEEP_IN_TOUCH, ARCHIVED
     private String noteB;
     private boolean matched;
+    private String matchType = "NONE"; // NONE, ROMANCE, FRIENDSHIP
     private boolean celebratedA;
     private boolean celebratedB;
     private String createdAt;
@@ -204,6 +205,14 @@ public class MailboxMatch {
 
     public void setMatched(boolean matched) {
         this.matched = matched;
+    }
+
+    public String getMatchType() {
+        return matchType;
+    }
+
+    public void setMatchType(String matchType) {
+        this.matchType = matchType;
     }
 
     public boolean isCelebratedA() {

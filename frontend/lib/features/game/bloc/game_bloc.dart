@@ -1109,6 +1109,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (type == 'ERROR') {
       print('[BLOC IN] Received error packet: ${msg['message']}');
       webSocketClient.setSessionActive(false);
+      if (state is GameInitialState) {
+        print('[BLOC IN] Ignored error packet in GameInitialState to protect Cozy Lobby view.');
+        return;
+      }
       emit(ErrorGameState(message: msg['message'] as String? ?? 'Unknown error'));
       return;
     }

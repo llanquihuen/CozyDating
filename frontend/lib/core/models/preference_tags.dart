@@ -38,6 +38,15 @@ class PreferenceCategory {
 }
 
 class PreferenceCatalog {
+  static PreferenceItem? findById(String id) {
+    for (final category in categories) {
+      for (final item in category.items) {
+        if (item.id == id) return item;
+      }
+    }
+    return null;
+  }
+
   static const List<PreferenceCategory> categories = [
     // =========================================================================
     // 🌟 LOS 4 EJES OBLIGATORIOS (Selección Única - Universales)

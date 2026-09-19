@@ -80,6 +80,9 @@ public class DatabaseService {
             m.setNoteB(rs.getString("note_b"));
             m.setMatched(rs.getBoolean("matched"));
             try {
+                m.setMatchType(rs.getString("match_type"));
+            } catch (Exception ignored) {}
+            try {
                 m.setCelebratedA(rs.getBoolean("celebrated_a"));
                 m.setCelebratedB(rs.getBoolean("celebrated_b"));
             } catch (Exception ignored) {}
@@ -164,6 +167,7 @@ public class DatabaseService {
             "  decision_b VARCHAR(50) DEFAULT 'PENDING'," +
             "  note_b TEXT," +
             "  matched BOOLEAN DEFAULT FALSE," +
+            "  match_type VARCHAR(50) DEFAULT 'NONE'," +
             "  celebrated_a BOOLEAN DEFAULT FALSE," +
             "  celebrated_b BOOLEAN DEFAULT FALSE," +
             "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
@@ -225,6 +229,9 @@ public class DatabaseService {
         } catch (Exception ignored) {}
         try {
             jdbcTemplate.execute("ALTER TABLE mailbox_matches ADD COLUMN celebrated_b BOOLEAN DEFAULT FALSE");
+        } catch (Exception ignored) {}
+        try {
+            jdbcTemplate.execute("ALTER TABLE mailbox_matches ADD COLUMN match_type VARCHAR(50) DEFAULT 'NONE'");
         } catch (Exception ignored) {}
 
         try {
@@ -609,21 +616,45 @@ public class DatabaseService {
             if (note != null) match.setNoteB(note);
         }
 
-        boolean mutualMatch = "KEEP_IN_TOUCH".equalsIgnoreCase(match.getDecisionA()) &&
-                             "KEEP_IN_TOUCH".equalsIgnoreCase(match.getDecisionB());
+        String decA = match.getDecisionA();
+        String decB = match.getDecisionB();
+
+        boolean isRomanceA = "ROMANCE".equalsIgnoreCase(decA) || "KEEP_IN_TOUCH".equalsIgnoreCase(decA);
+        boolean isRomanceB = "ROMANCE".equalsIgnoreCase(decB) || "KEEP_IN_TOUCH".equalsIgnoreCase(decB);
+        boolean isFriendshipA = "FRIENDSHIP".equalsIgnoreCase(decA);
+        boolean isFriendshipB = "FRIENDSHIP".equalsIgnoreCase(decB);
+        boolean isPassA = "PASS".equalsIgnoreCase(decA) || "ARCHIVE".equalsIgnoreCase(decA);
+        boolean isPassB = "PASS".equalsIgnoreCase(decB) || "ARCHIVE".equalsIgnoreCase(decB);
+
+        boolean mutualMatch = false;
+        String matchType = "NONE";
+
+        if (isPassA || isPassB) {
+            mutualMatch = false;
+            matchType = "NONE";
+        } else if (isRomanceA && isRomanceB) {
+            mutualMatch = true;
+            matchType = "ROMANCE";
+        } else if ((isRomanceA && isFriendshipB) || (isFriendshipA && isRomanceB) || (isFriendshipA && isFriendshipB)) {
+            mutualMatch = true;
+            matchType = "FRIENDSHIP";
+        }
+
         match.setMatched(mutualMatch);
+        match.setMatchType(matchType);
 
         jdbcTemplate.update(
-            "UPDATE mailbox_matches SET decision_a = ?, note_a = ?, decision_b = ?, note_b = ?, matched = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            "UPDATE mailbox_matches SET decision_a = ?, note_a = ?, decision_b = ?, note_b = ?, matched = ?, match_type = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             match.getDecisionA(),
             match.getNoteA(),
             match.getDecisionB(),
             match.getNoteB(),
             match.isMatched(),
+            match.getMatchType(),
             match.getId()
         );
 
-        logger.info("[DB MAILBOX] Updated decision for match: {} by user {}: {}. Mutual match: {}", matchId, userId, decision, mutualMatch);
+        logger.info("[DB MAILBOX] Updated decision for match: {} by user {}: {}. Mutual match: {}, matchType: {}", matchId, userId, decision, mutualMatch, matchType);
         return match;
     }
 

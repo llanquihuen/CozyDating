@@ -12,6 +12,7 @@ class MatchRevealCelebrationView extends StatefulWidget {
   final String partnerName;
   final bool isCelebration;
   final bool isMutualMatch;
+  final ConnectionType matchType;
   final bool isPreview;
   final VoidCallback? onReturnHome;
 
@@ -22,6 +23,7 @@ class MatchRevealCelebrationView extends StatefulWidget {
     required this.partnerName,
     this.isCelebration = true,
     this.isMutualMatch = true,
+    this.matchType = ConnectionType.romance,
     this.isPreview = false,
     this.onReturnHome,
   });
@@ -185,6 +187,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
       commonTastes: widget.partnerUser.tastes,
       myDecision: MailboxDecision.keepInTouch,
       isMutualMatch: true,
+      matchType: widget.matchType,
       createdAt: DateTime.now(),
     );
 
@@ -198,15 +201,71 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
   @override
   Widget build(BuildContext context) {
     final isPendingDate = !widget.isCelebration && !widget.isMutualMatch;
+    final isFriendship = widget.matchType == ConnectionType.friendship;
+
+    Color borderColor;
+    if (widget.isPreview) {
+      borderColor = const Color(0xFF38BDF8);
+    } else if (isPendingDate) {
+      borderColor = const Color(0xFFFFB74D);
+    } else if (isFriendship) {
+      borderColor = const Color(0xFF0D9488);
+    } else {
+      borderColor = const Color(0xFFE11D48);
+    }
+
+    List<Color> gradientColors;
+    if (widget.isPreview) {
+      gradientColors = const [Color(0xFF0284C7), Color(0xFF6366F1)];
+    } else if (isPendingDate) {
+      gradientColors = const [Color(0xFFFF6D00), Color(0xFFD97706)];
+    } else if (isFriendship) {
+      gradientColors = const [Color(0xFF0D9488), Color(0xFF059669)];
+    } else {
+      gradientColors = const [Color(0xFFE11D48), Color(0xFF9333EA)];
+    }
+
+    String iconEmoji;
+    if (widget.isPreview) {
+      iconEmoji = '👁️✨';
+    } else if (isPendingDate) {
+      iconEmoji = '🔥💌✨';
+    } else if (isFriendship) {
+      iconEmoji = '✨🤝✨';
+    } else {
+      iconEmoji = '✨💖✨';
+    }
+
+    String titleText;
+    if (widget.isPreview) {
+      titleText = 'VISTA PREVIA DE TU PERFIL';
+    } else if (widget.isCelebration) {
+      titleText = isFriendship ? '¡NUEVA AMISTAD MUTUA!' : '¡HUBO CHISPA MUTUA!';
+    } else {
+      titleText = widget.isMutualMatch
+          ? (isFriendship ? 'AMISTAD MUTUA' : 'CHISPA MUTUA')
+          : 'CITA EN LA FOGATA';
+    }
+
+    String subtitleText;
+    if (widget.isPreview) {
+      subtitleText = 'Así te verán tus citas al terminar la Fogata';
+    } else if (widget.isCelebration) {
+      subtitleText = isFriendship
+          ? 'Coincidieron en ser compañeros de aventuras'
+          : 'Ambos han sentido esa química especial';
+    } else {
+      subtitleText = widget.isMutualMatch
+          ? (isFriendship ? 'Amistad • ${widget.partnerName}' : 'Conexión Romántica • ${widget.partnerName}')
+          : 'Decisión pendiente • ${widget.partnerName}';
+    }
 
     return Dialog(
       backgroundColor: const Color(0xFF0F172A),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
         side: BorderSide(
-          color: widget.isPreview
-              ? const Color(0xFF38BDF8)
-              : (isPendingDate ? const Color(0xFFFFB74D) : const Color(0xFFE11D48)),
+          color: borderColor,
           width: 2,
         ),
       ),
@@ -220,11 +279,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: widget.isPreview
-                      ? const [Color(0xFF0284C7), Color(0xFF6366F1)]
-                      : (isPendingDate
-                          ? const [Color(0xFFFF6D00), Color(0xFFD97706)]
-                          : const [Color(0xFFE11D48), Color(0xFF9333EA)]),
+                  colors: gradientColors,
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -237,9 +292,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
                     ),
                     child: Text(
-                      widget.isPreview
-                          ? '👁️✨'
-                          : (isPendingDate ? '🔥💌✨' : '✨💖✨'),
+                      iconEmoji,
                       style: const TextStyle(fontSize: 22),
                     ),
                   ),
@@ -249,11 +302,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.isPreview
-                              ? 'VISTA PREVIA DE TU PERFIL'
-                              : (widget.isCelebration
-                                  ? '¡ES UN MATCH MUTUO!'
-                                  : (widget.isMutualMatch ? 'PERFIL COMPLETO' : 'CITA EN LA FOGATA')),
+                          titleText,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -262,13 +311,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                           ),
                         ),
                         Text(
-                          widget.isPreview
-                              ? 'Así te verán tus citas al terminar la Fogata'
-                              : (widget.isCelebration
-                                  ? 'Ambos han elegido conectar'
-                                  : (widget.isMutualMatch
-                                      ? 'Conexión Mutua • ${widget.partnerName}'
-                                      : 'Decisión pendiente • ${widget.partnerName}')),
+                          subtitleText,
                           style: const TextStyle(
                             color: Color(0xFFFDE68A),
                             fontSize: 12,

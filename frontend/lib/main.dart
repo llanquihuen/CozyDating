@@ -66,12 +66,14 @@ class GameLauncherScreen extends StatefulWidget {
   State<GameLauncherScreen> createState() => _GameLauncherScreenState();
 }
 
-class _GameLauncherScreenState extends State<GameLauncherScreen> {
+class _GameLauncherScreenState extends State<GameLauncherScreen> with WidgetsBindingObserver {
   String _selectedUserId = 'alice';
   String? _introCompletedRoomId;
   String? _victoryShownRoomId;
 
   bool _isMatchmakingRequestInFlight = false;
+  DateTime? _pausedAt;
+  bool _showingQueuePausedDialog = false;
 
   String get _baseUrl => AppConfig.baseUrl;
   String get _wsUrl => AppConfig.wsUrl;
@@ -79,10 +81,98 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (AuthService.isAuthenticated) {
       _selectedUserId = AuthService.currentUser!.id;
       ChatService.ensureConnected();
     }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('[APP LIFECYCLE] AppLifecycleState changed to: $state');
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _pausedAt = DateTime.now();
+      WebSocketClient.shared?.onAppPaused();
+    } else if (state == AppLifecycleState.resumed) {
+      final pausedTime = _pausedAt;
+      _pausedAt = null;
+      WebSocketClient.shared?.onAppResumed();
+
+      if (AuthService.isAuthenticated) {
+        ChatService.ensureConnected();
+      }
+
+      // Check if user was searching for a match when they left
+      if (mounted) {
+        final currentGameState = context.read<GameBloc>().state;
+        if (currentGameState is MatchmakingQueueState && pausedTime != null) {
+          final awaySeconds = DateTime.now().difference(pausedTime).inSeconds;
+          print('[APP LIFECYCLE] Returned from background while searching for match. Away for $awaySeconds seconds.');
+          if (awaySeconds > 60 && !_showingQueuePausedDialog) {
+            _handleMatchmakingAwayPause(context);
+          }
+        }
+      }
+    }
+  }
+
+  void _handleMatchmakingAwayPause(BuildContext context) {
+    _showingQueuePausedDialog = true;
+    context.read<GameBloc>().add(const ResetGameEvent());
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.pause_circle_outline_rounded, color: Color(0xFFF59E0B), size: 28),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Búsqueda en Pausa',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Pausamos la búsqueda de citas mientras no estabas para que no te perdieras el inicio de la mazmorra.\n\n¿Deseas reanudar la búsqueda ahora?',
+          style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showingQueuePausedDialog = false;
+            },
+            child: const Text('Quedarme en el Lobby', style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showingQueuePausedDialog = false;
+              _startMatchmaking(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE07A5F),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Reanudar búsqueda'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _startMatchmaking(BuildContext context) async {
@@ -405,6 +495,81 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> {
               setState(() {});
             },
             onStartMatchmaking: () => _startMatchmaking(context),
+          );
+        }
+
+        if (state is ErrorGameState) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF0F172A),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(28.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444).withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.wifi_off_rounded, color: Color(0xFFF87171), size: 48),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Aviso de Conexión',
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14, height: 1.4),
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            context.read<GameBloc>().add(const ResetGameEvent());
+                            if (AuthService.isAuthenticated) {
+                              ChatService.ensureConnected();
+                            }
+                          },
+                          icon: const Icon(Icons.home_rounded),
+                          label: const Text('Volver al Lobby'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0xFF475569)),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final success = await (WebSocketClient.shared?.reconnectNow() ?? Future.value(false));
+                            if (success && context.mounted) {
+                              context.read<GameBloc>().add(const ResetGameEvent());
+                              ChatService.ensureConnected();
+                            }
+                          },
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Reintentar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE07A5F),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         }
 

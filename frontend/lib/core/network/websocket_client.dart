@@ -29,6 +29,7 @@ class WebSocketClient {
 
   bool _isSessionActive = false;
   bool _manualDisconnect = false;
+  bool _isAppBackgrounded = false;
   int _unansweredPings = 0;
 
   String? _cachedUrl;
@@ -44,11 +45,39 @@ class WebSocketClient {
   WebSocketConnectionState get connectionState => _connectionState;
   bool get isConnected => _connectionState == WebSocketConnectionState.connected;
   bool get isSessionActive => _isSessionActive;
+  bool get isAppBackgrounded => _isAppBackgrounded;
   String? get currentUrl => _cachedUrl;
 
   void setSessionActive(bool active) {
     print('[NET FSM] setSessionActive = $active');
     _isSessionActive = active;
+  }
+
+  void onAppPaused() {
+    print('[NET LIFECYCLE] App paused/backgrounded. Suspending auto-reconnect timer and heartbeat.');
+    _isAppBackgrounded = true;
+    _cancelReconnectTimer();
+    _stopHeartbeat();
+  }
+
+  void onAppResumed() {
+    print('[NET LIFECYCLE] App resumed. Re-enabling networking.');
+    _isAppBackgrounded = false;
+    _reconnectAttempts = 0;
+    if (!isConnected && !_manualDisconnect && _cachedUrl != null) {
+      reconnectNow();
+    }
+  }
+
+  Future<bool> reconnectNow() async {
+    print('[NET RECONNECT] Immediate reconnect requested.');
+    _cancelReconnectTimer();
+    _reconnectAttempts = 0;
+    final success = await _trySingleReconnection();
+    if (!success && !_manualDisconnect && !_isAppBackgrounded && _cachedUrl != null) {
+      _scheduleNextReconnect();
+    }
+    return success;
   }
 
   Future<void> connect(String url, String token) async {
@@ -168,10 +197,13 @@ class WebSocketClient {
       print('[NET LOG] Ignored onDone from stale/superseded WebSocket channel.');
       return;
     }
-    print('[NET LOG] Socket connection closed by server or network loss. ActiveSession = $_isSessionActive, ManualDisconnect = $_manualDisconnect');
+    print('[NET LOG] Socket connection closed by server or network loss. ActiveSession = $_isSessionActive, ManualDisconnect = $_manualDisconnect, Backgrounded = $_isAppBackgrounded');
     _stopHeartbeat();
     _channel = null;
-    if (_isSessionActive || (!_manualDisconnect && _cachedUrl != null)) {
+    if (_isAppBackgrounded) {
+      print('[NET LOG] Socket closed while app is backgrounded. Waiting for resume.');
+      _transitionTo(WebSocketConnectionState.disconnected);
+    } else if (_isSessionActive || (!_manualDisconnect && _cachedUrl != null)) {
       _startReconnectionSchedule();
     } else {
       _transitionTo(WebSocketConnectionState.disconnected);
@@ -183,10 +215,13 @@ class WebSocketClient {
       print('[NET LOG] Ignored error from stale/superseded WebSocket channel.');
       return;
     }
-    print('[NET ERROR] Socket error encountered: $error. ActiveSession = $_isSessionActive, ManualDisconnect = $_manualDisconnect');
+    print('[NET ERROR] Socket error encountered: $error. ActiveSession = $_isSessionActive, ManualDisconnect = $_manualDisconnect, Backgrounded = $_isAppBackgrounded');
     _stopHeartbeat();
     _channel = null;
-    if (_isSessionActive || (!_manualDisconnect && _cachedUrl != null)) {
+    if (_isAppBackgrounded) {
+      print('[NET ERROR] Socket error while app is backgrounded. Waiting for resume.');
+      _transitionTo(WebSocketConnectionState.disconnected);
+    } else if (_isSessionActive || (!_manualDisconnect && _cachedUrl != null)) {
       _startReconnectionSchedule();
     } else {
       _transitionTo(WebSocketConnectionState.disconnected);
@@ -215,64 +250,107 @@ class WebSocketClient {
     _unansweredPings = 0;
   }
 
-  void _startReconnectionSchedule() {
-    if (_connectionState == WebSocketConnectionState.reconnecting) return;
+  Future<bool> _trySingleReconnection() async {
+    if (_cachedUrl == null || _manualDisconnect) return false;
 
-    print('[NET RECONNECT] Starting auto-reconnect timer (Interval: 2s, Max: $_maxReconnectAttempts)...');
+    if (_connectingCompleter != null) {
+      try {
+        await _connectingCompleter!.future;
+      } catch (_) {}
+      if (isConnected) return true;
+    }
+
     _transitionTo(WebSocketConnectionState.reconnecting);
-    _reconnectAttempts = 0;
+    _connectingCompleter = Completer<void>();
 
-    _reconnectTimer = Timer.periodic(_reconnectInterval, (timer) async {
+    try {
+      final uri = Uri.parse(_cachedUrl!);
+      final channel = WebSocketChannel.connect(uri);
+      await channel.ready;
+
+      print('[NET RECONNECT] Reconnection SUCCESSFUL to $_cachedUrl!');
+      _cancelReconnectTimer();
+      _channel = channel;
+      _reconnectAttempts = 0;
+      _transitionTo(WebSocketConnectionState.connected);
+      _startHeartbeat();
+
+      _channelSubscription = channel.stream.listen(
+        _onMessageReceived,
+        onDone: () => _onConnectionClosed(channel),
+        onError: (err) => _handleError(err, channel),
+        cancelOnError: true,
+      );
+
+      if (_cachedToken != null) {
+        if (_isSessionActive) {
+          print('[NET RECONNECT] Automatically submitting RECONNECT_SESSION frame...');
+          sendMessage({
+            'type': 'RECONNECT_SESSION',
+            'token': _cachedToken,
+          });
+        } else {
+          print('[NET RECONNECT] Automatically submitting USER_ONLINE frame...');
+          sendMessage({
+            'type': 'USER_ONLINE',
+            'token': _cachedToken,
+          });
+        }
+      }
+      _connectingCompleter?.complete();
+      return true;
+    } catch (e) {
+      print('[NET RECONNECT] Reconnection attempt failed: $e');
+      _channel = null;
+      _connectingCompleter?.completeError(e);
+      return false;
+    } finally {
+      _connectingCompleter = null;
+    }
+  }
+
+  void _startReconnectionSchedule() {
+    if (_isAppBackgrounded || _manualDisconnect || _cachedUrl == null) return;
+    if (_connectionState == WebSocketConnectionState.reconnecting && _reconnectTimer != null) return;
+
+    _scheduleNextReconnect();
+  }
+
+  void _scheduleNextReconnect() {
+    if (_isAppBackgrounded || _manualDisconnect || _cachedUrl == null) return;
+    _cancelReconnectTimer();
+    _transitionTo(WebSocketConnectionState.reconnecting);
+
+    // Exponential backoff: 2s, 4s, 8s, 16s, capped at 30s
+    int delaySeconds = 2;
+    if (_reconnectAttempts > 0) {
+      final factor = 1 << (_reconnectAttempts > 4 ? 4 : _reconnectAttempts);
+      delaySeconds = (factor * 2).clamp(2, 30);
+    }
+
+    print('[NET RECONNECT] Scheduling reconnect attempt ${_reconnectAttempts + 1} in ${delaySeconds}s (max foreground attempts: $_maxReconnectAttempts)...');
+
+    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () async {
+      if (_isAppBackgrounded || _manualDisconnect) return;
+
       _reconnectAttempts++;
-      print('[NET RECONNECT] Reconnection attempt $_reconnectAttempts/$_maxReconnectAttempts to $_cachedUrl...');
       if (_reconnectAttempts > _maxReconnectAttempts) {
-        print('[NET RECONNECT] Max attempts reached. Terminating auto-reconnect.');
+        print('[NET RECONNECT] Max foreground reconnect attempts reached. Pausing fast retries (no fatal error packet sent).');
         _cancelReconnectTimer();
-        _isSessionActive = false;
         _transitionTo(WebSocketConnectionState.disconnected);
-        _messageController.add({
-          'type': 'ERROR',
-          'message': 'Auto-reconnection failed after $_maxReconnectAttempts attempts.'
+        // Periodic gentle fallback check every 30 seconds
+        _reconnectTimer = Timer(const Duration(seconds: 30), () {
+          if (!_isAppBackgrounded && !_manualDisconnect && !isConnected) {
+            _reconnectAttempts = _maxReconnectAttempts - 1;
+            _scheduleNextReconnect();
+          }
         });
         return;
       }
 
-      try {
-        final uri = Uri.parse(_cachedUrl!);
-        final channel = WebSocketChannel.connect(uri);
-        await channel.ready;
-
-        print('[NET RECONNECT] Reconnection SUCCESSFUL!');
-        _cancelReconnectTimer();
-        _channel = channel;
-        _reconnectAttempts = 0;
-        _transitionTo(WebSocketConnectionState.connected);
-        _startHeartbeat();
-
-        _channelSubscription = channel.stream.listen(
-          _onMessageReceived,
-          onDone: () => _onConnectionClosed(channel),
-          onError: (err) => _handleError(err, channel),
-          cancelOnError: true,
-        );
-
-        if (_cachedToken != null) {
-          if (_isSessionActive) {
-            print('[NET RECONNECT] Automatically submitting RECONNECT_SESSION frame...');
-            sendMessage({
-              'type': 'RECONNECT_SESSION',
-              'token': _cachedToken,
-            });
-          } else {
-            print('[NET RECONNECT] Automatically submitting USER_ONLINE frame...');
-            sendMessage({
-              'type': 'USER_ONLINE',
-              'token': _cachedToken,
-            });
-          }
-        }
-      } catch (e) {
-        print('[NET RECONNECT] Attempt $_reconnectAttempts failed: $e');
+      final success = await _trySingleReconnection();
+      if (!success && !_manualDisconnect && !_isAppBackgrounded && !isConnected) {
+        _scheduleNextReconnect();
       }
     });
   }
