@@ -20,3 +20,21 @@ __pycache__/
 .DS_Store
 Thumbs.db
 CreateSprites/gemini_config.json
+
+# ==========================================
+# Archivos de compilación y temporales Backend (Java / Maven)
+# ==========================================
+backend/target/
+**/target/
+*.class
+
+
+# Bases de datos SQLite locales
+*.db
+*.sqlite
+backend/cozy_database.db
+backend/cozy_dating.db
+
+# Cargas multimedia locales
+backend/uploads/
+**/uploads/
