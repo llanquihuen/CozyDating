@@ -1,5 +1,6 @@
 import 'dart:ui';
 import '../models/avatar_config.dart';
+import '../models/lifestyle_badges.dart';
 import '../models/room_config.dart';
 
 class AvatarStorageService {
@@ -451,6 +452,18 @@ class AvatarStorageService {
 
   static void saveUserCommune(String userId, String commune) {
     _userCommunes[userId] = commune;
+  }
+
+  // --- Lifestyle Badges ---
+  static final Map<String, LifestyleBadges> _userLifestyles = {};
+
+  static LifestyleBadges getUserLifestyle(String userId) {
+    if (_userLifestyles.containsKey(userId)) return _userLifestyles[userId]!;
+    return const LifestyleBadges();
+  }
+
+  static void saveUserLifestyle(String userId, LifestyleBadges lifestyle) {
+    _userLifestyles[userId] = lifestyle;
   }
 
   // --- Coins Currency System ---

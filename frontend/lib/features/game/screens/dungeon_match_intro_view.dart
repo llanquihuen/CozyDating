@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/avatar_config.dart';
+import '../../../core/models/lifestyle_badges.dart';
 import '../../../core/models/preference_tags.dart';
 import '../../../core/models/room_config.dart';
 import '../../../core/services/auth_service.dart';
@@ -330,6 +331,7 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
         (widget.state.session.partnerTastes.isNotEmpty
             ? widget.state.session.partnerTastes
             : AvatarStorageService.getUserTastes(_partnerUserId));
+    final partnerLifestyle = AvatarStorageService.getUserLifestyle(_partnerUserId);
 
     return Scaffold(
       backgroundColor: const Color(0xFF130F26),
@@ -467,6 +469,7 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
                         age: partnerAge,
                         commune: partnerCommune,
                         tastes: partnerTastes,
+                        lifestyle: partnerLifestyle,
                       ),
 
                       const SizedBox(height: 18),
@@ -495,14 +498,9 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
   }
 
   String _formatIntentTitle(String intent) {
-    switch (intent) {
-      case 'intent_slow': return '☕ Slow Dating';
-      case 'intent_serious': return '💍 Relación Seria';
-      case 'intent_gaming_duo': return '🎮 Gaming Duo';
-      case 'intent_cozy_chats': return '💬 Charlas Cozy';
-      default: return '✨ Conectar';
-    }
+    return PreferenceCatalog.formatIntent(intent);
   }
+
 
   Widget _buildLocalPlayerHeader({
     required String name,
@@ -647,6 +645,7 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
     required int age,
     required String commune,
     required List<String> tastes,
+    LifestyleBadges? lifestyle,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -833,6 +832,43 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
                     ),
                   ],
                 ),
+
+                // Insignias de Realidad de Vida / Estilo de Vida
+                if (lifestyle != null && lifestyle.hasAnyBadge) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: lifestyle.activeBadges.map((badge) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2E204F),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF38BDF8).withValues(alpha: 0.45),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(badge.icon, style: const TextStyle(fontSize: 12)),
+                            const SizedBox(width: 4),
+                            Text(
+                              badge.label,
+                              style: const TextStyle(
+                                color: Color(0xFFE0F2FE),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
 
                 const SizedBox(height: 14),
 

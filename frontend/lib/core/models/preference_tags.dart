@@ -556,4 +556,69 @@ class PreferenceCatalog {
     final clean = id.replaceAll(RegExp(r'^(game_|cinema_|music_|food_|pet_|life_|tech_|vibe_|intent_|plat_|fuel_|vacation_)'), '');
     return '✨ ${clean.replaceAll('_', ' ')}';
   }
+
+  /// Formatea la clave técnica de intención (ej: 'intent_slow') a un texto cálido y amigable
+  static String formatIntent(String? intent, {bool includeEmoji = true}) {
+    if (intent == null || intent.trim().isEmpty) {
+      return includeEmoji
+          ? '🌱 Conocer sin prisa (Slow Dating)'
+          : 'Conocer sin prisa (Slow Dating)';
+    }
+    final trimmed = intent.trim();
+    final item = getItem(trimmed);
+    if (item != null) {
+      return includeEmoji ? '${item.emoji} ${item.title}' : item.title;
+    }
+    switch (trimmed) {
+      case 'intent_slow':
+        return includeEmoji
+            ? '🌱 Conocer sin prisa (Slow Dating)'
+            : 'Conocer sin prisa (Slow Dating)';
+      case 'intent_serious':
+        return includeEmoji
+            ? '💍 Relación seria & bonita'
+            : 'Relación seria & bonita';
+      case 'intent_gaming_duo':
+        return includeEmoji
+            ? '🎮 Dúo gamer & complicidad'
+            : 'Dúo gamer & complicidad';
+      case 'intent_cozy_chats':
+        return includeEmoji
+            ? '☕ Charlas de café y amistad'
+            : 'Charlas de café y amistad';
+      default:
+        // Si no empieza con 'intent_', asumimos que ya es un texto personalizado legible
+        if (!trimmed.startsWith('intent_')) {
+          return trimmed;
+        }
+        final clean = trimmed.replaceAll('intent_', '').replaceAll('_', ' ');
+        return includeEmoji ? '✨ $clean' : clean;
+    }
+  }
+
+  /// Retorna el emoji correspondiente a la intención
+  static String getIntentEmoji(String? intent) {
+    if (intent == null || intent.trim().isEmpty) return '🌱';
+    final trimmed = intent.trim();
+    final item = getItem(trimmed);
+    if (item != null) return item.emoji;
+    switch (trimmed) {
+      case 'intent_slow':
+        return '🌱';
+      case 'intent_serious':
+        return '💍';
+      case 'intent_gaming_duo':
+        return '🎮';
+      case 'intent_cozy_chats':
+        return '☕';
+      default:
+        return '🎯';
+    }
+  }
+
+  /// Retorna solo el título descriptivo de la intención sin el emoji inicial
+  static String getIntentTitle(String? intent) {
+    return formatIntent(intent, includeEmoji: false);
+  }
 }
+

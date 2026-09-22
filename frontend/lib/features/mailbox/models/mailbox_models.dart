@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../../../core/models/avatar_config.dart';
+import '../../../core/models/preference_tags.dart';
 import '../../../core/services/avatar_storage_service.dart';
 
 enum MailboxDecision {
@@ -100,11 +101,22 @@ class MailboxLetter {
   }
 
   String get effectiveIntent {
-    if (partnerIntent != null && partnerIntent!.isNotEmpty) return partnerIntent!;
+    if (partnerIntent != null && partnerIntent!.isNotEmpty) {
+      return PreferenceCatalog.formatIntent(partnerIntent);
+    }
     final stored = AvatarStorageService.getUserIntent(partnerId);
-    if (stored.isNotEmpty) return stored;
-    return 'Citas con calma 🌱';
+    if (stored.isNotEmpty) {
+      return PreferenceCatalog.formatIntent(stored);
+    }
+    return PreferenceCatalog.formatIntent('intent_slow');
   }
+
+  String get intentEmoji =>
+      PreferenceCatalog.getIntentEmoji(partnerIntent ?? AvatarStorageService.getUserIntent(partnerId));
+
+  String get intentTitle =>
+      PreferenceCatalog.getIntentTitle(partnerIntent ?? AvatarStorageService.getUserIntent(partnerId));
+
 
   MailboxLetter copyWith({
     String? id,

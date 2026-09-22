@@ -316,6 +316,12 @@ public class AuthController {
             user.setPhotos(photosJson);
         }
 
+        if (body.containsKey("lifestyle")) {
+            String lifestyleJson = extractJsonString(body.get("lifestyle"));
+            databaseService.updateUserLifestyle(resolvedUserId, lifestyleJson);
+            user.setLifestyle(lifestyleJson);
+        }
+
         return ResponseEntity.ok(formatUserResponse(user));
     }
 
@@ -340,6 +346,7 @@ public class AuthController {
         map.put("latitude", user.getLatitude());
         map.put("longitude", user.getLongitude());
         map.put("maxDistanceKm", user.getMaxDistanceKm());
+        map.put("lifestyle", user.getLifestyle());
         return map;
     }
 }

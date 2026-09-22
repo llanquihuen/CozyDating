@@ -61,6 +61,7 @@ public class DatabaseService {
                 if (rs.getObject("max_distance_km") != null) {
                     user.setMaxDistanceKm(rs.getDouble("max_distance_km"));
                 }
+                user.setLifestyle(rs.getString("lifestyle"));
             } catch (Exception ignored) {}
             return user;
         }
@@ -159,6 +160,10 @@ public class DatabaseService {
 
         try {
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN verification_selfie LONGTEXT");
+        } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN lifestyle LONGTEXT");
         } catch (Exception ignored) {}
 
         // Create mailbox_matches table for asynchronous letterbox post-game decisions
@@ -418,6 +423,11 @@ public class DatabaseService {
             maxDistanceKm != null ? maxDistanceKm : 25.0,
             userId
         );
+    }
+
+    @Transactional
+    public void updateUserLifestyle(String userId, String lifestyleJson) {
+        jdbcTemplate.update("UPDATE users SET lifestyle = ? WHERE id = ?", lifestyleJson, userId);
     }
 
     @Transactional

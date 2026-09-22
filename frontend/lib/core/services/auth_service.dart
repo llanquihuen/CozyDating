@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import '../config/app_config.dart';
 import '../models/avatar_config.dart';
+import '../models/lifestyle_badges.dart';
 import '../models/room_config.dart';
 import '../models/user_profile.dart';
 import '../../features/mailbox/services/mailbox_service.dart';
@@ -511,6 +512,7 @@ class AuthService {
     bool? isInternational,
     double? latitude,
     double? longitude,
+    LifestyleBadges? lifestyle,
   }) {
     if (_currentUser == null) return;
     _currentUser = _currentUser!.copyWith(
@@ -527,10 +529,45 @@ class AuthService {
       isInternational: isInternational,
       latitude: latitude,
       longitude: longitude,
+      lifestyle: lifestyle,
     );
+    if (lifestyle != null) {
+      AvatarStorageService.saveUserLifestyle(_currentUser!.id, lifestyle);
+    }
   }
 
-  /// Sync location and gender preferences to backend
+  /// Update lifestyle badges directly
+  static Future<bool> updateLifestyle(LifestyleBadges lifestyle) async {
+    if (_currentUser == null) return false;
+    final userId = _currentUser!.id;
+    _currentUser = _currentUser!.copyWith(lifestyle: lifestyle);
+    AvatarStorageService.saveUserLifestyle(userId, lifestyle);
+
+    try {
+      final url = Uri.parse('$_baseUrl/auth/profile');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+      final body = jsonEncode({
+        'userId': userId,
+        'lifestyle': lifestyle.toJson(),
+      });
+
+      final response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _currentUser = UserProfile.fromMap(data);
+        AvatarStorageService.saveUserLifestyle(userId, _currentUser!.lifestyle);
+        return true;
+      }
+    } catch (e) {
+      print('[LIFESTYLE SAVE ERROR] $e');
+    }
+    return false;
+  }
+
+  /// Sync location, gender and lifestyle preferences to backend
   static Future<bool> saveProfileToBackend() async {
     if (_currentUser == null) return false;
     try {
@@ -549,6 +586,7 @@ class AuthService {
         'maxDistanceKm': _currentUser!.maxDistanceKm,
         if (_currentUser!.latitude != null) 'latitude': _currentUser!.latitude,
         if (_currentUser!.longitude != null) 'longitude': _currentUser!.longitude,
+        if (_currentUser!.lifestyle.hasAnyBadge) 'lifestyle': _currentUser!.lifestyle.toJson(),
       });
 
       final response = await http.post(url, headers: headers, body: body);

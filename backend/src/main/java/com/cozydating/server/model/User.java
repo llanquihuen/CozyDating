@@ -21,6 +21,7 @@ public class User {
     private Double latitude;
     private Double longitude;
     private double maxDistanceKm = 25.0;
+    private String lifestyle; // JSON string of lifestyle badges
     private String createdAt;
     private String updatedAt;
 
@@ -205,6 +206,14 @@ public class User {
 
     public void setMaxDistanceKm(double maxDistanceKm) {
         this.maxDistanceKm = maxDistanceKm;
+    }
+
+    public String getLifestyle() {
+        return lifestyle;
+    }
+
+    public void setLifestyle(String lifestyle) {
+        this.lifestyle = lifestyle;
     }
 
     public String getCreatedAt() {

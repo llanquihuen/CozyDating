@@ -5,12 +5,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/avatar_config.dart';
+import '../../../core/models/lifestyle_badges.dart';
 import '../../../core/models/preference_tags.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../revelation/screens/match_reveal_celebration_view.dart';
 import '../games/character_preview_game.dart';
+import '../widgets/lifestyle_badges_sheet.dart';
 
 class CharacterCreatorScreen extends StatefulWidget {
   final AvatarConfig? initialConfig;
@@ -59,6 +61,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   late String _seekingGender;
   late bool _isInternational;
   late TextEditingController _communeController;
+  late LifestyleBadges _currentLifestyle;
 
   final List<String> _samplePhotoPresets = const [
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
@@ -105,6 +108,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     _seekingGender = AuthService.currentUser?.seekingGender ?? 'ANY';
     _isInternational = AuthService.currentUser?.isInternational ?? false;
     _communeController = TextEditingController(text: _userCommune);
+    _currentLifestyle = AuthService.currentUser?.lifestyle ?? AvatarStorageService.getUserLifestyle(activeId);
 
     _previewGame = CharacterPreviewGame(
       config: _currentConfig,
@@ -253,7 +257,10 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       gender: _userGender,
       seekingGender: _seekingGender,
       isInternational: _isInternational,
+      lifestyle: _currentLifestyle,
     );
+    AvatarStorageService.saveUserLifestyle(activeId, _currentLifestyle);
+    AuthService.updateLifestyle(_currentLifestyle);
     AuthService.saveProfileToBackend();
 
     widget.onSaved?.call(_currentConfig);
@@ -300,6 +307,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       age: _userAge,
       commune: _userCommune,
       tastes: _selectedTastes.toList(),
+      lifestyle: _currentLifestyle,
     );
 
     showDialog(
@@ -355,27 +363,31 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
             child: const Icon(Icons.brush, color: Color(0xFF38BDF8), size: 20),
           ),
           const SizedBox(width: 12),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Armario • Avatar & Perfil',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Color(0xFFF8FAFC),
-                  letterSpacing: 0.3,
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Armario • Avatar & Perfil',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFFF8FAFC),
+                    letterSpacing: 0.3,
+                  ),
                 ),
-              ),
-              Text(
-                'Personaliza tu personaje pixel art',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF94A3B8),
+                Text(
+                  'Personaliza tu personaje pixel art',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF94A3B8),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -547,7 +559,11 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
               _buildDistanceAndLocationSection(),
               const SizedBox(height: 24),
 
-              // 4. Tus Vibes, Ejes & Gustos Cozy (Incluye tu Intención de Cita oficial como 1er Eje)
+              // 4. Insignias de Perfil: ¿Quién eres y cómo es tu realidad de vida actual?
+              _buildLifestyleBadgesSection(),
+              const SizedBox(height: 24),
+
+              // 5. Tus Vibes, Ejes & Gustos Cozy (Incluye tu Intención de Cita oficial como 1er Eje)
               _buildTastesSection(),
               const SizedBox(height: 40),
             ],
@@ -2049,6 +2065,138 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
               style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLifestyleBadgesSection() {
+    final activeBadges = _currentLifestyle.activeBadges;
+    final hasBadges = activeBadges.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasBadges ? const Color(0xFF0284C7).withOpacity(0.5) : const Color(0xFF334155),
+          width: hasBadges ? 1.5 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.badge_rounded, color: Color(0xFF38BDF8), size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '¿Quién eres y cómo es tu realidad de vida actual?',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0284C7).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${_currentLifestyle.activeCount}/12',
+                  style: const TextStyle(
+                    color: Color(0xFF38BDF8),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Insignias opcionales para que tu cita conozca tus hábitos y estilo de vida antes de la fogata.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 14),
+
+          // Active Badges Chips preview
+          if (hasBadges) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: activeBadges.map((b) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF0284C7).withOpacity(0.6), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(b.icon, style: const TextStyle(fontSize: 13)),
+                      const SizedBox(width: 6),
+                      Text(
+                        b.label,
+                        style: const TextStyle(
+                          color: Color(0xFFE2E8F0),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // Button to open LifestyleBadgesSheet
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF38BDF8),
+                side: const BorderSide(color: Color(0xFF0284C7), width: 1.2),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: const Color(0xFF0284C7).withOpacity(0.08),
+              ),
+              icon: const Icon(Icons.tune_rounded, size: 18),
+              label: Text(
+                hasBadges
+                    ? 'Gestionar mis Insignias (${_currentLifestyle.activeCount}/12 activas)'
+                    : '+ Añadir Insignias a mi Ficha',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              onPressed: () {
+                LifestyleBadgesSheet.show(
+                  context,
+                  initialLifestyle: _currentLifestyle,
+                  onSaved: (updated) {
+                    setState(() {
+                      _currentLifestyle = updated;
+                    });
+                  },
+                );
+              },
+            ),
+          ),
         ],
       ),
     );

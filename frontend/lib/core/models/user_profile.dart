@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'avatar_config.dart';
+import 'lifestyle_badges.dart';
+import 'preference_tags.dart';
 import 'room_config.dart';
 
 class UserProfile {
@@ -25,6 +27,7 @@ class UserProfile {
   final bool isInternational;
   final double? latitude;
   final double? longitude;
+  final LifestyleBadges lifestyle;
 
   const UserProfile({
     required this.id,
@@ -49,6 +52,7 @@ class UserProfile {
     this.isInternational = false,
     this.latitude,
     this.longitude,
+    this.lifestyle = const LifestyleBadges(),
   });
 
   /// Primary photo for fallback/compatibility
@@ -69,6 +73,15 @@ class UserProfile {
     }
     return list;
   }
+
+  /// Formatted user-facing dating intent string (e.g. '🌱 Conocer sin prisa (Slow Dating)')
+  String get formattedIntent => PreferenceCatalog.formatIntent(intent);
+
+  /// Intent emoji (e.g. '🌱', '💍', '🎮', '☕')
+  String get intentEmoji => PreferenceCatalog.getIntentEmoji(intent);
+
+  /// Intent title without emoji (e.g. 'Conocer sin prisa (Slow Dating)')
+  String get intentTitle => PreferenceCatalog.getIntentTitle(intent);
 
   UserProfile copyWith({
     String? id,
@@ -93,6 +106,7 @@ class UserProfile {
     bool? isInternational,
     double? latitude,
     double? longitude,
+    LifestyleBadges? lifestyle,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -117,6 +131,7 @@ class UserProfile {
       isInternational: isInternational ?? this.isInternational,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      lifestyle: lifestyle ?? this.lifestyle,
     );
   }
 
@@ -144,6 +159,7 @@ class UserProfile {
       'isInternational': isInternational,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
+      if (lifestyle.hasAnyBadge) 'lifestyle': lifestyle.toJson(),
     };
   }
 
@@ -211,7 +227,34 @@ class UserProfile {
       parsedPhotos = [];
     }
 
+    LifestyleBadges parsedLifestyle;
+    try {
+      final rawLifestyle = map['lifestyle'];
+      if (rawLifestyle is String && rawLifestyle.isNotEmpty && rawLifestyle != '{}') {
+        parsedLifestyle = LifestyleBadges.fromJson(rawLifestyle);
+      } else if (rawLifestyle is Map<String, dynamic>) {
+        parsedLifestyle = LifestyleBadges.fromMap(rawLifestyle);
+      } else {
+        parsedLifestyle = const LifestyleBadges();
+      }
+    } catch (_) {
+      parsedLifestyle = const LifestyleBadges();
+    }
+
     final singlePhoto = map['profilePhoto'] as String?;
+
+    String resolvedIntent = map['intent'] as String? ?? '';
+    if (resolvedIntent.isEmpty) {
+      for (final t in parsedTastes) {
+        if (t.startsWith('intent_')) {
+          resolvedIntent = t;
+          break;
+        }
+      }
+    }
+    if (resolvedIntent.isEmpty) {
+      resolvedIntent = 'intent_slow';
+    }
 
     return UserProfile(
       id: map['id'] ?? '',
@@ -226,7 +269,7 @@ class UserProfile {
       profilePhoto: singlePhoto,
       photos: parsedPhotos,
       bio: map['bio'] as String? ?? '',
-      intent: map['intent'] as String? ?? 'intent_slow',
+      intent: resolvedIntent,
       maxDistanceKm: (map['maxDistanceKm'] as num?)?.toDouble() ?? 25.0,
       roomConfig: room,
       isVerified: map['isVerified'] == true || map['is_verified'] == true || map['is_verified'] == 1,
@@ -236,6 +279,7 @@ class UserProfile {
       isInternational: map['isInternational'] == true || map['is_international'] == true || map['is_international'] == 1,
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
+      lifestyle: parsedLifestyle,
     );
   }
 

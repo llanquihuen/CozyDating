@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/models/lifestyle_badges.dart';
+import '../../../core/models/preference_tags.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../../core/widgets/fullscreen_photo_viewer.dart';
@@ -43,6 +45,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
   String _intent = '';
   int _age = 24;
   String _commune = 'Santiago';
+  late LifestyleBadges _lifestyle;
 
   @override
   void initState() {
@@ -94,16 +97,18 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
       _bio = 'Aventurero(a) en busca de momentos genuinos, buenas charlas y partidas cooperativas ✨.';
     }
 
-    _intent = partner.intent.isNotEmpty
+    final rawIntent = partner.intent.isNotEmpty
         ? partner.intent
         : AvatarStorageService.getUserIntent(partnerId);
 
-    if (_intent.isEmpty) {
-      _intent = 'Conectar con calma y ver qué surge 🌱';
-    }
+    _intent = PreferenceCatalog.formatIntent(rawIntent);
+
 
     _age = partner.age > 0 ? partner.age : 24;
     _commune = partner.commune.isNotEmpty ? partner.commune : 'Santiago';
+    _lifestyle = partner.lifestyle.hasAnyBadge
+        ? partner.lifestyle
+        : AvatarStorageService.getUserLifestyle(partnerId);
   }
 
   @override
@@ -632,15 +637,59 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text('🎯', style: TextStyle(fontSize: 12)),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _intent,
-                                  style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 11.5, fontWeight: FontWeight.bold),
+                                if (!_intent.startsWith(RegExp(r'[\u{1F1E6}-\u{1FAFF}]', unicode: true))) ...[
+                                  const Text('🎯', style: TextStyle(fontSize: 12)),
+                                  const SizedBox(width: 6),
+                                ],
+                                Flexible(
+                                  child: Text(
+                                    _intent,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 11.5, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ],
                             ),
+
                           ),
+
+
+                          // Lifestyle Badges Chips
+                          if (_lifestyle.hasAnyBadge) ...[
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: _lifestyle.activeBadges.map((badge) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E293B),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: const Color(0xFF38BDF8).withOpacity(0.35),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(badge.icon, style: const TextStyle(fontSize: 12)),
+                                      const SizedBox(width: 4.5),
+                                      Text(
+                                        badge.label,
+                                        style: const TextStyle(
+                                          color: Color(0xFFE2E8F0),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
                           const SizedBox(height: 14),
 
                           // Bio ("Acerca de mí")
