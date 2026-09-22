@@ -84,11 +84,6 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
         addPhoto(p);
       }
     }
-
-    if (combinedPhotos.isEmpty) {
-      combinedPhotos.add('assets/images/default_avatar.png');
-    }
-
     _photos = combinedPhotos;
 
     _bio = partner.bio.isNotEmpty
@@ -336,21 +331,61 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                     SizedBox(
                       height: 360,
                       width: double.infinity,
-                      child: Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          PageView.builder(
-                            controller: _photoPageController,
-                            itemCount: _photos.length,
-                            onPageChanged: (idx) {
-                              setState(() {
-                                _currentPhotoIndex = idx;
-                              });
-                            },
-                            itemBuilder: (context, index) {
-                              return _buildPhotoSlot(_photos[index]);
-                            },
-                          ),
+                      child: _photos.isEmpty
+                          ? Container(
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1E293B),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.account_circle,
+                                      size: 100,
+                                      color: Color(0xFFFFD54F),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  const Text(
+                                    'Perfil sin fotos reales aún',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Conexión basada en personalidad ✨',
+                                    style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Stack(
+                              alignment: Alignment.bottomCenter,
+                              children: [
+                                PageView.builder(
+                                  controller: _photoPageController,
+                                  itemCount: _photos.length,
+                                  onPageChanged: (idx) {
+                                    setState(() {
+                                      _currentPhotoIndex = idx;
+                                    });
+                                  },
+                                  itemBuilder: (context, index) {
+                                    return _buildPhotoSlot(_photos[index]);
+                                  },
+                                ),
 
                           // Left & Right tap zones for quick photo flip + Center tap to open fullscreen
                           if (_photos.length > 1)
@@ -478,29 +513,30 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                           ),
 
                           // Photos counter tag (top right)
-                          Positioned(
-                            top: 22,
-                            right: 12,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.65),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white24),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.photo_camera_rounded, size: 12, color: Colors.white),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_currentPhotoIndex + 1}/${_photos.length}',
-                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
+                          if (_photos.length > 1)
+                            Positioned(
+                              top: 22,
+                              right: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.65),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.photo_camera_rounded, size: 12, color: Colors.white),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${_currentPhotoIndex + 1}/${_photos.length}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
 
                           // Fullscreen "Ampliar" button (bottom right)
                           Positioned(

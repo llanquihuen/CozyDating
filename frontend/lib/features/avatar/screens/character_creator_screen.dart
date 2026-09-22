@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/preference_tags.dart';
@@ -66,6 +67,10 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
   ];
 
+  static const String _prefPendingCameraActionKey = 'pending_character_creator_camera_action';
+  static const String _actionSelfieVerification = 'selfie_verification';
+  static const String _actionProfilePhoto = 'profile_photo';
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +104,40 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     );
     _faceTabController = TabController(length: 3, vsync: this);
     _clothesTabController = TabController(length: 4, vsync: this);
+
+    // Recuperación de imágenes si Android LMK destruyó el Activity en dispositivos de 4GB (ej. Redmi 12)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLostCameraData();
+    });
+  }
+
+  Future<void> _checkLostCameraData() async {
+    try {
+      final picker = ImagePicker();
+      final LostDataResponse response = await picker.retrieveLostData();
+      if (response.isEmpty) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final pendingAction = prefs.getString(_prefPendingCameraActionKey);
+      await prefs.remove(_prefPendingCameraActionKey);
+
+      final file = response.file;
+      if (file != null) {
+        if (pendingAction == _actionSelfieVerification) {
+          if (mounted) {
+            await _processVerificationSelfie(file);
+          }
+        } else if (pendingAction == _actionProfilePhoto) {
+          if (mounted) {
+            await _uploadAndSetProfilePhoto(file);
+          }
+        }
+      } else if (response.exception != null && mounted) {
+        debugPrint('[CharacterCreatorScreen] Excepción recuperada de ImagePicker: ${response.exception}');
+      }
+    } catch (e) {
+      debugPrint('[CharacterCreatorScreen] Error en _checkLostCameraData: $e');
+    }
   }
 
   @override
@@ -948,38 +987,27 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     );
   }
 
-  Future<void> _pickAndUploadProfilePhoto(ImageSource source, BuildContext dialogContext) async {
-    try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
-        source: source,
-        maxWidth: 1600,
-        maxHeight: 1600,
-        imageQuality: 85,
-      );
-
-      if (pickedFile == null) return;
-      if (dialogContext.mounted) Navigator.pop(dialogContext);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                ),
-                SizedBox(width: 12),
-                Text('Subiendo Foto Oficial al servidor...'),
-              ],
-            ),
-            duration: Duration(seconds: 4),
+  Future<void> _uploadAndSetProfilePhoto(XFile pickedFile) async {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              SizedBox(width: 12),
+              Text('Subiendo Foto Oficial al servidor...'),
+            ],
           ),
-        );
-      }
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
 
+    try {
       final bytes = await pickedFile.readAsBytes();
       final filename = pickedFile.name.isNotEmpty
           ? pickedFile.name
@@ -1024,6 +1052,49 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           ),
         );
       }
+    }
+  }
+
+  Future<void> _pickAndUploadProfilePhoto(ImageSource source, BuildContext dialogContext) async {
+    if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+    XFile? pickedFile;
+    try {
+      if (source == ImageSource.camera) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_prefPendingCameraActionKey, _actionProfilePhoto);
+      }
+
+      // Pausar motor Flame para ceder memoria y CPU en dispositivos de gama de entrada
+      _previewGame.pauseEngine();
+
+      final picker = ImagePicker();
+      pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        imageQuality: 80,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al acceder a la cámara o galería: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      _previewGame.resumeEngine();
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_prefPendingCameraActionKey);
+      } catch (_) {}
+    }
+
+    if (pickedFile != null && mounted) {
+      await _uploadAndSetProfilePhoto(pickedFile);
     }
   }
 
@@ -1190,29 +1261,35 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
         return;
       }
 
+      if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+      _previewGame.pauseEngine();
       final picker = ImagePicker();
       List<XFile> pickedFiles = [];
 
-      if (source == ImageSource.gallery) {
-        pickedFiles = await picker.pickMultiImage(
-          maxWidth: 1600,
-          maxHeight: 1600,
-          imageQuality: 85,
-        );
-      } else {
-        final single = await picker.pickImage(
-          source: ImageSource.camera,
-          maxWidth: 1600,
-          maxHeight: 1600,
-          imageQuality: 85,
-        );
-        if (single != null) {
-          pickedFiles.add(single);
+      try {
+        if (source == ImageSource.gallery) {
+          pickedFiles = await picker.pickMultiImage(
+            maxWidth: 1080,
+            maxHeight: 1080,
+            imageQuality: 80,
+          );
+        } else {
+          final single = await picker.pickImage(
+            source: ImageSource.camera,
+            maxWidth: 1080,
+            maxHeight: 1080,
+            imageQuality: 80,
+          );
+          if (single != null) {
+            pickedFiles.add(single);
+          }
         }
+      } finally {
+        _previewGame.resumeEngine();
       }
 
       if (pickedFiles.isEmpty) return;
-      if (dialogContext.mounted) Navigator.pop(dialogContext);
 
       final toUpload = pickedFiles.take(availableSlots).toList();
       final List<String> newlyUploaded = [];
@@ -1424,86 +1501,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     );
   }
 
-  Future<void> _startSelfieVerification() async {
-    if (_currentPhoto == null || _currentPhoto!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Primero debes seleccionar una Foto de Perfil Oficial antes de verificar.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    final picker = ImagePicker();
-    final pickedFile = await showDialog<XFile?>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.face_retouching_natural, color: Color(0xFF38BDF8)),
-            SizedBox(width: 8),
-            Text('Certificación Facial', style: TextStyle(color: Colors.white, fontSize: 16)),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Tómate una selfie rápida de frente con buena iluminación.',
-              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'El sistema comparará biométricamente tu rostro con tu Foto de Perfil Oficial para validar que eres una persona real.',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('Cancelar', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0284C7),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            icon: const Icon(Icons.camera_front, size: 18),
-            label: const Text('Abrir Cámara Frontal'),
-            onPressed: () async {
-              try {
-                final file = await picker.pickImage(
-                  source: ImageSource.camera,
-                  preferredCameraDevice: CameraDevice.front,
-                  maxWidth: 1200,
-                  maxHeight: 1200,
-                  imageQuality: 85,
-                );
-                if (ctx.mounted) Navigator.pop(ctx, file);
-              } catch (_) {
-                // Fallback para emuladores o plataformas sin cámara
-                final file = await picker.pickImage(
-                  source: ImageSource.gallery,
-                  maxWidth: 1200,
-                  maxHeight: 1200,
-                );
-                if (ctx.mounted) Navigator.pop(ctx, file);
-              }
-            },
-          ),
-        ],
-      ),
-    );
-
-    if (pickedFile == null) return;
-
+  Future<void> _processVerificationSelfie(XFile pickedFile) async {
     if (!mounted) return;
 
     // Mostrar diálogo interactivo de escaneo biométrico
@@ -1557,6 +1555,112 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
         );
       }
     }
+  }
+
+  Future<void> _startSelfieVerification() async {
+    if (_currentPhoto == null || _currentPhoto!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Primero debes seleccionar una Foto de Perfil Oficial antes de verificar.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final shouldOpenCamera = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.face_retouching_natural, color: Color(0xFF38BDF8)),
+            SizedBox(width: 8),
+            Text('Certificación Facial', style: TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Tómate una selfie rápida de frente con buena iluminación.',
+              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'El sistema comparará biométricamente tu rostro con tu Foto de Perfil Oficial para validar que eres una persona real.',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0284C7),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.camera_front, size: 18),
+            label: const Text('Abrir Cámara Frontal'),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldOpenCamera != true) return;
+    if (!mounted) return;
+
+    final picker = ImagePicker();
+    XFile? pickedFile;
+
+    try {
+      // 1. Registrar intención pendiente para LMK en Android de gama baja
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefPendingCameraActionKey, _actionSelfieVerification);
+
+      // 2. Pausar motor Flame para ceder memoria y CPU al sensor nativo de MIUI
+      _previewGame.pauseEngine();
+
+      pickedFile = await picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 75,
+      );
+    } catch (_) {
+      // Fallback para emuladores o plataformas sin cámara frontal directa
+      try {
+        pickedFile = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 800,
+          maxHeight: 800,
+          imageQuality: 75,
+        );
+      } catch (e) {
+        debugPrint('[CharacterCreatorScreen] Error en fallback de selección de selfie: $e');
+      }
+    } finally {
+      // Reanudar Flame y limpiar bandera si el proceso sobrevivió
+      _previewGame.resumeEngine();
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_prefPendingCameraActionKey);
+      } catch (_) {}
+    }
+
+    if (pickedFile == null) return;
+    if (!mounted) return;
+
+    await _processVerificationSelfie(pickedFile);
   }
 
   void _showVerificationSuccessDialog(Map<String, dynamic> result) {

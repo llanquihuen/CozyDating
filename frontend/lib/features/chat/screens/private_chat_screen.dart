@@ -117,11 +117,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> with WidgetsBindi
           title: ValueListenableBuilder<Map<String, bool>>(
             valueListenable: ChatService.partnerPresenceNotifier,
             builder: (context, presenceMap, _) {
-              final isOnline = presenceMap[partner.partnerId] == true ||
-                  (partner.partnerId == 'userA' && presenceMap['alice'] == true) ||
-                  (partner.partnerId == 'userB' && presenceMap['bob'] == true) ||
-                  (partner.partnerId == 'alice' && presenceMap['userA'] == true) ||
-                  (partner.partnerId == 'bob' && presenceMap['userB'] == true);
+              final isOnline = presenceMap[partner.partnerId] == true;
 
               final statusColor = isOnline ? const Color(0xFF66BB6A) : const Color(0xFF9E9E9E);
               final statusText = isOnline ? 'En línea' : 'Desconectado';

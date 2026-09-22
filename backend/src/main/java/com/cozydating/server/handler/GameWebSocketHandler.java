@@ -182,11 +182,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             userId = jwtUtil.verifyTokenAndGetUserId(token);
         }
         if (userId == null && requestedUserId != null && !requestedUserId.trim().isEmpty()) {
-            userId = requestedUserId;
-            if ("alice".equalsIgnoreCase(userId)) userId = "userA";
-            if ("bob".equalsIgnoreCase(userId)) userId = "userB";
-            if ("charlie".equalsIgnoreCase(userId)) userId = "userC";
-            if ("david".equalsIgnoreCase(userId)) userId = "userD";
+            userId = databaseService.resolveDbUserId(requestedUserId.trim());
         }
 
         if (userId == null) {
@@ -235,10 +231,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private void handlePresenceCheck(WebSocketSession session, Map<String, Object> data) throws IOException {
         String targetUserId = (String) data.get("targetUserId");
         if (targetUserId != null) {
-            if ("alice".equalsIgnoreCase(targetUserId)) targetUserId = "userA";
-            if ("bob".equalsIgnoreCase(targetUserId)) targetUserId = "userB";
-            if ("charlie".equalsIgnoreCase(targetUserId)) targetUserId = "userC";
-            if ("david".equalsIgnoreCase(targetUserId)) targetUserId = "userD";
+            targetUserId = databaseService.resolveDbUserId(targetUserId.trim());
         }
 
         boolean isOnline = false;
@@ -271,12 +264,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         if (fromUserId != null) {
-            if ("alice".equalsIgnoreCase(fromUserId)) fromUserId = "userA";
-            if ("bob".equalsIgnoreCase(fromUserId)) fromUserId = "userB";
+            fromUserId = databaseService.resolveDbUserId(fromUserId.trim());
         }
         if (toUserId != null) {
-            if ("alice".equalsIgnoreCase(toUserId)) toUserId = "userA";
-            if ("bob".equalsIgnoreCase(toUserId)) toUserId = "userB";
+            toUserId = databaseService.resolveDbUserId(toUserId.trim());
         }
 
         // Persist message to DB
@@ -317,12 +308,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
 
         if (fromUserId != null) {
-            if ("alice".equalsIgnoreCase(fromUserId)) fromUserId = "userA";
-            if ("bob".equalsIgnoreCase(fromUserId)) fromUserId = "userB";
+            fromUserId = databaseService.resolveDbUserId(fromUserId.trim());
         }
         if (toUserId != null) {
-            if ("alice".equalsIgnoreCase(toUserId)) toUserId = "userA";
-            if ("bob".equalsIgnoreCase(toUserId)) toUserId = "userB";
+            toUserId = databaseService.resolveDbUserId(toUserId.trim());
         }
 
         // Ephemeral invitation event - do NOT persist as permanent junk message in chat_messages table
@@ -369,12 +358,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String title = (String) data.get("title");
 
         if (fromUserId != null) {
-            if ("alice".equalsIgnoreCase(fromUserId)) fromUserId = "userA";
-            if ("bob".equalsIgnoreCase(fromUserId)) fromUserId = "userB";
+            fromUserId = databaseService.resolveDbUserId(fromUserId.trim());
         }
         if (toUserId != null) {
-            if ("alice".equalsIgnoreCase(toUserId)) toUserId = "userA";
-            if ("bob".equalsIgnoreCase(toUserId)) toUserId = "userB";
+            toUserId = databaseService.resolveDbUserId(toUserId.trim());
         }
 
         WebSocketSession targetSession = userToSessionMap.get(toUserId);
@@ -426,12 +413,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String matchId = (String) data.get("matchId");
 
         if (fromUserId != null) {
-            if ("alice".equalsIgnoreCase(fromUserId)) fromUserId = "userA";
-            if ("bob".equalsIgnoreCase(fromUserId)) fromUserId = "userB";
+            fromUserId = databaseService.resolveDbUserId(fromUserId.trim());
         }
         if (toUserId != null) {
-            if ("alice".equalsIgnoreCase(toUserId)) toUserId = "userA";
-            if ("bob".equalsIgnoreCase(toUserId)) toUserId = "userB";
+            toUserId = databaseService.resolveDbUserId(toUserId.trim());
         }
 
         WebSocketSession targetSession = userToSessionMap.get(toUserId);
@@ -619,6 +604,23 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             String partnerCommune = isUserA ? match.getUserBCommune() : match.getUserACommune();
             String partnerNote = isUserA ? match.getNoteB() : match.getNoteA();
 
+            User partnerUser = databaseService.findUserById(partnerId);
+            String partnerPhotos = null;
+            if (partnerUser != null) {
+                partnerName = partnerUser.getUsername();
+                if (partnerUser.getAge() > 0) partnerAge = partnerUser.getAge();
+                if (partnerUser.getCommune() != null && !partnerUser.getCommune().trim().isEmpty()) {
+                    partnerCommune = partnerUser.getCommune().trim();
+                }
+                partnerPhotos = partnerUser.getPhotos();
+                if (partnerUser.getProfilePhoto() != null && !partnerUser.getProfilePhoto().trim().isEmpty()) {
+                    partnerPhoto = partnerUser.getProfilePhoto().trim();
+                }
+                if (partnerAvatar == null || partnerAvatar.trim().isEmpty() || "{}".equals(partnerAvatar.trim())) {
+                    partnerAvatar = partnerUser.getAvatarConfig();
+                }
+            }
+
             Map<String, Object> frame = new HashMap<>();
             frame.put("type", "MUTUAL_MATCH_REVEAL");
             frame.put("matchId", match.getId());
@@ -627,6 +629,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             frame.put("partnerName", partnerName != null ? partnerName : "Compañero");
             frame.put("partnerAvatar", partnerAvatar);
             frame.put("partnerPhoto", partnerPhoto);
+            if (partnerPhotos != null && !partnerPhotos.trim().isEmpty()) {
+                frame.put("partnerPhotos", partnerPhotos);
+            }
             frame.put("partnerAge", partnerAge);
             frame.put("partnerCommune", partnerCommune);
             frame.put("partnerNote", partnerNote);

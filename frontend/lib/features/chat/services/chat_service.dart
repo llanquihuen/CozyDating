@@ -394,9 +394,7 @@ class ChatService {
           for (var item in data) {
             if (item is Map<String, dynamic>) {
               final senderId = item['senderId']?.toString() ?? '';
-              final isFromMe = senderId == myId ||
-                  (senderId == 'userA' && myId == 'alice') ||
-                  (senderId == 'userB' && myId == 'bob');
+              final isFromMe = senderId == myId;
 
               final dateType = item['dateType']?.toString();
               final text = item['text']?.toString() ?? '';

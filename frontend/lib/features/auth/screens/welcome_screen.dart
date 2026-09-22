@@ -57,26 +57,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     return result.success;
   }
 
-  Future<bool> _performQuickTestLogin(void Function(void Function()) setSheetState, String testUserId) async {
-    setSheetState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    final result = await AuthService.loginTestUser(testUserId);
-
-    if (!mounted) return false;
-
-    setSheetState(() {
-      _isLoading = false;
-      if (!result.success) {
-        _errorMessage = result.errorMessage ?? 'Error al conectar usuario de prueba';
-      }
-    });
-
-    return result.success;
-  }
-
   Future<void> _openRegistration() async {
     final bool? registered = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -194,26 +174,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           )
                         : const Text('Entrar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(color: Colors.white24),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'O entra con una cuenta de prueba:',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white60, fontSize: 12),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _buildQuickUserBtn(sheetContext, setSheetState, 'alice', '🧑‍🦰 Alice'),
-                      _buildQuickUserBtn(sheetContext, setSheetState, 'bob', '👩‍🦱 Bob'),
-                      _buildQuickUserBtn(sheetContext, setSheetState, 'charlie', '🧔 Charlie'),
-                      _buildQuickUserBtn(sheetContext, setSheetState, 'david', '👱‍♀️ David'),
-                    ],
-                  ),
                 ],
               ),
             );
@@ -225,30 +185,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     if (authenticated == true && mounted) {
       widget.onAuthenticated();
     }
-  }
-
-  Widget _buildQuickUserBtn(
-    BuildContext sheetContext,
-    void Function(void Function()) setSheetState,
-    String id,
-    String label,
-  ) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white70,
-        side: const BorderSide(color: Colors.white24),
-        visualDensity: VisualDensity.compact,
-      ),
-      onPressed: _isLoading
-          ? null
-          : () async {
-              final success = await _performQuickTestLogin(setSheetState, id);
-              if (success && sheetContext.mounted) {
-                Navigator.of(sheetContext).pop(true);
-              }
-            },
-      child: Text(label, style: const TextStyle(fontSize: 12)),
-    );
   }
 
   @override

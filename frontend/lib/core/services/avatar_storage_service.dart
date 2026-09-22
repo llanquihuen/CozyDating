@@ -323,13 +323,7 @@ class AvatarStorageService {
     if (_userConfigs.containsKey(userId)) {
       return _userConfigs[userId]!;
     }
-    if (userId.isEmpty) {
-      return _userConfigs['bob'] ?? const AvatarConfig();
-    }
-    // Si no existe, mapear determinísticamente a uno de los perfiles para variedad visual
-    const fallbackKeys = ['bob', 'charlie', 'david', 'alice'];
-    final index = userId.hashCode.abs() % fallbackKeys.length;
-    return _userConfigs[fallbackKeys[index]] ?? const AvatarConfig();
+    return const AvatarConfig();
   }
 
   static void saveUserConfig(String userId, AvatarConfig config) {
@@ -351,12 +345,7 @@ class AvatarStorageService {
     if (_userRoomConfigs.containsKey(userId)) {
       return _userRoomConfigs[userId]!;
     }
-    if (userId.isEmpty) {
-      return _userRoomConfigs['bob'] ?? const RoomConfig();
-    }
-    const fallbackKeys = ['bob', 'charlie', 'david', 'alice'];
-    final index = userId.hashCode.abs() % fallbackKeys.length;
-    return _userRoomConfigs[fallbackKeys[index]] ?? const RoomConfig();
+    return const RoomConfig();
   }
 
   static void saveUserRoomConfig(String userId, RoomConfig config) {
@@ -368,27 +357,13 @@ class AvatarStorageService {
   }
 
   // --- Taste Preferences Methods ---
-  static final Map<String, List<String>> _userTastes = {
-    'alice': const ['game_coop', 'cinema_ghibli', 'life_coffee_tea', 'pet_cat', 'vibe_night_owl', 'intent_slow'],
-    'userA': const ['game_coop', 'cinema_ghibli', 'life_coffee_tea', 'pet_cat', 'vibe_night_owl', 'intent_slow'],
-    'bob': const ['game_coop', 'game_roguelike', 'cinema_ghibli', 'pet_dog', 'vibe_early_bird', 'intent_slow'],
-    'userB': const ['game_coop', 'game_roguelike', 'cinema_ghibli', 'pet_dog', 'vibe_early_bird', 'intent_slow'],
-    'charlie': const ['game_rpg', 'cinema_scifi', 'tech_pc_gamer', 'vibe_introvert', 'intent_gaming_duo'],
-    'userC': const ['game_rpg', 'cinema_scifi', 'tech_pc_gamer', 'vibe_introvert', 'intent_gaming_duo'],
-    'david': const ['game_tabletop', 'music_rock_metal', 'life_coffee_tea', 'vibe_adventurer', 'intent_cozy_chats'],
-    'userD': const ['game_tabletop', 'music_rock_metal', 'life_coffee_tea', 'vibe_adventurer', 'intent_cozy_chats'],
-  };
+  static final Map<String, List<String>> _userTastes = {};
 
   static List<String> getUserTastes(String userId) {
     if (_userTastes.containsKey(userId)) {
       return List<String>.from(_userTastes[userId]!);
     }
-    if (userId.isEmpty) {
-      return const ['game_coop', 'intent_slow'];
-    }
-    const fallbackKeys = ['bob', 'charlie', 'david', 'alice'];
-    final index = userId.hashCode.abs() % fallbackKeys.length;
-    return List<String>.from(_userTastes[fallbackKeys[index]] ?? const ['game_coop', 'intent_slow']);
+    return const ['game_coop', 'intent_slow'];
   }
 
   static void saveUserTastes(String userId, List<String> tastes) {
@@ -396,53 +371,11 @@ class AvatarStorageService {
   }
 
   // --- Real Profile Photos Methods (Up to 6 photos) ---
-  static final Map<String, List<String>> _userPhotosList = {
-    'alice': [
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80',
-    ],
-    'userA': [
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&auto=format&fit=crop&q=80',
-    ],
-    'bob': [
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80',
-    ],
-    'userB': [
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=600&auto=format&fit=crop&q=80',
-    ],
-    'charlie': [
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&auto=format&fit=crop&q=80',
-    ],
-    'userC': [
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&auto=format&fit=crop&q=80',
-    ],
-    'david': [
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-    ],
-    'userD': [
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-    ],
-  };
+  static final Map<String, List<String>> _userPhotosList = {};
 
   static List<String> getUserPhotos(String userId) {
     if (_userPhotosList.containsKey(userId)) {
       return List<String>.from(_userPhotosList[userId]!);
-    }
-    const fallbackKeys = ['alice', 'bob', 'charlie', 'david'];
-    if (userId.isNotEmpty) {
-      final index = userId.hashCode.abs() % fallbackKeys.length;
-      return List<String>.from(_userPhotosList[fallbackKeys[index]] ?? []);
     }
     return const [];
   }
@@ -457,14 +390,6 @@ class AvatarStorageService {
     if (_userProfilePhotos.containsKey(userId)) {
       return _userProfilePhotos[userId];
     }
-    const fallbackKeys = ['alice', 'bob', 'charlie', 'david'];
-    if (userId.isNotEmpty) {
-      final index = userId.hashCode.abs() % fallbackKeys.length;
-      final fallbackList = _userPhotosList[fallbackKeys[index]];
-      if (fallbackList != null && fallbackList.isNotEmpty) {
-        return fallbackList.first;
-      }
-    }
     return null;
   }
 
@@ -473,24 +398,10 @@ class AvatarStorageService {
   }
 
   // --- Bio ("Acerca de mí") ---
-  static final Map<String, String> _userBios = {
-    'alice': 'Amante del café de especialidad, la animación japonesa y las partidas cooperativas con mantita. Busco conectar sin prisas ✨',
-    'userA': 'Amante del café de especialidad, la animación japonesa y las partidas cooperativas con mantita. Busco conectar sin prisas ✨',
-    'bob': 'Diseñador de día, explorador de roguelikes de noche. Me gustan las buenas conversaciones, los paseos con mi perro y la pizza casera 🍕',
-    'userB': 'Diseñador de día, explorador de roguelikes de noche. Me gustan las buenas conversaciones, los paseos con mi perro y la pizza casera 🍕',
-    'charlie': 'Fan de la ciencia ficción, juegos de rol y música lo-fi. Introvertido pero con ganas de encontrar a alguien con quien compartir silencio cómodo 🎧',
-    'userC': 'Fan de la ciencia ficción, juegos de rol y música lo-fi. Introvertido pero con ganas de encontrar a alguien con quien compartir silencio cómodo 🎧',
-    'david': 'Apasionado de los juegos de mesa, la escalada y el rock clásico. Siempre listo para reír y descubrir lugares nuevos en la ciudad 🧗',
-    'userD': 'Apasionado de los juegos de mesa, la escalada y el rock clásico. Siempre listo para reír y descubrir lugares nuevos en la ciudad 🧗',
-  };
+  static final Map<String, String> _userBios = {};
 
   static String getUserBio(String userId) {
     if (_userBios.containsKey(userId)) return _userBios[userId]!;
-    const fallbackKeys = ['alice', 'bob', 'charlie', 'david'];
-    if (userId.isNotEmpty) {
-      final index = userId.hashCode.abs() % fallbackKeys.length;
-      return _userBios[fallbackKeys[index]] ?? '';
-    }
     return '';
   }
 
@@ -499,16 +410,7 @@ class AvatarStorageService {
   }
 
   // --- Dating Intent ---
-  static final Map<String, String> _userIntents = {
-    'alice': 'intent_slow',
-    'userA': 'intent_slow',
-    'bob': 'intent_slow',
-    'userB': 'intent_slow',
-    'charlie': 'intent_gaming_duo',
-    'userC': 'intent_gaming_duo',
-    'david': 'intent_cozy_chats',
-    'userD': 'intent_cozy_chats',
-  };
+  static final Map<String, String> _userIntents = {};
 
   static String getUserIntent(String userId) {
     return _userIntents[userId] ?? 'intent_slow';
@@ -519,12 +421,7 @@ class AvatarStorageService {
   }
 
   // --- Max Distance Filter (km) ---
-  static final Map<String, double> _userMaxDistances = {
-    'alice': 25.0,
-    'userA': 25.0,
-    'bob': 25.0,
-    'userB': 25.0,
-  };
+  static final Map<String, double> _userMaxDistances = {};
 
   static double getUserMaxDistance(String userId) {
     return _userMaxDistances[userId] ?? 25.0;
@@ -535,42 +432,21 @@ class AvatarStorageService {
   }
 
   // --- User Age and Commune ---
-  static final Map<String, int> _userAges = {
-    'alice': 24,
-    'userA': 24,
-    'bob': 26,
-    'userB': 26,
-    'charlie': 28,
-    'userC': 28,
-    'david': 25,
-    'userD': 25,
-  };
+  static final Map<String, int> _userAges = {};
 
   static int getUserAge(String userId) {
     if (_userAges.containsKey(userId)) return _userAges[userId]!;
-    if (userId.isNotEmpty) {
-      return 21 + (userId.hashCode.abs() % 7);
-    }
-    return 24;
+    return 0;
   }
 
   static void saveUserAge(String userId, int age) {
     _userAges[userId] = age;
   }
 
-  static final Map<String, String> _userCommunes = {
-    'alice': 'Santiago',
-    'userA': 'Santiago',
-    'bob': 'Providencia',
-    'userB': 'Providencia',
-    'charlie': 'Las Condes',
-    'userC': 'Las Condes',
-    'david': 'Ñuñoa',
-    'userD': 'Ñuñoa',
-  };
+  static final Map<String, String> _userCommunes = {};
 
   static String getUserCommune(String userId) {
-    return _userCommunes[userId] ?? 'Santiago';
+    return _userCommunes[userId] ?? '';
   }
 
   static void saveUserCommune(String userId, String commune) {

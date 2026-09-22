@@ -93,5 +93,21 @@ void main() {
       expect(find.text('Tú'), findsOneWidget);
       expect(find.text('Matias está eligiendo su respuesta...'), findsOneWidget);
     });
+
+    testWidgets('Renders active voice call indicator in top bar', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: CampfireView(
+            localUser: dummyLocalUser,
+            partnerUser: dummyPartnerUser,
+            partnerName: 'Matias',
+            onReturnHome: () {},
+          ),
+        ),
+      );
+
+      // Verify active voice call indicator with microphone icon
+      expect(find.byIcon(Icons.mic_rounded), findsOneWidget);
+    });
   });
 }

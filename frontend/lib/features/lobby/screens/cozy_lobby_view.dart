@@ -13,6 +13,7 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
+import '../../campfire/widgets/post_campfire_decision_dialog.dart';
 import '../../mailbox/models/mailbox_models.dart';
 import '../../mailbox/screens/mailbox_screen.dart';
 import '../../mailbox/services/mailbox_service.dart';
@@ -100,6 +101,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   @override
   void dispose() {
     MailboxService.mutualMatchCelebrationNotifier.removeListener(_onMutualMatchCelebrationTriggered);
+    MailboxService.pendingCampfireDecisionNotifier.removeListener(_onPendingCampfireDecisionTriggered);
     _topNotificationTimer?.cancel();
     _topNotificationNotifier.dispose();
     _constructorTabController.dispose();
@@ -112,7 +114,11 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     ChatService.ensureConnected();
     ChatService.fetchUnreadSummary();
     MailboxService.mutualMatchCelebrationNotifier.addListener(_onMutualMatchCelebrationTriggered);
+    MailboxService.pendingCampfireDecisionNotifier.addListener(_onPendingCampfireDecisionTriggered);
     MailboxService.fetchLetters(userId: widget.activeUserId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPendingCampfireDecision();
+    });
     _constructorTabController = TabController(length: 3, vsync: this);
     _constructorTabController.addListener(() {
       if (!mounted) return;
@@ -221,10 +227,12 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     );
   }
 
-  void _onMutualMatchCelebrationTriggered() {
-    final letter = MailboxService.mutualMatchCelebrationNotifier.value;
+  void _onMutualMatchCelebrationTriggered([MailboxLetter? directLetter]) {
+    final letter = directLetter ?? MailboxService.mutualMatchCelebrationNotifier.value;
     if (letter == null || !mounted) return;
-    MailboxService.mutualMatchCelebrationNotifier.value = null;
+    if (directLetter == null) {
+      MailboxService.mutualMatchCelebrationNotifier.value = null;
+    }
 
     AvatarStorageService.markMatchAcknowledged(letter.id);
 
@@ -257,8 +265,101 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
         partnerUser: partnerUser,
         partnerName: letter.partnerName,
         isCelebration: true,
+        matchType: letter.matchType,
         onReturnHome: () {
           Navigator.of(ctx).pop();
+        },
+      ),
+    );
+  }
+
+  void _onPendingCampfireDecisionTriggered() {
+    _checkPendingCampfireDecision();
+  }
+
+  void _checkPendingCampfireDecision() {
+    final letter = MailboxService.pendingCampfireDecisionNotifier.value;
+    if (letter == null || !mounted) return;
+    MailboxService.pendingCampfireDecisionNotifier.value = null;
+
+    _showTopNotification('📞 Llamada finalizada • De vuelta en tu cuarto');
+
+    // Give player a short moment to see their room and avatar
+    Future.delayed(const Duration(milliseconds: 600), () async {
+      if (!mounted) return;
+
+      MailboxLetter displayLetter = letter;
+      // If local letter was created without partner photos, check cache or fetch from backend
+      final foundInCache = MailboxService.letters.where((l) => l.id == letter.id);
+      if (foundInCache.isNotEmpty &&
+          (foundInCache.first.partnerPhoto != null || foundInCache.first.partnerPhotos.isNotEmpty)) {
+        displayLetter = foundInCache.first;
+      } else if (displayLetter.partnerPhoto == null && displayLetter.partnerPhotos.isEmpty) {
+        await MailboxService.fetchLetters(userId: widget.activeUserId);
+        final found = MailboxService.letters.where((l) => l.id == letter.id);
+        if (found.isNotEmpty) {
+          displayLetter = found.first;
+        }
+      }
+
+      if (!mounted) return;
+      _showPostCampfireDecisionDialog(displayLetter);
+    });
+  }
+
+  void _showPostCampfireDecisionDialog(MailboxLetter dateLetter) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PostCampfireDecisionDialog(
+        letter: dateLetter,
+        coinsEarned: 150,
+        onPostponeToHome: () {
+          Navigator.of(ctx).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🕊️ Sin prisa ✨ Tu carta te esperará en el buzón'),
+              backgroundColor: Color(0xFF455A64),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        },
+        onDecision: (decision) async {
+          final localId = widget.activeUserId;
+          await MailboxService.submitDecision(
+            matchId: dateLetter.id,
+            decision: decision,
+            userId: localId,
+          );
+
+          if (!mounted) return;
+          Navigator.of(ctx).pop();
+
+          if (decision == MailboxDecision.archived) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('🕊️ Guardado con cariño en tu Baúl de Recuerdos'),
+                backgroundColor: Color(0xFF455A64),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          } else {
+            // Check if mutual match occurred
+            final letters = MailboxService.getLetters();
+            final updated = letters.firstWhere((l) => l.id == dateLetter.id, orElse: () => dateLetter);
+
+            if (updated.isMutualMatch) {
+              _onMutualMatchCelebrationTriggered(updated);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('💌 Carta sellada... Llegará si ${dateLetter.partnerName} coincide ✨'),
+                  backgroundColor: const Color(0xFF2E7D32),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
         },
       ),
     );

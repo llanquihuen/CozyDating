@@ -41,11 +41,7 @@ public class RoomController {
             if (verifiedId != null) return verifiedId;
         }
         if (queryUserId != null && !queryUserId.isEmpty()) {
-            if ("alice".equalsIgnoreCase(queryUserId)) return "userA";
-            if ("bob".equalsIgnoreCase(queryUserId)) return "userB";
-            if ("charlie".equalsIgnoreCase(queryUserId)) return "userC";
-            if ("david".equalsIgnoreCase(queryUserId)) return "userD";
-            return queryUserId;
+            return databaseService.resolveDbUserId(queryUserId.trim());
         }
         return null;
     }

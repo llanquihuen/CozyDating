@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'core/config/app_config.dart';
-import 'core/models/avatar_config.dart';
 import 'core/models/game_models.dart';
-import 'core/models/room_config.dart';
 import 'core/models/user_profile.dart';
 import 'core/network/websocket_client.dart';
 import 'core/services/auth_service.dart';
@@ -314,14 +312,14 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> with WidgetsBin
                 );
 
             var partnerId = state.session.partnerId;
-            var partnerName = state.partnerUsername ?? state.session.partnerUsername;
+            var partnerName = state.partnerUsername ?? (state.session.partnerUsername?.isNotEmpty == true ? state.session.partnerUsername : null);
 
-            // Defensive resolution: partner must never be the local user
+            // Defensive resolution: partner must never be empty or local user
             if (partnerId.isEmpty || partnerId == localUserId) {
-              partnerId = (localUserId == 'userA' || localUserId == 'alice') ? 'userB' : 'userA';
+              partnerId = state.session.partnerId != localUserId ? state.session.partnerId : 'partner';
             }
             if (partnerName == null || partnerName.isEmpty || partnerName == localUsername || partnerName == 'Tú') {
-              partnerName = (localUserId == 'userA' || localUserId == 'alice') ? 'Bob' : 'Alice';
+              partnerName = 'Compañero';
             }
 
             final partnerTastes = (state.partnerTastes != null && state.partnerTastes!.isNotEmpty)
@@ -336,6 +334,11 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> with WidgetsBin
               avatarConfig: state.partnerAvatarConfig ?? state.session.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(partnerId),
               roomConfig: state.partnerRoomConfig ?? state.session.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(partnerId),
               tastes: partnerTastes,
+              age: state.partnerAge ?? AvatarStorageService.getUserAge(partnerId),
+              commune: state.partnerCommune ?? AvatarStorageService.getUserCommune(partnerId),
+              bio: state.partnerBio ?? AvatarStorageService.getUserBio(partnerId),
+              profilePhoto: AvatarStorageService.getUserPhoto(partnerId),
+              photos: AvatarStorageService.getUserPhotos(partnerId),
             );
 
             // Celebrar victoria o consuelo de derrota de mazmorra antes de pasar a la fogata
@@ -399,12 +402,12 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> with WidgetsBin
                 );
 
             var partnerId = state.session.partnerId;
-            var partnerName = state.partnerUsername ?? state.session.partnerUsername;
+            var partnerName = state.partnerUsername ?? (state.session.partnerUsername?.isNotEmpty == true ? state.session.partnerUsername : null);
             if (partnerId.isEmpty || partnerId == localUserId) {
-              partnerId = (localUserId == 'userA' || localUserId == 'alice') ? 'userB' : 'userA';
+              partnerId = state.session.partnerId != localUserId ? state.session.partnerId : 'partner';
             }
             if (partnerName == null || partnerName.isEmpty || partnerName == localUsername || partnerName == 'Tú') {
-              partnerName = (localUserId == 'userA' || localUserId == 'alice') ? 'Bob' : 'Alice';
+              partnerName = 'Compañero';
             }
 
             final partnerProfile = UserProfile(
@@ -412,6 +415,11 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> with WidgetsBin
               username: partnerName,
               avatarConfig: state.partnerAvatarConfig ?? state.session.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(partnerId),
               roomConfig: state.partnerRoomConfig ?? state.session.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(partnerId),
+              age: state.partnerAge ?? AvatarStorageService.getUserAge(partnerId),
+              commune: state.partnerCommune ?? AvatarStorageService.getUserCommune(partnerId),
+              bio: state.partnerBio ?? AvatarStorageService.getUserBio(partnerId),
+              profilePhoto: AvatarStorageService.getUserPhoto(partnerId),
+              photos: AvatarStorageService.getUserPhotos(partnerId),
             );
 
             // Determinar si el anfitrión es el usuario local o el compañero

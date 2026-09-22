@@ -57,15 +57,7 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
     _localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
     var partnerCandidate = widget.state.session.partnerId;
     if (partnerCandidate.isEmpty || partnerCandidate == _localUserId) {
-      if (_localUserId == 'alice') {
-        partnerCandidate = 'bob';
-      } else if (_localUserId == 'bob') {
-        partnerCandidate = 'alice';
-      } else if (_localUserId == 'charlie') {
-        partnerCandidate = 'david';
-      } else {
-        partnerCandidate = 'bob';
-      }
+      partnerCandidate = 'partner';
     }
     _partnerUserId = partnerCandidate;
 

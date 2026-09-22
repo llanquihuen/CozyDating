@@ -87,7 +87,38 @@ class _PostCampfireDecisionDialogState extends State<PostCampfireDecisionDialog>
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
+
+              // Call ended badge
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.call_end_rounded, size: 12, color: Color(0xFFEF4444)),
+                      SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          'Llamada finalizada • De vuelta en tu cuarto',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Color(0xFFCBD5E1),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
               // Title
               Text(
@@ -102,7 +133,7 @@ class _PostCampfireDecisionDialogState extends State<PostCampfireDecisionDialog>
               ),
               const SizedBox(height: 6),
               const Text(
-                'Han compartido historias frente al fuego. Ahora pueden revelarse mutuamente.',
+                'La llamada ha terminado y estás de vuelta en tu cuarto. Con la conversación fresca, elige cómo continuar:',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFF94A3B8),

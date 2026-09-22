@@ -5,6 +5,7 @@ import 'package:frontend/core/models/game_models.dart';
 import 'package:frontend/core/network/websocket_client.dart';
 import 'package:frontend/features/game/bloc/game_bloc.dart';
 import 'package:frontend/features/game/screens/dungeon_match_intro_view.dart';
+import 'package:frontend/core/services/avatar_storage_service.dart';
 
 import 'dart:async';
 
@@ -199,9 +200,15 @@ void main() {
         mode: 'STANDARD',
         partnerId: 'bob',
         partnerUsername: 'Bob Ross',
+        partnerAge: 26,
+        partnerCommune: 'Providencia',
         partnerTastes: ['game_coop', 'cinema_ghibli', 'life_coffee_tea'],
         act: 1,
       );
+
+      AvatarStorageService.saveUserAge('bob', 26);
+      AvatarStorageService.saveUserCommune('bob', 'Providencia');
+      AvatarStorageService.saveUserBio('bob', 'Diseñador de día, explorador de roguelikes de noche. Me gustan las buenas conversaciones, los paseos con mi perro y la pizza casera 🍕');
 
       await tester.pumpWidget(
         MaterialApp(

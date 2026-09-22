@@ -32,11 +32,7 @@ public class ChatController {
             if (verified != null) return verified;
         }
         if (queryUserId != null && !queryUserId.trim().isEmpty()) {
-            if ("alice".equalsIgnoreCase(queryUserId)) return "userA";
-            if ("bob".equalsIgnoreCase(queryUserId)) return "userB";
-            if ("charlie".equalsIgnoreCase(queryUserId)) return "userC";
-            if ("david".equalsIgnoreCase(queryUserId)) return "userD";
-            return queryUserId;
+            return databaseService.resolveDbUserId(queryUserId.trim());
         }
         return null;
     }

@@ -174,11 +174,7 @@ public class AuthController {
             @RequestParam String userId,
             @RequestParam(required = false) String username) {
         
-        String dbUserId = userId;
-        if ("alice".equalsIgnoreCase(userId)) dbUserId = "userA";
-        else if ("bob".equalsIgnoreCase(userId)) dbUserId = "userB";
-        else if ("charlie".equalsIgnoreCase(userId)) dbUserId = "userC";
-        else if ("david".equalsIgnoreCase(userId)) dbUserId = "userD";
+        String dbUserId = databaseService.resolveDbUserId(userId);
 
         String uname = (username != null && !username.isEmpty()) ? username : userId;
         String token = jwtUtil.generateToken(dbUserId, uname, 30L * 24 * 3600 * 1000);
@@ -199,11 +195,7 @@ public class AuthController {
 
     @RequestMapping(value = "/auth/balance", method = {RequestMethod.GET, RequestMethod.POST})
     public Map<String, Object> getBalance(@RequestParam String userId) {
-        String dbUserId = userId;
-        if ("alice".equalsIgnoreCase(userId)) dbUserId = "userA";
-        else if ("bob".equalsIgnoreCase(userId)) dbUserId = "userB";
-        else if ("charlie".equalsIgnoreCase(userId)) dbUserId = "userC";
-        else if ("david".equalsIgnoreCase(userId)) dbUserId = "userD";
+        String dbUserId = databaseService.resolveDbUserId(userId);
 
         int balance = databaseService.getTicketBalance(dbUserId);
 

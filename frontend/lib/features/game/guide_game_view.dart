@@ -88,15 +88,7 @@ class _GuideGameViewState extends State<GuideGameView> with SingleTickerProvider
     final localUserId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
     var partnerCandidate = widget.state.session.partnerId;
     if (partnerCandidate.isEmpty || partnerCandidate == localUserId) {
-      if (localUserId == 'alice') {
-        partnerCandidate = 'bob';
-      } else if (localUserId == 'bob') {
-        partnerCandidate = 'alice';
-      } else if (localUserId == 'charlie') {
-        partnerCandidate = 'david';
-      } else {
-        partnerCandidate = 'bob';
-      }
+      partnerCandidate = 'partner';
     }
     final partnerAvatar = widget.state.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(partnerCandidate);
 

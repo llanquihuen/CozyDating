@@ -92,9 +92,19 @@ public class MailboxController {
             }
             String partnerPhotos = null;
             if (partnerUser != null) {
+                partnerName = partnerUser.getUsername();
+                if (partnerUser.getAge() > 0) {
+                    partnerAge = partnerUser.getAge();
+                }
+                if (partnerUser.getCommune() != null && !partnerUser.getCommune().trim().isEmpty()) {
+                    partnerCommune = partnerUser.getCommune().trim();
+                }
                 partnerPhotos = partnerUser.getPhotos();
-                if (partnerPhoto == null || partnerPhoto.trim().isEmpty()) {
-                    partnerPhoto = partnerUser.getProfilePhoto();
+                if (partnerUser.getProfilePhoto() != null && !partnerUser.getProfilePhoto().trim().isEmpty()) {
+                    partnerPhoto = partnerUser.getProfilePhoto().trim();
+                }
+                if (partnerAvatar == null || partnerAvatar.trim().isEmpty() || "{}".equals(partnerAvatar.trim())) {
+                    partnerAvatar = partnerUser.getAvatarConfig();
                 }
             }
 
@@ -269,6 +279,23 @@ public class MailboxController {
         Object commonTastes = body.get("commonTastes");
         String commonTastesStr = commonTastes != null ? commonTastes.toString() : "";
 
+        User partnerUser = databaseService.findUserById(resolvedPartnerId);
+        String partnerPhotos = null;
+        if (partnerUser != null) {
+            partnerName = partnerUser.getUsername();
+            if (partnerUser.getAge() > 0) partnerAge = partnerUser.getAge();
+            if (partnerUser.getCommune() != null && !partnerUser.getCommune().trim().isEmpty()) {
+                partnerCommune = partnerUser.getCommune().trim();
+            }
+            if (partnerUser.getProfilePhoto() != null && !partnerUser.getProfilePhoto().trim().isEmpty()) {
+                partnerPhoto = partnerUser.getProfilePhoto().trim();
+            }
+            partnerPhotos = partnerUser.getPhotos();
+            if (partnerAvatar == null && partnerUser.getAvatarConfig() != null) {
+                partnerAvatar = partnerUser.getAvatarConfig();
+            }
+        }
+
         User currentUser = databaseService.findUserById(userId);
         String myName = currentUser != null ? currentUser.getUsername() : userId;
         String myAvatar = currentUser != null ? currentUser.getAvatarConfig() : null;
@@ -302,6 +329,17 @@ public class MailboxController {
         logger.info("[MAILBOX REST] Successfully recorded date letter {} for user {} with partner {}",
                 matchId, userId, resolvedPartnerId);
 
-        return ResponseEntity.ok(Map.of("status", "SUCCESS", "matchId", matchId));
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("status", "SUCCESS");
+        resp.put("matchId", matchId);
+        resp.put("partnerPhoto", partnerPhoto != null ? partnerPhoto : "");
+        if (partnerPhotos != null && !partnerPhotos.trim().isEmpty()) {
+            resp.put("partnerPhotos", partnerPhotos);
+        }
+        resp.put("partnerAge", partnerAge);
+        resp.put("partnerCommune", partnerCommune != null ? partnerCommune : "Santiago");
+        resp.put("partnerName", partnerName != null ? partnerName : "Compañero");
+
+        return ResponseEntity.ok(resp);
     }
 }

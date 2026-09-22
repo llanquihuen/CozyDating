@@ -49,6 +49,11 @@ class _CampfireViewState extends State<CampfireView> {
   String? _partnerSelectedOptionId;
   bool _isRevealed = false;
 
+  // Active Voice Call simulation state
+  int _voiceCallSeconds = 0;
+  async.Timer? _voiceCallTimer;
+  bool _isCallEnding = false;
+
   // Distensión (Relaxation) Phase state (Discrete 20s timer)
   bool _isRelaxationPhase = false;
   int _relaxationSecondsLeft = 20;
@@ -84,6 +89,32 @@ class _CampfireViewState extends State<CampfireView> {
       localAvatarConfig: widget.localUser.avatarConfig,
       partnerAvatarConfig: widget.partnerAvatarConfig ?? partnerFallback.avatarConfig,
     );
+
+    _voiceCallTimer = async.Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _voiceCallSeconds++;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _voiceCallTimer?.cancel();
+    _relaxationTimer?.cancel();
+    _blocSub?.cancel();
+    _chatController.dispose();
+    _chatFocusNode.dispose();
+    super.dispose();
+  }
+
+  String _formatVoiceDuration(int totalSeconds) {
+    final m = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final s = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   @override
@@ -95,15 +126,6 @@ class _CampfireViewState extends State<CampfireView> {
     } catch (_) {
       // Standalone mode / offline tests without GameBloc provider
     }
-  }
-
-  @override
-  void dispose() {
-    _relaxationTimer?.cancel();
-    _chatController.dispose();
-    _chatFocusNode.dispose();
-    _blocSub?.cancel();
-    super.dispose();
   }
 
   void _handleGameState(GameState state) {
@@ -263,6 +285,7 @@ class _CampfireViewState extends State<CampfireView> {
 
   void _showCompletionDialog() {
     _relaxationTimer?.cancel();
+    _voiceCallTimer?.cancel();
 
     // Send date completion signal to server to record mailbox match
     try {
@@ -272,97 +295,111 @@ class _CampfireViewState extends State<CampfireView> {
     }
 
     final dateLetter = _generateDateLetter();
+    // Notify CozyLobbyView so that when returning home, the room presents the decision dialog
+    MailboxService.pendingCampfireDecisionNotifier.value = dateLetter;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => PostCampfireDecisionDialog(
-        letter: dateLetter,
-        coinsEarned: 150,
-        onPostponeToHome: () {
-          Navigator.of(ctx).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🕊️ Sin prisa ✨ Tu carta te esperará en el buzón'),
-              backgroundColor: Color(0xFF455A64),
-              duration: Duration(seconds: 3),
-            ),
-          );
-          _finishAndReturnHome();
-        },
-        onDecision: (decision) async {
-          final localId = widget.localUser.id;
-          await MailboxService.submitDecision(
-            matchId: dateLetter.id,
-            decision: decision,
-            userId: localId,
-          );
+    // Trigger voice call disconnected transition overlay
+    setState(() {
+      _isCallEnding = true;
+    });
 
-          if (!mounted) return;
-          Navigator.of(ctx).pop();
-
-          if (decision == MailboxDecision.archived) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('🕊️ Guardado con cariño en tu Baúl de Recuerdos'),
-                backgroundColor: Color(0xFF455A64),
-                duration: Duration(seconds: 2),
-              ),
-            );
-            _finishAndReturnHome();
-          } else {
-            // Check if mutual match occurred
-            final letters = MailboxService.getLetters();
-            final updated = letters.firstWhere((l) => l.id == dateLetter.id, orElse: () => dateLetter);
-
-            if (updated.isMutualMatch) {
-              _showMutualCelebration(updated);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('💌 Carta sellada... Llegará si ${dateLetter.partnerName} coincide ✨'),
-                  backgroundColor: const Color(0xFF2E7D32),
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-              _finishAndReturnHome();
-            }
-          }
-        },
-      ),
-    );
+    // Seamlessly transition to the room after showing the call disconnection
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      _finishAndReturnHome();
+    });
   }
 
-  void _showMutualCelebration(MailboxLetter letter) {
-    AvatarStorageService.markMatchAcknowledged(letter.id);
-
-    final partner = widget.partnerUser;
-    final partnerUser = UserProfile(
-      id: letter.partnerId,
-      username: letter.partnerName,
-      avatarConfig: letter.partnerAvatar,
-      profilePhoto: letter.partnerPhoto ?? (letter.effectivePhotos.isNotEmpty ? letter.effectivePhotos.first : null),
-      photos: letter.effectivePhotos,
-      bio: letter.effectiveBio,
-      intent: letter.effectiveIntent,
-      age: letter.partnerAge,
-      commune: letter.partnerCommune,
-      tastes: letter.commonTastes,
-    );
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => MatchRevealCelebrationView(
-        localUser: widget.localUser,
-        partnerUser: partnerUser,
-        partnerName: letter.partnerName,
-        isCelebration: true,
-        matchType: letter.matchType,
-        onReturnHome: () {
-          Navigator.of(ctx).pop();
-          _finishAndReturnHome();
-        },
+  Widget _buildCallEndedOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.92),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: const Color(0xFFDC2626).withOpacity(0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFEF4444), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFDC2626).withOpacity(0.4),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.call_end_rounded,
+                color: Colors.white,
+                size: 38,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Llamada de voz finalizada',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Duración: ${_formatVoiceDuration(_voiceCallSeconds)} • con ${widget.partnerName}',
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('🎧', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Te has quitado los auriculares... Volviendo a tu cuarto',
+                    style: TextStyle(
+                      color: Color(0xFFE2E8F0),
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextButton(
+              onPressed: () {
+                if (mounted) _finishAndReturnHome();
+              },
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Continuar a mi cuarto',
+                    style: TextStyle(color: Color(0xFFFFD54F), fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFFFFD54F)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -374,15 +411,14 @@ class _CampfireViewState extends State<CampfireView> {
     AuthService.addCoins(150);
 
     final partner = widget.partnerUser;
-    var partnerId = partner?.id ?? widget.partnerName.toLowerCase();
+    var partnerId = (partner?.id != null && partner!.id.isNotEmpty && partner.id != localId)
+        ? partner.id
+        : (widget.partnerName != localName ? widget.partnerName : 'partner');
     var partnerName = widget.partnerName;
 
-    // Safety guard: Ensure partner is never the local user
-    if (partnerId.isEmpty || partnerId == localId) {
-      partnerId = (localId == 'userA' || localId == 'alice') ? 'userB' : 'userA';
-    }
+    // Safety guard: Ensure partner name is valid
     if (partnerName.isEmpty || partnerName == localName || partnerName == 'Tú') {
-      partnerName = (localId == 'userA' || localId == 'alice') ? 'Bob' : 'Alice';
+      partnerName = 'Compañero';
     }
 
     final rawPartnerPhotos = (partner?.photos != null && partner!.photos.isNotEmpty)
@@ -495,53 +531,94 @@ class _CampfireViewState extends State<CampfireView> {
     return Scaffold(
         backgroundColor: const Color(0xFF090A10),
         body: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              // Top Bar with Discrete Category Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    // Discrete escape button
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white54,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      ),
-                      icon: const Text('🪙', style: TextStyle(fontSize: 14)),
-                      label: const Text(
-                        'Reclamar botín y salir',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      onPressed: _handleReturnHome,
-                    ),
-                    const Spacer(),
-                    // Discrete Category Badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: categoryColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: categoryColor.withOpacity(0.6)),
-                      ),
-                      child: Text(
-                        categoryLabel,
-                        style: TextStyle(
-                          color: categoryColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
+              Column(
+                children: [
+                  // Top Bar with Discrete Category Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Row(
+                      children: [
+                        // Discrete escape button
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white54,
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          ),
+                          icon: const Text('🪙', style: TextStyle(fontSize: 13)),
+                          label: const Text(
+                            'Reclamar botín y salir',
+                            style: TextStyle(fontSize: 10.5),
+                          ),
+                          onPressed: _handleReturnHome,
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Round Progress Badge OR Discrete 20s Timer
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _isRelaxationPhase ? Colors.black.withOpacity(0.4) : Colors.amber.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.amberAccent.withOpacity(0.6)),
-                      ),
+                        const Spacer(),
+                        // Discrete Voice Call Active Indicator
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.55)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.mic_rounded, size: 11, color: Color(0xFF10B981)),
+                              const SizedBox(width: 3),
+                              Text(
+                                _formatVoiceDuration(_voiceCallSeconds),
+                                style: const TextStyle(
+                                  color: Color(0xFFD1FAE5),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // Discrete Category Badge
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: categoryColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: categoryColor.withOpacity(0.6)),
+                            ),
+                            child: Text(
+                              categoryLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: categoryColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 10.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // Round Progress Badge OR Discrete 20s Timer
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _isRelaxationPhase ? Colors.black.withOpacity(0.4) : Colors.amber.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.amberAccent.withOpacity(0.6)),
+                          ),
                       child: _isRelaxationPhase
                           ? Row(
                               mainAxisSize: MainAxisSize.min,
@@ -863,8 +940,14 @@ class _CampfireViewState extends State<CampfireView> {
               ),
             ],
           ),
-        ),
-      );
+          if (_isCallEnding)
+            Positioned.fill(
+              child: _buildCallEndedOverlay(),
+            ),
+        ],
+      ),
+    ),
+  );
   }
 
   Widget _buildRelaxationPhaseContent() {

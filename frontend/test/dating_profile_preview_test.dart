@@ -81,5 +81,41 @@ void main() {
       // Verify modal is closed
       expect(find.text('VISTA PREVIA DE TU PERFIL'), findsNothing);
     });
+
+    testWidgets('Selfie verification dialog opens and cancels cleanly without exceptions', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(900, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: CharacterCreatorScreen(
+            initialScreenMode: 1, // Dating Profile mode
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find the selfie verification button
+      final certBtn = find.textContaining('Certificar con Selfie');
+      expect(certBtn, findsOneWidget);
+
+      // Scroll and tap on the button
+      await tester.ensureVisible(certBtn);
+      await tester.tap(certBtn);
+      await tester.pumpAndSettle();
+
+      // Verify the decoupled modal dialog is visible
+      expect(find.text('Certificación Facial'), findsOneWidget);
+      expect(find.text('Abrir Cámara Frontal'), findsOneWidget);
+      expect(find.text('Cancelar'), findsOneWidget);
+
+      // Tap Cancelar
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      // Verify dialog is dismissed cleanly
+      expect(find.text('Certificación Facial'), findsNothing);
+    });
   });
 }

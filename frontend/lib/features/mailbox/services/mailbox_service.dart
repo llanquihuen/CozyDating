@@ -13,6 +13,7 @@ class MailboxService {
 
   static final ValueNotifier<int> unreadLettersCount = ValueNotifier<int>(0);
   static final ValueNotifier<MailboxLetter?> mutualMatchCelebrationNotifier = ValueNotifier<MailboxLetter?>(null);
+  static final ValueNotifier<MailboxLetter?> pendingCampfireDecisionNotifier = ValueNotifier<MailboxLetter?>(null);
   static final List<MailboxLetter> _cachedLetters = [];
   static String? _loadedUserId;
 
@@ -77,6 +78,7 @@ class MailboxService {
     _loadedUserId = null;
     unreadLettersCount.value = 0;
     mutualMatchCelebrationNotifier.value = null;
+    pendingCampfireDecisionNotifier.value = null;
     ChatService.clearUnread();
   }
 
@@ -246,23 +248,9 @@ class MailboxService {
     final index = _cachedLetters.indexWhere((l) => l.id == matchId);
     if (index != -1) {
       final current = _cachedLetters[index];
-      // In local demo mode, if partner is a sample user, simulate mutual match
-      final willMatchLocally = (decision == MailboxDecision.romance ||
-              decision == MailboxDecision.friendship ||
-              decision == MailboxDecision.keepInTouch) &&
-          (current.partnerId == 'bob' || current.partnerId == 'userB' || current.partnerId == 'charlie' || current.partnerId == 'alice');
-
-      ConnectionType localMatchType = ConnectionType.none;
-      if (willMatchLocally) {
-        localMatchType = decision == MailboxDecision.romance ? ConnectionType.romance : ConnectionType.friendship;
-      }
-
       _cachedLetters[index] = current.copyWith(
         myDecision: decision,
         myNote: note,
-        isMutualMatch: willMatchLocally || current.isMutualMatch,
-        matchType: willMatchLocally ? localMatchType : current.matchType,
-        partnerNote: willMatchLocally ? '¡Me encantó nuestra charla en la fogata! Ojalá juguemos pronto ☕✨' : current.partnerNote,
       );
       _updateBadgeCount();
       _saveLettersToStorage(activeId);
@@ -350,8 +338,8 @@ class MailboxService {
     }
   }
 
-  static Future<void> _syncLetterRecordToServer(MailboxLetter letter, String userId) async {
-    if (!AuthService.isAuthenticated && AuthService.token == null) return;
+  static Future<MailboxLetter?> _syncLetterRecordToServer(MailboxLetter letter, String userId) async {
+    if (!AuthService.isAuthenticated && AuthService.token == null) return null;
     try {
       final url = Uri.parse('$_baseUrl/api/mailbox/record');
       final headers = {
@@ -369,34 +357,50 @@ class MailboxService {
         'partnerCommune': letter.partnerCommune,
         'commonTastes': letter.commonTastes,
       });
-      await http.post(url, headers: headers, body: body).timeout(const Duration(seconds: 4));
+      final response = await http.post(url, headers: headers, body: body).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic>) {
+          final serverPartnerPhoto = data['partnerPhoto']?.toString();
+          final serverPartnerPhotos = data['partnerPhotos'];
+          List<String> photosList = [];
+          if (serverPartnerPhotos is List) {
+            photosList = serverPartnerPhotos.map((e) => e.toString()).toList();
+          } else if (serverPartnerPhotos is String && serverPartnerPhotos.isNotEmpty) {
+            try {
+              final decoded = jsonDecode(serverPartnerPhotos);
+              if (decoded is List) {
+                photosList = decoded.map((e) => e.toString()).toList();
+              }
+            } catch (_) {}
+          }
+          if (serverPartnerPhoto != null && serverPartnerPhoto.isNotEmpty && !photosList.contains(serverPartnerPhoto)) {
+            photosList.insert(0, serverPartnerPhoto);
+          }
+
+          final enrichedLetter = letter.copyWith(
+            partnerPhoto: (serverPartnerPhoto != null && serverPartnerPhoto.isNotEmpty) ? serverPartnerPhoto : letter.partnerPhoto,
+            partnerPhotos: photosList.isNotEmpty ? photosList : letter.partnerPhotos,
+            partnerAge: data['partnerAge'] is num ? (data['partnerAge'] as num).toInt() : letter.partnerAge,
+            partnerCommune: data['partnerCommune']?.toString() ?? letter.partnerCommune,
+            partnerName: data['partnerName']?.toString() ?? letter.partnerName,
+          );
+
+          final idx = _cachedLetters.indexWhere((l) => l.id == letter.id);
+          if (idx != -1) {
+            _cachedLetters[idx] = enrichedLetter;
+            await _saveLettersToStorage(userId, _cachedLetters);
+          }
+
+          if (pendingCampfireDecisionNotifier.value?.id == letter.id) {
+            pendingCampfireDecisionNotifier.value = enrichedLetter;
+          }
+          return enrichedLetter;
+        }
+      }
     } catch (e) {
       print('[MAILBOX RECORD SYNC ERROR] $e');
     }
-  }
-
-  /// Sample demo letters for initial experience
-  static List<MailboxLetter> _getSampleLetters(String activeUserId) {
-    final isAlice = activeUserId == 'alice' || activeUserId == 'userA';
-    final partnerId = isAlice ? 'userB' : 'userA';
-    final partnerName = isAlice ? 'Bob' : 'Alice';
-    final partnerPhoto = isAlice
-        ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80';
-
-    return [
-      MailboxLetter(
-        id: 'date_sample_1',
-        partnerId: partnerId,
-        partnerName: partnerName,
-        partnerAvatar: AvatarStorageService.getUserConfig(partnerId),
-        partnerPhoto: partnerPhoto,
-        partnerAge: isAlice ? 26 : 24,
-        partnerCommune: isAlice ? 'Providencia' : 'Santiago',
-        commonTastes: const ['game_coop', 'cinema_ghibli', 'life_coffee_tea', 'intent_slow'],
-        myDecision: MailboxDecision.pending,
-        createdAt: DateTime.now().subtract(const Duration(minutes: 15)),
-      ),
-    ];
+    return null;
   }
 }

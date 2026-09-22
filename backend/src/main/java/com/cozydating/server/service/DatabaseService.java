@@ -486,10 +486,6 @@ public class DatabaseService {
 
     public String resolveDbUserId(String userId) {
         if (userId == null) return null;
-        if ("alice".equalsIgnoreCase(userId)) return "userA";
-        if ("bob".equalsIgnoreCase(userId)) return "userB";
-        if ("charlie".equalsIgnoreCase(userId)) return "userC";
-        if ("david".equalsIgnoreCase(userId)) return "userD";
         User user = findUserByUsername(userId);
         if (user != null) return user.getId();
         return userId;
@@ -576,16 +572,65 @@ public class DatabaseService {
         if (existing == null) {
             createMailboxMatch(match);
         } else {
-            jdbcTemplate.update(
-                "UPDATE mailbox_matches SET user_a_name = COALESCE(?, user_a_name), user_b_name = COALESCE(?, user_b_name), " +
-                "user_a_avatar = COALESCE(?, user_a_avatar), user_b_avatar = COALESCE(?, user_b_avatar), " +
-                "user_a_photo = COALESCE(?, user_a_photo), user_b_photo = COALESCE(?, user_b_photo) " +
-                "WHERE id = ?",
-                match.getUserAName(), match.getUserBName(),
-                match.getUserAAvatar(), match.getUserBAvatar(),
-                match.getUserAPhoto(), match.getUserBPhoto(),
-                match.getId()
-            );
+            String resolvedExistingA = resolveDbUserId(existing.getUserAId());
+            String resolvedExistingB = resolveDbUserId(existing.getUserBId());
+            String incomingA = resolveDbUserId(match.getUserAId());
+
+            boolean incomingIsUserB = incomingA != null && 
+                (incomingA.equals(existing.getUserBId()) || incomingA.equals(resolvedExistingB));
+
+            if (incomingIsUserB) {
+                // Incoming caller is User B: match.userA fields belong to existing User B, and match.userB fields belong to existing User A!
+                jdbcTemplate.update(
+                    "UPDATE mailbox_matches SET " +
+                    "user_b_name = COALESCE(?, user_b_name), " +
+                    "user_b_avatar = COALESCE(?, user_b_avatar), " +
+                    "user_b_photo = COALESCE(?, user_b_photo), " +
+                    "user_b_age = CASE WHEN ? > 0 THEN ? ELSE user_b_age END, " +
+                    "user_b_commune = COALESCE(?, user_b_commune), " +
+                    "user_a_name = COALESCE(?, user_a_name), " +
+                    "user_a_avatar = COALESCE(?, user_a_avatar), " +
+                    "user_a_photo = COALESCE(?, user_a_photo), " +
+                    "user_a_age = CASE WHEN ? > 0 THEN ? ELSE user_a_age END, " +
+                    "user_a_commune = COALESCE(?, user_a_commune) " +
+                    "WHERE id = ?",
+                    match.getUserAName(),
+                    match.getUserAAvatar(),
+                    match.getUserAPhoto(),
+                    match.getUserAAge(), match.getUserAAge(),
+                    match.getUserACommune(),
+                    match.getUserBName(),
+                    match.getUserBAvatar(),
+                    match.getUserBPhoto(),
+                    match.getUserBAge(), match.getUserBAge(),
+                    match.getUserBCommune(),
+                    match.getId()
+                );
+            } else {
+                // Incoming caller is User A: direct alignment
+                jdbcTemplate.update(
+                    "UPDATE mailbox_matches SET " +
+                    "user_a_name = COALESCE(?, user_a_name), " +
+                    "user_b_name = COALESCE(?, user_b_name), " +
+                    "user_a_avatar = COALESCE(?, user_a_avatar), " +
+                    "user_b_avatar = COALESCE(?, user_b_avatar), " +
+                    "user_a_photo = COALESCE(?, user_a_photo), " +
+                    "user_b_photo = COALESCE(?, user_b_photo), " +
+                    "user_a_age = CASE WHEN ? > 0 THEN ? ELSE user_a_age END, " +
+                    "user_a_commune = COALESCE(?, user_a_commune), " +
+                    "user_b_age = CASE WHEN ? > 0 THEN ? ELSE user_b_age END, " +
+                    "user_b_commune = COALESCE(?, user_b_commune) " +
+                    "WHERE id = ?",
+                    match.getUserAName(), match.getUserBName(),
+                    match.getUserAAvatar(), match.getUserBAvatar(),
+                    match.getUserAPhoto(), match.getUserBPhoto(),
+                    match.getUserAAge(), match.getUserAAge(),
+                    match.getUserACommune(),
+                    match.getUserBAge(), match.getUserBAge(),
+                    match.getUserBCommune(),
+                    match.getId()
+                );
+            }
         }
     }
 
