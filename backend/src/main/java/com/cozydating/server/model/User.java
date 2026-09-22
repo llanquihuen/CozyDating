@@ -15,6 +15,12 @@ public class User {
     private boolean isVerified;   // Identity verified via selfie comparison
     private String verificationSelfie; // URL to private verification selfie
     private String roomConfig;    // JSON string
+    private String gender = "OTHER"; // MAN, WOMAN, NON_BINARY, OTHER
+    private String seekingGender = "ANY"; // MAN, WOMAN, ANY
+    private boolean isInternational = false;
+    private Double latitude;
+    private Double longitude;
+    private double maxDistanceKm = 25.0;
     private String createdAt;
     private String updatedAt;
 
@@ -151,6 +157,54 @@ public class User {
 
     public void setRoomConfig(String roomConfig) {
         this.roomConfig = roomConfig;
+    }
+
+    public String getGender() {
+        return gender != null ? gender : "OTHER";
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getSeekingGender() {
+        return seekingGender != null ? seekingGender : "ANY";
+    }
+
+    public void setSeekingGender(String seekingGender) {
+        this.seekingGender = seekingGender;
+    }
+
+    public boolean isInternational() {
+        return isInternational;
+    }
+
+    public void setInternational(boolean international) {
+        isInternational = international;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
+    }
+
+    public double getMaxDistanceKm() {
+        return maxDistanceKm;
+    }
+
+    public void setMaxDistanceKm(double maxDistanceKm) {
+        this.maxDistanceKm = maxDistanceKm;
     }
 
     public String getCreatedAt() {

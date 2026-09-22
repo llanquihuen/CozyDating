@@ -52,6 +52,16 @@ public class DatabaseService {
                 user.setVerificationSelfie(rs.getString("verification_selfie"));
             } catch (Exception ignored) {}
             user.setRoomConfig(rs.getString("room_config"));
+            try {
+                user.setGender(rs.getString("gender"));
+                user.setSeekingGender(rs.getString("seeking_gender"));
+                user.setInternational(rs.getBoolean("is_international"));
+                user.setLatitude(rs.getObject("latitude") != null ? rs.getDouble("latitude") : null);
+                user.setLongitude(rs.getObject("longitude") != null ? rs.getDouble("longitude") : null);
+                if (rs.getObject("max_distance_km") != null) {
+                    user.setMaxDistanceKm(rs.getDouble("max_distance_km"));
+                }
+            } catch (Exception ignored) {}
             return user;
         }
     };
@@ -128,6 +138,12 @@ public class DatabaseService {
             "  is_verified BOOLEAN DEFAULT FALSE," +
             "  verification_selfie LONGTEXT," +
             "  room_config LONGTEXT," +
+            "  gender VARCHAR(50) DEFAULT 'OTHER'," +
+            "  seeking_gender VARCHAR(50) DEFAULT 'ANY'," +
+            "  is_international BOOLEAN DEFAULT FALSE," +
+            "  latitude DOUBLE," +
+            "  longitude DOUBLE," +
+            "  max_distance_km DOUBLE DEFAULT 25.0," +
             "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
             "  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
             ")"
@@ -214,6 +230,12 @@ public class DatabaseService {
             "tastes LONGTEXT",
             "profile_photo LONGTEXT",
             "room_config LONGTEXT",
+            "gender VARCHAR(50) DEFAULT 'OTHER'",
+            "seeking_gender VARCHAR(50) DEFAULT 'ANY'",
+            "is_international BOOLEAN DEFAULT FALSE",
+            "latitude DOUBLE",
+            "longitude DOUBLE",
+            "max_distance_km DOUBLE DEFAULT 25.0",
             "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
             "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
         };
@@ -318,8 +340,8 @@ public class DatabaseService {
     @Transactional
     public void createUser(User user) {
         jdbcTemplate.update(
-            "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, avatar_config, tastes, profile_photo, photos, is_verified, verification_selfie, room_config) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users (id, username, email, password_hash, age, commune, tickets_balance, avatar_config, tastes, profile_photo, photos, is_verified, verification_selfie, room_config, gender, seeking_gender, is_international, latitude, longitude, max_distance_km) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             user.getId(),
             user.getUsername(),
             user.getEmail(),
@@ -333,7 +355,13 @@ public class DatabaseService {
             user.getPhotos(),
             user.isVerified(),
             user.getVerificationSelfie(),
-            user.getRoomConfig()
+            user.getRoomConfig(),
+            user.getGender(),
+            user.getSeekingGender(),
+            user.isInternational(),
+            user.getLatitude(),
+            user.getLongitude(),
+            user.getMaxDistanceKm()
         );
     }
 
@@ -374,6 +402,22 @@ public class DatabaseService {
     @Transactional
     public void updateUserProfile(String userId, int age, String commune, String tastesJson) {
         jdbcTemplate.update("UPDATE users SET age = ?, commune = ?, tastes = ? WHERE id = ?", age, commune, tastesJson, userId);
+    }
+
+    @Transactional
+    public void updateUserProfile(String userId, int age, String commune, String tastesJson,
+                                  String gender, String seekingGender, Boolean isInternational,
+                                  Double latitude, Double longitude, Double maxDistanceKm) {
+        jdbcTemplate.update(
+            "UPDATE users SET age = ?, commune = ?, tastes = ?, gender = ?, seeking_gender = ?, is_international = ?, latitude = ?, longitude = ?, max_distance_km = ? WHERE id = ?",
+            age, commune, tastesJson,
+            gender != null ? gender : "OTHER",
+            seekingGender != null ? seekingGender : "ANY",
+            isInternational != null ? isInternational : false,
+            latitude, longitude,
+            maxDistanceKm != null ? maxDistanceKm : 25.0,
+            userId
+        );
     }
 
     @Transactional

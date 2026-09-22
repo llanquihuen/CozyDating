@@ -797,7 +797,9 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
                               const SizedBox(width: 2),
                               Flexible(
                                 child: Text(
-                                  commune,
+                                  (widget.state.session.distanceKm != null && widget.state.session.distanceKm! >= 0)
+                                      ? '$commune • a ~${widget.state.session.distanceKm} km'
+                                      : commune,
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 12,

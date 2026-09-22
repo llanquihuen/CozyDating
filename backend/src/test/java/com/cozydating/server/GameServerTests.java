@@ -334,6 +334,54 @@ public class GameServerTests {
         assertTrue(sessionB.sentMessages.get(0).contains("¡Qué linda noche en la fogata!"));
     }
 
+    @Test
+    public void testGenderFilteringReciprocal() {
+        TestWebSocketSession sessionA = new TestWebSocketSession("ws_a");
+        TestWebSocketSession sessionB = new TestWebSocketSession("ws_b");
+        TestWebSocketSession sessionD = new TestWebSocketSession("ws_d");
+
+        // userA is MAN, seeking WOMAN
+        // userB is MAN, seeking WOMAN
+        // They must NOT match each other
+        matchmakingService.joinQueue("userA", "Santiago", "20", "SILENT", sessionA, null, null, "Alice", "[]", 25.0, "MAN", "WOMAN", false, null, null);
+        matchmakingService.joinQueue("userB", "Santiago", "20", "SILENT", sessionB, null, null, "Bob", "[]", 25.0, "MAN", "WOMAN", false, null, null);
+
+        assertNull(gameSessionService.getRoomForUser("userA"));
+        assertNull(gameSessionService.getRoomForUser("userB"));
+
+        // userD is WOMAN, seeking MAN -> Should match userA!
+        matchmakingService.joinQueue("userD", "Santiago", "20", "SILENT", sessionD, null, null, "Dayana", "[]", 25.0, "WOMAN", "MAN", false, null, null);
+
+        assertNotNull(gameSessionService.getRoomForUser("userA"));
+        assertNotNull(gameSessionService.getRoomForUser("userD"));
+        assertNull(gameSessionService.getRoomForUser("userB")); // Bob still waiting
+    }
+
+    @Test
+    public void testProximityPrioritization() {
+        TestWebSocketSession sessionA = new TestWebSocketSession("ws_prox_a");
+        TestWebSocketSession sessionB = new TestWebSocketSession("ws_prox_b");
+        TestWebSocketSession sessionD = new TestWebSocketSession("ws_prox_d");
+
+        // userA in Santiago Centro (-33.4489, -70.6693)
+        matchmakingService.joinQueue("userA", "Santiago", "20", "SILENT", sessionA, null, null, "Alice", "[]", 100.0, "OTHER", "ANY", false, -33.4489, -70.6693);
+
+        // userB in Rancagua (~80 km away)
+        matchmakingService.joinQueue("userB", "Rancagua", "20", "SILENT", sessionB, null, null, "Bob", "[]", 100.0, "OTHER", "ANY", false, -34.1708, -70.7444);
+
+        // userD in Providencia (~5 km away)
+        matchmakingService.joinQueue("userD", "Providencia", "20", "SILENT", sessionD, null, null, "Dayana", "[]", 100.0, "OTHER", "ANY", false, -33.4314, -70.6093);
+
+        // userA should match with the closest candidate (userD in Providencia), NOT userB in Rancagua
+        GameRoom roomA = gameSessionService.getRoomForUser("userA");
+        assertNotNull(roomA);
+        assertTrue(roomA.getExplorerId().equals("userD") || roomA.getGuideId().equals("userD"));
+        assertNull(gameSessionService.getRoomForUser("userB"));
+
+        // And verify distanceKm is dispatched in SESSION_INIT
+        assertTrue(sessionA.sentMessages.get(0).contains("\"distanceKm\":"));
+    }
+
     /**
      * Lightweight custom implementation of WebSocketSession for tests to bypass Byte Buddy Java 25 compatibility issues.
      */

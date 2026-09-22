@@ -46,6 +46,14 @@ public class GameSessionService {
                            String explorerId, WebSocketSession explorerSession, Object explorerAvatar, Object explorerRoom, String explorerName, Object explorerTastes,
                            String guideId, WebSocketSession guideSession, Object guideAvatar, Object guideRoom, String guideName, Object guideTastes,
                            String mode) {
+        createRoom(roomId, explorerId, explorerSession, explorerAvatar, explorerRoom, explorerName, explorerTastes,
+                   guideId, guideSession, guideAvatar, guideRoom, guideName, guideTastes, mode, -1.0);
+    }
+
+    public void createRoom(String roomId,
+                           String explorerId, WebSocketSession explorerSession, Object explorerAvatar, Object explorerRoom, String explorerName, Object explorerTastes,
+                           String guideId, WebSocketSession guideSession, Object guideAvatar, Object guideRoom, String guideName, Object guideTastes,
+                           String mode, double distanceKm) {
         
         logger.info("[GAME SESSION INIT] Building room {} [Explorer: {} ({}), Guide: {} ({}), Mode: {}]",
                 roomId, explorerId, explorerName, guideId, guideName, mode);
@@ -97,6 +105,9 @@ public class GameSessionService {
         if (guideUser != null && guideUser.getCommune() != null && !guideUser.getCommune().isEmpty()) {
             explorerInit.put("partnerCommune", guideUser.getCommune());
         }
+        if (distanceKm >= 0) {
+            explorerInit.put("distanceKm", Math.round(distanceKm));
+        }
         explorerInit.put("seed", dungeonSeed);
         explorerInit.put("act", 1);
         if ("CAMPFIRE".equalsIgnoreCase(mode)) {
@@ -125,6 +136,9 @@ public class GameSessionService {
         }
         if (explorerUser != null && explorerUser.getCommune() != null && !explorerUser.getCommune().isEmpty()) {
             guideInit.put("partnerCommune", explorerUser.getCommune());
+        }
+        if (distanceKm >= 0) {
+            guideInit.put("distanceKm", Math.round(distanceKm));
         }
         guideInit.put("seed", dungeonSeed);
         guideInit.put("act", 1);

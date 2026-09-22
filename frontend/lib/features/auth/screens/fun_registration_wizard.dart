@@ -32,6 +32,9 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
   final _passwordController = TextEditingController();
   int _selectedAge = 24;
   String _selectedCommune = 'Santiago';
+  String _selectedGender = 'MAN';
+  String _selectedSeeking = 'WOMAN';
+  final _communeTextController = TextEditingController(text: 'Santiago');
   final _formKey = GlobalKey<FormState>();
 
   final List<String> _communes = const [
@@ -174,15 +177,21 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
       avatarConfig: _avatarConfig,
     );
 
+    final resolvedCommune = _communeTextController.text.trim().isNotEmpty
+        ? _communeTextController.text.trim()
+        : _selectedCommune;
+
     final result = await AuthService.register(
       username: _usernameController.text.trim(),
       password: _passwordController.text,
       email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
       age: _selectedAge,
-      commune: _selectedCommune,
+      commune: resolvedCommune,
       avatarConfig: _avatarConfig,
       tastes: _selectedTastes.toList(),
       roomConfig: starterRoom,
+      gender: _selectedGender,
+      seekingGender: _selectedSeeking,
     );
 
     setState(() {
@@ -497,22 +506,150 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
             ),
             const SizedBox(height: 16),
 
-            // Commune Dropdown
-            DropdownButtonFormField<String>(
-              value: _selectedCommune,
-              dropdownColor: const Color(0xFF1E1C27),
+            // Identidad & Preferencia
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1C27),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Soy:', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('👨 Hombre'),
+                        selected: _selectedGender == 'MAN',
+                        selectedColor: const Color(0xFFFFB300).withOpacity(0.3),
+                        backgroundColor: const Color(0xFF0F172A),
+                        labelStyle: TextStyle(
+                          color: _selectedGender == 'MAN' ? const Color(0xFFFFB300) : Colors.white70,
+                          fontSize: 12,
+                        ),
+                        onSelected: (val) {
+                          if (val) setState(() => _selectedGender = 'MAN');
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('👩 Mujer'),
+                        selected: _selectedGender == 'WOMAN',
+                        selectedColor: const Color(0xFFFF4081).withOpacity(0.3),
+                        backgroundColor: const Color(0xFF0F172A),
+                        labelStyle: TextStyle(
+                          color: _selectedGender == 'WOMAN' ? const Color(0xFFFF4081) : Colors.white70,
+                          fontSize: 12,
+                        ),
+                        onSelected: (val) {
+                          if (val) setState(() => _selectedGender = 'WOMAN');
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('✨ No binario'),
+                        selected: _selectedGender == 'NON_BINARY',
+                        selectedColor: const Color(0xFF38BDF8).withOpacity(0.3),
+                        backgroundColor: const Color(0xFF0F172A),
+                        labelStyle: TextStyle(
+                          color: _selectedGender == 'NON_BINARY' ? const Color(0xFF38BDF8) : Colors.white70,
+                          fontSize: 12,
+                        ),
+                        onSelected: (val) {
+                          if (val) setState(() => _selectedGender = 'NON_BINARY');
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Busco conocer:', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('👩 Mujeres'),
+                        selected: _selectedSeeking == 'WOMAN',
+                        selectedColor: const Color(0xFFFF4081).withOpacity(0.3),
+                        backgroundColor: const Color(0xFF0F172A),
+                        labelStyle: TextStyle(
+                          color: _selectedSeeking == 'WOMAN' ? const Color(0xFFFF4081) : Colors.white70,
+                          fontSize: 12,
+                        ),
+                        onSelected: (val) {
+                          if (val) setState(() => _selectedSeeking = 'WOMAN');
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('👨 Hombres'),
+                        selected: _selectedSeeking == 'MAN',
+                        selectedColor: const Color(0xFFFFB300).withOpacity(0.3),
+                        backgroundColor: const Color(0xFF0F172A),
+                        labelStyle: TextStyle(
+                          color: _selectedSeeking == 'MAN' ? const Color(0xFFFFB300) : Colors.white70,
+                          fontSize: 12,
+                        ),
+                        onSelected: (val) {
+                          if (val) setState(() => _selectedSeeking = 'MAN');
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('💫 Todos'),
+                        selected: _selectedSeeking == 'ANY',
+                        selectedColor: const Color(0xFF38BDF8).withOpacity(0.3),
+                        backgroundColor: const Color(0xFF0F172A),
+                        labelStyle: TextStyle(
+                          color: _selectedSeeking == 'ANY' ? const Color(0xFF38BDF8) : Colors.white70,
+                          fontSize: 12,
+                        ),
+                        onSelected: (val) {
+                          if (val) setState(() => _selectedSeeking = 'ANY');
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Ciudad / Comuna libre
+            TextFormField(
+              controller: _communeTextController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                labelText: 'Tu Comuna / Región',
-                prefixIcon: const Icon(Icons.location_on, color: Color(0xFFFFB300)),
+                labelText: 'Tu Ciudad o Comuna',
+                hintText: 'Ej. Santiago, Valdivia, Concepción...',
+                prefixIcon: const Icon(Icons.location_city, color: Color(0xFFFFB300)),
                 filled: true,
                 fillColor: const Color(0xFF1E1C27),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              items: _communes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-              onChanged: (val) {
-                if (val != null) setState(() => _selectedCommune = val);
-              },
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.shield_outlined, size: 16, color: Color(0xFF10B981)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Ubicación aproximada (~2 km) para emparejar por cercanía. Tu calle o dirección nunca se revelan.',
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

@@ -37,6 +37,12 @@ class AuthService {
     required AvatarConfig avatarConfig,
     required List<String> tastes,
     required RoomConfig roomConfig,
+    String gender = 'OTHER',
+    String seekingGender = 'ANY',
+    bool isInternational = false,
+    double? latitude,
+    double? longitude,
+    double maxDistanceKm = 25.0,
   }) async {
     try {
       final url = Uri.parse('$_baseUrl/auth/register');
@@ -49,6 +55,12 @@ class AuthService {
         'avatarConfig': avatarConfig.toJson(),
         'tastes': jsonEncode(tastes),
         'roomConfig': roomConfig.toJson(),
+        'gender': gender,
+        'seekingGender': seekingGender,
+        'isInternational': isInternational,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        'maxDistanceKm': maxDistanceKm,
       };
 
       final response = await http.post(
@@ -494,6 +506,11 @@ class AuthService {
     int? age,
     String? commune,
     bool? isVerified,
+    String? gender,
+    String? seekingGender,
+    bool? isInternational,
+    double? latitude,
+    double? longitude,
   }) {
     if (_currentUser == null) return;
     _currentUser = _currentUser!.copyWith(
@@ -505,7 +522,45 @@ class AuthService {
       age: age,
       commune: commune,
       isVerified: isVerified,
+      gender: gender,
+      seekingGender: seekingGender,
+      isInternational: isInternational,
+      latitude: latitude,
+      longitude: longitude,
     );
+  }
+
+  /// Sync location and gender preferences to backend
+  static Future<bool> saveProfileToBackend() async {
+    if (_currentUser == null) return false;
+    try {
+      final url = Uri.parse('$_baseUrl/auth/profile');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+      final body = jsonEncode({
+        'userId': _currentUser!.id,
+        'gender': _currentUser!.gender,
+        'seekingGender': _currentUser!.seekingGender,
+        'isInternational': _currentUser!.isInternational,
+        'commune': _currentUser!.commune,
+        'age': _currentUser!.age,
+        'maxDistanceKm': _currentUser!.maxDistanceKm,
+        if (_currentUser!.latitude != null) 'latitude': _currentUser!.latitude,
+        if (_currentUser!.longitude != null) 'longitude': _currentUser!.longitude,
+      });
+
+      final response = await http.post(url, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _currentUser = UserProfile.fromMap(data);
+        return true;
+      }
+    } catch (e) {
+      print('[PROFILE SYNC ERROR] $e');
+    }
+    return false;
   }
 
   /// Fetch user ticket balance from backend

@@ -20,6 +20,11 @@ class UserProfile {
   final RoomConfig roomConfig;
   final bool isVerified;
   final String? verificationSelfie;
+  final String gender;
+  final String seekingGender;
+  final bool isInternational;
+  final double? latitude;
+  final double? longitude;
 
   const UserProfile({
     required this.id,
@@ -39,6 +44,11 @@ class UserProfile {
     this.roomConfig = const RoomConfig(),
     this.isVerified = false,
     this.verificationSelfie,
+    this.gender = 'OTHER',
+    this.seekingGender = 'ANY',
+    this.isInternational = false,
+    this.latitude,
+    this.longitude,
   });
 
   /// Primary photo for fallback/compatibility
@@ -78,6 +88,11 @@ class UserProfile {
     RoomConfig? roomConfig,
     bool? isVerified,
     String? verificationSelfie,
+    String? gender,
+    String? seekingGender,
+    bool? isInternational,
+    double? latitude,
+    double? longitude,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -97,6 +112,11 @@ class UserProfile {
       roomConfig: roomConfig ?? this.roomConfig,
       isVerified: isVerified ?? this.isVerified,
       verificationSelfie: verificationSelfie ?? this.verificationSelfie,
+      gender: gender ?? this.gender,
+      seekingGender: seekingGender ?? this.seekingGender,
+      isInternational: isInternational ?? this.isInternational,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -119,6 +139,11 @@ class UserProfile {
       'roomConfig': roomConfig.toJson(),
       'isVerified': isVerified,
       if (verificationSelfie != null) 'verificationSelfie': verificationSelfie,
+      'gender': gender,
+      'seekingGender': seekingGender,
+      'isInternational': isInternational,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 
@@ -206,6 +231,11 @@ class UserProfile {
       roomConfig: room,
       isVerified: map['isVerified'] == true || map['is_verified'] == true || map['is_verified'] == 1,
       verificationSelfie: map['verificationSelfie'] as String? ?? map['verification_selfie'] as String?,
+      gender: map['gender'] as String? ?? 'OTHER',
+      seekingGender: map['seekingGender'] as String? ?? map['seeking_gender'] as String? ?? 'ANY',
+      isInternational: map['isInternational'] == true || map['is_international'] == true || map['is_international'] == 1,
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
     );
   }
 

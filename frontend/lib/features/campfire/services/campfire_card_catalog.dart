@@ -1060,12 +1060,12 @@ class CampfireCardCatalog {
     CampfireCard(
       id: 'contrast_rhythm_flexible',
       type: CampfireCardType.curiousContrast,
-      categoryHeader: '☕⏰ EL CONTRASTE: HORARIOS FIJOS VS. RITMO FLUIDO',
+      categoryHeader: '☕🧭 EL CONTRASTE: HORARIOS FIJOS VS. RITMO FLUIDO',
       question: 'Uno tiene un horario marcado (madrugador o nocturno) y el otro fluye con la tarde o según el día... ¿Cómo coordinan sus mejores momentos?',
       options: [
         CampfireOption(id: 'a', text: 'Almorzar tarde y pasar la tarde entera compartiendo actividades', emoji: '🥪'),
         CampfireOption(id: 'b', text: 'Avisarse espontáneamente cuando tengan ganas y energía de verse', emoji: '📱'),
-        CampfireOption(id: 'c', text: 'El de horario fijo le da estructura al día y el flexible aporta espontaneidad', emoji: '✨'),
+        CampfireOption(id: 'c', text: 'Equilibrar estilos: uno aporta la estructura base y el otro la espontaneidad', emoji: '✨'),
         CampfireOption(id: 'd', text: 'Reunirse sin prisas los fines de semana donde el reloj no importa', emoji: '🛋️'),
       ],
     ),
@@ -1419,8 +1419,15 @@ class CampfireCardCatalog {
     final setA = userA.tastes.toSet();
     final setB = userB.tastes.toSet();
 
-    final nameA = (userA.username == 'Tú' || userA.username.isEmpty) ? 'Tú' : userA.username;
-    final nameB = (userB.username == 'Tú' || userB.username.isEmpty) ? 'Compañero' : userB.username;
+    String capitalizeName(String name) {
+      final trimmed = name.trim();
+      if (trimmed.isEmpty) return 'Compañero';
+      if (trimmed == 'Tú' || trimmed == 'Compañero') return trimmed;
+      return trimmed.split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ');
+    }
+
+    final nameA = capitalizeName((userA.username == 'Tú' || userA.username.isEmpty) ? 'Tú' : userA.username);
+    final nameB = capitalizeName((userB.username == 'Tú' || userB.username.isEmpty) ? 'Compañero' : userB.username);
 
     // -----------------------------------------------------------------------
     // RONDA 1: Pasión Compartida vs. Descubrimiento Mutuo (Elige cualquiera de los similares)
@@ -1606,8 +1613,9 @@ class CampfireCardCatalog {
     final isFixedRhythmB = setB.contains('vibe_night_owl') || setB.contains('vibe_early_bird');
 
     if ((isFlexibleRhythmA && isFixedRhythmB) || (isFixedRhythmA && isFlexibleRhythmB)) {
-      final rhythmA = setA.firstWhere((id) => id.startsWith('vibe_'), orElse: () => '');
-      final rhythmB = setB.firstWhere((id) => id.startsWith('vibe_'), orElse: () => '');
+      const rhythmTagIds = {'vibe_night_owl', 'vibe_early_bird', 'vibe_flexible_rhythm', 'vibe_chaotic_rhythm'};
+      final rhythmA = setA.firstWhere((id) => rhythmTagIds.contains(id), orElse: () => '');
+      final rhythmB = setB.firstWhere((id) => rhythmTagIds.contains(id), orElse: () => '');
       contrastCandidates.add({
         'card': contrastCards[20], // contrast_rhythm_flexible
         'reason': '⏰ El Ritmo: [$nameA: ${getTagTitle(rhythmA)}] vs [$nameB: ${getTagTitle(rhythmB)}]',

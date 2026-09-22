@@ -538,7 +538,8 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   void _cancelMatchmaking() {
-    context.read<GameBloc>().add(const SendEmergencyDisconnectEvent(shouldBlock: false));
+    context.read<GameBloc>().add(const ResetGameEvent());
+    _showTopNotification('Búsqueda de cita cancelada');
   }
 
   @override
@@ -3202,61 +3203,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   Widget _buildQueuedCard([MatchmakingQueueState? queueState]) {
-    final commune = queueState?.commune ?? AuthService.currentUser?.commune ?? 'Santiago';
-    final isVoice = queueState?.mode == 'VOICE';
-    final modeLabel = isVoice ? 'Modo Voz' : 'Mazmorra Cooperativa';
-    final subText = '$commune • $modeLabel • Sigue explorando tu cuarto';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1C24).withOpacity(0.95),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFF6D00), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF6D00).withOpacity(0.25),
-            blurRadius: 16,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFFFF6D00)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Buscando Pareja en la Mazmorra...',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
-                ),
-                Text(
-                  subText,
-                  style: const TextStyle(color: Colors.amberAccent, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.redAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            onPressed: _cancelMatchmaking,
-            child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          ),
-        ],
-      ),
-    );
+    return _QueuedRadarCard(queueState: queueState, onCancel: _cancelMatchmaking);
   }
 
   Widget _buildWaitingInviteCard(Map<String, dynamic> invite) {
@@ -3317,6 +3264,115 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
               ChatService.cancelDateInvite(matchId: matchId, partnerId: partnerId);
               _showTopNotification('Invitación a cita cancelada.');
             },
+            child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QueuedRadarCard extends StatefulWidget {
+  final MatchmakingQueueState? queueState;
+  final VoidCallback onCancel;
+
+  const _QueuedRadarCard({Key? key, this.queueState, required this.onCancel}) : super(key: key);
+
+  @override
+  State<_QueuedRadarCard> createState() => _QueuedRadarCardState();
+}
+
+class _QueuedRadarCardState extends State<_QueuedRadarCard> {
+  Timer? _timer;
+  int _seconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (mounted) setState(() => _seconds++);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isVoice = widget.queueState?.mode == 'VOICE';
+    final isIntl = AuthService.currentUser?.isInternational == true;
+
+    String radarStatus;
+    if (isIntl) {
+      radarStatus = '🌐 Búsqueda global activa (${_seconds}s)';
+    } else if (_seconds < 15) {
+      radarStatus = '📍 Buscando en tu zona (< 15 km) • ${_seconds}s';
+    } else if (_seconds < 30) {
+      radarStatus = '🧭 Ampliando a 35 km • ${_seconds}s';
+    } else if (_seconds < 50) {
+      radarStatus = '🗺️ Expandiendo a 60 km • ${_seconds}s';
+    } else {
+      radarStatus = '✨ Búsqueda nacional abierta • ${_seconds}s';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1C24).withOpacity(0.95),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFF6D00), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF6D00).withOpacity(0.25),
+            blurRadius: 16,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFFFF6D00)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Buscando Pareja...',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isVoice ? '🎙️ Voz' : '⚔️ Mazmorra',
+                      style: const TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  radarStatus,
+                  style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            onPressed: widget.onCancel,
             child: const Text('Cancelar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ],

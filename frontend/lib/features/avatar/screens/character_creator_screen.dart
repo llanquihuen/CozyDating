@@ -55,6 +55,10 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   late double _selectedDistanceKm;
   late int _userAge;
   late String _userCommune;
+  late String _userGender;
+  late String _seekingGender;
+  late bool _isInternational;
+  late TextEditingController _communeController;
 
   final List<String> _samplePhotoPresets = const [
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
@@ -97,6 +101,10 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     _selectedDistanceKm = AuthService.currentUser?.maxDistanceKm ?? AvatarStorageService.getUserMaxDistance(activeId);
     _userAge = AuthService.currentUser?.age ?? 24;
     _userCommune = AuthService.currentUser?.commune ?? 'Santiago';
+    _userGender = AuthService.currentUser?.gender ?? 'OTHER';
+    _seekingGender = AuthService.currentUser?.seekingGender ?? 'ANY';
+    _isInternational = AuthService.currentUser?.isInternational ?? false;
+    _communeController = TextEditingController(text: _userCommune);
 
     _previewGame = CharacterPreviewGame(
       config: _currentConfig,
@@ -145,6 +153,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     _faceTabController.dispose();
     _clothesTabController.dispose();
     _bioController.dispose();
+    _communeController.dispose();
     super.dispose();
   }
 
@@ -228,7 +237,9 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     if (_currentPhoto != null && _currentPhoto != initialPhoto) {
       AuthService.updateProfilePhoto(_currentPhoto!);
     }
-    AuthService.updateProfilePhotos(_userPhotos);
+    final resolvedCommune = _communeController.text.trim().isNotEmpty
+        ? _communeController.text.trim()
+        : _userCommune;
 
     AuthService.updateDatingProfile(
       profilePhoto: _currentPhoto,
@@ -237,9 +248,13 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       intent: _selectedIntent,
       maxDistanceKm: _selectedDistanceKm,
       age: _userAge,
-      commune: _userCommune,
+      commune: resolvedCommune,
       isVerified: _isVerified,
+      gender: _userGender,
+      seekingGender: _seekingGender,
+      isInternational: _isInternational,
     );
+    AuthService.saveProfileToBackend();
 
     widget.onSaved?.call(_currentConfig);
     if (Navigator.canPop(context)) {
@@ -1770,10 +1785,16 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
 
 
   Widget _buildDistanceAndLocationSection() {
-    final communes = [
-      'Santiago', 'Providencia', 'Las Condes', 'Ñuñoa', 'La Florida', 'Maipú',
-      'Puente Alto', 'San Miguel', 'Viña del Mar', 'Valparaíso', 'Concepción',
-      'La Serena', 'Coquimbo', 'Antofagasta', 'Temuco', 'Rancagua'
+    final genderOptions = [
+      {'value': 'MAN', 'label': '👨 Hombre'},
+      {'value': 'WOMAN', 'label': '👩 Mujer'},
+      {'value': 'NON_BINARY', 'label': '✨ No binario'},
+    ];
+
+    final seekingOptions = [
+      {'value': 'WOMAN', 'label': '👩 Mujeres'},
+      {'value': 'MAN', 'label': '👨 Hombres'},
+      {'value': 'ANY', 'label': '💫 Todos'},
     ];
 
     return Container(
@@ -1786,12 +1807,13 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Sección Identidad & Búsqueda
           const Row(
             children: [
-              Icon(Icons.location_on, color: Color(0xFF10B981), size: 20),
+              Icon(Icons.favorite_rounded, color: Color(0xFFFF4081), size: 20),
               SizedBox(width: 8),
               Text(
-                'Ubicación & Radio de Búsqueda',
+                'Identidad & A Quién Buscas',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1802,107 +1824,231 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           ),
           const SizedBox(height: 6),
           const Text(
-            'El emparejamiento calcula la distancia real en kilómetros entre ambas ubicaciones.',
+            'El emparejamiento empareja solo a personas con compatibilidad mutua.',
             style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Comuna y Edad
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Tu Comuna / Ciudad:', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF475569)),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: communes.contains(_userCommune) ? _userCommune : 'Santiago',
-                          isExpanded: true,
-                          dropdownColor: const Color(0xFF1E293B),
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
-                          items: communes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _userCommune = val);
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+          // ¿Cómo te identificas? (Soy)
+          const Text('Soy:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: genderOptions.map((opt) {
+              final isSelected = _userGender == opt['value'];
+              return ChoiceChip(
+                label: Text(opt['label']!),
+                selected: isSelected,
+                selectedColor: const Color(0xFFFF4081).withOpacity(0.3),
+                backgroundColor: const Color(0xFF0F172A),
+                labelStyle: TextStyle(
+                  color: isSelected ? const Color(0xFFFF4081) : Colors.white70,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 12,
                 ),
-              ),
-              const SizedBox(width: 14),
-              SizedBox(
-                width: 120,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Edad:', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF475569)),
-                      ),
-                      child: Center(
-                        child: Text('$_userAge años', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
+                side: BorderSide(
+                  color: isSelected ? const Color(0xFFFF4081) : const Color(0xFF475569),
                 ),
-              ),
-            ],
+                onSelected: (selected) {
+                  if (selected) setState(() => _userGender = opt['value']!);
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
+
+          // ¿A quién buscas? (Busco)
+          const Text('Busco conocer:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: seekingOptions.map((opt) {
+              final isSelected = _seekingGender == opt['value'];
+              return ChoiceChip(
+                label: Text(opt['label']!),
+                selected: isSelected,
+                selectedColor: const Color(0xFF38BDF8).withOpacity(0.3),
+                backgroundColor: const Color(0xFF0F172A),
+                labelStyle: TextStyle(
+                  color: isSelected ? const Color(0xFF38BDF8) : Colors.white70,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 12,
+                ),
+                side: BorderSide(
+                  color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF475569),
+                ),
+                onSelected: (selected) {
+                  if (selected) setState(() => _seekingGender = opt['value']!);
+                },
+              );
+            }).toList(),
           ),
 
           const SizedBox(height: 20),
+          const Divider(color: Color(0xFF334155)),
+          const SizedBox(height: 12),
 
-          // Slider de Distancia
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Sección Ubicación
+          const Row(
             children: [
-              const Text(
-                'Distancia máxima preferida:',
-                style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
-                ),
-                child: Text(
-                  _selectedDistanceKm >= 100 ? 'Sin límite (Nacional)' : '${_selectedDistanceKm.toInt()} km',
-                  style: const TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold, fontSize: 12),
+              Icon(Icons.location_on, color: Color(0xFF10B981), size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Tu Ciudad / Comuna',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ],
           ),
-          Slider(
-            value: _selectedDistanceKm.clamp(5.0, 100.0),
-            min: 5.0,
-            max: 100.0,
-            divisions: 19,
-            activeColor: const Color(0xFF10B981),
-            inactiveColor: const Color(0xFF334155),
-            onChanged: (val) {
-              setState(() => _selectedDistanceKm = val);
-            },
-          ),
+          const SizedBox(height: 6),
           const Text(
-            '💡 Si transcurren más de 15 segundos sin personas en tu radio, la búsqueda se expandirá gradualmente para no hacerte esperar.',
-            style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+            'Escribe la ciudad o comuna donde resides para calcular distancias aproximadas.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
           ),
+          const SizedBox(height: 14),
+
+          // Campo de texto de Ciudad y Edad
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _communeController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.location_city, color: Color(0xFF10B981), size: 18),
+                    hintText: 'Ej. Santiago, Valdivia, Viña...',
+                    hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                    filled: true,
+                    fillColor: const Color(0xFF0F172A),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF475569)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF475569)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF10B981)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF475569)),
+                ),
+                child: Text(
+                  '$_userAge años',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Nota de privacidad amigable
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withOpacity(0.6),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF334155)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.shield_outlined, size: 16, color: Color(0xFF10B981)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Tu privacidad está protegida: Solo calculamos proximidad aproximada (~2 km), nunca tu calle ni dirección exacta.',
+                    style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+          const Divider(color: Color(0xFF334155)),
+          const SizedBox(height: 12),
+
+          // Alcance Internacional
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Explorar sin fronteras (Global):',
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Emparejar con compañeros de otros países',
+                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                  ),
+                ],
+              ),
+              Switch(
+                value: _isInternational,
+                activeColor: const Color(0xFF38BDF8),
+                onChanged: (val) {
+                  setState(() => _isInternational = val);
+                },
+              ),
+            ],
+          ),
+
+          if (!_isInternational) ...[
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Distancia máxima preferida:',
+                  style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                  ),
+                  child: Text(
+                    _selectedDistanceKm >= 100 ? 'Sin límite (Nacional)' : '${_selectedDistanceKm.toInt()} km',
+                    style: const TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+            Slider(
+              value: _selectedDistanceKm.clamp(5.0, 100.0),
+              min: 5.0,
+              max: 100.0,
+              divisions: 19,
+              activeColor: const Color(0xFF10B981),
+              inactiveColor: const Color(0xFF334155),
+              onChanged: (val) {
+                setState(() => _selectedDistanceKm = val);
+              },
+            ),
+            const Text(
+              '💡 Si transcurren más de 15 segundos sin personas en tu radio, la búsqueda se expandirá gradualmente para no hacerte esperar.',
+              style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+            ),
+          ],
         ],
       ),
     );

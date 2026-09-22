@@ -456,6 +456,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         Object tastes = data.get("tastes");
         Number maxDistanceNum = (Number) data.get("maxDistanceKm");
         double maxDistanceKm = maxDistanceNum != null ? maxDistanceNum.doubleValue() : 25.0;
+        String gender = (String) data.get("gender");
+        String seekingGender = (String) data.get("seekingGender");
+        boolean isInternational = Boolean.TRUE.equals(data.get("isInternational"));
+        Number latNum = (Number) data.get("latitude");
+        Double latitude = latNum != null ? latNum.doubleValue() : null;
+        Number lonNum = (Number) data.get("longitude");
+        Double longitude = lonNum != null ? lonNum.doubleValue() : null;
 
         logger.info("[SOCKET AUTH] Verifying SESSION_INIT token signature...");
         String userId = jwtUtil.verifyTokenAndGetUserId(token);
@@ -470,7 +477,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         sessionToUserMap.put(session, userId);
         userToSessionMap.put(userId, session);
 
-        boolean queued = matchmakingService.joinQueue(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, tastes, maxDistanceKm);
+        boolean queued = matchmakingService.joinQueue(
+            userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, tastes, maxDistanceKm,
+            gender, seekingGender, isInternational, latitude, longitude
+        );
         if (!queued) {
             logger.warn("[SOCKET QUEUE FAIL] Could not queue user {}. Ticket balance or duplicate queue state.", userId);
             Map<String, Object> errorResp = new HashMap<>();

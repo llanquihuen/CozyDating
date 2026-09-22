@@ -79,6 +79,7 @@ class SessionInitPayload extends Equatable {
   final int? seed;
   final bool isHomeVisitActive;
   final String? hostUserId;
+  final int? distanceKm;
 
   const SessionInitPayload({
     required this.roomId,
@@ -96,6 +97,7 @@ class SessionInitPayload extends Equatable {
     this.seed,
     this.isHomeVisitActive = false,
     this.hostUserId,
+    this.distanceKm,
   });
 
   factory SessionInitPayload.fromJson(Map<String, dynamic> json) {
@@ -144,6 +146,7 @@ class SessionInitPayload extends Equatable {
       seed: (json['seed'] as num?)?.toInt(),
       isHomeVisitActive: json['isHomeVisitActive'] == true || (json['mode'] as String? ?? '').toUpperCase() == 'HOME',
       hostUserId: json['hostUserId'] as String?,
+      distanceKm: (json['distanceKm'] as num?)?.toInt(),
     );
   }
 
@@ -160,6 +163,7 @@ class SessionInitPayload extends Equatable {
       if (partnerTastes.isNotEmpty) 'partnerTastes': partnerTastes,
       if (partnerAge != null) 'partnerAge': partnerAge,
       if (partnerCommune != null) 'partnerCommune': partnerCommune,
+      if (distanceKm != null) 'distanceKm': distanceKm,
       'act': act,
       'seed': seed,
       'isHomeVisitActive': isHomeVisitActive,
@@ -180,6 +184,7 @@ class SessionInitPayload extends Equatable {
     partnerTastes,
     partnerAge,
     partnerCommune,
+    distanceKm,
     act,
     seed,
   ];

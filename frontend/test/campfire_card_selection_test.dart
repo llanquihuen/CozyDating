@@ -204,5 +204,36 @@ void main() {
         expect(luisCards[i].options.length, equals(sofiaCards[i].options.length));
       }
     });
+
+    test('Rhythm contrast selects actual rhythm tags, capitalizes names, and maintains parallel options', () {
+      const userA = UserProfile(
+        id: 'user_a',
+        username: 'luis',
+        tastes: ['vibe_introvert', 'vibe_night_owl', 'intent_gaming_duo'],
+      );
+      const userB = UserProfile(
+        id: 'user_b',
+        username: 'carla',
+        tastes: ['vibe_ambivert', 'vibe_flexible_rhythm', 'intent_gaming_duo'],
+      );
+
+      final cards = CampfireCardCatalog.selectCardsForUsers(userA, userB, seed: 100);
+
+      expect(cards.length, equals(3));
+      final round2 = cards[1];
+      expect(round2.id, equals('contrast_rhythm_flexible'));
+      // Verifies capitalization of names
+      expect(round2.matchReason, contains('[Luis:'));
+      expect(round2.matchReason, contains('[Carla:'));
+      // Verifies correct rhythm tags instead of social battery tags
+      expect(round2.matchReason, contains('Criatura nocturna (Búho)'));
+      expect(round2.matchReason, contains('Ritmo flexible / Tarde activa (Colibrí)'));
+      expect(round2.matchReason, isNot(contains('Introvertido')));
+      expect(round2.matchReason, isNot(contains('Ambivertido')));
+
+      // Verifies options grammatical parallelism
+      final optionC = round2.options.firstWhere((o) => o.id == 'c');
+      expect(optionC.text, startsWith('Equilibrar estilos:'));
+    });
   });
 }

@@ -94,6 +94,25 @@ public class AuthController {
             roomConfig != null ? roomConfig : "{}"
         );
 
+        if (body.containsKey("gender") && body.get("gender") != null) {
+            newUser.setGender((String) body.get("gender"));
+        }
+        if (body.containsKey("seekingGender") && body.get("seekingGender") != null) {
+            newUser.setSeekingGender((String) body.get("seekingGender"));
+        }
+        if (body.containsKey("isInternational") && body.get("isInternational") != null) {
+            newUser.setInternational(Boolean.TRUE.equals(body.get("isInternational")));
+        }
+        if (body.containsKey("latitude") && body.get("latitude") instanceof Number) {
+            newUser.setLatitude(((Number) body.get("latitude")).doubleValue());
+        }
+        if (body.containsKey("longitude") && body.get("longitude") instanceof Number) {
+            newUser.setLongitude(((Number) body.get("longitude")).doubleValue());
+        }
+        if (body.containsKey("maxDistanceKm") && body.get("maxDistanceKm") instanceof Number) {
+            newUser.setMaxDistanceKm(((Number) body.get("maxDistanceKm")).doubleValue());
+        }
+
         databaseService.createUser(newUser);
 
         String token = jwtUtil.generateToken(userId, username.trim(), 30L * 24 * 3600 * 1000);
@@ -247,9 +266,39 @@ public class AuthController {
 
         String tastes = extractJsonString(body.get("tastes"));
         if (tastes != null) {
-            databaseService.updateUserProfile(resolvedUserId, user.getAge(), user.getCommune(), tastes);
             user.setTastes(tastes);
         }
+
+        if (body.containsKey("gender") && body.get("gender") != null) {
+            user.setGender((String) body.get("gender"));
+        }
+        if (body.containsKey("seekingGender") && body.get("seekingGender") != null) {
+            user.setSeekingGender((String) body.get("seekingGender"));
+        }
+        if (body.containsKey("isInternational") && body.get("isInternational") != null) {
+            user.setInternational(Boolean.TRUE.equals(body.get("isInternational")));
+        }
+        if (body.containsKey("latitude") && body.get("latitude") instanceof Number) {
+            user.setLatitude(((Number) body.get("latitude")).doubleValue());
+        }
+        if (body.containsKey("longitude") && body.get("longitude") instanceof Number) {
+            user.setLongitude(((Number) body.get("longitude")).doubleValue());
+        }
+        if (body.containsKey("commune") && body.get("commune") != null) {
+            user.setCommune((String) body.get("commune"));
+        }
+        if (body.containsKey("age") && body.get("age") instanceof Number) {
+            user.setAge(((Number) body.get("age")).intValue());
+        }
+        if (body.containsKey("maxDistanceKm") && body.get("maxDistanceKm") instanceof Number) {
+            user.setMaxDistanceKm(((Number) body.get("maxDistanceKm")).doubleValue());
+        }
+
+        databaseService.updateUserProfile(
+            resolvedUserId, user.getAge(), user.getCommune(), user.getTastes(),
+            user.getGender(), user.getSeekingGender(), user.isInternational(),
+            user.getLatitude(), user.getLongitude(), user.getMaxDistanceKm()
+        );
 
         if (body.containsKey("profilePhoto")) {
             String photo = (String) body.get("profilePhoto");
@@ -285,6 +334,12 @@ public class AuthController {
         map.put("isVerified", user.isVerified());
         map.put("verificationSelfie", user.getVerificationSelfie());
         map.put("roomConfig", user.getRoomConfig());
+        map.put("gender", user.getGender());
+        map.put("seekingGender", user.getSeekingGender());
+        map.put("isInternational", user.isInternational());
+        map.put("latitude", user.getLatitude());
+        map.put("longitude", user.getLongitude());
+        map.put("maxDistanceKm", user.getMaxDistanceKm());
         return map;
     }
 }

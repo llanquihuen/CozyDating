@@ -735,7 +735,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           ? AuthService.currentUser!.tastes
           : AvatarStorageService.getUserTastes(myId);
 
-      print('[BLOC OUT] Submitting SESSION_INIT command with profile over WebSocket (Tastes: $myTastes)...');
+      final user = AuthService.currentUser;
+      print('[BLOC OUT] Submitting SESSION_INIT command with profile over WebSocket (Tastes: $myTastes, Dist: ${user?.maxDistanceKm}, Gender: ${user?.gender})...');
       webSocketClient.sendMessage({
         'type': 'SESSION_INIT',
         'token': event.token,
@@ -746,6 +747,12 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         'avatarConfig': myAvatar.toJson(),
         'roomConfig': myRoom.toMap(),
         'tastes': myTastes,
+        'gender': user?.gender ?? 'OTHER',
+        'seekingGender': user?.seekingGender ?? 'ANY',
+        'isInternational': user?.isInternational ?? false,
+        if (user?.latitude != null) 'latitude': user!.latitude,
+        if (user?.longitude != null) 'longitude': user!.longitude,
+        'maxDistanceKm': user?.maxDistanceKm ?? 25.0,
       });
     } catch (e) {
       print('[BLOC ERROR] Exception during queue join: $e');
