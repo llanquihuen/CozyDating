@@ -130,6 +130,10 @@ class ModularAvatarComponent extends PositionComponent {
       final browG = config.eyebrowColor.green;
       final browB = config.eyebrowColor.blue;
 
+      final skinR = config.skinColor.red;
+      final skinG = config.skinColor.green;
+      final skinB = config.skinColor.blue;
+
       for (int i = 0; i < length; i += 4) {
         final a = buffer[i + 3];
         if (a == 0) continue;
@@ -151,6 +155,25 @@ class ModularAvatarComponent extends PositionComponent {
           buffer[i] = (browR * factor).round().clamp(0, 255);
           buffer[i + 1] = (browG * factor).round().clamp(0, 255);
           buffer[i + 2] = (browB * factor).round().clamp(0, 255);
+        }
+        // Blue-dominant: Sombra o delineado de ojos (si no hay azul, queda transparente)
+        else if (b > r + 15 && b > g + 15 && b >= 40) {
+          if (b >= 180) {
+            // Sombra suave de piel
+            buffer[i] = (skinR * 0.82).round().clamp(0, 255);
+            buffer[i + 1] = (skinG * 0.70).round().clamp(0, 255);
+            buffer[i + 2] = (skinB * 0.65).round().clamp(0, 255);
+          } else if (b >= 120) {
+            // Sombra profunda / pliegue de párpado
+            buffer[i] = (skinR * 0.60).round().clamp(0, 255);
+            buffer[i + 1] = (skinG * 0.46).round().clamp(0, 255);
+            buffer[i + 2] = (skinB * 0.42).round().clamp(0, 255);
+          } else {
+            // Delineado oscuro carbón
+            buffer[i] = 32;
+            buffer[i + 1] = 24;
+            buffer[i + 2] = 38;
+          }
         }
         // Other pixels (black eyeliner/lashes, white sclera) remain unchanged
       }

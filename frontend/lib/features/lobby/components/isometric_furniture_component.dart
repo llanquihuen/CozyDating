@@ -176,7 +176,7 @@ class IsometricFurnitureComponent extends PositionComponent {
     if (parentSurfaceHeight != null) this.parentSurfaceHeight = parentSurfaceHeight;
     if (wallHeightLevel != null) this.wallHeightLevel = wallHeightLevel;
 
-    position = (footprint == '0.5x0.5' || gridWidth <= 0.5)
+    position = (footprint == '0.5x0.5' || footprint == 'surface' || isSurfaceItem || gridWidth <= 0.5)
         ? IsometricCoords.subGridToScreen(gx * 2.0, gy * 2.0)
         : IsometricCoords.gridToScreen(gx, gy);
     
@@ -221,6 +221,10 @@ class IsometricFurnitureComponent extends PositionComponent {
       );
     }
 
+    // Los objetos de superficie en la misma mesa se ordenan de atrás hacia adelante
+    // según su coordenada isométrica relativa (u + v) para que los de adelante nunca queden tapados.
+    final intraTableZ = isSurfaceItem ? (((gx * 2.0).round() + (gy * 2.0).round()) * 20 + (gy * 2.0).round() % 2 * 2) : 0;
+
     priority = IsometricCoords.getSubZOrder(
           targetX,
           targetY,
@@ -229,7 +233,8 @@ class IsometricFurnitureComponent extends PositionComponent {
           layer: layer,
           footprint: isSurfaceItem ? 'surface' : footprint,
         ) +
-        wallClearanceBump * 10000;
+        wallClearanceBump * 10000 +
+        intraTableZ;
   }
 
   /// Calculates whole-tile depth bump needed ONLY when the rendered sprite overlaps a REAL interior wall panel
@@ -453,7 +458,7 @@ class IsometricFurnitureComponent extends PositionComponent {
       List<int> parentSurfOffset = const [0, 0];
 
       if (parentId != null) {
-        final parentComp = (parent as World?)?.children.whereType<IsometricFurnitureComponent>().where((f) => f.id == parentId).firstOrNull;
+        final parentComp = (parent as World?)?.children.whereType<IsometricFurnitureComponent>().where((f) => f.id == parentId || f.typeName == parentId).firstOrNull;
         if (parentComp != null) {
           final pMeta = FurnitureCatalogService.getItem(parentComp.typeName) ?? FurnitureCatalogService.getItem(parentComp.id);
           if (pMeta != null) {
@@ -473,6 +478,18 @@ class IsometricFurnitureComponent extends PositionComponent {
               }
               if (pMeta.surfaceOffset.length >= 2) {
                 parentSurfOffset = pMeta.surfaceOffset;
+              }
+            }
+
+            final availableSpots = (parentRotMeta != null && parentRotMeta.surfaceSpots.isNotEmpty)
+                ? parentRotMeta.surfaceSpots
+                : pMeta.surfaceSpots;
+            if (availableSpots.isNotEmpty) {
+              final relU = ((gridX - parentComp.gridX) * 2.0).round();
+              final relV = ((gridY - parentComp.gridY) * 2.0).round();
+              final matchingSpot = availableSpots.where((s) => s.subU == relU && s.subV == relV).firstOrNull;
+              if (matchingSpot != null) {
+                parentSurfOffset = [matchingSpot.offsetX, matchingSpot.offsetY];
               }
             }
           }

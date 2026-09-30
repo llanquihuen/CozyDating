@@ -11,10 +11,15 @@ import sprite_generator
 ASSETS_DIR = "assets"
 
 def hex_to_rgb(hex_str):
-    hex_str = hex_str.lstrip('#')
+    if not hex_str or str(hex_str).strip().lower() in ("none", "transparent"):
+        return None
+    hex_str = str(hex_str).lstrip('#')
     if len(hex_str) == 3:
         hex_str = ''.join([c*2 for c in hex_str])
-    return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+    try:
+        return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+    except Exception:
+        return None
 
 def rgb_to_hex(rgb):
     return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}".upper()
@@ -62,7 +67,7 @@ def interpolate_color(c1, c2, factor):
         clamp(c1[2] + (c2[2] - c1[2]) * factor)
     )
 
-def colorize_sprite(img, base_rgb, category="clothing", preserve_whites=False, eyebrow_rgb=None):
+def colorize_sprite(img, base_rgb, category="clothing", preserve_whites=False, eyebrow_rgb=None, skin_rgb=None, eyeshadow_rgb=None):
     if img is None:
         return None
     
@@ -80,7 +85,11 @@ def colorize_sprite(img, base_rgb, category="clothing", preserve_whites=False, e
             if a == 0:
                 continue
             
-            # Tratamiento especial de ojos (Rojo = Iris, Verde = Cejas, Resto = 100% Intacto)
+            # Tratamiento especial de ojos:
+            # - Rojo = Pupila / Iris
+            # - Verde = Cejas
+            # - Azul = Sombra o delineado de ojos (si no hay azul, queda transparente)
+            # - Resto (blanco de ojos, pestañas negras, brillos) = 100% Intacto
             if category == "eyes":
                 # 1. Pupila / Iris (Píxeles predominantemente Rojos)
                 if r > g + 20 and r > b + 20 and r >= 50:
@@ -104,7 +113,33 @@ def colorize_sprite(img, base_rgb, category="clothing", preserve_whites=False, e
                     out_pixels[x, y] = (cr, cg, cb, a)
                     continue
 
-                # 3. Todo lo demás (Pestañas negras, blanco de ojos, brillos, contornos) se queda INTACTO
+                # 3. Sombra o Delineado del Ojo (Píxeles predominantemente Azules)
+                elif b > r + 15 and b > g + 15 and b >= 40:
+                    if eyeshadow_rgb in ("none", "transparent"):
+                        out_pixels[x, y] = (0, 0, 0, 0)
+                        continue
+                    elif eyeshadow_rgb:
+                        shadow_ramp = generate_snes_palette_ramp(eyeshadow_rgb, category="clothing")
+                        lum = b
+                        if lum >= 200: cr, cg, cb = shadow_ramp["hl"]
+                        elif lum >= 150: cr, cg, cb = shadow_ramp["light"]
+                        elif lum >= 100: cr, cg, cb = shadow_ramp["mid"]
+                        else: cr, cg, cb = shadow_ramp["shadow"]
+                        out_pixels[x, y] = (cr, cg, cb, a)
+                    else:
+                        s_rgb = skin_rgb if skin_rgb else (252, 213, 181)
+                        skin_ramp = generate_snes_palette_ramp(s_rgb, category="skin")
+                        lum = b
+                        if lum >= 180:
+                            cr, cg, cb = skin_ramp["shadow"]
+                        elif lum >= 120:
+                            cr, cg, cb = skin_ramp["deep_shadow"]
+                        else:
+                            cr, cg, cb = (32, 24, 38)
+                        out_pixels[x, y] = (cr, cg, cb, a)
+                    continue
+
+                # 4. Todo lo demás (Pestañas negras, blanco de ojos, brillos, contornos) se queda INTACTO
                 else:
                     out_pixels[x, y] = (r, g, b, a)
                     continue

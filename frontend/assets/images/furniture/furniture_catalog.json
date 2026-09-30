@@ -325,7 +325,7 @@
     "supports_surface": true,
     "surface_offset": [
       0,
-      0
+      -4
     ],
     "canvas_size": [
       128,
@@ -354,9 +354,23 @@
         "supports_surface": true,
         "surface_offset": [
           0,
-          0
+          -4
         ],
-        "asset_path": "furniture/established_furniture/side_table_sm_rot0.png"
+        "asset_path": "furniture/established_furniture/side_table_sm_rot0.png",
+        "surface_spots": [
+          {
+            "spot": 0,
+            "sub_cell": [
+              0,
+              0
+            ],
+            "offset": [
+              0,
+              -4
+            ],
+            "item": "table_lamp"
+          }
+        ]
       },
       "1": {
         "id": "side_table_sm_rot1",
@@ -375,9 +389,23 @@
         "supports_surface": true,
         "surface_offset": [
           0,
-          0
+          -4
         ],
-        "asset_path": "furniture/established_furniture/side_table_sm_rot1.png"
+        "asset_path": "furniture/established_furniture/side_table_sm_rot1.png",
+        "surface_spots": [
+          {
+            "spot": 0,
+            "sub_cell": [
+              0,
+              0
+            ],
+            "offset": [
+              0,
+              -4
+            ],
+            "item": "table_lamp"
+          }
+        ]
       },
       "2": {
         "id": "side_table_sm_rot2",
@@ -396,9 +424,23 @@
         "supports_surface": true,
         "surface_offset": [
           0,
-          0
+          -4
         ],
-        "asset_path": "furniture/established_furniture/side_table_sm_rot2.png"
+        "asset_path": "furniture/established_furniture/side_table_sm_rot2.png",
+        "surface_spots": [
+          {
+            "spot": 0,
+            "sub_cell": [
+              0,
+              0
+            ],
+            "offset": [
+              0,
+              -4
+            ],
+            "item": "table_lamp"
+          }
+        ]
       },
       "3": {
         "id": "side_table_sm_rot3",
@@ -417,11 +459,39 @@
         "supports_surface": true,
         "surface_offset": [
           0,
+          -4
+        ],
+        "asset_path": "furniture/established_furniture/side_table_sm_rot3.png",
+        "surface_spots": [
+          {
+            "spot": 0,
+            "sub_cell": [
+              0,
+              0
+            ],
+            "offset": [
+              0,
+              -4
+            ],
+            "item": "table_lamp"
+          }
+        ]
+      }
+    },
+    "surface_spots": [
+      {
+        "spot": 0,
+        "sub_cell": [
+          0,
           0
         ],
-        "asset_path": "furniture/established_furniture/side_table_sm_rot3.png"
+        "offset": [
+          0,
+          -4
+        ],
+        "item": "table_lamp"
       }
-    }
+    ]
   },
   "simple_chair_sm": {
     "name": "Silla de Madera Simple",
@@ -1278,8 +1348,8 @@
     "surface_height": 18,
     "supports_surface": true,
     "surface_offset": [
-      0,
-      0
+      -6,
+      -6
     ],
     "canvas_size": [
       128,
@@ -1307,10 +1377,60 @@
         "surface_height": 18,
         "supports_surface": true,
         "surface_offset": [
-          0,
-          0
+          -6,
+          -6
         ],
-        "asset_path": "furniture/established_furniture/table_rot0.png"
+        "asset_path": "furniture/established_furniture/table_rot0.png",
+        "surface_spots": [
+          {
+            "spot": 0,
+            "sub_cell": [
+              0,
+              0
+            ],
+            "offset": [
+              -6,
+              -6
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 1,
+            "sub_cell": [
+              1,
+              0
+            ],
+            "offset": [
+              -5,
+              -15
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 2,
+            "sub_cell": [
+              0,
+              1
+            ],
+            "offset": [
+              6,
+              -5
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 3,
+            "sub_cell": [
+              1,
+              1
+            ],
+            "offset": [
+              8,
+              -14
+            ],
+            "item": "test_surface"
+          }
+        ]
       },
       "1": {
         "id": "table_rot1",
@@ -1328,10 +1448,60 @@
         "surface_height": 18,
         "supports_surface": true,
         "surface_offset": [
-          0,
-          0
+          -6,
+          -6
         ],
-        "asset_path": "furniture/established_furniture/table_rot1.png"
+        "asset_path": "furniture/established_furniture/table_rot1.png",
+        "surface_spots": [
+          {
+            "spot": 0,
+            "sub_cell": [
+              0,
+              0
+            ],
+            "offset": [
+              -6,
+              -6
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 1,
+            "sub_cell": [
+              1,
+              0
+            ],
+            "offset": [
+              -5,
+              -15
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 2,
+            "sub_cell": [
+              0,
+              1
+            ],
+            "offset": [
+              6,
+              -5
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 3,
+            "sub_cell": [
+              1,
+              1
+            ],
+            "offset": [
+              8,
+              -14
+            ],
+            "item": "test_surface"
+          }
+        ]
       },
       "2": {
         "id": "table_rot2",
@@ -1349,10 +1519,60 @@
         "surface_height": 18,
         "supports_surface": true,
         "surface_offset": [
-          0,
-          0
+          -6,
+          -6
         ],
-        "asset_path": "furniture/established_furniture/table_rot2.png"
+        "asset_path": "furniture/established_furniture/table_rot2.png",
+        "surface_spots": [
+          {
+            "spot": 0,
+            "sub_cell": [
+              0,
+              0
+            ],
+            "offset": [
+              -6,
+              -6
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 1,
+            "sub_cell": [
+              1,
+              0
+            ],
+            "offset": [
+              -5,
+              -15
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 2,
+            "sub_cell": [
+              0,
+              1
+            ],
+            "offset": [
+              6,
+              -5
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 3,
+            "sub_cell": [
+              1,
+              1
+            ],
+            "offset": [
+              8,
+              -14
+            ],
+            "item": "test_surface"
+          }
+        ]
       },
       "3": {
         "id": "table_rot3",
@@ -1370,12 +1590,112 @@
         "surface_height": 18,
         "supports_surface": true,
         "surface_offset": [
+          -6,
+          -6
+        ],
+        "asset_path": "furniture/established_furniture/table_rot3.png",
+        "surface_spots": [
+          {
+            "spot": 0,
+            "sub_cell": [
+              0,
+              0
+            ],
+            "offset": [
+              -6,
+              -6
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 1,
+            "sub_cell": [
+              1,
+              0
+            ],
+            "offset": [
+              -5,
+              -15
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 2,
+            "sub_cell": [
+              0,
+              1
+            ],
+            "offset": [
+              6,
+              -5
+            ],
+            "item": "test_surface"
+          },
+          {
+            "spot": 3,
+            "sub_cell": [
+              1,
+              1
+            ],
+            "offset": [
+              8,
+              -14
+            ],
+            "item": "test_surface"
+          }
+        ]
+      }
+    },
+    "surface_spots": [
+      {
+        "spot": 0,
+        "sub_cell": [
           0,
           0
         ],
-        "asset_path": "furniture/established_furniture/table_rot3.png"
+        "offset": [
+          -6,
+          -6
+        ],
+        "item": "test_surface"
+      },
+      {
+        "spot": 1,
+        "sub_cell": [
+          1,
+          0
+        ],
+        "offset": [
+          -5,
+          -15
+        ],
+        "item": "test_surface"
+      },
+      {
+        "spot": 2,
+        "sub_cell": [
+          0,
+          1
+        ],
+        "offset": [
+          6,
+          -5
+        ],
+        "item": "test_surface"
+      },
+      {
+        "spot": 3,
+        "sub_cell": [
+          1,
+          1
+        ],
+        "offset": [
+          8,
+          -14
+        ],
+        "item": "test_surface"
       }
-    }
+    ]
   },
   "closet": {
     "name": "Armario Ropero Alto",

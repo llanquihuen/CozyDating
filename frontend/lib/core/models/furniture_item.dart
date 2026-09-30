@@ -7,6 +7,47 @@ enum FurniturePlacementType {
   wallWest,
 }
 
+class SurfaceSpot extends Equatable {
+  final int spot;
+  final int subU;
+  final int subV;
+  final int offsetX;
+  final int offsetY;
+  final String item;
+
+  const SurfaceSpot({
+    required this.spot,
+    required this.subU,
+    required this.subV,
+    required this.offsetX,
+    required this.offsetY,
+    this.item = '',
+  });
+
+  factory SurfaceSpot.fromJson(Map<String, dynamic> json) {
+    final subCell = (json['sub_cell'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? const [0, 0];
+    final offset = (json['offset'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? const [0, 0];
+    return SurfaceSpot(
+      spot: (json['spot'] as num?)?.toInt() ?? 0,
+      subU: subCell.isNotEmpty ? subCell[0] : 0,
+      subV: subCell.length > 1 ? subCell[1] : 0,
+      offsetX: offset.isNotEmpty ? offset[0] : 0,
+      offsetY: offset.length > 1 ? offset[1] : 0,
+      item: json['item'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'spot': spot,
+    'sub_cell': [subU, subV],
+    'offset': [offsetX, offsetY],
+    if (item.isNotEmpty) 'item': item,
+  };
+
+  @override
+  List<Object?> get props => [spot, subU, subV, offsetX, offsetY, item];
+}
+
 class FurnitureRotationMeta extends Equatable {
   final String id;
   final String name;
@@ -17,6 +58,7 @@ class FurnitureRotationMeta extends Equatable {
   final int surfaceHeight;
   final bool supportsSurface;
   final List<int> surfaceOffset;
+  final List<SurfaceSpot> surfaceSpots;
   final String assetPath;
 
   const FurnitureRotationMeta({
@@ -29,12 +71,17 @@ class FurnitureRotationMeta extends Equatable {
     this.surfaceHeight = 0,
     this.supportsSurface = false,
     this.surfaceOffset = const [0, 0],
+    this.surfaceSpots = const [],
     this.assetPath = '',
   });
 
   factory FurnitureRotationMeta.fromJson(Map<String, dynamic> json) {
     final sH = (json['surface_height'] as num?)?.toInt() ?? 0;
     final supSurf = (json['supports_surface'] as bool?) ?? (sH > 0);
+    final spotsRaw = json['surface_spots'] as List<dynamic>?;
+    final spots = spotsRaw != null
+        ? spotsRaw.whereType<Map<String, dynamic>>().map((e) => SurfaceSpot.fromJson(e)).toList()
+        : const <SurfaceSpot>[];
     return FurnitureRotationMeta(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
@@ -45,6 +92,7 @@ class FurnitureRotationMeta extends Equatable {
       surfaceHeight: sH,
       supportsSurface: supSurf,
       surfaceOffset: (json['surface_offset'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? const [0, 0],
+      surfaceSpots: spots,
       assetPath: json['asset_path'] as String? ?? '',
     );
   }
@@ -60,12 +108,13 @@ class FurnitureRotationMeta extends Equatable {
       'surface_height': surfaceHeight,
       'supports_surface': supportsSurface,
       'surface_offset': surfaceOffset,
+      if (surfaceSpots.isNotEmpty) 'surface_spots': surfaceSpots.map((e) => e.toJson()).toList(),
       'asset_path': assetPath,
     };
   }
 
   @override
-  List<Object?> get props => [id, name, footprint, rot, canvasSize, spriteOffset, surfaceHeight, supportsSurface, surfaceOffset, assetPath];
+  List<Object?> get props => [id, name, footprint, rot, canvasSize, spriteOffset, surfaceHeight, supportsSurface, surfaceOffset, surfaceSpots, assetPath];
 }
 
 class FurnitureCatalogItem extends Equatable {
@@ -76,6 +125,7 @@ class FurnitureCatalogItem extends Equatable {
   final int surfaceHeight;
   final bool supportsSurface;
   final List<int> surfaceOffset;
+  final List<SurfaceSpot> surfaceSpots;
   final List<int> canvasSize;
   final List<int> spriteOffset;
   final Map<int, FurnitureRotationMeta> rotations;
@@ -89,6 +139,7 @@ class FurnitureCatalogItem extends Equatable {
     this.surfaceHeight = 0,
     this.supportsSurface = false,
     this.surfaceOffset = const [0, 0],
+    this.surfaceSpots = const [],
     this.canvasSize = const [64, 64],
     this.spriteOffset = const [-32, -48],
     this.rotations = const {},
@@ -164,13 +215,13 @@ class FurnitureCatalogItem extends Equatable {
   }
 
   double get gridWidth {
-    if (footprint == '0.5x0.5') return 0.5;
+    if (footprint == '0.5x0.5' || footprint == 'surface') return 0.5;
     if (footprint == '2x1' || footprint == '2x2') return 2.0;
     return 1.0;
   }
 
   double get gridHeight {
-    if (footprint == '0.5x0.5') return 0.5;
+    if (footprint == '0.5x0.5' || footprint == 'surface') return 0.5;
     if (footprint == '1x2' || footprint == '2x2') return 2.0;
     return 1.0;
   }
@@ -197,6 +248,10 @@ class FurnitureCatalogItem extends Equatable {
     final surfaceH = (json['surface_height'] as num?)?.toInt() ?? 0;
     final supSurf = (json['supports_surface'] as bool?) ?? (surfaceH > 0);
     final surfOff = (json['surface_offset'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? const [0, 0];
+    final spotsRaw = json['surface_spots'] as List<dynamic>?;
+    final spots = spotsRaw != null
+        ? spotsRaw.whereType<Map<String, dynamic>>().map((e) => SurfaceSpot.fromJson(e)).toList()
+        : const <SurfaceSpot>[];
     final canvasS = (json['canvas_size'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? [64, 64];
     final spriteOff = (json['sprite_offset'] as List<dynamic>?)?.map((e) => (e as num).toInt()).toList() ?? [-32, -48];
 
@@ -209,6 +264,7 @@ class FurnitureCatalogItem extends Equatable {
         final effMetaSurfaceH = (surfaceH > 0) ? surfaceH : meta.surfaceHeight;
         final effMetaSupports = meta.supportsSurface || supSurf;
         final effMetaSurfaceOff = (meta.surfaceOffset != const [0, 0]) ? meta.surfaceOffset : surfOff;
+        final effMetaSurfaceSpots = meta.surfaceSpots.isNotEmpty ? meta.surfaceSpots : spots;
         rots[rotIdx] = FurnitureRotationMeta(
           id: meta.id,
           name: meta.name,
@@ -219,6 +275,7 @@ class FurnitureCatalogItem extends Equatable {
           surfaceHeight: effMetaSurfaceH,
           supportsSurface: effMetaSupports,
           surfaceOffset: effMetaSurfaceOff,
+          surfaceSpots: effMetaSurfaceSpots,
         );
       });
     }
@@ -238,6 +295,7 @@ class FurnitureCatalogItem extends Equatable {
       surfaceHeight: surfaceH,
       supportsSurface: supSurf,
       surfaceOffset: surfOff,
+      surfaceSpots: spots,
       canvasSize: canvasS,
       spriteOffset: spriteOff,
       rotations: rots,
@@ -246,7 +304,7 @@ class FurnitureCatalogItem extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, zone, footprint, surfaceHeight, supportsSurface, surfaceOffset, canvasSize, spriteOffset, rotations, hasTableMagnet];
+  List<Object?> get props => [id, name, zone, footprint, surfaceHeight, supportsSurface, surfaceOffset, surfaceSpots, canvasSize, spriteOffset, rotations, hasTableMagnet];
 }
 
 class PlacedFurniture extends Equatable {

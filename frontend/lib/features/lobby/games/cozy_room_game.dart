@@ -438,9 +438,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
             parentFurthestX: parent.gridX + parent.gridWidth - 1,
             parentFurthestY: parent.gridY + parent.gridHeight - 1,
           );
-          if (comp.priority <= parent.priority) {
-            comp.priority = parent.priority + 100;
-          }
+          final relU = ((comp.gridX - parent.gridX) * 2.0).round();
+          final relV = ((comp.gridY - parent.gridY) * 2.0).round();
+          final subDepth = (relU + relV) * 20 + (relV % 2) * 2;
+          comp.priority = parent.priority + 50 + subDepth;
         } else {
           comp.parentId = null;
           comp.parentSurfaceHeight = 0.0;
@@ -1834,14 +1835,17 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         } else {
           _draggedFurniture!.parentSurfaceHeight = (pMeta?.effectiveSurfaceHeight ?? 18).toDouble();
         }
-        _draggedFurniture!.priority = parent.priority + 100;
+        final relU = ((clampedGrid.x - parent.gridX) * 2.0).round();
+        final relV = ((clampedGrid.y - parent.gridY) * 2.0).round();
+        final subDepth = (relU + relV) * 20 + (relV % 2) * 2;
+        _draggedFurniture!.priority = parent.priority + 50 + subDepth;
       } else {
         _draggedFurniture!.parentId = null;
         _draggedFurniture!.parentSurfaceHeight = 0.0;
       }
     }
 
-    final isHalf = (_draggedFurniture!.footprint == '0.5x0.5' || _draggedFurniture!.gridWidth <= 0.5);
+    final isHalf = (_draggedFurniture!.footprint == '0.5x0.5' || _draggedFurniture!.isSurfaceItem || _draggedFurniture!.gridWidth <= 0.5);
     final targetScreenPos = isHalf
         ? IsometricCoords.subGridToScreen(clampedGrid.x * 2.0, clampedGrid.y * 2.0)
         : IsometricCoords.gridToScreen(clampedGrid.x.toDouble(), clampedGrid.y.toDouble());
@@ -1853,9 +1857,12 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     // Also update visual offset and priority for attached surface items
     for (final child in _attachedSurfaceItems) {
+      final relU = ((child.gridX - _draggedFurniture!.gridX) * 2.0).round();
+      final relV = ((child.gridY - _draggedFurniture!.gridY) * 2.0).round();
+      final subDepth = (relU + relV) * 2 + (relV % 2);
       child.dragVisualOffset = delta;
       child.isBeingDragged = true;
-      child.priority = hoverPriority + 100;
+      child.priority = hoverPriority + 100 + subDepth;
     }
   }
 
