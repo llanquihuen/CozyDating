@@ -306,6 +306,39 @@ public class GameServerTests {
     }
 
     @Test
+    public void testHomeLightingRelaying() throws Exception {
+        TestWebSocketSession sessionA = new TestWebSocketSession("ws_light_a");
+        TestWebSocketSession sessionB = new TestWebSocketSession("ws_light_b");
+
+        gameWebSocketHandler.handleMessage(sessionA, new org.springframework.web.socket.TextMessage("{\"type\":\"USER_ONLINE\",\"userId\":\"userA\"}"));
+        gameWebSocketHandler.handleMessage(sessionB, new org.springframework.web.socket.TextMessage("{\"type\":\"USER_ONLINE\",\"userId\":\"userB\"}"));
+
+        gameSessionService.createRoom(
+            "room_home_lighting",
+            "userA", sessionA, null, null, "Alice", "[]",
+            "userB", sessionB, null, null, "Bob", "[]",
+            "HOME"
+        );
+        sessionA.sentMessages.clear();
+        sessionB.sentMessages.clear();
+
+        // Guest asks for the current lighting; host answers with a snapshot.
+        gameWebSocketHandler.handleMessage(sessionB, new org.springframework.web.socket.TextMessage("{\"type\":\"HOME_LIGHTING\",\"request\":true}"));
+        assertEquals(1, sessionA.sentMessages.size());
+        assertTrue(sessionA.sentMessages.get(0).contains("\"type\":\"HOME_LIGHTING\""));
+        assertTrue(sessionA.sentMessages.get(0).contains("\"request\":true"));
+
+        gameWebSocketHandler.handleMessage(sessionA, new org.springframework.web.socket.TextMessage(
+            "{\"type\":\"HOME_LIGHTING\",\"lighting\":{\"masterOn\":false},\"emitters\":{\"table_lamp\":true}}"));
+        assertEquals(1, sessionB.sentMessages.size());
+        String relayed = sessionB.sentMessages.get(0);
+        assertTrue(relayed.contains("\"type\":\"HOME_LIGHTING\""));
+        assertTrue(relayed.contains("\"masterOn\":false"));
+        assertTrue(relayed.contains("\"table_lamp\":true"));
+        assertFalse(relayed.contains("error"));
+    }
+
+    @Test
     public void testCampfireChatRelaying() throws Exception {
         TestWebSocketSession sessionA = new TestWebSocketSession("ws_chat_a");
         TestWebSocketSession sessionB = new TestWebSocketSession("ws_chat_b");

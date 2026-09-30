@@ -1,4 +1,5 @@
 import 'dart:async' as async_lib;
+import 'dart:typed_data';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
@@ -15,6 +16,8 @@ import '../components/isometric_avatar_component.dart';
 import '../components/isometric_furniture_component.dart';
 import '../components/isometric_interior_wall_component.dart';
 import '../data/chair_seat_config.dart';
+import '../lighting/room_lighting_renderer.dart';
+import '../lighting/room_lighting_system.dart';
 import '../utils/isometric_coords.dart';
 import '../utils/isometric_pathfinder.dart';
 import '../utils/sprite_alpha_cache.dart';
@@ -43,6 +46,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   final VoidCallback? onOpenMatchmaking;
   final ValueChanged<IsometricFurnitureComponent?>? onFurnitureSelected;
   final ValueChanged<IsometricInteriorWallComponent?>? onInteriorWallSelected;
+  /// A ceiling light marker was selected (id) or deselected (null) in decorate mode.
+  final ValueChanged<String?>? onCeilingLightSelected;
+  /// Lighting state changed from inside the game (e.g. tapping a lamp in normal mode),
+  /// so the host can persist it.
+  final VoidCallback? onLightingChanged;
   final AvatarConfig? partnerAvatarConfig;
   final void Function(Point<int> dest)? onLocalAvatarMove;
   final void Function(IsometricFurnitureComponent chair, SeatSpot spot)? onLocalAvatarSit;
@@ -112,6 +120,38 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
   static const int gridSize = 8;
 
+  // Room lighting (see docs/lighting-plan.md). Daytime is a pure-white ambient, so with the
+  // default config this renders exactly as before and every tint stays switched off.
+  bool lightingEnabled = true;
+  final RoomLightingSystem lighting = RoomLightingSystem();
+  late final RoomLightingFloorPainter lightingFloorPainter = RoomLightingFloorPainter(lighting);
+  late final RoomLightingWallPainter lightingWallPainter = RoomLightingWallPainter(lighting);
+  final Float32List _tintSample = Float32List(3);
+  final Float32List _tintSample2 = Float32List(3);
+  bool _tintsApplied = false;
+
+  /// Clock used by the automatic ambient; injectable for tests.
+  DateTime Function() clock = DateTime.now;
+  double _ambientCheckTimer = 0;
+
+  // Ceiling lights (decorate mode): selection + drag. Same hold-to-grab rule as furniture.
+  String? selectedCeilingLightId;
+  String? _draggedCeilingLightId;
+  String? _pendingCeilingGrabId;
+  async_lib.Timer? _ceilingGrabTimer;
+  Offset? _ceilingDragOriginGrid; // gridX/gridY at grab time
+  Vector2? _ceilingDragStartWorld;
+  /// Pixels above the floor point where a ceiling fixture's marker is drawn.
+  static const double ceilingMarkerHeight = RoomLightSources.ceilingGlowHeight;
+
+  /// Avatars never drop below this brightness (mean of RGB): in a dating game the other
+  /// person must stay readable even in a dark corner.
+  static const double avatarMinBrightness = 0.55;
+  late final RoomLightingGlowPainter _lightingGlowPainter = RoomLightingGlowPainter(lighting);
+  bool _lightingNeedsRebuild = true;
+  bool _lightingSettleOnRebuild = true;
+  List<InteriorWallConfig> _lightingWalls = const [];
+
   CozyRoomGame({
     required this.avatarConfig,
     this.partnerAvatarConfig,
@@ -120,6 +160,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     this.onOpenMatchmaking,
     this.onFurnitureSelected,
     this.onInteriorWallSelected,
+    this.onCeilingLightSelected,
+    this.onLightingChanged,
     this.onLocalAvatarMove,
     this.onLocalAvatarSit,
     this.onLocalAvatarStand,
@@ -145,6 +187,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     // 2. Add Drag Highlighting Layer inside world (priority: 50)
     world.add(_DragHighlightLayer(game: this));
+
+    // 2b. Light glows (additive, above furniture and avatars). The floor lightmap itself is
+    // painted by the background right after the floor, below wall-mounted items.
+    world.add(_LightingGlowLayer(game: this));
 
     // 3. Load Placed Furniture from roomConfig
     await _loadFurnitureFromConfig(roomConfig);
@@ -308,6 +354,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void setDecorateMode(bool enabled) {
     isDecorateMode = enabled;
     _pendingSitChair = null;
+    _endCeilingDrag();
+    selectCeilingLight(null);
     if (enabled) {
       avatar?.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
       avatar?.isVisible = false;
@@ -415,6 +463,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
                 targetTypeName == 'gamer_chair' ||
                 targetTypeName == 'gaming_chair'),
         onInteract: targetTypeName.contains('wardrobe') ? onOpenWardrobe : null,
+        lightOn: item.lightOn,
+        lightColor: item.lightColor,
       );
       created[item] = comp;
       world.add(comp);
@@ -668,9 +718,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   }
 
   void _updateFurnitureActivationStates() {
+    // Animated furniture, plus lights that follow activation — so the gaming desk still
+    // lights up even if its GIF frames failed to load.
     final animatedFurniture = world.children
         .whereType<IsometricFurnitureComponent>()
-        .where((f) => f.animatedRotationSprites.isNotEmpty);
+        .where((f) => f.animatedRotationSprites.isNotEmpty || (_emitterSpecFor(f)?.followsActivation ?? false));
 
     final avatars = [avatar, partnerAvatar].whereType<IsometricAvatarComponent>().toList();
 
@@ -692,8 +744,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         }
       }
       furn.setActivated(shouldActivate);
+      if (_emitterSpecFor(furn)?.followsActivation ?? false) {
+        lighting.setLightOn(furn.id, shouldActivate);
+      }
     }
   }
+
+  EmitterLightSpec? _emitterSpecFor(IsometricFurnitureComponent f) =>
+      FurnitureCatalogService.getItem(f.typeName)?.lightSpec ?? EmitterLightSpec.defaultFor(f.typeName);
 
   @visibleForTesting
   void updateFurnitureActivationStatesForTesting() => _updateFurnitureActivationStates();
@@ -1020,6 +1078,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     selectedFurniture = comp;
     if (selectedFurniture != null) {
       selectedFurniture!.isSelected = true;
+      selectCeilingLight(null);
       if (selectedInteriorWall != null) {
         selectedInteriorWall!.isSelected = false;
         selectedInteriorWall = null;
@@ -1095,6 +1154,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     selectedInteriorWall = comp;
     if (selectedInteriorWall != null) {
       selectedInteriorWall!.isSelected = true;
+      selectCeilingLight(null);
       if (selectedFurniture != null) {
         selectedFurniture!.isSelected = false;
         selectedFurniture = null;
@@ -1218,6 +1278,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
 
     _recalculateSurfacePriorities();
+    requestLightingRebuild();
   }
 
   bool _checkIsValidLocation(IsometricFurnitureComponent item, Point<num> target) {
@@ -1560,6 +1621,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     for (final w in world.children.whereType<IsometricInteriorWallComponent>()) {
       w.wallsCut = newConfig.wallsCut;
     }
+    requestLightingRebuild(settle: true);
     if (reloadFurniture) {
       await _loadFurnitureFromConfig(newConfig);
       _recalculateObstacles();
@@ -1591,6 +1653,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         parentId: f.parentId,
         wallHeightLevel: f.wallHeightLevel,
         assetPath: f.baseAssetPath,
+        lightOn: f.lightOn,
+        lightColor: f.lightColor,
       ));
     }
 
@@ -1606,6 +1670,436 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       floorOverrides: roomConfig.floorOverrides,
       wallOverrides: roomConfig.wallOverrides,
     );
+  }
+
+  // --- Lighting ---------------------------------------------------------------------------
+
+  /// Walls/furniture/lights changed: resync the lighting system on the next frame (once
+  /// components are mounted). Cheap when nothing topological changed: lights that keep
+  /// their position reuse their precomputed influence.
+  void requestLightingRebuild({bool settle = false}) {
+    _lightingNeedsRebuild = true;
+    _lightingSettleOnRebuild |= settle;
+  }
+
+  void _rebuildLighting() {
+    final walls = world.children.whereType<IsometricInteriorWallComponent>().map((w) => w.toConfig()).toList();
+    if (!const ListEquality<InteriorWallConfig>().equals(walls, _lightingWalls)) {
+      _lightingWalls = walls;
+      lighting.setOcclusion(LightOcclusion.fromWalls(walls));
+    }
+    lighting.setAmbient(effectiveAmbient);
+    lighting.setMasterOn(roomConfig.lighting.masterOn);
+    lighting.setLights(RoomLightSources.fromRoomConfig(
+      exportCurrentRoomConfig(),
+      specFor: (t) => FurnitureCatalogService.getItem(t)?.lightSpec ?? EmitterLightSpec.defaultFor(t),
+      activeIds: {
+        for (final f in world.children.whereType<IsometricFurnitureComponent>())
+          if (f.isActivated) f.id
+      },
+    ));
+    if (_lightingSettleOnRebuild) lighting.settle();
+    _lightingNeedsRebuild = false;
+    _lightingSettleOnRebuild = false;
+    _markLightingDirty();
+  }
+
+  @visibleForTesting
+  void rebuildLightingForTesting() => _rebuildLighting();
+
+  void setLightingEnabled(bool enabled) {
+    lightingEnabled = enabled;
+    requestLightingRebuild(settle: true);
+    if (!enabled) _clearLightTints();
+  }
+
+  void _markLightingDirty() {
+    lightingFloorPainter.markDirty();
+    lightingWallPainter.markDirty();
+  }
+
+  /// Pushes the room light into every furniture item, avatar and interior wall. Runs every
+  /// frame (sampling ~40 components is a few hundred float ops); each component's tint only
+  /// rebuilds its ColorFilter when the quantized colour actually changes.
+  void _applyLightTints() {
+    final s = _tintSample;
+    for (final c in world.children) {
+      if (c is IsometricFurnitureComponent) {
+        if (c.isBeingDragged || c.isPortal) {
+          c.lightTint.clear();
+          continue;
+        }
+        double u, v;
+        if (c.isWallNorth) {
+          u = c.gridX * 2 + 1;
+          v = 0.5;
+        } else if (c.isWallWest) {
+          u = 0.5;
+          v = c.gridY * 2 + 1;
+        } else {
+          u = c.gridX * 2 + c.gridWidth;
+          v = c.gridY * 2 + c.gridHeight;
+        }
+        lighting.sampleInto(u, v, s);
+        // A lit lamp / TV / fireplace shows its own colours, not the room's shadow. Windows
+        // don't: at night they must look dark, so they keep the room's tint.
+        final src = lighting.lightById(c.id);
+        final level = (src == null || src.def.anim == LightAnim.daylight) ? 0.0 : src.level * src.def.selfLit;
+        if (level > 0) {
+          for (int k = 0; k < 3; k++) {
+            s[k] = s[k] + (1 - s[k]) * level;
+          }
+        }
+        c.lightTint.set(s[0], s[1], s[2]);
+      } else if (c is IsometricAvatarComponent) {
+        lighting.sampleInto(c.gridX + 0.5, c.gridY + 0.5, s);
+        final mean = (s[0] + s[1] + s[2]) / 3;
+        if (mean < avatarMinBrightness) {
+          final lift = avatarMinBrightness - mean;
+          for (int k = 0; k < 3; k++) {
+            s[k] += lift;
+          }
+        }
+        c.lightTint.set(s[0], s[1], s[2]);
+      } else if (c is IsometricInteriorWallComponent) {
+        if (c.isBeingDragged) {
+          c.clearLightTint();
+          continue;
+        }
+        final (a, b) = c.litFaceCells;
+        lighting.cellInto(a.x, a.y, s);
+        lighting.cellInto(b.x, b.y, _tintSample2);
+        c.setLightTint(s[0], s[1], s[2], _tintSample2[0], _tintSample2[1], _tintSample2[2]);
+      }
+    }
+    _tintsApplied = true;
+  }
+
+  void _clearLightTints() {
+    if (!_tintsApplied) return;
+    for (final c in world.children) {
+      if (c is IsometricFurnitureComponent) {
+        c.lightTint.clear();
+      } else if (c is IsometricAvatarComponent) {
+        c.lightTint.clear();
+      } else if (c is IsometricInteriorWallComponent) {
+        c.clearLightTint();
+      }
+    }
+    _tintsApplied = false;
+  }
+
+  /// General switch for the ceiling lights. It gates them without touching their own
+  /// on/off (switching it back on restores each one); lamps and other emitters are left
+  /// exactly as they are.
+  void setLightingMasterOn(bool on) {
+    roomConfig = roomConfig.copyWith(lighting: roomConfig.lighting.copyWith(masterOn: on));
+    lighting.setMasterOn(on);
+  }
+
+  /// Ambient the room is rendered with right now (clock-driven when automatic).
+  AmbientMode get effectiveAmbient => roomConfig.lighting.effectiveAmbient(clock());
+
+  bool get isAmbientAuto => roomConfig.lighting.autoAmbient;
+
+  /// Picks the ambient by hand (turns the automatic mode off).
+  void setLightingAmbient(AmbientMode mode) {
+    roomConfig = roomConfig.copyWith(lighting: roomConfig.lighting.copyWith(ambient: mode, autoAmbient: false));
+    lighting.setAmbient(mode);
+  }
+
+  /// Back to following the phone's clock.
+  void setLightingAmbientAuto() {
+    roomConfig = roomConfig.copyWith(lighting: roomConfig.lighting.copyWith(autoAmbient: true));
+    lighting.setAmbient(effectiveAmbient);
+  }
+
+  /// In automatic mode, re-checks the clock every 30 s; a change fades in over
+  /// [RoomLightingSystem.ambientFadeSeconds].
+  void _tickAutoAmbient(double dt) {
+    if (!isAmbientAuto) return;
+    _ambientCheckTimer -= dt;
+    if (_ambientCheckTimer > 0) return;
+    _ambientCheckTimer = 30;
+    lighting.setAmbient(effectiveAmbient);
+  }
+
+  /// Switches a ceiling light or a light-emitting furniture item by id.
+  void setLightOn(String id, bool on) {
+    final ceiling = roomConfig.lighting.ceilingLights;
+    if (ceiling.any((c) => c.id == id)) {
+      roomConfig = roomConfig.copyWith(
+        lighting: roomConfig.lighting.copyWith(
+          ceilingLights: [for (final c in ceiling) c.id == id ? c.copyWith(on: on) : c],
+        ),
+      );
+    } else {
+      world.children.whereType<IsometricFurnitureComponent>().firstWhereOrNull((f) => f.id == id)?.lightOn = on;
+    }
+    lighting.setLightOn(id, on);
+  }
+
+  /// Everything a visitor needs to render this room's lighting: the lighting config plus
+  /// the on/off state of every switchable lamp/object. A full snapshot (not a delta), so a
+  /// lost message never leaves the two players out of sync.
+  Map<String, dynamic> lightingSnapshot() {
+    return {
+      'lighting': roomConfig.lighting.toMap(),
+      'emitters': {
+        for (final l in lighting.lights)
+          if (!l.def.isCeiling && l.def.toggleable) l.def.id: l.def.on
+      },
+    };
+  }
+
+  /// Applies a snapshot from the other player. Doesn't fire [onLightingChanged], so it
+  /// never echoes back.
+  void applyLightingSnapshot(Map<String, dynamic> snapshot) {
+    final cfg = LightingConfig.fromMap(snapshot['lighting']);
+    roomConfig = roomConfig.copyWith(lighting: cfg);
+    lighting.setMasterOn(cfg.masterOn);
+    lighting.setAmbient(effectiveAmbient);
+    final emitters = snapshot['emitters'];
+    if (emitters is Map) {
+      emitters.forEach((id, on) {
+        if (id is String && on is bool) setLightOn(id, on);
+      });
+    }
+    requestLightingRebuild();
+  }
+
+  void setCeilingLights(List<CeilingLightConfig> lights) {
+    roomConfig = roomConfig.copyWith(lighting: roomConfig.lighting.copyWith(ceilingLights: lights));
+    requestLightingRebuild();
+  }
+
+  /// Whether a ceiling light or light-emitting item is currently switched on (its own
+  /// switch, independent of the master).
+  bool isLightOn(String id) => lighting.lightById(id)?.def.on ?? false;
+
+  CeilingLightConfig? ceilingLightById(String? id) =>
+      id == null ? null : roomConfig.lighting.ceilingLights.firstWhereOrNull((c) => c.id == id);
+
+  CeilingLightConfig? get selectedCeilingLight => ceilingLightById(selectedCeilingLightId);
+
+  void selectCeilingLight(String? id) {
+    if (selectedCeilingLightId == id) return;
+    selectedCeilingLightId = id;
+    if (id != null) {
+      if (selectedFurniture != null) {
+        selectedFurniture!.isSelected = false;
+        selectedFurniture = null;
+        onFurnitureSelected?.call(null);
+      }
+      if (selectedInteriorWall != null) {
+        selectedInteriorWall!.isSelected = false;
+        selectedInteriorWall = null;
+        onInteriorWallSelected?.call(null);
+      }
+    }
+    onCeilingLightSelected?.call(id);
+  }
+
+  /// Adds a warm ceiling light at the centre of the camera view and selects it.
+  CeilingLightConfig addCeilingLight() {
+    final cam = getCameraCenterGrid();
+    final light = CeilingLightConfig(
+      id: 'ceiling_${DateTime.now().microsecondsSinceEpoch}',
+      gridX: (cam.x + 0.5).clamp(0.5, gridSize - 0.5).toDouble(),
+      gridY: (cam.y + 0.5).clamp(0.5, gridSize - 0.5).toDouble(),
+    );
+    setCeilingLights([...roomConfig.lighting.ceilingLights, light]);
+    selectCeilingLight(light.id);
+    return light;
+  }
+
+  void updateCeilingLight(String id, CeilingLightConfig Function(CeilingLightConfig) change) {
+    final lights = roomConfig.lighting.ceilingLights;
+    if (!lights.any((c) => c.id == id)) return;
+    setCeilingLights([for (final c in lights) c.id == id ? change(c) : c]);
+  }
+
+  void deleteSelectedCeilingLight() {
+    final id = selectedCeilingLightId;
+    if (id == null) return;
+    setCeilingLights(roomConfig.lighting.ceilingLights.where((c) => c.id != id).toList());
+    selectCeilingLight(null);
+  }
+
+  /// World point of a ceiling fixture's marker (floated above its floor point).
+  Vector2 ceilingMarkerWorld(CeilingLightConfig c) {
+    final floor = lightingSubGridToScreen(c.gridX * 2, c.gridY * 2);
+    return Vector2(floor.dx, floor.dy - ceilingMarkerHeight);
+  }
+
+  String? _hitTestCeilingLight(Vector2 worldPos) {
+    const hitRadius = 16.0;
+    String? best;
+    double bestD = hitRadius;
+    for (final c in roomConfig.lighting.ceilingLights) {
+      final d = (ceilingMarkerWorld(c) - worldPos).length;
+      if (d <= bestD) {
+        bestD = d;
+        best = c.id;
+      }
+    }
+    return best;
+  }
+
+  /// Screen point just above the selected ceiling fixture, for its floating toolbar.
+  Vector2? getSelectedCeilingLightAnchor() {
+    final c = selectedCeilingLight;
+    if (c == null) return null;
+    try {
+      final anchor = camera.viewfinder.transform.localToGlobal(ceilingMarkerWorld(c) - Vector2(0, 14));
+      if (!anchor.x.isFinite || !anchor.y.isFinite) return null;
+      return anchor;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _armCeilingDrag(String id, Vector2 worldPos) {
+    final c = ceilingLightById(id);
+    if (c == null) return;
+    _draggedCeilingLightId = id;
+    _ceilingDragOriginGrid = Offset(c.gridX, c.gridY);
+    _ceilingDragStartWorld = worldPos;
+  }
+
+  /// Moves the dragged fixture with the finger, snapping to half tiles. The lighting
+  /// rebuild only re-propagates this one light, so the preview updates live.
+  void _updateCeilingDrag(Vector2 screenPos) {
+    final id = _draggedCeilingLightId;
+    final origin = _ceilingDragOriginGrid;
+    final start = _ceilingDragStartWorld;
+    if (id == null || origin == null || start == null) return;
+    final world = camera.viewfinder.transform.globalToLocal(screenPos);
+    final base = lightingSubGridToScreen(origin.dx * 2, origin.dy * 2);
+    final x = base.dx + (world.x - start.x);
+    final y = base.dy + (world.y - start.y);
+    final uv = lightingScreenToSubGrid(x, y);
+    final gx = (uv.dx.round() / 2).clamp(0.5, gridSize - 0.5).toDouble();
+    final gy = (uv.dy.round() / 2).clamp(0.5, gridSize - 0.5).toDouble();
+    final c = ceilingLightById(id);
+    if (c == null || (c.gridX == gx && c.gridY == gy)) return;
+    updateCeilingLight(id, (c) => c.copyWith(gridX: gx, gridY: gy));
+  }
+
+  bool _endCeilingDrag() {
+    final wasDragging = _draggedCeilingLightId != null || _pendingCeilingGrabId != null;
+    _ceilingGrabTimer?.cancel();
+    _ceilingGrabTimer = null;
+    _pendingCeilingGrabId = null;
+    _draggedCeilingLightId = null;
+    _ceilingDragOriginGrid = null;
+    _ceilingDragStartWorld = null;
+    return wasDragging;
+  }
+
+  void _cancelCeilingDrag() {
+    final id = _draggedCeilingLightId;
+    final origin = _ceilingDragOriginGrid;
+    if (id != null && origin != null) {
+      updateCeilingLight(id, (c) => c.copyWith(gridX: origin.dx, gridY: origin.dy));
+    }
+    _endCeilingDrag();
+  }
+
+  /// Toggleable emitters under [worldPos] (lamps, TV, fireplace — not windows).
+  IsometricFurnitureComponent? _hitTestToggleableEmitter(Vector2 worldPos) {
+    final items = world.children.whereType<IsometricFurnitureComponent>().toList()
+      ..sort((a, b) => b.priority.compareTo(a.priority));
+    for (final f in items) {
+      if (f.isPortal) continue;
+      final spec = FurnitureCatalogService.getItem(f.typeName)?.lightSpec ?? EmitterLightSpec.defaultFor(f.typeName);
+      if (spec == null || !spec.toggleable) continue;
+      if (f.hitTestWorld(worldPos)) return f;
+    }
+    return null;
+  }
+
+  // --- Lighting panel data -------------------------------------------------------------------
+
+  /// Every switchable light (ceiling fixtures + toggleable emitters), with the sector
+  /// (room) it sits in, for the lights panel.
+  List<LightPanelEntry> lightPanelEntries() {
+    final entries = <LightPanelEntry>[];
+    final occ = lighting.occlusion;
+    int n = 1;
+    for (final c in roomConfig.lighting.ceilingLights) {
+      entries.add(LightPanelEntry(
+        id: c.id,
+        label: 'Luz de techo ${n++}',
+        isCeiling: true,
+        on: c.on,
+        color: c.color.color,
+        sector: occ.sectorAt((c.gridX * 2).floor(), (c.gridY * 2).floor()),
+      ));
+    }
+    for (final f in world.children.whereType<IsometricFurnitureComponent>()) {
+      final cat = FurnitureCatalogService.getItem(f.typeName);
+      final spec = cat?.lightSpec ?? EmitterLightSpec.defaultFor(f.typeName);
+      if (spec == null || !spec.toggleable) continue;
+      final src = lighting.lightById(f.id);
+      entries.add(LightPanelEntry(
+        id: f.id,
+        label: cat?.name ?? f.typeName,
+        isCeiling: false,
+        on: src?.def.on ?? (f.lightOn ?? spec.defaultOn),
+        color: (f.lightColor ?? spec.color).color,
+        sector: occ.sectorAt((f.gridX * 2 + f.gridWidth).floor(), (f.gridY * 2 + f.gridHeight).floor()),
+      ));
+    }
+    return entries;
+  }
+
+  /// Room kind a piece of furniture suggests. By name first: the catalog's `kitchen_bath`
+  /// zone lumps kitchens and bathrooms together.
+  static String? _roomKindFor(String typeName, String? zone) {
+    bool has(List<String> keys) => keys.any(typeName.contains);
+    if (has(['bath', 'toilet', 'shower', 'tub', 'towel'])) return 'Baño';
+    if (has(['kitchen', 'stove', 'fridge', 'oven', 'cooking', 'cutting_board'])) return 'Cocina';
+    if (has(['bed', 'closet', 'wardrobe', 'nightstand', 'vanity'])) return 'Dormitorio';
+    switch (zone) {
+      case 'bedroom':
+        return 'Dormitorio';
+      case 'bathroom':
+        return 'Baño';
+      case 'kitchen':
+        return 'Cocina';
+      case 'living':
+        return 'Sala';
+    }
+    return null;
+  }
+
+  /// Human names for sectors, guessed from the furniture inside each one ("Dormitorio",
+  /// "Cocina", "Baño", otherwise "Sala"). Repeats get a number.
+  Map<int, String> lightSectorNames() {
+    final occ = lighting.occlusion;
+    final votes = <int, Map<String, int>>{};
+    for (final f in world.children.whereType<IsometricFurnitureComponent>()) {
+      if (f.isPortal || f.isWallItem) continue;
+      final kind = _roomKindFor(f.typeName, FurnitureCatalogService.getItem(f.typeName)?.zone);
+      if (kind == null) continue;
+      final sector = occ.sectorAt((f.gridX * 2 + f.gridWidth).floor(), (f.gridY * 2 + f.gridHeight).floor());
+      final m = votes.putIfAbsent(sector, () => {});
+      m[kind] = (m[kind] ?? 0) + 1;
+    }
+    final names = <int, String>{};
+    final used = <String, int>{};
+    for (int sector = 0; sector < occ.sectorCount; sector++) {
+      final m = votes[sector];
+      String base = 'Sala';
+      if (m != null && m.isNotEmpty) {
+        base = m.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+      }
+      final count = (used[base] ?? 0) + 1;
+      used[base] = count;
+      names[sector] = count == 1 ? base : '$base $count';
+    }
+    return names;
   }
 
   void adjustZoom(double zoomMultiplier) {
@@ -2010,6 +2504,25 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         }
       }
 
+      // Pass -0.25: Ceiling light markers float above everything, so they're hit first.
+      final ceilingHit = _hitTestCeilingLight(worldPos);
+      if (ceilingHit != null) {
+        if (ceilingHit == selectedCeilingLightId) {
+          _armCeilingDrag(ceilingHit, worldPos);
+        } else {
+          _pendingCeilingGrabId = ceilingHit;
+          _ceilingDragStartWorld = worldPos;
+          _ceilingGrabTimer?.cancel();
+          _ceilingGrabTimer = async_lib.Timer(_furnitureGrabHoldDuration, () {
+            if (_pendingCeilingGrabId != ceilingHit) return;
+            _pendingCeilingGrabId = null;
+            selectCeilingLight(ceilingHit);
+            _armCeilingDrag(ceilingHit, worldPos);
+          });
+        }
+        return;
+      }
+
       // Pass 0: Check Interior Walls
       final allInteriorWalls = world.children.whereType<IsometricInteriorWallComponent>().toList();
       allInteriorWalls.sort((a, b) => b.priority.compareTo(a.priority));
@@ -2189,6 +2702,21 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       return;
     }
 
+    // Ceiling light: pending hold → pan if the finger moved; armed → move the fixture.
+    if (_pendingCeilingGrabId != null && _ceilingDragStartWorld != null) {
+      final worldPos = camera.viewfinder.transform.globalToLocal(event.localEndPosition);
+      if ((worldPos - _ceilingDragStartWorld!).length > 8.0) {
+        _endCeilingDrag();
+        _isPanningCamera = true;
+        panCamera(event.localDelta);
+      }
+      return;
+    }
+    if (isDecorateMode && _draggedCeilingLightId != null) {
+      _updateCeilingDrag(event.localEndPosition);
+      return;
+    }
+
     // Same idea for a furniture grab that's still pending its hold timer.
     if (_pendingFurnitureGrab != null && _dragStartWorldPos != null) {
       final worldPos = camera.viewfinder.transform.globalToLocal(event.localEndPosition);
@@ -2227,6 +2755,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     _isPanningCamera = false;
     _lastDragScreenPos = null;
     _currentDragScreenPos = null;
+    _endCeilingDrag();
     if (isDecorateMode) {
       _finishDrag();
     }
@@ -2246,6 +2775,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     _isPanningCamera = false;
     _lastDragScreenPos = null;
     _currentDragScreenPos = null;
+    _cancelCeilingDrag();
     if (isDecorateMode) {
       _cancelDrag();
     }
@@ -2461,6 +2991,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         }
       }
 
+      // Pass -0.25: Ceiling light markers
+      final ceilingHit = _hitTestCeilingLight(worldPos);
+      if (ceilingHit != null) {
+        selectCeilingLight(ceilingHit);
+        return;
+      }
+
       // Pass 0: Check Interior Walls
       final allInteriorWalls = world.children.whereType<IsometricInteriorWallComponent>().toList();
       allInteriorWalls.sort((a, b) => b.priority.compareTo(a.priority));
@@ -2510,12 +3047,21 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       selectFurniture(hit);
       if (hit == null) {
         selectInteriorWall(null);
+        selectCeilingLight(null);
       }
       return;
     }
 
     // In Normal Mode: Tap-to-move avatar or tap chair to sit/stand
     if (_draggedFurniture != null || _draggedInteriorWall != null) return;
+
+    // Tapping a lamp / TV / fireplace switches it instead of walking there.
+    final emitter = _hitTestToggleableEmitter(worldPos);
+    if (emitter != null) {
+      setLightOn(emitter.id, !isLightOn(emitter.id));
+      onLightingChanged?.call();
+      return;
+    }
 
     // Check if user tapped directly on a chair
     final allChairs = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.isChair).toList();
@@ -2642,6 +3188,76 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 }
 
 /// Renders glowing borders and ground shadow under the furniture currently being dragged
+/// Drives the lighting system each frame and paints the additive glows on top of the room.
+class _LightingGlowLayer extends Component {
+  final CozyRoomGame game;
+
+  _LightingGlowLayer({required this.game}) {
+    priority = 1900000; // above furniture/avatars, below the floating UI (2000000)
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!game.lightingEnabled) return;
+    if (game._lightingNeedsRebuild) game._rebuildLighting();
+    game._tickAutoAmbient(dt);
+    if (game.lighting.update(dt)) game._markLightingDirty();
+    // Runs last in the world (highest priority), so tints land before this frame renders.
+    game._applyLightTints();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    if (!game.lightingEnabled) return;
+    game._lightingGlowPainter.render(canvas, showCeilingMarkers: game.isDecorateMode);
+    if (game.isDecorateMode) _renderCeilingMarkers(canvas);
+  }
+
+  final Paint _markerFill = Paint();
+  final Paint _markerStroke = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
+  final Paint _markerRing = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.2;
+  final Paint _markerStem = Paint()..strokeWidth = 1.0;
+
+  /// Decorate mode only: each ceiling fixture as a small disc floating at ceiling height,
+  /// a thin stem down to the floor and a ring where its light lands — so it can be found,
+  /// selected and dragged even when switched off.
+  void _renderCeilingMarkers(Canvas canvas) {
+    for (final c in game.roomConfig.lighting.ceilingLights) {
+      final selected = c.id == game.selectedCeilingLightId;
+      final on = c.on && game.roomConfig.lighting.masterOn;
+      final floor = lightingSubGridToScreen(c.gridX * 2, c.gridY * 2);
+      final top = Offset(floor.dx, floor.dy - CozyRoomGame.ceilingMarkerHeight);
+      final accent = selected ? const Color(0xFFFFD54F) : const Color(0xCCFFFFFF);
+
+      _markerRing.color = accent.withOpacity(selected ? 0.9 : 0.45);
+      canvas.drawOval(Rect.fromCenter(center: floor, width: 26, height: 13), _markerRing);
+      _markerStem.color = accent.withOpacity(selected ? 0.7 : 0.3);
+      canvas.drawLine(floor, top, _markerStem);
+
+      _markerFill.color = on ? c.color.color : const Color(0xFF55506A);
+      canvas.drawCircle(top, 7, _markerFill);
+      _markerStroke.color = accent;
+      _markerStroke.strokeWidth = selected ? 2.2 : 1.4;
+      canvas.drawCircle(top, 7, _markerStroke);
+      // Fixture base plate.
+      canvas.drawLine(top.translate(-5, -8), top.translate(5, -8), _markerStroke);
+    }
+  }
+
+  @override
+  void onRemove() {
+    game.lightingFloorPainter.dispose();
+    game.lightingWallPainter.dispose();
+    super.onRemove();
+  }
+}
+
 class _DragHighlightLayer extends Component {
   final CozyRoomGame game;
 
@@ -2915,6 +3531,7 @@ class _IsometricRoomBackgroundComponent extends Component {
     super.render(canvas);
     _renderWalls(canvas);
     _renderFloor(canvas);
+    if (game.lightingEnabled) game.lightingFloorPainter.render(canvas);
   }
 
   void _renderFloor(Canvas canvas) {
@@ -3109,6 +3726,7 @@ class _IsometricRoomBackgroundComponent extends Component {
         }
       }
     }
+    if (game.lightingEnabled) game.lightingWallPainter.renderNorth(canvas, wallHeight);
     canvas.restore();
 
     // 2. West Wall (Pared Oeste: extends Down-Left along Y >= 0, gx = 0, gy = 0..gridSize-1)
@@ -3159,6 +3777,7 @@ class _IsometricRoomBackgroundComponent extends Component {
         }
       }
     }
+    if (game.lightingEnabled) game.lightingWallPainter.renderWest(canvas, wallHeight);
     canvas.restore();
   }
 }
@@ -3210,4 +3829,24 @@ class _TapWaveComponent extends Component {
       paint,
     );
   }
+}
+
+
+/// One row of the lights panel.
+class LightPanelEntry {
+  final String id;
+  final String label;
+  final bool isCeiling;
+  final bool on;
+  final Color color;
+  final int sector;
+
+  const LightPanelEntry({
+    required this.id,
+    required this.label,
+    required this.isCeiling,
+    required this.on,
+    required this.color,
+    required this.sector,
+  });
 }

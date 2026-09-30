@@ -1110,18 +1110,27 @@ void main() {
       game.avatar = avatar;
 
       expect(desk.isActivated, isFalse);
+      game.rebuildLightingForTesting();
+      expect(game.isLightOn('gaming_pc_desk_1'), isFalse, reason: 'desk light off while nobody sits');
 
       // Sit on unrelated chair -> desk remains inactive
       avatar.sitOnChair(otherChair);
       expect(desk.isActivated, isFalse);
+      expect(game.isLightOn('gaming_pc_desk_1'), isFalse);
 
-      // Sit on chair in front of desk -> desk activates!
+      // Sit on chair in front of desk -> desk activates and its light comes on
       avatar.sitOnChair(chairInFront);
       expect(desk.isActivated, isTrue);
+      expect(game.isLightOn('gaming_pc_desk_1'), isTrue);
 
-      // Stand up -> desk deactivates!
+      // A lighting rebuild (e.g. after moving furniture) keeps it on while still seated
+      game.rebuildLightingForTesting();
+      expect(game.isLightOn('gaming_pc_desk_1'), isTrue);
+
+      // Stand up -> desk deactivates and its light goes off
       avatar.standUp();
       expect(desk.isActivated, isFalse);
+      expect(game.isLightOn('gaming_pc_desk_1'), isFalse);
     });
 
     test('Sitting partnerAvatar in front of gaming_pc_desk activates desk and standing up deactivates it', () {

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'lighting_config.dart';
 
 enum FurniturePlacementType {
   floor,
@@ -130,6 +131,8 @@ class FurnitureCatalogItem extends Equatable {
   final List<int> spriteOffset;
   final Map<int, FurnitureRotationMeta> rotations;
   final bool hasTableMagnet;
+  /// Explicit `light` block from the catalog JSON; see [lightSpec] for the effective value.
+  final EmitterLightSpec? light;
 
   const FurnitureCatalogItem({
     required this.id,
@@ -144,7 +147,12 @@ class FurnitureCatalogItem extends Equatable {
     this.spriteOffset = const [-32, -48],
     this.rotations = const {},
     this.hasTableMagnet = false,
+    this.light,
   });
+
+  /// Light emitted by this item, or null if it doesn't emit.
+  EmitterLightSpec? get lightSpec => light ?? EmitterLightSpec.defaultFor(id);
+  bool get isLightEmitter => lightSpec != null;
 
   bool get canSnapToTable =>
       hasTableMagnet ||
@@ -300,11 +308,12 @@ class FurnitureCatalogItem extends Equatable {
       spriteOffset: spriteOff,
       rotations: rots,
       hasTableMagnet: hasMagnet,
+      light: json['light'] is Map ? EmitterLightSpec.fromJson(Map<String, dynamic>.from(json['light'] as Map)) : null,
     );
   }
 
   @override
-  List<Object?> get props => [id, name, zone, footprint, surfaceHeight, supportsSurface, surfaceOffset, surfaceSpots, canvasSize, spriteOffset, rotations, hasTableMagnet];
+  List<Object?> get props => [id, name, zone, footprint, surfaceHeight, supportsSurface, surfaceOffset, surfaceSpots, canvasSize, spriteOffset, rotations, hasTableMagnet, light];
 }
 
 class PlacedFurniture extends Equatable {

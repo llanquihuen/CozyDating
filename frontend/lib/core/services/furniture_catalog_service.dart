@@ -120,10 +120,14 @@ class FurnitureCatalogService {
       // Gustos & Hobbies (Starter Packs)
       const FurnitureCatalogItem(id: 'gaming_pc_desk', name: 'Escritorio PC Gamer RGB', zone: 'living', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'home_theater_tv', name: 'Mueble con TV Cine', zone: 'living', footprint: '1x1', surfaceHeight: 18, spriteOffset: [-32, -48]),
+      // Emisores de luz (sprites: CreateSprites/generate_light_emitters.py)
+      const FurnitureCatalogItem(id: 'fireplace', name: 'Chimenea de Ladrillo', zone: 'living', footprint: '1x1', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'floor_lamp_sm', name: 'Lámpara de Pie (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', canvasSize: [128, 176], spriteOffset: [-32, -44]),
       const FurnitureCatalogItem(id: 'vinyl_record_player', name: 'Tocadiscos Vinilo Retro', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'acoustic_guitar_stand', name: 'Guitarra Acústica', zone: 'living', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
       const FurnitureCatalogItem(id: 'manga_shelf', name: 'Estantería Manga & Figuras', zone: 'living', footprint: '1x1', surfaceHeight: 14, spriteOffset: [-32, -73]),
       const FurnitureCatalogItem(id: 'espresso_machine', name: 'Cafetera Espresso Barista', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
+      const FurnitureCatalogItem(id: 'lava_lamp', name: 'Lámpara de Lava', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'tea_set_table', name: 'Juego de Té y Matcha', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'polaroid_camera_table', name: 'Cámara Polaroid Vintage', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'monstera_plant_pot', name: 'Planta Monstera Deliciosa', zone: 'living', footprint: '0.5x0.5', spriteOffset: [-32, -44]),

@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
+import 'lighting_config.dart';
+
+export 'lighting_config.dart';
 
 class PlacedFurnitureConfig extends Equatable {
   final String id;
@@ -15,6 +18,10 @@ class PlacedFurnitureConfig extends Equatable {
   final String wallHeightLevel; // 'mid' or 'high'
   final double nudgeX;
   final double nudgeY;
+  /// Emitter state; null = the catalog's `defaultOn`.
+  final bool? lightOn;
+  /// Emitter colour override; null = the catalog colour.
+  final LightColor? lightColor;
 
   const PlacedFurnitureConfig({
     required this.id,
@@ -29,6 +36,8 @@ class PlacedFurnitureConfig extends Equatable {
     this.wallHeightLevel = 'high',
     this.nudgeX = 0.0,
     this.nudgeY = 0.0,
+    this.lightOn,
+    this.lightColor,
   });
 
   PlacedFurnitureConfig copyWith({
@@ -45,6 +54,8 @@ class PlacedFurnitureConfig extends Equatable {
     String? wallHeightLevel,
     double? nudgeX,
     double? nudgeY,
+    bool? lightOn,
+    LightColor? lightColor,
   }) {
     return PlacedFurnitureConfig(
       id: id ?? this.id,
@@ -59,6 +70,8 @@ class PlacedFurnitureConfig extends Equatable {
       wallHeightLevel: wallHeightLevel ?? this.wallHeightLevel,
       nudgeX: nudgeX ?? this.nudgeX,
       nudgeY: nudgeY ?? this.nudgeY,
+      lightOn: lightOn ?? this.lightOn,
+      lightColor: lightColor ?? this.lightColor,
     );
   }
 
@@ -76,6 +89,8 @@ class PlacedFurnitureConfig extends Equatable {
       if (wallHeightLevel != 'high') 'wallHeightLevel': wallHeightLevel,
       if (nudgeX != 0.0) 'nudgeX': nudgeX,
       if (nudgeY != 0.0) 'nudgeY': nudgeY,
+      if (lightOn != null) 'lightOn': lightOn,
+      if (lightColor != null) 'lightColor': lightColor!.toMap(),
     };
   }
 
@@ -93,11 +108,13 @@ class PlacedFurnitureConfig extends Equatable {
       wallHeightLevel: map['wallHeightLevel'] ?? map['wall_height_level'] ?? 'high',
       nudgeX: (map['nudgeX'] ?? map['nudge_x'] as num?)?.toDouble() ?? 0.0,
       nudgeY: (map['nudgeY'] ?? map['nudge_y'] as num?)?.toDouble() ?? 0.0,
+      lightOn: map['lightOn'] as bool?,
+      lightColor: map['lightColor'] != null ? LightColor.fromMap(map['lightColor']) : null,
     );
   }
 
   @override
-  List<Object?> get props => [id, typeName, gridX, gridY, gridWidth, gridHeight, rotation, assetPath, parentId, wallHeightLevel, nudgeX, nudgeY];
+  List<Object?> get props => [id, typeName, gridX, gridY, gridWidth, gridHeight, rotation, assetPath, parentId, wallHeightLevel, nudgeX, nudgeY, lightOn, lightColor];
 }
 
 class RoomConfig extends Equatable {
@@ -362,9 +379,11 @@ class RoomConfig extends Equatable {
     this.interiorWalls = defaultInteriorWalls,
     this.furniture = defaultFurniture,
     this.wallsCut = false,
+    this.lighting = const LightingConfig(),
   });
 
   final bool wallsCut;
+  final LightingConfig lighting;
 
   RoomConfig copyWith({
     String? wallpaper,
@@ -375,6 +394,7 @@ class RoomConfig extends Equatable {
     List<PlacedFurnitureConfig>? furniture,
     List<InteriorWallConfig>? interiorWalls,
     bool? wallsCut,
+    LightingConfig? lighting,
   }) {
     return RoomConfig(
       wallpaper: wallpaper ?? this.wallpaper,
@@ -385,6 +405,7 @@ class RoomConfig extends Equatable {
       furniture: furniture ?? this.furniture,
       interiorWalls: interiorWalls ?? this.interiorWalls,
       wallsCut: wallsCut ?? this.wallsCut,
+      lighting: lighting ?? this.lighting,
     );
   }
 
@@ -399,6 +420,7 @@ class RoomConfig extends Equatable {
       if (interiorWalls.isNotEmpty)
         'interiorWalls': interiorWalls.map((w) => w.toMap()).toList(),
       if (wallsCut) 'wallsCut': true,
+      if (!lighting.isDefault) 'lighting': lighting.toMap(),
     };
   }
 
@@ -422,6 +444,7 @@ class RoomConfig extends Equatable {
               (map['furniture'] as List).map((x) => PlacedFurnitureConfig.fromMap(x)))
           : defaultFurniture,
       wallsCut: map['wallsCut'] ?? false,
+      lighting: LightingConfig.fromMap(map['lighting']),
     );
   }
 
@@ -430,7 +453,7 @@ class RoomConfig extends Equatable {
   factory RoomConfig.fromJson(String source) => RoomConfig.fromMap(json.decode(source));
 
   @override
-  List<Object?> get props => [wallpaper, floor, floorOverrides, wallOverrides, resolution, furniture, interiorWalls, wallsCut];
+  List<Object?> get props => [wallpaper, floor, floorOverrides, wallOverrides, resolution, furniture, interiorWalls, wallsCut, lighting];
 }
 
 class InteriorWallConfig extends Equatable {

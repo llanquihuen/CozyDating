@@ -22,6 +22,7 @@ import '../components/isometric_furniture_component.dart';
 import '../components/isometric_interior_wall_component.dart';
 import '../games/cozy_room_game.dart';
 import '../../chat/services/chat_service.dart';
+import 'lighting_panel_sheet.dart';
 import 'room_decorator_sheet.dart';
 
 class CozyLobbyView extends StatefulWidget {
@@ -83,6 +84,9 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   Timer? _topNotificationTimer;
   IsometricFurnitureComponent? _selectedFurniture;
   IsometricInteriorWallComponent? _selectedInteriorWall;
+  String? _selectedCeilingLightId;
+  Timer? _lightingSaveTimer;
+  bool _lightingSavePending = false;
   final Map<int, Offset> _pointerPositions = {};
   double? _initialPinchDistance;
   double? _initialPinchZoom;
@@ -103,6 +107,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     MailboxService.mutualMatchCelebrationNotifier.removeListener(_onMutualMatchCelebrationTriggered);
     MailboxService.pendingCampfireDecisionNotifier.removeListener(_onPendingCampfireDecisionTriggered);
     _topNotificationTimer?.cancel();
+    _flushLightingSave();
     _topNotificationNotifier.dispose();
     _constructorTabController.dispose();
     super.dispose();
@@ -177,6 +182,16 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
           if (wall != null) _selectedFurniture = null;
         });
       },
+      onCeilingLightSelected: (id) {
+        setState(() {
+          _selectedCeilingLightId = id;
+          if (id != null) {
+            _selectedFurniture = null;
+            _selectedInteriorWall = null;
+          }
+        });
+      },
+      onLightingChanged: _onLightingChanged,
     );
   }
 
@@ -366,20 +381,24 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   void _enterDecorateMode() {
+    _flushLightingSave(); // don't let "Cancelar" revert a pending lighting change
     setState(() {
       _editMode = LobbyEditMode.decorate;
       _roomGame.setDecorateMode(true);
       _selectedFurniture = null;
       _selectedInteriorWall = null;
+      _selectedCeilingLightId = null;
     });
   }
 
   void _enterConstructorMode() {
+    _flushLightingSave(); // don't let "Cancelar" revert a pending lighting change
     setState(() {
       _editMode = LobbyEditMode.construct;
       _roomGame.setDecorateMode(true);
       _selectedFurniture = null;
       _selectedInteriorWall = null;
+      _selectedCeilingLightId = null;
       if (_constructorTabController.index == 1) {
         if (_floorEditTool == FloorEditTool.zoneBrush) {
           _roomGame.setFloorBrush(_selectedZoneFloorId);
@@ -417,6 +436,136 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     );
   }
 
+  // --- Lighting ----------------------------------------------------------------------------
+
+  /// Lighting changed (panel, master switch, tapping a lamp). Outside decorate mode it's
+  /// saved on its own, debounced so a burst of toggles is one save. While decorating it
+  /// rides along with the "Listo" save (and "Cancelar" reverts it with everything else).
+  void _onLightingChanged() {
+    if (mounted) setState(() {});
+    if (_isDecorating) return;
+    _lightingSavePending = true;
+    _lightingSaveTimer?.cancel();
+    _lightingSaveTimer = Timer(const Duration(milliseconds: 1200), _flushLightingSave);
+  }
+
+  void _flushLightingSave() {
+    _lightingSaveTimer?.cancel();
+    _lightingSaveTimer = null;
+    if (!_lightingSavePending || _isDecorating) return;
+    _lightingSavePending = false;
+    final updated = _roomGame.exportCurrentRoomConfig();
+    AvatarStorageService.saveUserRoomConfig(widget.activeUserId, updated);
+    AuthService.saveRoomConfig(updated);
+    _currentRoomConfig = updated;
+  }
+
+  void _toggleMasterLights() {
+    final on = !_roomGame.roomConfig.lighting.masterOn;
+    _roomGame.setLightingMasterOn(on);
+    _onLightingChanged();
+    _showTopNotification(on ? '💡 Luces de techo encendidas' : '🌑 Luces de techo apagadas');
+  }
+
+  void _openLightingPanel() {
+    LightingPanelSheet.show(context, game: _roomGame, onChanged: _onLightingChanged);
+  }
+
+  /// "💡 Luces" pill: tap = general switch, chevron (or long-press) = panel.
+  Widget _buildLightsButton({bool compact = false}) {
+    final on = _roomGame.roomConfig.lighting.masterOn;
+    final color = on ? const Color(0xFFFFD54F) : Colors.white54;
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF282531).withOpacity(0.92),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.8), width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            key: const Key('lights_master_button'),
+            borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+            onTap: _toggleMasterLights,
+            onLongPress: _openLightingPanel,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12, vertical: compact ? 5 : 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(on ? Icons.lightbulb_rounded : Icons.lightbulb_outline_rounded, color: color, size: 16),
+                  if (!compact) ...[
+                    const SizedBox(width: 6),
+                    Text('Luces', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          Container(width: 1, height: compact ? 16 : 20, color: Colors.white12),
+          InkWell(
+            key: const Key('lights_panel_button'),
+            borderRadius: const BorderRadius.horizontal(right: Radius.circular(20)),
+            onTap: _openLightingPanel,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 8, vertical: compact ? 5 : 8),
+              child: Icon(Icons.tune_rounded, color: color, size: 15),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedCeilingLightToolbar() {
+    final light = _roomGame.ceilingLightById(_selectedCeilingLightId);
+    if (light == null) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1C27).withOpacity(0.95),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24, width: 1.2),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10)],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _floatingIconButton(
+            icon: light.on ? Icons.lightbulb_rounded : Icons.lightbulb_outline_rounded,
+            color: light.on ? const Color(0xFFFFD54F) : Colors.white54,
+            tooltip: light.on ? 'Apagar' : 'Encender',
+            onPressed: () {
+              _roomGame.setLightOn(light.id, !light.on);
+              setState(() {});
+            },
+          ),
+          const SizedBox(width: 6),
+          _floatingIconButton(
+            icon: Icons.palette_outlined,
+            color: light.color.color,
+            tooltip: 'Color, intensidad y alcance',
+            onPressed: () async {
+              await CeilingLightSettingsSheet.show(context, game: _roomGame, lightId: light.id);
+              if (mounted) setState(() {});
+            },
+          ),
+          const SizedBox(width: 6),
+          _floatingIconButton(
+            icon: Icons.delete_outline,
+            color: const Color(0xFFEF5350),
+            tooltip: 'Borrar',
+            onPressed: () {
+              _roomGame.deleteSelectedCeilingLight();
+              setState(() => _selectedCeilingLightId = null);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _saveAndExitDecorateMode() {
     _roomGame.setFloorBrush(null);
     final updatedConfig = _roomGame.exportCurrentRoomConfig();
@@ -429,6 +578,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
       _roomGame.setDecorateMode(false);
       _selectedFurniture = null;
       _selectedInteriorWall = null;
+      _selectedCeilingLightId = null;
     });
 
     _showTopNotification(wasConstructor ? '✨ Construcción guardada en la nube' : '✨ Decoración guardada en la nube');
@@ -442,6 +592,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
       _roomGame.setDecorateMode(false);
       _selectedFurniture = null;
       _selectedInteriorWall = null;
+      _selectedCeilingLightId = null;
     });
   }
 
@@ -736,6 +887,13 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                   child: _buildSelectedInteriorWallToolbar(),
                 ),
 
+              // 5b. Floating toolbar above the selected ceiling light (Decorate Mode)
+              if (_isDecorating && _selectedCeilingLightId != null)
+                _FollowingOverlay(
+                  anchor: () => _roomGame.getSelectedCeilingLightAnchor(),
+                  child: _buildSelectedCeilingLightToolbar(),
+                ),
+
               // 6. Bottom Docked Overlay (Normal Mode, Decorator Toolbar or Constructor Toolbar)
               Positioned(
                 bottom: 0,
@@ -1024,6 +1182,11 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                 );
               },
             ),
+
+            const SizedBox(height: 8),
+
+            // Luces: interruptor general + panel
+            _buildLightsButton(),
           ],
         ),
 
@@ -1217,6 +1380,9 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
               ),
             ),
           ),
+          const SizedBox(width: 8),
+
+          _buildLightsButton(compact: true),
           const SizedBox(width: 10),
 
           // Save & Exit / Cancel
@@ -1437,6 +1603,25 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
                 onPressed: () => _openFurnitureCatalog('living'),
                 icon: const Icon(Icons.grid_view_rounded, size: 14),
                 label: const Text('Abrir Catálogo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 6),
+              ElevatedButton.icon(
+                key: const Key('add_ceiling_light_button'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD54F).withOpacity(0.15),
+                  foregroundColor: const Color(0xFFFFD54F),
+                  side: const BorderSide(color: Color(0xFFFFD54F), width: 1.1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () {
+                  _roomGame.addCeilingLight();
+                  _showTopNotification('💡 Luz de techo agregada: arrástrala para moverla');
+                  setState(() {});
+                },
+                icon: const Icon(Icons.light_rounded, size: 14),
+                label: const Text('Luz de techo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

@@ -127,6 +127,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case "HOME_ACTION":
                 case "HOME_EMOTE":
                 case "HOME_CHAT":
+                case "HOME_LIGHTING":
                     handleForwardMessage(session, data);
                     break;
                 case "CAMPFIRE_COMPLETED":

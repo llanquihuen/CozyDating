@@ -61,6 +61,10 @@ NAME_TRANSLATIONS = {
     "bathtub_regular_1x2": "Bañera Regular (1x2)",
     "bathtub_2x2": "Bañera Jacuzzi (2x2)",
     "bathroom_toilet": "Inodoro Cerámica",
+    "gaming_pc_desk": "Escritorio PC Gamer RGB",
+    "fireplace": "Chimenea de Ladrillo",
+    "lava_lamp": "Lámpara de Lava",
+    "floor_lamp_sm": "Lámpara de Pie (0.5x0.5)",
 }
 
 def clean_id(filename_stem, is_wall=False):

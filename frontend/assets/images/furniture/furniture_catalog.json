@@ -4182,7 +4182,7 @@
     }
   },
   "gaming_pc_desk": {
-    "name": "Gaming Pc Desk",
+    "name": "Escritorio PC Gamer RGB",
     "zone": "living",
     "footprint": "1x1",
     "surface_height": 18,
@@ -4203,7 +4203,7 @@
     "rotations": {
       "0": {
         "id": "gaming_pc_desk_rot0",
-        "name": "Gaming Pc Desk Rot 0",
+        "name": "Escritorio PC Gamer RGB Rot 0",
         "footprint": "1x1",
         "rot": 0,
         "canvas_size": [
@@ -4224,7 +4224,7 @@
       },
       "1": {
         "id": "gaming_pc_desk_rot1",
-        "name": "Gaming Pc Desk Rot 1",
+        "name": "Escritorio PC Gamer RGB Rot 1",
         "footprint": "1x1",
         "rot": 1,
         "canvas_size": [
@@ -4245,7 +4245,7 @@
       },
       "2": {
         "id": "gaming_pc_desk_rot2",
-        "name": "Gaming Pc Desk Rot 2",
+        "name": "Escritorio PC Gamer RGB Rot 2",
         "footprint": "1x1",
         "rot": 2,
         "canvas_size": [
@@ -4266,7 +4266,7 @@
       },
       "3": {
         "id": "gaming_pc_desk_rot3",
-        "name": "Gaming Pc Desk Rot 3",
+        "name": "Escritorio PC Gamer RGB Rot 3",
         "footprint": "1x1",
         "rot": 3,
         "canvas_size": [

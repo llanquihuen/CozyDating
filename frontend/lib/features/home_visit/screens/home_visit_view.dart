@@ -7,7 +7,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/room_config.dart';
 import '../../../core/models/user_profile.dart';
 import '../../game/bloc/game_bloc.dart';
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/avatar_storage_service.dart';
 import '../../lobby/games/cozy_room_game.dart';
+import '../../lobby/screens/lighting_panel_sheet.dart';
 
 /// Interactive screen for the "Visitar mi Hogar ☕" date mode.
 ///
@@ -62,6 +65,9 @@ class _HomeVisitViewState extends State<HomeVisitView> {
   int? _lastHandledEmoteTrigger;
   int? _lastHandledActionTrigger;
   int? _lastHandledChatTrigger;
+  int? _lastHandledLightingTrigger;
+  int? _lastHandledLightingRequestTrigger;
+  Timer? _hostLightingSaveTimer;
 
   @override
   void initState() {
@@ -88,12 +94,96 @@ class _HomeVisitViewState extends State<HomeVisitView> {
               slotIndex: spot.slotIndex,
             ));
       },
+      // Either player tapping a lamp / TV / fireplace.
+      onLightingChanged: _onLocalLightingChanged,
+    );
+
+    // The guest asks the host for the live lighting on arrival, instead of trusting the
+    // copy of the room it received (the host may have changed a light moments ago).
+    if (!widget.isHost) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<GameBloc>().add(const SendHomeLightingEvent(request: true));
+      });
+    }
+  }
+
+  // --- Lighting sync ---------------------------------------------------------------------------
+
+  /// A local lighting change (lamp tap, or the host's lights button / panel): show it to the
+  /// partner, and if it's our room, keep it.
+  void _onLocalLightingChanged() {
+    if (!mounted) return;
+    setState(() {});
+    context.read<GameBloc>().add(SendHomeLightingEvent(snapshot: _game.lightingSnapshot()));
+    _scheduleHostLightingSave();
+  }
+
+  /// The room belongs to the host, so only the host persists lighting changes made during
+  /// the visit — including the ones the guest made. Debounced like the lobby's auto-save.
+  void _scheduleHostLightingSave() {
+    if (!widget.isHost) return;
+    _hostLightingSaveTimer?.cancel();
+    _hostLightingSaveTimer = Timer(const Duration(milliseconds: 1200), () {
+      final saved = AvatarStorageService.getUserRoomConfig(widget.localUser.id);
+      final updated = saved.copyWith(lighting: _game.roomConfig.lighting);
+      AvatarStorageService.saveUserRoomConfig(widget.localUser.id, updated);
+      AuthService.saveRoomConfig(updated);
+    });
+  }
+
+  void _toggleHostMasterLights() {
+    final on = !_game.roomConfig.lighting.masterOn;
+    _game.setLightingMasterOn(on);
+    _onLocalLightingChanged();
+    _showTopNotification(on ? '💡 Luces de techo encendidas' : '🌑 Luces de techo apagadas');
+  }
+
+  void _openHostLightingPanel() {
+    LightingPanelSheet.show(context, game: _game, onChanged: _onLocalLightingChanged);
+  }
+
+  /// Host only: tap = ceiling lights switch, tune icon = lights panel.
+  Widget _buildHostLightsButton() {
+    final on = _game.roomConfig.lighting.masterOn;
+    final color = on ? const Color(0xFFFFD54F) : Colors.white54;
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF261D3B).withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.7)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            key: const Key('visit_lights_master_button'),
+            borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+            onTap: _toggleHostMasterLights,
+            onLongPress: _openHostLightingPanel,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+              child: Icon(on ? Icons.lightbulb_rounded : Icons.lightbulb_outline_rounded, color: color, size: 16),
+            ),
+          ),
+          Container(width: 1, height: 18, color: Colors.white12),
+          InkWell(
+            key: const Key('visit_lights_panel_button'),
+            borderRadius: const BorderRadius.horizontal(right: Radius.circular(20)),
+            onTap: _openHostLightingPanel,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
+              child: Icon(Icons.tune_rounded, color: color, size: 15),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   void dispose() {
     _notificationTimer?.cancel();
+    _hostLightingSaveTimer?.cancel();
     _chatController.dispose();
     _chatFocusNode.dispose();
     super.dispose();
@@ -233,6 +323,24 @@ class _HomeVisitViewState extends State<HomeVisitView> {
             state.homeActionTrigger != _lastHandledActionTrigger) {
           _lastHandledActionTrigger = state.homeActionTrigger;
           _showTopNotification(state.homeActionMessage!);
+        }
+
+        // Partner changed the lighting -> apply their snapshot (and, as host, keep it)
+        if (state.partnerHomeLighting != null &&
+            state.partnerHomeLightingTrigger != null &&
+            state.partnerHomeLightingTrigger != _lastHandledLightingTrigger) {
+          _lastHandledLightingTrigger = state.partnerHomeLightingTrigger;
+          _game.applyLightingSnapshot(state.partnerHomeLighting!);
+          _scheduleHostLightingSave();
+          setState(() {});
+        }
+
+        // Guest arrived and asked for the live lighting -> host answers with a snapshot
+        if (widget.isHost &&
+            state.homeLightingRequestTrigger != null &&
+            state.homeLightingRequestTrigger != _lastHandledLightingRequestTrigger) {
+          _lastHandledLightingRequestTrigger = state.homeLightingRequestTrigger;
+          context.read<GameBloc>().add(SendHomeLightingEvent(snapshot: _game.lightingSnapshot()));
         }
 
         // Partner sent a chat message -> show speech bubble directly over partner avatar
@@ -433,6 +541,11 @@ class _HomeVisitViewState extends State<HomeVisitView> {
                             },
                           ),
                           const SizedBox(width: 8),
+
+                          if (widget.isHost) ...[
+                            _buildHostLightsButton(),
+                            const SizedBox(width: 8),
+                          ],
 
                           // Leave Button
                           ElevatedButton.icon(

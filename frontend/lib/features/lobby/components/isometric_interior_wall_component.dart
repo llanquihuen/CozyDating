@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as vmath;
@@ -23,6 +24,44 @@ class IsometricInteriorWallComponent extends Component {
     _updatePriority();
   }
   Vector2 dragVisualOffset = Vector2.zero();
+
+  // Room light on the visible face (south face of a north wall, east face of a west wall),
+  // one colour per end of the panel; blended along the wall with a gradient.
+  bool lightActive = false;
+  int _lightKey = -1;
+  Color _lightStart = const Color(0xFFFFFFFF);
+  Color _lightEnd = const Color(0xFFFFFFFF);
+  final Paint _lightLayerPaint = Paint();
+  final Paint _lightModulatePaint = Paint()..blendMode = BlendMode.modulate;
+  Offset? _lightShaderFrom, _lightShaderTo;
+  int _lightShaderKey = -2;
+
+  /// Sub-cells whose light shows on the visible face, in screen left→right order.
+  (Point<int>, Point<int>) get litFaceCells {
+    final u = gridX * 2, v = gridY * 2;
+    return orientation == 'north'
+        ? (Point(u, v), Point(u + 1, v))
+        : (Point(u, v + 1), Point(u, v));
+  }
+
+  /// [start]/[end]: RGB 0..1 of the left/right half of the visible face.
+  void setLightTint(double r1, double g1, double b1, double r2, double g2, double b2) {
+    int q(double x) => (x.clamp(0.0, 1.0) * 63).round();
+    final qs = [q(r1), q(g1), q(b1), q(r2), q(g2), q(b2)];
+    if (qs.every((c) => c >= 62)) {
+      lightActive = false;
+      return;
+    }
+    lightActive = true;
+    final key = qs.fold<int>(0, (acc, c) => acc * 64 + c);
+    if (key == _lightKey) return;
+    _lightKey = key;
+    int c(int v) => (v * 255 / 63).round();
+    _lightStart = Color.fromARGB(255, c(qs[0]), c(qs[1]), c(qs[2]));
+    _lightEnd = Color.fromARGB(255, c(qs[3]), c(qs[4]), c(qs[5]));
+  }
+
+  void clearLightTint() => lightActive = false;
 
   double currentOpacity = 1.0;
   double targetOpacity = 1.0;
@@ -258,17 +297,32 @@ class IsometricInteriorWallComponent extends Component {
       ..close();
 
     final bool needsTransparency = currentOpacity < 0.99;
-    if (needsTransparency) {
-      canvas.saveLayer(
-        null,
-        Paint()..color = Color.fromRGBO(255, 255, 255, currentOpacity),
+    if (needsTransparency || lightActive) {
+      // Bounded layer: the whole panel incl. top cap and trim, not the full screen.
+      final bounds = Rect.fromLTRB(
+        min(bX1, bX2) - 4,
+        min(tY1, tY2) - 10,
+        max(bX1, bX2) + 4,
+        max(bY1, bY2) + 4,
       );
-    }
-
-    _renderWallStyle(canvas, bX1, bY1, bX2, bY2, tX1, tY1, tX2, tY2, wallQuad, isNorth);
-
-    if (needsTransparency) {
+      _lightLayerPaint.color = Color.fromRGBO(255, 255, 255, currentOpacity);
+      canvas.saveLayer(bounds, _lightLayerPaint);
+      _renderWallStyle(canvas, bX1, bY1, bX2, bY2, tX1, tY1, tX2, tY2, wallQuad, isNorth);
+      if (lightActive) {
+        // `modulate` multiplies RGB *and* alpha by an opaque colour, so glass and
+        // doorway openings stay exactly as transparent as they were.
+        final from = Offset(bX1, bY1), to = Offset(bX2, bY2);
+        if (_lightShaderKey != _lightKey || from != _lightShaderFrom || to != _lightShaderTo) {
+          _lightModulatePaint.shader = ui.Gradient.linear(from, to, [_lightStart, _lightEnd], const [0.25, 0.75]);
+          _lightShaderKey = _lightKey;
+          _lightShaderFrom = from;
+          _lightShaderTo = to;
+        }
+        canvas.drawRect(bounds, _lightModulatePaint);
+      }
       canvas.restore();
+    } else {
+      _renderWallStyle(canvas, bX1, bY1, bX2, bY2, tX1, tY1, tX2, tY2, wallQuad, isNorth);
     }
 
     // Selection or Drag Glow

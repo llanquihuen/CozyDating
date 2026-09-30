@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../avatar/components/modular_avatar_component.dart';
 import '../data/chair_seat_config.dart';
+import '../lighting/room_lighting_renderer.dart';
 import '../utils/isometric_coords.dart';
 import '../utils/isometric_pathfinder.dart';
 import 'isometric_furniture_component.dart';
@@ -371,10 +372,26 @@ class IsometricAvatarComponent extends PositionComponent {
     avatarRenderer.updateConfig(newConfig);
   }
 
+  /// Room light at the avatar's feet, set each frame by the game (bilinear, wall-aware).
+  final LightTint lightTint = LightTint();
+
+  /// Screen rect the avatar's layers can paint into (in the parent's space), padded for
+  /// hair/accessories that overhang the nominal size.
+  Rect get lightLayerBounds =>
+      Rect.fromLTWH(position.x - size.x * anchor.x, position.y - size.y * anchor.y, size.x, size.y).inflate(24);
+
   @override
   void renderTree(Canvas canvas) {
     if (!isVisible) return;
-    super.renderTree(canvas);
+    // The avatar is 20+ stacked sprite layers, so it's tinted as a whole through one small
+    // offscreen layer instead of threading a paint into every layer.
+    if (lightTint.active) {
+      canvas.saveLayer(lightLayerBounds, lightTint.paint);
+      super.renderTree(canvas);
+      canvas.restore();
+    } else {
+      super.renderTree(canvas);
+    }
   }
 
   @override
@@ -486,7 +503,13 @@ class AvatarBacklegComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     if (!avatar.isVisible || !avatar.isSitting) return;
-    avatar.avatarRenderer.renderBackleg(canvas, size);
+    if (avatar.lightTint.active) {
+      canvas.saveLayer(Offset.zero & size.toSize(), avatar.lightTint.paint);
+      avatar.avatarRenderer.renderBackleg(canvas, size);
+      canvas.restore();
+    } else {
+      avatar.avatarRenderer.renderBackleg(canvas, size);
+    }
   }
 }
 

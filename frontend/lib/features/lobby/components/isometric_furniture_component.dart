@@ -2,8 +2,10 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../../core/models/furniture_item.dart';
+import '../../../core/models/lighting_config.dart';
 import '../../../core/services/furniture_catalog_service.dart';
 import '../utils/isometric_coords.dart';
+import '../lighting/room_lighting_renderer.dart';
 import '../utils/sprite_alpha_cache.dart';
 import 'isometric_interior_wall_component.dart';
 
@@ -27,6 +29,14 @@ class IsometricFurnitureComponent extends PositionComponent {
   final String? baseAssetPath;
   final Map<int, Sprite> rotationSprites;
   Sprite? sprite;
+
+  /// Emitter state; null = catalog default. Round-trips through [PlacedFurnitureConfig].
+  bool? lightOn;
+  LightColor? lightColor;
+
+  /// Room light at this item's footprint, set each frame by the game. Shared with the
+  /// chair backrest overlay so both halves of a chair get the same light.
+  final LightTint lightTint = LightTint();
 
   bool isSelected = false;
   bool isBeingDragged = false;
@@ -145,6 +155,8 @@ class IsometricFurnitureComponent extends PositionComponent {
     Map<int, List<Sprite>>? animatedRotationSprites,
     this.isActivated = false,
     this.frameDuration = 0.10,
+    this.lightOn,
+    this.lightColor,
   })  : id = id ?? (type == FurnitureType.portal ? 'portal' : (type == FurnitureType.wardrobe ? 'closet' : 'furniture_${gridX}_$gridY')),
         typeName = typeName ?? id ?? (type == FurnitureType.portal ? 'portal' : (type == FurnitureType.wardrobe ? 'closet' : 'furniture_${gridX}_$gridY')),
         chairBaseSprites = chairBaseSprites ?? {},
@@ -726,6 +738,7 @@ class IsometricFurnitureComponent extends PositionComponent {
           canvas,
           position: spriteOffset,
           size: renderSize,
+          overridePaint: lightTint.overridePaint,
         );
       }
     } else if (isActivated &&
@@ -737,12 +750,14 @@ class IsometricFurnitureComponent extends PositionComponent {
         canvas,
         position: spriteOffset,
         size: renderSize,
+        overridePaint: lightTint.overridePaint,
       );
     } else if (sprite != null) {
       sprite!.render(
         canvas,
         position: spriteOffset,
         size: renderSize,
+        overridePaint: lightTint.overridePaint,
       );
     } else {
       canvas.save();
@@ -1010,6 +1025,7 @@ class ChairBackrestOverlayComponent extends PositionComponent {
       canvas,
       position: chair.spriteOffset,
       size: chair.renderSize,
+      overridePaint: chair.lightTint.overridePaint,
     );
     canvas.restore();
   }

@@ -296,6 +296,18 @@ class SendHomeChatEvent extends GameEvent {
   List<Object?> get props => [text];
 }
 
+/// Home visit lighting sync. With [snapshot] it broadcasts the current lighting; with
+/// [request] it asks the partner (the host) to send theirs.
+class SendHomeLightingEvent extends GameEvent {
+  final Map<String, dynamic>? snapshot;
+  final bool request;
+
+  const SendHomeLightingEvent({this.snapshot, this.request = false});
+
+  @override
+  List<Object?> get props => [snapshot, request];
+}
+
 class SendHomeCompletedEvent extends GameEvent {
   const SendHomeCompletedEvent();
 
@@ -405,6 +417,9 @@ class ActiveGameState extends GameState {
   final String? homeActionType;
   final String? homeActionMessage;
   final int? homeActionTrigger;
+  final Map<String, dynamic>? partnerHomeLighting;
+  final int? partnerHomeLightingTrigger;
+  final int? homeLightingRequestTrigger;
   final String? homeChatText;
   final int? homeChatTrigger;
 
@@ -458,6 +473,9 @@ class ActiveGameState extends GameState {
     this.homeActionType,
     this.homeActionMessage,
     this.homeActionTrigger,
+    this.partnerHomeLighting,
+    this.partnerHomeLightingTrigger,
+    this.homeLightingRequestTrigger,
     this.homeChatText,
     this.homeChatTrigger,
   });
@@ -512,6 +530,9 @@ class ActiveGameState extends GameState {
     String? homeActionType,
     String? homeActionMessage,
     int? homeActionTrigger,
+    Map<String, dynamic>? partnerHomeLighting,
+    int? partnerHomeLightingTrigger,
+    int? homeLightingRequestTrigger,
     String? homeChatText,
     int? homeChatTrigger,
     bool clearTrappedPitfall = false,
@@ -568,6 +589,9 @@ class ActiveGameState extends GameState {
       homeActionType: homeActionType ?? this.homeActionType,
       homeActionMessage: homeActionMessage ?? this.homeActionMessage,
       homeActionTrigger: homeActionTrigger ?? this.homeActionTrigger,
+      partnerHomeLighting: partnerHomeLighting ?? this.partnerHomeLighting,
+      partnerHomeLightingTrigger: partnerHomeLightingTrigger ?? this.partnerHomeLightingTrigger,
+      homeLightingRequestTrigger: homeLightingRequestTrigger ?? this.homeLightingRequestTrigger,
       homeChatText: homeChatText ?? this.homeChatText,
       homeChatTrigger: homeChatTrigger ?? this.homeChatTrigger,
     );
@@ -624,6 +648,9 @@ class ActiveGameState extends GameState {
     homeActionType,
     homeActionMessage,
     homeActionTrigger,
+    partnerHomeLighting,
+    partnerHomeLightingTrigger,
+    homeLightingRequestTrigger,
     homeChatText,
     homeChatTrigger,
   ];
@@ -697,6 +724,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<SendHomeAvatarStandEvent>(_onSendHomeAvatarStand);
     on<SendHomeAvatarSitEvent>(_onSendHomeAvatarSit);
     on<SendHomeActionEvent>(_onSendHomeAction);
+    on<SendHomeLightingEvent>(_onSendHomeLighting);
     on<SendHomeEmoteEvent>(_onSendHomeEmote);
     on<SendHomeChatEvent>(_onSendHomeChat);
     on<SendHomeCompletedEvent>(_onSendHomeCompleted);
@@ -1042,6 +1070,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       'type': 'HOME_AVATAR_SIT',
       'chairId': event.chairId,
       'slotIndex': event.slotIndex,
+    });
+  }
+
+  void _onSendHomeLighting(SendHomeLightingEvent event, Emitter<GameState> emit) {
+    webSocketClient.sendMessage({
+      'type': 'HOME_LIGHTING',
+      if (event.request) 'request': true,
+      if (event.snapshot != null) ...event.snapshot!,
     });
   }
 
@@ -1619,6 +1655,22 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           homeActionMessage: message,
           homeActionTrigger: DateTime.now().millisecondsSinceEpoch,
         ));
+      }
+      return;
+    }
+
+    if (type == 'HOME_LIGHTING') {
+      if (state is ActiveGameState) {
+        final active = state as ActiveGameState;
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (msg['request'] == true) {
+          emit(active.copyWith(homeLightingRequestTrigger: now));
+        } else {
+          emit(active.copyWith(
+            partnerHomeLighting: {'lighting': msg['lighting'], 'emitters': msg['emitters']},
+            partnerHomeLightingTrigger: now,
+          ));
+        }
       }
       return;
     }
