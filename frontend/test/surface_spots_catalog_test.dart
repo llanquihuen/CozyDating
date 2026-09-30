@@ -156,6 +156,49 @@ void main() {
       expect(off3.y - off0.y, equals(-5.0));
     });
 
+    test('Dragged surface item previews the surface spot of the cell it hovers over', () async {
+      await FurnitureCatalogService.initialize();
+
+      final world = World();
+      world.add(IsometricFurnitureComponent(
+        id: 'table',
+        typeName: 'table',
+        gridX: 2.0,
+        gridY: 3.0,
+        gridWidth: 1.0,
+        gridHeight: 1.0,
+      ));
+
+      final resting = IsometricFurnitureComponent(
+        id: 'mug_rest',
+        typeName: 'coffee_mug',
+        gridX: 2.5,
+        gridY: 3.5,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        parentId: 'table',
+        parentSurfaceHeight: 18.0,
+      );
+      world.add(resting);
+
+      // Still at spot (0,0) until dropped, but hovering over spot (1,1)
+      final dragged = IsometricFurnitureComponent(
+        id: 'mug_drag',
+        typeName: 'coffee_mug',
+        gridX: 2.0,
+        gridY: 3.0,
+        gridWidth: 0.5,
+        gridHeight: 0.5,
+        parentId: 'table',
+        parentSurfaceHeight: 18.0,
+      );
+      world.add(dragged);
+      dragged.dragHoverGridX = 2.5;
+      dragged.dragHoverGridY = 3.5;
+
+      expect(dragged.spriteOffset, equals(resting.spriteOffset));
+    });
+
     test('Surface items on the same table are ordered from back to front by priority', () async {
       await FurnitureCatalogService.initialize();
 

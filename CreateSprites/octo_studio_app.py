@@ -54,6 +54,17 @@ class OctoStudioApp:
         self.zoom_level = 3
         self.anim_loop_id = None
 
+        # Desplazamiento (pan) del avatar en el visor con mouse
+        self.avatar_pan_x = 0
+        self.avatar_pan_y = 0
+        self.is_dragging_avatar = False
+        self.drag_start_x = 0
+        self.drag_start_y = 0
+
+        # Estado de minimización del panel de personaje
+        self.is_left_panel_minimized = False
+        self.left_panel_saved_width = 440
+
         # Catálogo de assets avatar
         self.catalog = get_octo_catalog()
 
@@ -108,6 +119,11 @@ class OctoStudioApp:
         self.root.bind("<Left>", lambda e: self._rotate_step(-1))
         self.root.bind("<Right>", lambda e: self._rotate_step(1))
         self.root.bind("<space>", lambda e: self._toggle_play())
+        self.root.bind("<Shift-Left>", lambda e: self._nudge_avatar_pan(-10, 0))
+        self.root.bind("<Shift-Right>", lambda e: self._nudge_avatar_pan(10, 0))
+        self.root.bind("<Shift-Up>", lambda e: self._nudge_avatar_pan(0, -10))
+        self.root.bind("<Shift-Down>", lambda e: self._nudge_avatar_pan(0, 10))
+        self.root.bind("<Home>", lambda e: self._reset_avatar_pan())
 
     def _init_styles(self):
         self.style = ttk.Style()
@@ -126,35 +142,148 @@ class OctoStudioApp:
         self.style.map("TCombobox", fieldbackground=[("readonly", "#12131C")], foreground=[("readonly", "#FFFFFF")])
 
     def _build_ui(self):
-        main_paned = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, bg="#12131C", bd=0, sashwidth=4)
-        main_paned.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.main_paned = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, bg="#12131C", bd=0, sashwidth=4)
+        self.main_paned.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # =====================================================================
         # PANEL IZQUIERDO: VISOR 8D, BRÚJULA Y ANIMACIÓN
         # =====================================================================
-        left_frame = tk.Frame(main_paned, bg="#181926", width=440)
-        main_paned.add(left_frame, minsize=410)
+        self.left_frame = tk.Frame(self.main_paned, bg="#181926", width=440)
+        self.main_paned.add(self.left_frame, minsize=410)
 
-        hdr = tk.Frame(left_frame, bg="#181926")
+        # Barra lateral minimizada (para restaurar el panel)
+        self.minimized_left_bar = tk.Frame(self.main_paned, bg="#181926", width=46)
+        exp_btn = tk.Button(
+            self.minimized_left_bar,
+            text="▶",
+            font=("Segoe UI", 12, "bold"),
+            bg="#2563EB",
+            fg="#FFFFFF",
+            activebackground="#3B82F6",
+            activeforeground="#FFFFFF",
+            bd=0,
+            padx=4,
+            pady=10,
+            cursor="hand2",
+            command=self._toggle_minimize_left_panel
+        )
+        exp_btn.pack(side=tk.TOP, fill=tk.X, padx=4, pady=(8, 4))
+
+        vert_lbl = tk.Label(
+            self.minimized_left_bar,
+            text="P\nE\nR\nS\nO\nN\nA\nJ\nE",
+            font=("Segoe UI", 8, "bold"),
+            bg="#181926",
+            fg="#38BDF8",
+            cursor="hand2"
+        )
+        vert_lbl.pack(side=tk.TOP, pady=8)
+        vert_lbl.bind("<Button-1>", lambda e: self._toggle_minimize_left_panel())
+
+        # Cabecera del Panel Izquierdo
+        hdr = tk.Frame(self.left_frame, bg="#181926")
         hdr.pack(fill=tk.X, padx=12, pady=(8, 4))
-        tk.Label(hdr, text="🧭 Visor 8 Direcciones (OCTOPLAYER)", font=("Segoe UI", 11, "bold"), bg="#181926", fg="#38BDF8").pack(side=tk.LEFT)
+        tk.Label(hdr, text="🧭 Visor 8D (OCTOPLAYER)", font=("Segoe UI", 11, "bold"), bg="#181926", fg="#38BDF8").pack(side=tk.LEFT)
 
-        z_frame = tk.Frame(hdr, bg="#181926")
-        z_frame.pack(side=tk.RIGHT)
+        # Botón Minimizar Panel
+        self.min_btn = tk.Button(
+            hdr,
+            text="◀ Minimizar",
+            font=("Segoe UI", 8, "bold"),
+            bg="#1E293B",
+            fg="#94A3B8",
+            activebackground="#334155",
+            activeforeground="#FFFFFF",
+            bd=0,
+            padx=8,
+            pady=2,
+            cursor="hand2",
+            command=self._toggle_minimize_left_panel
+        )
+        self.min_btn.pack(side=tk.RIGHT)
+
+        # Barra de Controles de Zoom y Movimiento (Pan con mouse)
+        z_frame = tk.Frame(self.left_frame, bg="#181926")
+        z_frame.pack(fill=tk.X, padx=12, pady=(2, 4))
         tk.Label(z_frame, text="Zoom:", bg="#181926", fg="#94A3B8", font=("Segoe UI", 8)).pack(side=tk.LEFT, padx=2)
         self.zoom_var = tk.StringVar(value="3x (192x384)")
         self.zoom_combo = ttk.Combobox(z_frame, textvariable=self.zoom_var, values=["1x (64x128)", "2x (128x256)", "3x (192x384)", "4x (256x512)"], state="readonly", width=13)
         self.zoom_combo.pack(side=tk.LEFT)
         self.zoom_combo.bind("<<ComboboxSelected>>", self._on_zoom_changed)
 
-        # Canvas del Avatar
-        canvas_box = tk.Frame(left_frame, bg="#0D0E15", bd=2, relief="sunken")
+        self.center_btn = tk.Button(
+            z_frame,
+            text="🎯 Centrar",
+            font=("Segoe UI", 8, "bold"),
+            bg="#2D3250",
+            fg="#E2E8F0",
+            activebackground="#38BDF8",
+            activeforeground="#000000",
+            bd=0,
+            padx=6,
+            pady=2,
+            cursor="hand2",
+            command=self._reset_avatar_pan
+        )
+        self.center_btn.pack(side=tk.LEFT, padx=(6, 2))
+
+        self.pan_lbl = tk.Label(z_frame, text="dx:0 dy:0", bg="#181926", fg="#64748B", font=("Consolas", 8))
+        self.pan_lbl.pack(side=tk.LEFT, padx=2)
+
+        # Flechas de micro-ajuste direccional
+        nudge_box = tk.Frame(z_frame, bg="#181926")
+        nudge_box.pack(side=tk.RIGHT)
+        for arrow, (ndx, ndy) in [("◀", (-8, 0)), ("▲", (0, -8)), ("▼", (0, 8)), ("▶", (8, 0))]:
+            b = tk.Button(
+                nudge_box,
+                text=arrow,
+                font=("Segoe UI", 7, "bold"),
+                bg="#1E2030",
+                fg="#94A3B8",
+                activebackground="#2563EB",
+                activeforeground="#FFF",
+                bd=0,
+                padx=4,
+                pady=1,
+                cursor="hand2",
+                command=lambda x=ndx, y=ndy: self._nudge_avatar_pan(x, y)
+            )
+            b.pack(side=tk.LEFT, padx=1)
+
+        # Canvas del Avatar (soporta arrastre con mouse arriba/abajo/izq/der)
+        canvas_box = tk.Frame(self.left_frame, bg="#0D0E15", bd=2, relief="sunken")
         canvas_box.pack(fill=tk.BOTH, expand=True, padx=12, pady=4)
-        self.canvas = tk.Canvas(canvas_box, bg="#0D0E15", highlightthickness=0)
+        self.canvas = tk.Canvas(canvas_box, bg="#0D0E15", highlightthickness=0, cursor="fleur")
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
+        hint_lbl = tk.Label(
+            canvas_box,
+            text="🖱️ Arrastra el mouse para mover (✥) • Doble clic para centrar • Rueda para zoom",
+            font=("Segoe UI", 7),
+            bg="#0D0E15",
+            fg="#64748B"
+        )
+        hint_lbl.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 2))
+
+        # Eventos de ratón para mover el personaje arriba/abajo/izquierda/derecha
+        self.canvas.bind("<ButtonPress-1>", self._on_canvas_drag_start)
+        self.canvas.bind("<B1-Motion>", self._on_canvas_drag_motion)
+        self.canvas.bind("<ButtonRelease-1>", self._on_canvas_drag_stop)
+
+        self.canvas.bind("<ButtonPress-2>", self._on_canvas_drag_start)
+        self.canvas.bind("<B2-Motion>", self._on_canvas_drag_motion)
+        self.canvas.bind("<ButtonRelease-2>", self._on_canvas_drag_stop)
+
+        self.canvas.bind("<ButtonPress-3>", self._on_canvas_drag_start)
+        self.canvas.bind("<B3-Motion>", self._on_canvas_drag_motion)
+        self.canvas.bind("<ButtonRelease-3>", self._on_canvas_drag_stop)
+
+        self.canvas.bind("<Double-Button-1>", lambda e: self._reset_avatar_pan())
+        self.canvas.bind("<MouseWheel>", self._on_canvas_mousewheel)
+        self.canvas.bind("<Configure>", lambda e: self.update_avatar_preview())
+
         # BRÚJULA DE 8 DIRECCIONES (Sentido horario)
-        compass_box = ttk.LabelFrame(left_frame, text=" 🧭 Brújula 8 Direcciones ", padding=6)
+        compass_box = ttk.LabelFrame(self.left_frame, text=" 🧭 Brújula 8 Direcciones ", padding=6)
         compass_box.pack(fill=tk.X, padx=12, pady=4)
 
         c_grid = tk.Frame(compass_box, bg="#181926")
@@ -185,7 +314,7 @@ class OctoStudioApp:
         self.dir_lbl.pack(pady=(4, 0))
 
         # CONTROLES DE ANIMACIÓN (IDLE vs WALK)
-        anim_box = ttk.LabelFrame(left_frame, text=" 🎬 Animación y Movimiento ", padding=6)
+        anim_box = ttk.LabelFrame(self.left_frame, text=" 🎬 Animación y Movimiento ", padding=6)
         anim_box.pack(fill=tk.X, padx=12, pady=4)
 
         mode_row = tk.Frame(anim_box, bg="#181926")
@@ -212,7 +341,7 @@ class OctoStudioApp:
         self.fps_scale.set(self.fps)
         self.fps_scale.pack(side=tk.LEFT, padx=2)
 
-        act_bar = tk.Frame(left_frame, bg="#181926")
+        act_bar = tk.Frame(self.left_frame, bg="#181926")
         act_bar.pack(fill=tk.X, padx=12, pady=(4, 8))
 
         tk.Button(act_bar, text="🎲 Aleatorio", font=("Segoe UI", 8, "bold"), bg="#8B5CF6", fg="#FFF", bd=0, padx=6, pady=4, cursor="hand2", command=self._randomize_avatar).pack(side=tk.LEFT, expand=True, fill=tk.X, padx=1)
@@ -221,10 +350,10 @@ class OctoStudioApp:
         # =====================================================================
         # PANEL DERECHO: PESTAÑAS
         # =====================================================================
-        right_frame = tk.Frame(main_paned, bg="#181926")
-        main_paned.add(right_frame, minsize=620)
+        self.right_frame = tk.Frame(self.main_paned, bg="#181926")
+        self.main_paned.add(self.right_frame, minsize=620)
 
-        self.notebook = ttk.Notebook(right_frame)
+        self.notebook = ttk.Notebook(self.right_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
         self._build_tab_wardrobe()
@@ -717,12 +846,14 @@ class OctoStudioApp:
                     self.current_direction = (self.current_direction % 8) + 1
                     self._update_dir_buttons()
 
-                self.update_avatar_preview()
+                if not self.is_left_panel_minimized:
+                    self.update_avatar_preview()
 
             elif self.current_action == "sit":
                 self.current_frame = (self.current_frame + 1) % 3
                 self.step_lbl.config(text=f"Paso {self.current_frame + 1}/3")
-                self.update_avatar_preview()
+                if not self.is_left_panel_minimized:
+                    self.update_avatar_preview()
 
         delay_ms = int(1000 / max(1, self.fps))
         self.anim_loop_id = self.root.after(delay_ms, self._start_animation_loop)
@@ -758,6 +889,84 @@ class OctoStudioApp:
             self.current_frame = (self.current_frame + 1) % 4
             self.step_lbl.config(text=f"Paso {self.current_frame + 1}/4")
         self.update_avatar_preview()
+
+    # =========================================================================
+    # MINIMIZACIÓN DEL PANEL DE PERSONAJE & MOVIMIENTO CON MOUSE (PAN)
+    # =========================================================================
+    def _toggle_minimize_left_panel(self):
+        if self.is_left_panel_minimized:
+            try:
+                self.main_paned.forget(self.minimized_left_bar)
+            except Exception:
+                pass
+            saved_w = self.left_panel_saved_width if self.left_panel_saved_width >= 350 else 440
+            self.main_paned.add(self.left_frame, before=self.right_frame, width=saved_w, minsize=380)
+            self.is_left_panel_minimized = False
+            self.root.update_idletasks()
+            self.update_avatar_preview()
+        else:
+            try:
+                cur_w = self.left_frame.winfo_width()
+                if cur_w > 100:
+                    self.left_panel_saved_width = cur_w
+            except Exception:
+                self.left_panel_saved_width = 440
+            self.main_paned.forget(self.left_frame)
+            self.main_paned.add(self.minimized_left_bar, before=self.right_frame, width=46, minsize=46)
+            self.is_left_panel_minimized = True
+
+    def _on_canvas_drag_start(self, event):
+        self.drag_start_x = event.x
+        self.drag_start_y = event.y
+        self.is_dragging_avatar = True
+        self.canvas.config(cursor="fleur")
+
+    def _on_canvas_drag_motion(self, event):
+        if not self.is_dragging_avatar:
+            return
+        dx = event.x - self.drag_start_x
+        dy = event.y - self.drag_start_y
+        self.avatar_pan_x += dx
+        self.avatar_pan_y += dy
+        self.drag_start_x = event.x
+        self.drag_start_y = event.y
+        self._sync_pan_label()
+        self.update_avatar_preview()
+
+    def _on_canvas_drag_stop(self, event):
+        self.is_dragging_avatar = False
+        self.canvas.config(cursor="fleur")
+
+    def _nudge_avatar_pan(self, dx, dy):
+        self.avatar_pan_x += dx
+        self.avatar_pan_y += dy
+        self._sync_pan_label()
+        self.update_avatar_preview()
+
+    def _reset_avatar_pan(self):
+        self.avatar_pan_x = 0
+        self.avatar_pan_y = 0
+        self._sync_pan_label()
+        self.update_avatar_preview()
+
+    def _sync_pan_label(self):
+        if hasattr(self, "pan_lbl"):
+            if self.avatar_pan_x == 0 and self.avatar_pan_y == 0:
+                self.pan_lbl.config(text="dx:0 dy:0", fg="#64748B")
+            else:
+                self.pan_lbl.config(text=f"dx:{self.avatar_pan_x} dy:{self.avatar_pan_y}", fg="#38BDF8")
+
+    def _on_canvas_mousewheel(self, event):
+        old_zoom = self.zoom_level
+        if event.delta > 0:
+            if self.zoom_level < 4:
+                self.zoom_level += 1
+        elif event.delta < 0:
+            if self.zoom_level > 1:
+                self.zoom_level -= 1
+        if self.zoom_level != old_zoom:
+            self.zoom_combo.current(self.zoom_level - 1)
+            self.update_avatar_preview()
 
     # =========================================================================
     # TAB: VERIFICADOR DE MUEBLES, BALDOSAS Y SUPERFICIES (new_added EXCLUSIVO)
@@ -1477,7 +1686,7 @@ class OctoStudioApp:
             cat_off = rot_data.get("sprite_offset", [-32, -32])
             fp = fmeta.get("footprint", "1x1")
             cw, ch = rot_data.get("canvas_size", [128, 176])
-            if fp == "0.5x0.5" and cat_off[0] == -32:
+            if fp == "0.5x0.5" and (cat_off in ([-32, -44], [-32, -32]) or cat_off[1] == -44):
                 base_off = [-cw // 4, 8 - (ch // 2)]
             else:
                 base_off = cat_off
@@ -1741,7 +1950,7 @@ class OctoStudioApp:
             cat_off = rot_data.get("sprite_offset", [-32, -32])
             fp = fmeta.get("footprint", "1x1")
             cw, ch = rot_data.get("canvas_size", [128, 176])
-            if fp == "0.5x0.5" and cat_off[0] == -32:
+            if fp == "0.5x0.5" and (cat_off in ([-32, -44], [-32, -32]) or cat_off[1] == -44):
                 curr_offset = [-cw // 4, 8 - (ch // 2)]
             else:
                 curr_offset = cat_off
@@ -1874,6 +2083,9 @@ class OctoStudioApp:
         messagebox.showinfo("Recarga Completa", msg)
 
     def update_avatar_preview(self):
+        if getattr(self, "is_left_panel_minimized", False):
+            return
+
         base_avatar = octo_engine.compose_octo_avatar(
             self.config, direction=self.current_direction, action=self.current_action, frame=self.current_frame
         )
@@ -1900,8 +2112,8 @@ class OctoStudioApp:
         for y in range(0, ch, 16):
             draw.line([(0, y), (cw, y)], fill=(20, 22, 34, 255))
 
-        pos_x = (cw - sw) // 2
-        pos_y = (ch - sh) // 2
+        pos_x = (cw - sw) // 2 + getattr(self, "avatar_pan_x", 0)
+        pos_y = (ch - sh) // 2 + getattr(self, "avatar_pan_y", 0)
         bg_img.paste(scaled_avatar, (pos_x, pos_y), scaled_avatar)
 
         self.tk_preview = ImageTk.PhotoImage(bg_img)

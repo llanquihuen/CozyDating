@@ -69,6 +69,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   Point<num>? _currentHoverGrid;
   bool _isValidDropLocation = true;
   Vector2? _dragStartWorldPos;
+  // Surface items are drawn raised on their table, so the finger touching the sprite sits well
+  // above the item's floor anchor. Dragging relative to this grab offset (instead of re-projecting
+  // the raw finger onto the floor) keeps the item from jumping off the table the moment it's grabbed.
+  Vector2? _surfaceGrabOffset;
+  // Where the surface item's footprint was drawn at drag start (bottom-center of its sprite),
+  // for the origin marker — captured before any hover state touches its spriteOffset.
+  Vector2? _originSurfaceMarker;
 
   // Drag-and-Drop state for interior walls
   IsometricInteriorWallComponent? _draggedInteriorWall;
@@ -1713,7 +1720,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       }
     } else {
       // All floor furniture snaps to 0.5 subgrid increments
-      final subPoint = IsometricCoords.screenToSubGrid(currentWorldPos.x, currentWorldPos.y);
+      final probe = (_draggedFurniture!.isSurfaceItem && _surfaceGrabOffset != null)
+          ? currentWorldPos - _surfaceGrabOffset!
+          : currentWorldPos;
+      final subPoint = IsometricCoords.screenToSubGrid(probe.x, probe.y);
       final maxSubX = ((gridSize - _draggedFurniture!.gridWidth) * 2).round();
       final maxSubY = ((gridSize - _draggedFurniture!.gridHeight) * 2).round();
       final clU = subPoint.x.clamp(0, maxSubX);
@@ -1825,6 +1835,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     // If surface item, update dynamic elevation, parent linkage and priority for magnetic preview
     if (_draggedFurniture!.isSurfaceItem) {
+      _draggedFurniture!.dragHoverGridX = clampedGrid.x.toDouble();
+      _draggedFurniture!.dragHoverGridY = clampedGrid.y.toDouble();
       final parent = _findSurfaceParentAt(clampedGrid.x, clampedGrid.y, exclude: _draggedFurniture);
       if (parent != null) {
         _draggedFurniture!.parentId = parent.id;
@@ -1915,6 +1927,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     hit.isBeingDragged = true;
     hit.isDirectlyDragged = true;
+
+    if (hit.isSurfaceItem) {
+      _surfaceGrabOffset = worldPos - hit.position;
+      _originSurfaceMarker = hit.position + hit.surfaceBaseAnchor;
+    } else {
+      _surfaceGrabOffset = null;
+      _originSurfaceMarker = null;
+    }
 
     // If dragging a surface-supporting furniture, find all attached surface children strictly on top of THIS table's tiles
     _attachedSurfaceItems.clear();
@@ -2320,9 +2340,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       }
 
       _draggedFurniture!.dragVisualOffset = Vector2.zero();
+      _draggedFurniture!.dragHoverGridX = null;
+      _draggedFurniture!.dragHoverGridY = null;
       _draggedFurniture!.isBeingDragged = false;
       _draggedFurniture!.isDirectlyDragged = false;
       _draggedFurniture = null;
+      _surfaceGrabOffset = null;
+      _originSurfaceMarker = null;
       _attachedSurfaceItems.clear();
       _originalGridPos = null;
       _originalParentId = null;
@@ -2361,8 +2385,12 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         parentSurfaceHeight: _originalSurfaceHeight,
       );
       _draggedFurniture!.dragVisualOffset = Vector2.zero();
+      _draggedFurniture!.dragHoverGridX = null;
+      _draggedFurniture!.dragHoverGridY = null;
       _draggedFurniture!.isBeingDragged = false;
       _draggedFurniture!.isDirectlyDragged = false;
+      _surfaceGrabOffset = null;
+      _originSurfaceMarker = null;
 
       for (final child in _attachedSurfaceItems) {
         child.dragVisualOffset = Vector2.zero();
@@ -2622,6 +2650,19 @@ class _DragHighlightLayer extends Component {
   }
 
   @override
+  void update(double dt) {
+    super.update(dt);
+    // A surface item's landing pad sits at the base of its own sprite, so at the fixed layer
+    // priority the item (and its table) would paint right over it. While one is dragged, draw
+    // just above it instead.
+    final dragged = game._draggedFurniture;
+    final target = (game.isDecorateMode && dragged != null && dragged.isSurfaceItem)
+        ? dragged.priority + 1
+        : 10000;
+    if (priority != target) priority = target;
+  }
+
+  @override
   void render(Canvas canvas) {
     super.render(canvas);
 
@@ -2634,39 +2675,9 @@ class _DragHighlightLayer extends Component {
         final origScreen = IsometricCoords.gridToScreen(orig.x.toDouble(), orig.y.toDouble());
 
         if (item.isSurfaceItem) {
-          final origH = game._originalSurfaceHeight > 0 ? game._originalSurfaceHeight : 14.0;
-          double pDx = 0.0;
-          double pDy = 0.0;
-          if (game._originalParentId != null) {
-            final origParent = game.world.children.whereType<IsometricFurnitureComponent>().where((f) => f.id == game._originalParentId).firstOrNull;
-            if (origParent != null) {
-              final pMeta = FurnitureCatalogService.getItem(origParent.typeName) ?? FurnitureCatalogService.getItem(origParent.id);
-              final pRot = pMeta?.rotations[origParent.rotation];
-              if (pRot != null && pRot.surfaceOffset.length >= 2) {
-                pDx = pRot.surfaceOffset[0].toDouble();
-                pDy = pRot.surfaceOffset[1].toDouble();
-              }
-            }
-          }
-
-          // Item micro-adjustments
-          double itemDx = 0.0;
-          double itemDy = 0.0;
-          final itemMeta = FurnitureCatalogService.getItem(item.typeName) ?? FurnitureCatalogService.getItem(item.id);
-          final itemRot = itemMeta?.rotations[item.rotation];
-          final offList = itemRot?.spriteOffset ?? itemMeta?.spriteOffset ?? const [-32, -48];
-          if (offList.length >= 2) {
-            itemDx = (offList[0] + 32.0);
-            itemDy = (offList[1] + 48.0);
-          }
-          if (itemRot != null && itemRot.surfaceHeight != 0) {
-            itemDy -= itemRot.surfaceHeight.toDouble();
-          } else if (itemMeta != null && itemMeta.surfaceHeight != 0) {
-            itemDy -= itemMeta.surfaceHeight.toDouble();
-          }
-
+          final marker = game._originSurfaceMarker ?? origScreen;
           final originRect = Rect.fromCenter(
-            center: Offset(origScreen.x + pDx + itemDx, origScreen.y - origH + pDy + itemDy),
+            center: Offset(marker.x, marker.y),
             width: 22,
             height: 12,
           );
@@ -2790,47 +2801,10 @@ class _DragHighlightLayer extends Component {
           final pos = IsometricCoords.gridToScreen(target.x.toDouble(), target.y.toDouble());
 
           if (isValid) {
-            // Magnetic landing pad firmly resting on the tabletop surface
-            final targetParent = game._findSurfaceParentAt(target.x, target.y, exclude: item);
-            double pDx = 0.0;
-            double pDy = 0.0;
-            double targetSurfaceH = item.parentSurfaceHeight > 0 ? item.parentSurfaceHeight : 18.0;
-
-            if (targetParent != null) {
-              final pMeta = FurnitureCatalogService.getItem(targetParent.typeName) ?? FurnitureCatalogService.getItem(targetParent.id);
-              final pRot = pMeta?.rotations[targetParent.rotation];
-              if (pRot != null) {
-                if (pRot.surfaceHeight > 0) targetSurfaceH = pRot.surfaceHeight.toDouble();
-                if (pRot.surfaceOffset.length >= 2) {
-                  pDx = pRot.surfaceOffset[0].toDouble();
-                  pDy = pRot.surfaceOffset[1].toDouble();
-                }
-              } else if (pMeta != null) {
-                if (pMeta.effectiveSurfaceHeight > 0) targetSurfaceH = pMeta.effectiveSurfaceHeight.toDouble();
-                if (pMeta.surfaceOffset.length >= 2) {
-                  pDx = pMeta.surfaceOffset[0].toDouble();
-                  pDy = pMeta.surfaceOffset[1].toDouble();
-                }
-              }
-            }
-
-            // Item micro-adjustments
-            double itemDx = 0.0;
-            double itemDy = 0.0;
-            final itemMeta = FurnitureCatalogService.getItem(item.typeName) ?? FurnitureCatalogService.getItem(item.id);
-            final itemRot = itemMeta?.rotations[item.rotation];
-            final offList = itemRot?.spriteOffset ?? itemMeta?.spriteOffset ?? const [-32, -48];
-            if (offList.length >= 2) {
-              itemDx = (offList[0] + 32.0);
-              itemDy = (offList[1] + 48.0);
-            }
-            if (itemRot != null && itemRot.surfaceHeight != 0) {
-              itemDy -= itemRot.surfaceHeight.toDouble();
-            } else if (itemMeta != null && itemMeta.surfaceHeight != 0) {
-              itemDy -= itemMeta.surfaceHeight.toDouble();
-            }
-
-            final landingCenter = Offset(pos.x + pDx + itemDx, pos.y - targetSurfaceH + pDy + itemDy);
+            // Magnetic landing pad under the item exactly where it is drawn (and will be dropped):
+            // its spriteOffset already resolves the destination surface spot for the hover cell.
+            final base = item.position + item.dragVisualOffset + item.surfaceBaseAnchor;
+            final landingCenter = Offset(base.x, base.y);
             final targetOval = Rect.fromCenter(
               center: landingCenter,
               width: 22,

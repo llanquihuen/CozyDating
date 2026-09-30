@@ -262,13 +262,13 @@ def scan_new_added_furniture():
             except Exception:
                 cw, ch = 64, 64
 
-            # Offset real: si existe en catálogo establecido, respetarlo 100%
+            # Offset real: si existe en catálogo establecido y no es placeholder genérico, respetarlo
             est_rot = est_item.get("rotations", {}).get(str(rot_idx), {}) if est_item else {}
             saved_off = est_rot.get("sprite_offset") or (est_item.get("sprite_offset") if est_item else None)
-            if saved_off:
+            if saved_off and list(saved_off) not in ([-32, -44], [-32, -32]):
                 final_off = list(saved_off)
             elif catalog[item_id]["footprint"] == "0.5x0.5":
-                final_off = [-32, 8 - (ch // 2)]
+                final_off = [-cw // 4, 8 - (ch // 2)]
             elif catalog[item_id]["footprint"] == "surface":
                 final_off = [-32, -48]
             else:
@@ -457,7 +457,7 @@ def render_furniture_scene(
                 # Posición del soporte idéntica a Flame
                 if sup_fp == "0.5x0.5":
                     sup_flame_x = -s_img.width / 4.0
-                    sup_flame_y = -s_img.height / 2.0
+                    sup_flame_y = 8.0 - (s_img.height / 2.0)
                 else:
                     sup_rot_off = sup_rot_data.get("sprite_offset", [-32, -48])
                     sup_flame_x = sup_rot_off[0]
@@ -493,15 +493,13 @@ def render_furniture_scene(
     r_h = ch / 2.0
 
     if footprint == "0.5x0.5":
-        if off_x != -32 and off_y != -44:
+        if (off_x, off_y) in ((-32, -44), (-32, -32)):
+            # Fórmula exacta de Flame para 0.5x0.5 (ground level a +8px Flame = +16px HD):
+            flame_off_x = -cw / 4.0
+            flame_off_y = 8.0 - (ch / 2.0)
+        else:
             flame_off_x = off_x
             flame_off_y = off_y
-        else:
-            # Fórmula exacta de Flame para 0.5x0.5:
-            # En Flame, position = subGridToScreen(0, 0) da (0, -8.0), y spriteOffset = Vector2(-r_w / 2.0, 8.0 - r_h).
-            # Total Flame: -8.0 + 8.0 - r_h = -r_h. Su base apoya en el centro de la baldosa (origin_y).
-            flame_off_x = -r_w / 2.0
-            flame_off_y = -r_h
         furn_x = int(origin_x + flame_off_x * 2)
         furn_y = int(origin_y + flame_off_y * 2)
     elif footprint == "surface":

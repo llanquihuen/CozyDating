@@ -33,6 +33,12 @@ class IsometricFurnitureComponent extends PositionComponent {
   bool isDirectlyDragged = false;
   Vector2 dragVisualOffset = Vector2.zero();
 
+  /// While a surface item is being dragged, the grid cell it is hovering over (gridX/gridY
+  /// still hold its original cell until drop). spriteOffset uses it to pick the destination
+  /// parent's surface spot, so the drag preview lands exactly where the drop will.
+  double? dragHoverGridX;
+  double? dragHoverGridY;
+
   double _portalAnimTimer = 0.0;
   double _dragFloatTimer = 0.0;
 
@@ -485,8 +491,8 @@ class IsometricFurnitureComponent extends PositionComponent {
                 ? parentRotMeta.surfaceSpots
                 : pMeta.surfaceSpots;
             if (availableSpots.isNotEmpty) {
-              final relU = ((gridX - parentComp.gridX) * 2.0).round();
-              final relV = ((gridY - parentComp.gridY) * 2.0).round();
+              final relU = (((dragHoverGridX ?? gridX) - parentComp.gridX) * 2.0).round();
+              final relV = (((dragHoverGridY ?? gridY) - parentComp.gridY) * 2.0).round();
               final matchingSpot = availableSpots.where((s) => s.subU == relU && s.subV == relV).firstOrNull;
               if (matchingSpot != null) {
                 parentSurfOffset = [matchingSpot.offsetX, matchingSpot.offsetY];
@@ -567,6 +573,15 @@ class IsometricFurnitureComponent extends PositionComponent {
       wallHeightLevel: wallHeightLevel,
       rotation: rotation,
     );
+  }
+
+  /// Local-space point where a surface item's base ring is drawn: horizontally centered on
+  /// the sprite, 78% down it (sprites carry transparent padding below the object's foot).
+  /// Shared by the selection ring and the drag origin/landing markers so they all line up.
+  Vector2 get surfaceBaseAnchor {
+    final off = spriteOffset;
+    final size = renderSize;
+    return Vector2(off.x + size.x / 2.0, off.y + size.y * 0.78);
   }
 
   Vector2 get renderSize {
@@ -847,12 +862,8 @@ class IsometricFurnitureComponent extends PositionComponent {
 
     if (isSurfaceItem) {
       // Draw compact, elegant glowing base ring beneath tabletop item
-      final off = spriteOffset;
-      final size = renderSize;
-      final cx = off.x + size.x / 2.0;
-      final cy = off.y + (size.y * 0.78);
-
-      final glowRect = Rect.fromCenter(center: Offset(cx, cy), width: 22, height: 12);
+      final base = surfaceBaseAnchor;
+      final glowRect = Rect.fromCenter(center: Offset(base.x, base.y), width: 22, height: 12);
       final fillGlow = Paint()
         ..color = const Color(0x35FFD54F)
         ..style = PaintingStyle.fill;
