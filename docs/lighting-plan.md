@@ -145,9 +145,11 @@ lista blanca).
      lámpara de noche; luz cálida alcance 2.5, halo a la altura de la pantalla.
    - Nombre del escritorio gamer traducido en el JSON ("Escritorio PC Gamer RGB"), y los
      nombres nuevos agregados a `NAME_TRANSLATIONS` del sincronizador.
-   - ⚠️ **No ejecutar `scripts/sync_furniture_assets.py` tal como está**: vacía
-     `established_furniture/` y lo reconstruye desde `new_added/`, y hoy **73 archivos**
-     (TV, cafetera, torre de gato, ventanas…) solo existen en `established_furniture/`.
+   - ✅ `scripts/sync_furniture_assets.py` corregido: ya no vacía `established_furniture/`
+     (antes habría borrado 74 sprites), fusiona el catálogo conservando `surface_spots` y otros
+     campos, trata `*_rotN_front|base|back` como capas y no como muebles, ignora `test_*`, y
+     tiene `--dry-run` / `--list-orphans`. Verificado sobre una copia: 0 archivos borrados o
+     cambiados, 45 entradas intactas, +3 (chimenea, lámpara de pie, lámpara de lava).
    - ✅ **Escritorio PC gamer** (`gaming_pc_desk`): luz RGB (`anim: rgb`, ciclo de tono lento
      a saturación completa, sin asignaciones), alcance 2 casillas. **Sigue al GIF**: se
      enciende exactamente mientras alguien (tú o tu visita) está sentado frente a él y la

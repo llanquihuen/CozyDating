@@ -30,10 +30,11 @@ When running on Android emulator the backend host resolves to `10.0.2.2` automat
 
 ### Asset Pipeline (from repo root)
 ```
-python scripts/sync_furniture_assets.py      # copy furniture PNGs from CreateSprites/ to frontend/assets/
+python scripts/sync_furniture_assets.py      # sync new_added/ -> established_furniture/ + catalog (non-destructive)
+python scripts/sync_furniture_assets.py --dry-run --list-orphans   # preview changes, list unused files
 python scripts/pack_avatar_spritesheets.py   # pack avatar layer PNGs into spritesheets
 ```
-Sprite sources live in `CreateSprites/`. Re-run sync after regenerating sprites. After syncing new furniture, update asset declarations in `frontend/pubspec.yaml`.
+Sprite sources live in `CreateSprites/`. Re-run sync after regenerating sprites. The sync never deletes from `established_furniture/` (several items — TV, espresso machine, windows — exist only there and are listed in the code fallback catalog in `furniture_catalog_service.dart`), merges `furniture_catalog.json` keeping hand-tuned fields such as `surface_spots`, and treats `*_rotN_front|base|back.png` as chair layers. After syncing new furniture, update asset declarations in `frontend/pubspec.yaml`.
 
 ## Architecture
 

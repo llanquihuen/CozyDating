@@ -6,12 +6,26 @@ FUNCIONAMIENTO:
 2. Copia y centraliza todos los PNGs en una carpeta plana: 'frontend/assets/images/furniture/established_furniture/'.
 3. Actualiza 'furniture_catalog.json' con rutas directas a 'furniture/established_furniture/...'.
 De esta forma Flutter Web encuentra siempre todos los muebles en un solo lugar sin errores 404 ni confusión de rutas.
+
+ES NO DESTRUCTIVO:
+- Nunca borra nada de 'established_furniture/': varios muebles (TV, cafetera, ventanas...) existen
+  solo ahí y los referencia el catálogo escrito en código (furniture_catalog_service.dart).
+- Solo copia lo que viene de 'new_added/', y omite los archivos que ya son idénticos.
+- El catálogo JSON se FUSIONA: se conservan todas las entradas existentes; solo se agregan o
+  actualizan las de los muebles encontrados en 'new_added/'.
+
+USO:
+  python scripts/sync_furniture_assets.py                 # sincroniza
+  python scripts/sync_furniture_assets.py --dry-run       # muestra qué haría, sin escribir nada
+  python scripts/sync_furniture_assets.py --list-orphans  # además lista archivos que nadie usa (solo informa)
 """
 
 import os
 import re
 import json
 import shutil
+import filecmp
+import argparse
 from PIL import Image
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -140,19 +154,47 @@ def get_sprite_offset(footprint, is_tall=False, item_id=""):
         return [-32, -73]
     return [-32, -48]
 
-def sync_new_furniture():
-    print("=== Sincronizador de Muebles -> established_furniture ===")
+# Capas de sillas/sofás: '<id>_rot<N>_front|base|back.png'. Son partes de un mueble (el juego
+# las carga como '<id>_rot<N>_<capa>.png'), no muebles separados.
+LAYER_RE = re.compile(r"^(.*)_rot([0-3])_(front|base|back)$")
+# Sprites de prueba en new_added/ que no deben llegar al catálogo.
+IGNORED_PREFIXES = ("test_",)
+
+CODE_CATALOG_PATH = os.path.join(BASE_DIR, "frontend", "lib", "core", "services", "furniture_catalog_service.dart")
+
+
+def sync_new_furniture(furniture_base=FURNITURE_BASE, dry_run=False, list_orphans=False):
+    """Sincroniza new_added/ -> established_furniture/ + catálogo. Devuelve un resumen (dict)."""
+    NEW_ADDED_DIR = os.path.join(furniture_base, "new_added")
+    ESTABLISHED_DIR = os.path.join(furniture_base, "established_furniture")
+    CATALOG_PATH = os.path.join(furniture_base, "furniture_catalog.json")
+
+    mode = " (SIMULACIÓN: no se escribe nada)" if dry_run else ""
+    print(f"=== Sincronizador de Muebles -> established_furniture{mode} ===")
     if not os.path.exists(NEW_ADDED_DIR):
         print(f"Directorio origen no encontrado: {NEW_ADDED_DIR}")
-        return
+        return None
 
-    # Limpiar ESTABLISHED_DIR para eliminar PNGs de items borrados
-    if os.path.exists(ESTABLISHED_DIR):
-        for f in os.listdir(ESTABLISHED_DIR):
-            f_path = os.path.join(ESTABLISHED_DIR, f)
-            if os.path.isfile(f_path):
-                os.remove(f_path)
-    os.makedirs(ESTABLISHED_DIR, exist_ok=True)
+    # Nunca se borra nada de ESTABLISHED_DIR (ver docstring del módulo).
+    if not dry_run:
+        os.makedirs(ESTABLISHED_DIR, exist_ok=True)
+
+    produced = set()
+    stats = {"new": [], "updated": [], "unchanged": 0}
+
+    def copy_asset(src, dst):
+        """Copia src -> dst solo si cambia algo; lleva la cuenta de lo producido."""
+        name = os.path.basename(dst)
+        produced.add(name)
+        if os.path.exists(dst):
+            if filecmp.cmp(src, dst, shallow=False):
+                stats["unchanged"] += 1
+                return
+            stats["updated"].append(name)
+        else:
+            stats["new"].append(name)
+        if not dry_run:
+            shutil.copy2(src, dst)
 
     # Cargar catálogo existente para preservar ediciones personalizadas (surface_height, sprite_offset, etc.)
     existing_catalog = {}
@@ -164,8 +206,11 @@ def sync_new_furniture():
         except Exception as e:
             print(f"Aviso: No se pudo cargar catálogo existente ({e}), se generará uno nuevo.")
 
-    catalog = {}
+    # Se parte del catálogo existente: las entradas que no vienen de new_added/ se conservan.
+    catalog = dict(existing_catalog)
     discovered_items = {}
+    layers_by_item = {}  # item_id -> {(rot, 'front'|'base'|'back'): path}
+    ignored = set()
 
     # 1. Escaneo SOLO LECTURA de new_added
     for root, dirs, files in os.walk(NEW_ADDED_DIR):
@@ -196,10 +241,23 @@ def sync_new_furniture():
 
             full_path = os.path.join(root, file)
             stem = os.path.splitext(file)[0]
+
+            layer = LAYER_RE.match(stem.replace("-", "_").lower())
+            if layer:
+                layer_id = clean_id(layer.group(1), is_wall=is_wall)
+                if footprint == "0.5x0.5" and not layer_id.endswith("_sm"):
+                    layer_id = f"{layer_id}_sm"
+                layers_by_item.setdefault(layer_id, {})[(int(layer.group(2)), layer.group(3))] = full_path
+                continue
+
             item_id = clean_id(stem, is_wall=is_wall)
 
             if footprint == "0.5x0.5" and not item_id.endswith("_sm"):
                 item_id = f"{item_id}_sm"
+
+            if item_id.startswith(IGNORED_PREFIXES):
+                ignored.add(item_id)
+                continue
 
             if item_id not in discovered_items:
                 discovered_items[item_id] = {
@@ -237,6 +295,10 @@ def sync_new_furniture():
                     discovered_items[item_id]["base_file"] = full_path
 
     print(f"Escaneados {len(discovered_items)} muebles en 'new_added/'.")
+    if ignored:
+        print(f"Ignorados (sprites de prueba): {', '.join(sorted(ignored))}")
+    for layer_id in sorted(set(layers_by_item) - set(discovered_items)):
+        print(f"Aviso: capas sin mueble principal para '{layer_id}' (no se copian).")
 
     # 2. Copia centralizada a 'established_furniture' y generación del catálogo JSON
     for item_id, data in discovered_items.items():
@@ -262,7 +324,7 @@ def sync_new_furniture():
 
         # Copiar base file
         base_target_name = f"{item_id}.png"
-        shutil.copy2(base_fp, os.path.join(ESTABLISHED_DIR, base_target_name))
+        copy_asset(base_fp, os.path.join(ESTABLISHED_DIR, base_target_name))
 
         # Preservar propiedades personalizadas del padre si existen
         old_item = existing_catalog.get(item_id, {})
@@ -295,7 +357,7 @@ def sync_new_furniture():
                 w_fp = f"wall_{variant}"
                 w_src = data["wall_variants"].get(variant, base_fp)
                 w_target_file = f"{item_id}_{variant}.png"
-                shutil.copy2(w_src, os.path.join(ESTABLISHED_DIR, w_target_file))
+                copy_asset(w_src, os.path.join(ESTABLISHED_DIR, w_target_file))
 
                 old_rot = old_rotations.get(str(rot_idx), {})
                 rot_name = old_rot.get("name", f"{final_name} ({'Norte' if variant == 'n' else 'Oeste'})")
@@ -331,11 +393,11 @@ def sync_new_furniture():
                 if r in data["rotations"]:
                     r_src = data["rotations"][r]
                     rot_target_file = f"{item_id}_rot{r}.png"
-                    shutil.copy2(r_src, os.path.join(ESTABLISHED_DIR, rot_target_file))
+                    copy_asset(r_src, os.path.join(ESTABLISHED_DIR, rot_target_file))
                 else:
                     # Copia archivo base como rotación si no se dibujó rot específica
                     rot_target_file = f"{item_id}_rot{r}.png"
-                    shutil.copy2(base_fp, os.path.join(ESTABLISHED_DIR, rot_target_file))
+                    copy_asset(base_fp, os.path.join(ESTABLISHED_DIR, rot_target_file))
 
                 old_rot = old_rotations.get(str(r), {})
                 rot_name = old_rot.get("name", f"{final_name} Rot {r}")
@@ -359,26 +421,113 @@ def sync_new_furniture():
                     "asset_path": f"furniture/established_furniture/{rot_target_file}"
                 }
 
-                # Copy layer split files (_base, _back) if present
-                base_dir = os.path.dirname(data.get("base_file", ""))
-                base_stem = clean_id(os.path.splitext(os.path.basename(data.get("base_file", "")))[0])
-                for suffix in ["_base", "_back"]:
-                    for cand_name in [f"{base_stem}_rot{r}{suffix}.png", f"{item_id}_rot{r}{suffix}.png"]:
-                        cand_path = os.path.join(base_dir, cand_name)
-                        if os.path.exists(cand_path):
-                            shutil.copy2(cand_path, os.path.join(ESTABLISHED_DIR, f"{item_id}_rot{r}{suffix}.png"))
-                            break
+                # Capas (base / back / front) con el nombre que carga el juego.
+                for layer_name in ("base", "back", "front"):
+                    layer_src = layers_by_item.get(item_id, {}).get((r, layer_name))
+                    if layer_src:
+                        copy_asset(layer_src, os.path.join(ESTABLISHED_DIR, f"{item_id}_rot{r}_{layer_name}.png"))
 
-        catalog[item_id] = item_entry
+        # Conservar los campos que este script no calcula (surface_spots afinados a mano en el
+        # inspector, bloque 'light', etc.): lo existente es la base y encima van los valores
+        # calculados, que ya respetan las personalizaciones de los campos conocidos.
+        merged_rotations = {}
+        for rot_key, rot_entry in item_entry["rotations"].items():
+            merged_rotations[rot_key] = {**old_rotations.get(rot_key, {}), **rot_entry}
+        catalog[item_id] = {**old_item, **item_entry, "rotations": merged_rotations}
 
-    # 3. Guardar el catálogo JSON
+    # 3. Guardar el catálogo JSON (solo si cambió)
+    added_items = sorted(k for k in discovered_items if k not in existing_catalog)
+    changed_items = sorted(k for k in discovered_items if k in existing_catalog and existing_catalog[k] != catalog[k])
+    preserved = len(existing_catalog) - len([k for k in discovered_items if k in existing_catalog])
+    catalog_changed = catalog != existing_catalog
+
+    print(f"PNG nuevos: {len(stats['new'])} | actualizados: {len(stats['updated'])} | idénticos (omitidos): {stats['unchanged']}")
+    for name in stats["new"]:
+        print(f"  + {name}")
+    for name in stats["updated"]:
+        print(f"  ~ {name}")
+    print(f"Catálogo: {len(added_items)} muebles nuevos, {len(changed_items)} actualizados, "
+          f"{preserved} conservados sin tocar (no están en new_added/).")
+    for k in added_items:
+        print(f"  + {k}")
+    for k in changed_items:
+        print(f"  ~ {k}")
+
+    if catalog_changed and not dry_run:
+        try:
+            with open(CATALOG_PATH, "w", encoding="utf-8") as f:
+                json.dump(catalog, f, indent=2, ensure_ascii=False)
+            print(f"[OK] Catálogo guardado con {len(catalog)} muebles.")
+        except Exception as e:
+            print(f"Error al guardar {CATALOG_PATH}: {e}")
+    elif not catalog_changed:
+        print("[OK] Catálogo sin cambios.")
+
+    orphans = find_orphans(ESTABLISHED_DIR, produced, catalog) if list_orphans else []
+    if list_orphans:
+        if orphans:
+            print(f"Archivos en established_furniture/ que no vienen de new_added/ ni usa ningún catálogo "
+                  f"({len(orphans)}). NO se borran; revísalos a mano:")
+            for name in orphans:
+                print(f"  ? {name}")
+        else:
+            print("Sin archivos huérfanos.")
+
+    return {
+        "new_files": stats["new"],
+        "updated_files": stats["updated"],
+        "unchanged_files": stats["unchanged"],
+        "added_items": added_items,
+        "changed_items": changed_items,
+        "catalog_changed": catalog_changed,
+        "orphans": orphans,
+    }
+
+
+def _code_catalog_ids():
+    """Ids del catálogo de respaldo escrito en Dart (muebles que no están en el JSON)."""
     try:
-        with open(CATALOG_PATH, "w", encoding="utf-8") as f:
-            json.dump(catalog, f, indent=2, ensure_ascii=False)
-        print(f"[OK] Catálogo actualizado con {len(catalog)} muebles.")
-        print(f"[OK] Todos los assets consolidados en: {ESTABLISHED_DIR}")
-    except Exception as e:
-        print(f"Error al guardar {CATALOG_PATH}: {e}")
+        with open(CODE_CATALOG_PATH, encoding="utf-8") as f:
+            return set(re.findall(r"FurnitureCatalogItem\(id: '([^']+)'", f.read()))
+    except OSError:
+        return set()
+
+
+def find_orphans(established_dir, produced, catalog):
+    """Archivos que ni produce new_added/ ni referencia el catálogo JSON ni el de código.
+    Solo informativo: puede haber falsos positivos (p. ej. capas cargadas por convención)."""
+    if not os.path.isdir(established_dir):
+        return []
+    referenced = set()
+    for entry in catalog.values():
+        for rot in (entry.get("rotations") or {}).values():
+            path = rot.get("asset_path", "")
+            if path:
+                referenced.add(os.path.basename(path))
+    code_ids = _code_catalog_ids() | set(catalog.keys())
+    orphans = []
+    for name in sorted(os.listdir(established_dir)):
+        if name in produced or name in referenced:
+            continue
+        stem = os.path.splitext(name)[0]
+        base = re.sub(r"(_rot\d)?(_base|_back|_front)?$", "", stem)
+        base = re.sub(r"_(n|w)$", "", base)
+        if base in code_ids or f"{base}_sm" in code_ids:
+            continue
+        orphans.append(name)
+    return orphans
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Sincroniza new_added/ -> established_furniture/ sin borrar nada.")
+    parser.add_argument("--dry-run", action="store_true", help="Muestra qué haría, sin escribir nada.")
+    parser.add_argument("--list-orphans", action="store_true",
+                        help="Lista archivos de established_furniture/ que nadie usa (solo informa, no borra).")
+    parser.add_argument("--furniture-dir", default=FURNITURE_BASE,
+                        help="Carpeta 'furniture' a sincronizar (por defecto la del frontend).")
+    args = parser.parse_args(argv)
+    sync_new_furniture(args.furniture_dir, dry_run=args.dry_run, list_orphans=args.list_orphans)
+
 
 if __name__ == "__main__":
-    sync_new_furniture()
+    main()
