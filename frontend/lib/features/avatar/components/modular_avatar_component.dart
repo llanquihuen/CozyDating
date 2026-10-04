@@ -24,6 +24,46 @@ enum AvatarDirection {
   int get dirNumber => index + 1;
 }
 
+/// Everything the renderer needs to draw the avatar lying on a bed. Coordinates are in
+/// bed-sprite pixels with (0,0) at the bed sprite's top-left, which is where the parent
+/// places this component while lying.
+class LyingPose {
+  /// 'A' (head at the back) or 'B' (head at the front): picks the lying sprite set.
+  final String view;
+
+  /// Draw the lying layers horizontally flipped across the bed sprite (rotations 1/3).
+  final bool mirror;
+
+  /// Under the blanket: sleeping (closed) eyes and the "under" masks.
+  final bool under;
+
+  /// Top-left of the 160x128 lying canvas, in unmirrored bed-sprite pixels.
+  final Offset canvasOrigin;
+
+  /// Bed sprite width in pixels (mirror axis).
+  final double bedWidth;
+
+  /// World units per bed-sprite pixel.
+  final double scale;
+
+  /// Under the covers: a point on the blanket's folded edge (unmirrored bed pixels, the edge runs
+  /// along (2, 1)) and which side of it is covered. The body is not drawn on the covered side;
+  /// the bed's blanket overlay sprite is drawn over that area instead.
+  final Offset? blanketEdge;
+  final bool coveredBelow;
+
+  const LyingPose({
+    required this.view,
+    required this.mirror,
+    required this.under,
+    required this.canvasOrigin,
+    required this.bedWidth,
+    required this.scale,
+    this.blanketEdge,
+    this.coveredBelow = true,
+  });
+}
+
 class ModularAvatarComponent extends PositionComponent {
   AvatarConfig config;
   AvatarDirection direction;
@@ -64,8 +104,19 @@ class ModularAvatarComponent extends PositionComponent {
 
   void standUp() {
     isSitting = false;
+    lyingPose = null;
     _sittingFrame = 0;
     _sitAnimTimer = 0.0;
+  }
+
+  /// Non-null while lying on a bed (see [LyingPose]).
+  LyingPose? lyingPose;
+  bool get isLying => lyingPose != null;
+
+  void lieDown(LyingPose pose) {
+    isSitting = false;
+    isMoving = false;
+    lyingPose = pose;
   }
 
   @override
@@ -345,7 +396,63 @@ class ModularAvatarComponent extends PositionComponent {
       }
     }
 
+    _addLyingLoads(futures, bodyType: bodyType, hair: hair, top: top, bottom: bottom, eye: eye, mouth: mouth, nose: nose);
+
     await Future.wait(futures);
+  }
+
+  /// Lying layers live in OCTOPLAYER/Avatar/lying/ (160x128 canvas, views A/B). Only some
+  /// styles have lying art yet, so each layer falls back to a default style that does.
+  void _addLyingLoads(
+    List<Future<void>> futures, {
+    required String bodyType,
+    required String hair,
+    required String top,
+    required String bottom,
+    required String eye,
+    required String mouth,
+    required String nose,
+  }) {
+    Future<void> withFallback(String layerKey, String path, String fallbackPath, String key) {
+      return _loadOctoFrame(layerKey, path, key).then((_) {
+        if (!_octoImageCache.containsKey('$layerKey:$key')) {
+          return _loadOctoFrame(layerKey, fallbackPath, key);
+        }
+      });
+    }
+
+    for (final v in const ['A', 'B']) {
+      final key = 'lie$v';
+      futures.add(_loadOctoFrame('body', 'lying/body/${bodyType}_lie$v.png', key));
+      futures.add(withFallback('nose', 'lying/nose/${nose}_lie$v.png', 'lying/nose/standard_lie$v.png', key));
+      futures.add(withFallback('mouth', 'lying/mouth/${mouth}_lie$v.png', 'lying/mouth/catmouth_lie$v.png', key));
+      futures.add(_loadOctoEyesFrame('lying/eyes/${eye}_lie$v.png', key).then((_) {
+        if (!_octoImageCache.containsKey('eyes:$key')) {
+          return _loadOctoEyesFrame('lying/eyes/cateyes_lie$v.png', key);
+        }
+      }));
+      // Asleep under the covers the eyes are always closed, whatever the chosen style.
+      futures.add(_loadOctoEyesFrame('lying/eyes/closedeyes_lie$v.png', '${key}_closed'));
+      // Clothes are fitted per body type (e.g. jacket_female_lieA); then the style's generic
+      // lying version, then the default garment.
+      Future<void> garment(String layerKey, String folder, String style, String fallbackStyle) {
+        return _loadOctoFrame(layerKey, 'lying/$folder/${style}_${bodyType}_lie$v.png', key).then((_) {
+          if (!_octoImageCache.containsKey('$layerKey:$key')) {
+            return withFallback(layerKey, 'lying/$folder/${style}_lie$v.png', 'lying/$folder/${fallbackStyle}_lie$v.png', key);
+          }
+        });
+      }
+
+      if (config.topStyle != 'none') {
+        futures.add(garment('tops', 'tops', top, 'jacket'));
+      }
+      if (config.bottomStyle != 'none') {
+        futures.add(garment('bottoms', 'bottoms', bottom, 'jeans'));
+      }
+      if (config.hairStyle != 'none') {
+        futures.add(_loadOctoFrame('hair_front', 'lying/hair/$hair/${hair}_lie$v.png', key));
+      }
+    }
   }
 
   String _dirToCardinal(int d) {
@@ -452,9 +559,68 @@ class ModularAvatarComponent extends PositionComponent {
     }
   }
 
+  void _renderLying(Canvas canvas, LyingPose pose) {
+    final key = 'lie${pose.view}';
+    canvas.save();
+    canvas.scale(pose.scale);
+
+    void drawLayers(void Function(void Function(String layerKey, String cacheKey, Color? tint) draw) body,
+        {bool clipToBlanket = false}) {
+      canvas.save();
+      if (pose.mirror) {
+        canvas.translate(pose.bedWidth, 0);
+        canvas.scale(-1, 1);
+      }
+      final edge = pose.blanketEdge;
+      if (clipToBlanket && pose.under && edge != null) {
+        // Keep only the head side of the blanket edge (in unmirrored bed pixels).
+        const along = Offset(2, 1);
+        final toHead = pose.coveredBelow ? const Offset(1, -2) : const Offset(-1, 2);
+        canvas.clipPath(Path()
+          ..moveTo(edge.dx - along.dx * 200, edge.dy - along.dy * 200)
+          ..lineTo(edge.dx + along.dx * 200, edge.dy + along.dy * 200)
+          ..lineTo(edge.dx + along.dx * 200 + toHead.dx * 200, edge.dy + along.dy * 200 + toHead.dy * 200)
+          ..lineTo(edge.dx - along.dx * 200 + toHead.dx * 200, edge.dy - along.dy * 200 + toHead.dy * 200)
+          ..close());
+      }
+      body((layerKey, cacheKey, tint) {
+        final img = _octoImageCache['$layerKey:$cacheKey'];
+        if (img == null) return;
+        final paint = Paint()..filterQuality = FilterQuality.none;
+        if (tint != null) paint.colorFilter = ColorFilter.mode(tint, BlendMode.modulate);
+        canvas.drawImage(img, pose.canvasOrigin, paint);
+      });
+      canvas.restore();
+    }
+
+    // Whatever stands in front of the sleeper (blanket, head/footboard) is the bed's own overlay
+    // sprites drawn above this component (BedFrontOverlayComponent), like a chair's backrest.
+    drawLayers((draw) {
+      draw('body', key, config.skinColor);
+      draw('nose', key, config.skinColor);
+      draw('mouth', key, null);
+      draw('eyes', pose.under ? '${key}_closed' : key, null);
+      if (config.bottomStyle != 'none') draw('bottoms', key, config.bottomColor);
+      if (config.topStyle != 'none') draw('tops', key, config.topColor);
+    }, clipToBlanket: true);
+
+    // The hairstyle is never cropped.
+    if (config.hairStyle != 'none') {
+      drawLayers((draw) => draw('hair_front', key, config.hairColor));
+    }
+
+    canvas.restore();
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+
+    final lying = lyingPose;
+    if (lying != null) {
+      _renderLying(canvas, lying);
+      return;
+    }
 
     final int dirNum = direction.dirNumber;
     int sitDirNum = dirNum;

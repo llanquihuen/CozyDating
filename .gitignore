@@ -1,5 +1,6 @@
 # Secrets & API Keys
 **/gemini_config.json
+**/pixellab_config.json
 *.env
 *.env.*
 *.key

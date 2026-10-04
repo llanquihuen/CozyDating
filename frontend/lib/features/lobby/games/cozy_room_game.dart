@@ -15,6 +15,7 @@ import '../../../core/services/furniture_catalog_service.dart';
 import '../components/isometric_avatar_component.dart';
 import '../components/isometric_furniture_component.dart';
 import '../components/isometric_interior_wall_component.dart';
+import '../data/bed_sleep_config.dart';
 import '../data/chair_seat_config.dart';
 import '../lighting/room_lighting_renderer.dart';
 import '../lighting/room_lighting_system.dart';
@@ -55,6 +56,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   final void Function(Point<int> dest)? onLocalAvatarMove;
   final void Function(IsometricFurnitureComponent chair, SeatSpot spot)? onLocalAvatarSit;
   final void Function(Point<int> standPos)? onLocalAvatarStand;
+  /// Local avatar lay down on a bed (on top, or [under] the covers).
+  final void Function(IsometricFurnitureComponent bed, bool under)? onLocalAvatarLie;
 
   IsometricAvatarComponent? avatar;
   IsometricAvatarComponent? partnerAvatar;
@@ -93,6 +96,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   // Pending chair target for avatar to sit on after walking
   IsometricFurnitureComponent? _pendingSitChair;
   SeatSpot? _pendingSitSpot;
+  IsometricFurnitureComponent? _pendingLieBed;
 
   // A wall must be held (touched without much movement) for this long before it's
   // selected and armed for dragging — see onDragStart/onDragUpdate.
@@ -165,6 +169,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     this.onLocalAvatarMove,
     this.onLocalAvatarSit,
     this.onLocalAvatarStand,
+    this.onLocalAvatarLie,
   });
 
   @override
@@ -285,7 +290,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
   void movePartnerAvatar(Point<int> dest) {
     if (partnerAvatar == null) return;
-    if (partnerAvatar!.isSitting) {
+    if (partnerAvatar!.isSitting || partnerAvatar!.isLying) {
       partnerAvatar!.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
       _updateFurnitureActivationStates();
     }
@@ -317,9 +322,19 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
   }
 
+  void lieDownPartnerAvatar(String bedId, {bool under = false}) {
+    if (partnerAvatar == null) return;
+    final bed = world.children
+        .whereType<IsometricFurnitureComponent>()
+        .firstWhereOrNull((b) => b.id == bedId);
+    if (bed != null) {
+      partnerAvatar!.lieOnBed(bed, under: under);
+    }
+  }
+
   void standUpPartnerAvatar({Point<int>? standPos}) {
     if (partnerAvatar == null) return;
-    if (partnerAvatar!.isSitting) {
+    if (partnerAvatar!.isSitting || partnerAvatar!.isLying) {
       partnerAvatar!.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
     }
     if (standPos != null) {
@@ -354,6 +369,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   void setDecorateMode(bool enabled) {
     isDecorateMode = enabled;
     _pendingSitChair = null;
+    _pendingLieBed = null;
     _endCeilingDrag();
     selectCeilingLight(null);
     if (enabled) {
@@ -1412,8 +1428,89 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   bool checkIsValidWallLocationForTesting(IsometricInteriorWallComponent wall, Point<int> target, {String? orientation}) =>
       _checkIsValidWallLocation(wall, target, orientation: orientation);
 
+  IsometricFurnitureComponent? _hitTestBed(Vector2 worldPos) {
+    final beds = world.children
+        .whereType<IsometricFurnitureComponent>()
+        .where((f) => BedSleepConfig.supports(f.id, f.typeName))
+        .toList()
+      ..sort((a, b) => b.priority.compareTo(a.priority));
+    for (final bed in beds) {
+      if (bed.hitTestWorld(worldPos)) return bed;
+    }
+    return null;
+  }
+
+  void _handleBedTap(IsometricFurnitureComponent bed) {
+    final me = avatar!;
+    _pendingSitChair = null;
+    _pendingSitSpot = null;
+    _pendingLieBed = null;
+
+    if (me.isLying && me.lyingBed == bed) {
+      if (!me.lyingUnder) {
+        me.lieOnBed(bed, under: true);
+        onLocalAvatarLie?.call(bed, true);
+      } else {
+        me.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
+        onLocalAvatarStand?.call(Point(me.gridX.round(), me.gridY.round()));
+      }
+      return;
+    }
+
+    // Single beds hold one sleeper.
+    if (partnerAvatar != null && partnerAvatar!.isLying && partnerAvatar!.lyingBed == bed) return;
+
+    if (me.isSitting || me.isLying) {
+      me.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
+      onLocalAvatarStand?.call(Point(me.gridX.round(), me.gridY.round()));
+    }
+
+    final footprint = bed.occupiedSubCells.toSet();
+    final start = Point(me.gridX.round(), me.gridY.round());
+    if (footprint.any((c) => (c.x - start.x).abs() <= 1 && (c.y - start.y).abs() <= 1)) {
+      me.lieOnBed(bed);
+      onLocalAvatarLie?.call(bed, false);
+      return;
+    }
+
+    // Walk to the closest reachable free cell beside the bed, then lie down on arrival.
+    final candidates = <Point<int>>{};
+    for (final c in footprint) {
+      for (final n in [Point(c.x + 1, c.y), Point(c.x - 1, c.y), Point(c.x, c.y + 1), Point(c.x, c.y - 1)]) {
+        if (n.x < 0 || n.y < 0 || n.x >= IsometricPathfinder.subGridSize || n.y >= IsometricPathfinder.subGridSize) continue;
+        if (footprint.contains(n) || obstacles.contains(n)) continue;
+        candidates.add(n);
+      }
+    }
+    final ordered = candidates.toList()
+      ..sort((a, b) => start.squaredDistanceTo(a).compareTo(start.squaredDistanceTo(b)));
+    for (final goal in ordered) {
+      final path = IsometricPathfinder.findPath(
+        start: start,
+        goal: goal,
+        obstacles: obstacles,
+        blockedEdges: blockedEdges,
+        mapSize: IsometricPathfinder.subGridSize,
+      );
+      if (path.isEmpty) continue;
+      _pendingLieBed = bed;
+      world.add(_TapWaveComponent(grid: goal, isSubGrid: true));
+      me.setPath(path, goal);
+      onLocalAvatarMove?.call(goal);
+      return;
+    }
+  }
+
   void _handleDestinationReached(Point<int> dest) {
     if (isDecorateMode) return;
+
+    if (_pendingLieBed != null && avatar != null) {
+      final bed = _pendingLieBed!;
+      _pendingLieBed = null;
+      avatar!.lieOnBed(bed);
+      onLocalAvatarLie?.call(bed, false);
+      return;
+    }
 
     if (_pendingSitChair != null && avatar != null) {
       final chair = _pendingSitChair!;
@@ -3063,6 +3160,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       return;
     }
 
+    // Tapping a bed: 1st tap lies on top, 2nd gets under the covers, 3rd gets up.
+    final hitBed = _hitTestBed(worldPos);
+    if (hitBed != null && avatar != null) {
+      _handleBedTap(hitBed);
+      return;
+    }
+
     // Check if user tapped directly on a chair
     final allChairs = world.children.whereType<IsometricFurnitureComponent>().where((f) => f.isChair).toList();
     allChairs.sort((a, b) => b.priority.compareTo(a.priority));
@@ -3100,8 +3204,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         return;
       }
 
-      // If already sitting on another chair or another spot on this chair, stand up first into adjacent free space
-      if (avatar!.isSitting) {
+      // If already sitting on another chair or another spot on this chair (or lying on a bed), stand up first into adjacent free space
+      _pendingLieBed = null;
+      if (avatar!.isSitting || avatar!.isLying) {
         avatar!.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
         final standPos = Point(avatar!.gridX.round(), avatar!.gridY.round());
         onLocalAvatarStand?.call(standPos);
@@ -3157,6 +3262,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     _pendingSitChair = null;
     _pendingSitSpot = null;
+    _pendingLieBed = null;
     final subGridPos = IsometricCoords.screenToSubGrid(worldPos.x, worldPos.y);
     const subLimit = gridSize * 2;
 
@@ -3164,7 +3270,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       world.add(_TapWaveComponent(grid: subGridPos, isSubGrid: true));
 
       if (avatar != null) {
-        if (avatar!.isSitting) {
+        if (avatar!.isSitting || avatar!.isLying) {
           avatar!.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
           final standPos = Point(avatar!.gridX.round(), avatar!.gridY.round());
           onLocalAvatarStand?.call(standPos);

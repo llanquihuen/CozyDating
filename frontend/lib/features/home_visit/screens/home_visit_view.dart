@@ -94,6 +94,13 @@ class _HomeVisitViewState extends State<HomeVisitView> {
               slotIndex: spot.slotIndex,
             ));
       },
+      onLocalAvatarLie: (bed, under) {
+        context.read<GameBloc>().add(SendHomeAvatarSitEvent(
+              chairId: bed.id,
+              slotIndex: 0,
+              pose: under ? 'lie_under' : 'lie_top',
+            ));
+      },
       // Either player tapping a lamp / TV / fireplace.
       onLightingChanged: _onLocalLightingChanged,
     );
@@ -301,10 +308,15 @@ class _HomeVisitViewState extends State<HomeVisitView> {
             state.partnerHomeSitTrigger != null &&
             state.partnerHomeSitTrigger != _lastHandledSitTrigger) {
           _lastHandledSitTrigger = state.partnerHomeSitTrigger;
-          _game.sitPartnerAvatar(
-            state.partnerHomeChairId!,
-            state.partnerHomeSlotIndex ?? 0,
-          );
+          final pose = state.partnerHomePose ?? 'sit';
+          if (pose.startsWith('lie')) {
+            _game.lieDownPartnerAvatar(state.partnerHomeChairId!, under: pose == 'lie_under');
+          } else {
+            _game.sitPartnerAvatar(
+              state.partnerHomeChairId!,
+              state.partnerHomeSlotIndex ?? 0,
+            );
+          }
         }
 
         // Partner sent an emote

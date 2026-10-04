@@ -1,9 +1,11 @@
 import 'dart:math';
 import 'package:flame/components.dart';
+import 'package:flame/flame.dart';
 import 'package:flutter/material.dart';
 import '../../../core/models/furniture_item.dart';
 import '../../../core/models/lighting_config.dart';
 import '../../../core/services/furniture_catalog_service.dart';
+import '../data/bed_sleep_config.dart';
 import '../utils/isometric_coords.dart';
 import '../lighting/room_lighting_renderer.dart';
 import '../utils/sprite_alpha_cache.dart';
@@ -114,6 +116,10 @@ class IsometricFurnitureComponent extends PositionComponent {
 
   Map<int, Sprite> get chairBackrestSprites => chairFrontSprites;
   ChairBackrestOverlayComponent? _backrestOverlay;
+
+  /// Avatars lying under this bed's covers (its blanket overlay is drawn while non-empty).
+  final Set<Object> sleepersUnder = {};
+  BedFrontOverlayComponent? _bedOverlay;
   bool get isSurfaceItem => footprint == 'surface' || id == 'table_lamp' || id == 'coffee_mug' || id == 'open_book' || id == 'cooking_pot' || id == 'cutting_board' || id == 'soap_bottles' || id == 'plush_teddy' || typeName == 'table_lamp' || typeName == 'coffee_mug' || typeName == 'open_book' || typeName == 'cooking_pot' || typeName == 'cutting_board' || typeName == 'soap_bottles' || typeName == 'plush_teddy';
   bool get isWallItem {
     if (footprint == 'wall_n' || footprint == 'wall_w' || footprint == 'wall') return true;
@@ -175,6 +181,8 @@ class IsometricFurnitureComponent extends PositionComponent {
   void onRemove() {
     _backrestOverlay?.removeFromParent();
     _backrestOverlay = null;
+    _bedOverlay?.removeFromParent();
+    _bedOverlay = null;
     super.onRemove();
   }
 
@@ -317,6 +325,12 @@ class IsometricFurnitureComponent extends PositionComponent {
       _backrestOverlay ??= ChairBackrestOverlayComponent(this);
       if (!_backrestOverlay!.isMounted) {
         parent?.add(_backrestOverlay!);
+      }
+    }
+    if (parent != null && BedSleepConfig.supports(id, typeName)) {
+      _bedOverlay ??= BedFrontOverlayComponent(this);
+      if (!_bedOverlay!.isMounted) {
+        parent?.add(_bedOverlay!);
       }
     }
     final game = findGame();
@@ -1027,6 +1041,60 @@ class ChairBackrestOverlayComponent extends PositionComponent {
       size: chair.renderSize,
       overridePaint: chair.lightTint.overridePaint,
     );
+    canvas.restore();
+  }
+}
+
+/// Bed parts that stand in front of a lying avatar, drawn above it like a chair's backrest:
+/// the head/footboard wood at the pillow-facing end (always) and the blanket redrawn with the
+/// body's bulge (only while someone is under the covers). Sprites are per rotation, from
+/// assets/images/furniture/sleep_overlays/ (see BedSleepConfig.overlayPath).
+class BedFrontOverlayComponent extends PositionComponent {
+  final IsometricFurnitureComponent bed;
+  final Map<String, Sprite?> _cache = {};
+  final Set<String> _loading = {};
+
+  BedFrontOverlayComponent(this.bed);
+
+  Sprite? _sprite(bool blanket) {
+    final path = BedSleepConfig.overlayPath(bed.id, bed.typeName, bed.rotation, blanket: blanket);
+    if (path == null) return null;
+    if (_cache.containsKey(path)) return _cache[path];
+    if (_loading.add(path)) _load(path);
+    return null;
+  }
+
+  Future<void> _load(String path) async {
+    try {
+      _cache[path] = Sprite(await Flame.images.load(path));
+    } catch (_) {
+      _cache[path] = null; // this bed rotation has no such overlay
+    }
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    position = bed.position;
+    // Above the sleeper (bed.priority + 10), like ChairBackrestOverlayComponent.
+    priority = bed.priority + 20;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    if (!bed.isMounted) return;
+    final front = _sprite(false);
+    final blanket = bed.sleepersUnder.isNotEmpty ? _sprite(true) : null;
+    if (front == null && blanket == null) return;
+
+    canvas.save();
+    if (bed.isBeingDragged) {
+      final floatY = -14.0 + sin(bed._dragFloatTimer * 6.0) * 2.0;
+      canvas.translate(bed.dragVisualOffset.x, bed.dragVisualOffset.y + floatY);
+    }
+    for (final s in [blanket, front]) {
+      s?.render(canvas, position: bed.spriteOffset, size: bed.renderSize, overridePaint: bed.lightTint.overridePaint);
+    }
     canvas.restore();
   }
 }

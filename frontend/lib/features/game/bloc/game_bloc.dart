@@ -262,10 +262,13 @@ class SendHomeAvatarSitEvent extends GameEvent {
   final String chairId;
   final int slotIndex;
 
-  const SendHomeAvatarSitEvent({required this.chairId, required this.slotIndex});
+  /// null = sitting on a chair; 'lie_top' / 'lie_under' = lying on the bed [chairId].
+  final String? pose;
+
+  const SendHomeAvatarSitEvent({required this.chairId, required this.slotIndex, this.pose});
 
   @override
-  List<Object?> get props => [chairId, slotIndex];
+  List<Object?> get props => [chairId, slotIndex, pose];
 }
 
 class SendHomeActionEvent extends GameEvent {
@@ -412,6 +415,7 @@ class ActiveGameState extends GameState {
   final int? partnerHomeMoveTrigger;
   final String? partnerHomeChairId;
   final int? partnerHomeSlotIndex;
+  final String? partnerHomePose;
   final int? partnerHomeSitTrigger;
   final int? partnerHomeStandTrigger;
   final String? homeActionType;
@@ -468,6 +472,7 @@ class ActiveGameState extends GameState {
     this.partnerHomeMoveTrigger,
     this.partnerHomeChairId,
     this.partnerHomeSlotIndex,
+    this.partnerHomePose,
     this.partnerHomeSitTrigger,
     this.partnerHomeStandTrigger,
     this.homeActionType,
@@ -525,6 +530,7 @@ class ActiveGameState extends GameState {
     int? partnerHomeMoveTrigger,
     String? partnerHomeChairId,
     int? partnerHomeSlotIndex,
+    String? partnerHomePose,
     int? partnerHomeSitTrigger,
     int? partnerHomeStandTrigger,
     String? homeActionType,
@@ -584,6 +590,7 @@ class ActiveGameState extends GameState {
       partnerHomeMoveTrigger: partnerHomeMoveTrigger ?? this.partnerHomeMoveTrigger,
       partnerHomeChairId: clearPartnerHomeChair ? null : (partnerHomeChairId ?? this.partnerHomeChairId),
       partnerHomeSlotIndex: clearPartnerHomeChair ? null : (partnerHomeSlotIndex ?? this.partnerHomeSlotIndex),
+      partnerHomePose: clearPartnerHomeChair ? null : (partnerHomePose ?? this.partnerHomePose),
       partnerHomeSitTrigger: partnerHomeSitTrigger ?? this.partnerHomeSitTrigger,
       partnerHomeStandTrigger: partnerHomeStandTrigger ?? this.partnerHomeStandTrigger,
       homeActionType: homeActionType ?? this.homeActionType,
@@ -643,6 +650,7 @@ class ActiveGameState extends GameState {
     partnerHomeMoveTrigger,
     partnerHomeChairId,
     partnerHomeSlotIndex,
+    partnerHomePose,
     partnerHomeSitTrigger,
     partnerHomeStandTrigger,
     homeActionType,
@@ -1070,6 +1078,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       'type': 'HOME_AVATAR_SIT',
       'chairId': event.chairId,
       'slotIndex': event.slotIndex,
+      // The relay forwards the payload verbatim, so lying rides on SIT without a backend change.
+      if (event.pose != null) 'pose': event.pose,
     });
   }
 
@@ -1634,11 +1644,13 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     if (type == 'HOME_AVATAR_SIT') {
       final chairId = msg['chairId'] as String?;
       final slotIndex = (msg['slotIndex'] as num?)?.toInt() ?? 0;
+      final pose = msg['pose'] as String? ?? 'sit';
       if (chairId != null && state is ActiveGameState) {
         final active = state as ActiveGameState;
         emit(active.copyWith(
           partnerHomeChairId: chairId,
           partnerHomeSlotIndex: slotIndex,
+          partnerHomePose: pose,
           partnerHomeSitTrigger: DateTime.now().millisecondsSinceEpoch,
         ));
       }

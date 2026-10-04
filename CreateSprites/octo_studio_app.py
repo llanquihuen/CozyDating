@@ -26,6 +26,7 @@ from octo_engine import (
     OCTO_AVATAR_DIR
 )
 import furniture_inspector_engine as fie
+import bed_sleep_calibrator as bsc
 from color_engine import RETRO_PALETTES, hex_to_rgb, rgb_to_hex
 import pixellab_service
 from pixellab_service import PixelLabClient, load_pixellab_key, save_pixellab_key
@@ -91,6 +92,26 @@ class OctoStudioApp:
         self.seat_voff_y = tk.DoubleVar(value=0.0)
         self.seat_toff_x = tk.DoubleVar(value=0.0)
         self.seat_toff_y = tk.DoubleVar(value=-18.0)
+
+        # Estado calibrador de camas (acostarse) — fuente de verdad: bed_sleep_config.dart
+        self.show_lying_var = tk.BooleanVar(value=False)
+        self.lie_under_var = tk.BooleanVar(value=False)
+        self.lie_body_var = tk.StringVar(value="male")
+        self.lie_hair_var = tk.StringVar(value="comb_over")
+        self.lie_eyes_var = tk.StringVar(value="cateyes")
+        self.lie_mouth_var = tk.StringVar(value="smile")
+        self.lie_nose_var = tk.StringVar(value="standard")
+        self.lie_top_var = tk.StringVar(value="jacket")
+        self.lie_bottom_var = tk.StringVar(value="jeans")
+        self.lie_acc_var = tk.StringVar(value="none")
+        self.lie_wardrobe_colors_var = tk.BooleanVar(value=True)
+        self.lie_sync_mirror_var = tk.BooleanVar(value=True)
+        self.lie_step_var = tk.IntVar(value=1)
+        try:
+            self.bed_spots = bsc.load_spots()
+        except Exception as e:  # el archivo Dart no está: el calibrador queda deshabilitado
+            print("No se pudo leer bed_sleep_config.dart:", e)
+            self.bed_spots = {}
 
         # Estado calibrador de superficies (Múltiples Lugares / Spots)
         self.surface_support_id = tk.StringVar(value="table")
@@ -1002,6 +1023,7 @@ class OctoStudioApp:
         tk.Checkbutton(view_bar, text="Subcuadros", variable=self.show_subcells_var, bg="#181926", fg="#94A3B8", selectcolor="#2D3250", font=("Segoe UI", 8), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=3)
         tk.Checkbutton(view_bar, text="Bounding Box", variable=self.show_bbox_var, bg="#181926", fg="#94A3B8", selectcolor="#2D3250", font=("Segoe UI", 8), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=3)
         tk.Checkbutton(view_bar, text="Avatar Sentado", variable=self.show_avatar_on_furn_var, bg="#181926", fg="#F59E0B", selectcolor="#2D3250", font=("Segoe UI", 8, "bold"), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=3)
+        tk.Checkbutton(view_bar, text="Avatar Acostado", variable=self.show_lying_var, bg="#181926", fg="#A78BFA", selectcolor="#2D3250", font=("Segoe UI", 8, "bold"), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=3)
 
         # Canvas de Inspección Isométrica
         canvas_box = tk.Frame(left_p, bg="#10111A", bd=2, relief="sunken")
@@ -1182,6 +1204,9 @@ class OctoStudioApp:
 
         copy_seat_btn = tk.Button(self.seat_box, text="📋 Copiar Configuración Dart (chair_seat_config.dart)", font=("Segoe UI", 9, "bold"), bg="#0284C7", fg="#FFF", bd=0, pady=4, cursor="hand2", command=self._copy_seat_dart_code)
         copy_seat_btn.pack(fill=tk.X, pady=(6, 2))
+
+        # 2b. CALIBRADOR DE CAMAS (ACOSTARSE)
+        self._build_bed_sleep_calibrator(r_content)
 
         # 3. CALIBRADOR DE SUPERFICIES (Múltiples Lugares / Spots)
         self.surf_box = ttk.LabelFrame(r_content, text=" 🍵 Calibrador de Superficies (Múltiples Spots) ", padding=8)
@@ -1697,6 +1722,183 @@ class OctoStudioApp:
         self.custom_sprite_offset = None
         self._update_furniture_preview()
 
+    # ------------------------------------------------------------------ calibrador de camas
+    def _build_bed_sleep_calibrator(self, parent):
+        box = ttk.LabelFrame(parent, text=" 🛏️ Calibrador de Camas (Acostarse) ", padding=8)
+        box.pack(fill=tk.X, pady=4)
+        guide_txt = (
+            "ℹ️ CÓMO CALIBRAR CAMAS:\n"
+            "1. Elige una cama (single_bed / single_high_bed) y activa 'Avatar Acostado' arriba.\n"
+            "2. La cruz roja es baseHead (dónde va la cabeza); la línea es el eje del cuerpo.\n"
+            "   Céntrala a lo largo del colchón y con la cabeza sobre la almohada.\n"
+            "3. Las flechas diagonales siguen los ejes isométricos de la cama (ancho / largo).\n"
+            "4. 'Guardar' escribe bed_sleep_config.dart — en el juego haz HOT RESTART (R)."
+        )
+        tk.Label(box, text=guide_txt, font=("Segoe UI", 8), bg="#12131C", fg="#E2E8F0", justify=tk.LEFT, padx=6, pady=4).pack(fill=tk.X, pady=(0, 6))
+
+        opt = tk.Frame(box, bg="#181926"); opt.pack(fill=tk.X, pady=2)
+        tk.Checkbutton(opt, text="Bajo la cobija", variable=self.lie_under_var, bg="#181926", fg="#A78BFA", selectcolor="#2D3250",
+                       font=("Segoe UI", 8), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=2)
+        for val, txt in (("male", "Hombre"), ("female", "Mujer")):
+            tk.Radiobutton(opt, text=txt, value=val, variable=self.lie_body_var, bg="#181926", fg="#E2E8F0", selectcolor="#2D3250",
+                           font=("Segoe UI", 8), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=2)
+
+        # Look of the preview avatar: every style that has lying art (scanned from lying/ folders)
+        styles = bsc.available_styles()
+        look = tk.Frame(box, bg="#181926"); look.pack(fill=tk.X, pady=2)
+        rows = [
+            ("Ojos", self.lie_eyes_var, styles["eyes"]),
+            ("Boca", self.lie_mouth_var, styles["mouth"]),
+            ("Nariz", self.lie_nose_var, styles["nose"]),
+            ("Pelo", self.lie_hair_var, ["none"] + styles["hair"]),
+            ("Ropa arriba", self.lie_top_var, ["none"] + styles["tops"]),
+            ("Ropa abajo", self.lie_bottom_var, ["none"] + styles["bottoms"]),
+        ]
+        for i, (label, var, values) in enumerate(rows):
+            r, c = divmod(i, 2)
+            tk.Label(look, text=label + ":", font=("Segoe UI", 8), bg="#181926", fg="#94A3B8").grid(row=r, column=c * 2, sticky="e", padx=(4, 2), pady=1)
+            cb = ttk.Combobox(look, values=values, textvariable=var, state="readonly", width=12)
+            cb.grid(row=r, column=c * 2 + 1, sticky="w", pady=1)
+            cb.bind("<<ComboboxSelected>>", lambda e: self._update_furniture_preview())
+        acc_values = ["none"] + [a if has else f"{a} (sin versión acostada)" for a, has in styles["accessories"]]
+        tk.Label(look, text="Accesorio:", font=("Segoe UI", 8), bg="#181926", fg="#94A3B8").grid(row=3, column=0, sticky="e", padx=(4, 2), pady=1)
+        acc_cb = ttk.Combobox(look, values=acc_values, textvariable=self.lie_acc_var, state="readonly", width=30)
+        acc_cb.grid(row=3, column=1, columnspan=3, sticky="w", pady=1)
+        acc_cb.bind("<<ComboboxSelected>>", lambda e: self._update_furniture_preview())
+        tk.Label(box, text="Los accesorios aún no tienen sprites acostados: el juego no los dibuja al acostarse.",
+                 font=("Segoe UI", 7), bg="#181926", fg="#64748B").pack(anchor=tk.W)
+
+        colors = tk.Frame(box, bg="#181926"); colors.pack(fill=tk.X, pady=2)
+        tk.Checkbutton(colors, text="Colores del Armario (piel, pelo, ojos, ropa)", variable=self.lie_wardrobe_colors_var, bg="#181926",
+                       fg="#94A3B8", selectcolor="#2D3250", font=("Segoe UI", 8), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=2)
+        tk.Button(colors, text="👤 Copiar del Armario", font=("Segoe UI", 8, "bold"), bg="#7C3AED", fg="#FFF", bd=0, padx=6, pady=2,
+                  cursor="hand2", command=self._lie_copy_wardrobe).pack(side=tk.RIGHT, padx=2)
+
+        self.bed_head_lbl = tk.Label(box, text="", font=("Consolas", 8, "bold"), bg="#181926", fg="#38BDF8", justify=tk.LEFT)
+        self.bed_head_lbl.pack(anchor=tk.W, pady=2)
+
+        step = tk.Frame(box, bg="#181926"); step.pack(fill=tk.X, pady=2)
+        tk.Label(step, text="Paso:", font=("Segoe UI", 8), bg="#181926", fg="#94A3B8").pack(side=tk.LEFT, padx=2)
+        for s in (1, 2, 5):
+            tk.Radiobutton(step, text=f"{s}px", value=s, variable=self.lie_step_var, bg="#181926", fg="#E2E8F0",
+                           selectcolor="#2D3250", font=("Segoe UI", 8)).pack(side=tk.LEFT)
+        tk.Checkbutton(step, text="Espejo sincronizado (0↔1, 2↔3)", variable=self.lie_sync_mirror_var, bg="#181926", fg="#94A3B8",
+                       selectcolor="#2D3250", font=("Segoe UI", 8)).pack(side=tk.LEFT, padx=6)
+
+        pad = tk.Frame(box, bg="#181926"); pad.pack(pady=2)
+        btn = dict(font=("Segoe UI", 9, "bold"), bg="#2D3250", fg="#FFF", bd=0, width=4, pady=2, cursor="hand2")
+        diag = dict(font=("Segoe UI", 9, "bold"), bg="#4C1D95", fg="#FFF", bd=0, width=4, pady=2, cursor="hand2")
+        # screen-pixel arrows (centre cross) + isometric diagonals (corners, 2:1)
+        layout = [
+            [("↖", -2, -1, diag), ("▲", 0, -1, btn), ("↗", 2, -1, diag)],
+            [("◀", -1, 0, btn), ("·", 0, 0, None), ("▶", 1, 0, btn)],
+            [("↙", -2, 1, diag), ("▼", 0, 1, btn), ("↘", 2, 1, diag)],
+        ]
+        for r, row in enumerate(layout):
+            for c, (txt, dx, dy, style) in enumerate(row):
+                if style is None:
+                    tk.Label(pad, text="", bg="#181926", width=4).grid(row=r, column=c, padx=1, pady=1)
+                    continue
+                tk.Button(pad, text=txt, command=lambda dx=dx, dy=dy: self._nudge_bed_head(dx, dy), **style).grid(row=r, column=c, padx=1, pady=1)
+
+        actions = tk.Frame(box, bg="#181926"); actions.pack(fill=tk.X, pady=(6, 2))
+        tk.Button(actions, text="💾 Guardar en bed_sleep_config.dart", font=("Segoe UI", 9, "bold"), bg="#059669", fg="#FFF", bd=0,
+                  pady=4, cursor="hand2", command=self._save_bed_spots).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
+        tk.Button(actions, text="📋 Copiar Dart", font=("Segoe UI", 9, "bold"), bg="#0284C7", fg="#FFF", bd=0, pady=4,
+                  cursor="hand2", command=self._copy_bed_dart).pack(side=tk.LEFT, padx=2)
+        tk.Button(actions, text="↺ Recargar", font=("Segoe UI", 9, "bold"), bg="#475569", fg="#FFF", bd=0, pady=4,
+                  cursor="hand2", command=self._reload_bed_spots).pack(side=tk.LEFT, padx=(2, 0))
+
+    def _lie_look(self):
+        """Styles from the calibrator selectors; colours from the wardrobe avatar (or neutral defaults)."""
+        look = {
+            "body": self.lie_body_var.get(), "eyes": self.lie_eyes_var.get(), "mouth": self.lie_mouth_var.get(),
+            "nose": self.lie_nose_var.get(), "hair": self.lie_hair_var.get(),
+            "tops": self.lie_top_var.get(), "bottoms": self.lie_bottom_var.get(),
+        }
+        if self.lie_wardrobe_colors_var.get():
+            c = self.config
+            def col(key, fallback):
+                try:
+                    return bsc.hex_rgb(c[key]["color"])
+                except Exception:
+                    return fallback
+            d = bsc.DEFAULT_LOOK
+            look.update(skin=col("body", d["skin"]), hair_rgb=col("hair", d["hair_rgb"]), eye_rgb=col("eyes", d["eye_rgb"]),
+                        brow_rgb=col("eyebrows", d["brow_rgb"]), top_rgb=col("tops", d["top_rgb"]),
+                        bottom_rgb=col("bottoms", d["bottom_rgb"]))
+        return look
+
+    def _lie_copy_wardrobe(self):
+        """Take the styles of the avatar built in the Armario tab (only those that have lying art)."""
+        styles = bsc.available_styles()
+        c = self.config
+        def pick(key, var, allowed, none_ok=False):
+            f = (c.get(key) or {}).get("file")
+            if f in allowed or (none_ok and f == "none"):
+                var.set(f)
+        pick("eyes", self.lie_eyes_var, styles["eyes"])
+        pick("mouth", self.lie_mouth_var, styles["mouth"])
+        pick("nose", self.lie_nose_var, styles["nose"])
+        pick("hair", self.lie_hair_var, styles["hair"], none_ok=True)
+        pick("tops", self.lie_top_var, styles["tops"], none_ok=True)
+        pick("bottoms", self.lie_bottom_var, styles["bottoms"], none_ok=True)
+        acc = (c.get("accessories") or {}).get("file", "none")
+        self.lie_acc_var.set(acc if acc == "none" else next(
+            (a if has else f"{a} (sin versión acostada)" for a, has in styles["accessories"] if a == acc), "none"))
+        body = (c.get("body") or {}).get("file")
+        if body in ("male", "female"):
+            self.lie_body_var.set(body)
+        self.lie_wardrobe_colors_var.set(True)
+        self._update_furniture_preview()
+
+    def _current_bed_spot(self):
+        return self.bed_spots.get(self.selected_furn_id.get(), {}).get(self.selected_furn_rot)
+
+    def _refresh_bed_label(self):
+        spot = self._current_bed_spot()
+        if spot is None:
+            self.bed_head_lbl.config(text="Este mueble no es una cama configurable\n(bed_sleep_config.dart: single_bed, single_high_bed).")
+            return
+        self.bed_head_lbl.config(text=(
+            f"rot {self.selected_furn_rot}: vista {spot['view'].upper()}  espejo={'sí' if spot['mirror'] else 'no'}\n"
+            f"baseHead = ({spot['head'][0]:g}, {spot['head'][1]:g})  (px del sprite, rotación base sin espejo)"))
+
+    def _nudge_bed_head(self, dx, dy):
+        spot = self._current_bed_spot()
+        if spot is None:
+            return
+        step = self.lie_step_var.get()
+        bdx, bdy = bsc.screen_nudge_to_base(spot, dx * step, dy * step)
+        rot = self.selected_furn_rot
+        targets = [rot]
+        if self.lie_sync_mirror_var.get():
+            targets.append(rot ^ 1)   # 0<->1, 2<->3 share the same (unmirrored) baseHead
+        for r in targets:
+            s = self.bed_spots[self.selected_furn_id.get()].get(r)
+            if s is not None:
+                s["head"] = [s["head"][0] + bdx, s["head"][1] + bdy]
+        self._update_furniture_preview()
+
+    def _save_bed_spots(self):
+        try:
+            bsc.save_spots(self.bed_spots)
+            messagebox.showinfo("Calibrador de Camas", "Guardado en bed_sleep_config.dart.\nEn el juego haz HOT RESTART (R) para verlo.")
+        except Exception as e:
+            messagebox.showerror("Calibrador de Camas", f"No se pudo guardar: {e}")
+
+    def _copy_bed_dart(self):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(bsc.dart_map_code(self.bed_spots))
+        messagebox.showinfo("Calibrador de Camas", "Bloque _spots copiado al portapapeles.")
+
+    def _reload_bed_spots(self):
+        try:
+            self.bed_spots = bsc.load_spots()
+        except Exception as e:
+            messagebox.showerror("Calibrador de Camas", f"No se pudo leer: {e}")
+        self._update_furniture_preview()
+
     def _on_seat_slot_changed(self, event=None):
         self.seat_slot_idx = self.seat_slot_combo.current()
         fid = self.selected_furn_id.get()
@@ -1975,27 +2177,39 @@ class OctoStudioApp:
             sup_id = self.surface_support_id.get()
             sup_item = self.furn_catalog.get(sup_id)
 
-        scene_img = fie.render_furniture_scene(
-            furniture_item=fmeta,
-            rot=self.selected_furn_rot,
-            sprite_offset=tuple(curr_offset),
-            show_tiles=self.show_tiles_var.get(),
-            show_subcells=self.show_subcells_var.get(),
-            show_bounding_box=self.show_bbox_var.get(),
-            show_origin=self.show_origin_var.get(),
-            show_avatar=self.show_avatar_on_furn_var.get(),
-            avatar_config=self.config,
-            seat_spot=current_spot,
-            surface_support_item=sup_item,
-            surface_height=int(self.surface_height_var.get()),
-            surface_offset=(int(self.surface_off_x.get()), int(self.surface_off_y.get())),
-            surface_spots=self.current_surface_spots,
-            active_surface_spot_idx=self.surface_spot_idx,
-            show_all_surface_items=self.show_all_surf_items_var.get(),
-            show_surface_markers=self.show_surf_markers_var.get(),
-            catalog_lookup=self.furn_catalog,
-            zoom=self.furn_zoom
-        )
+        if hasattr(self, "bed_head_lbl"):
+            self._refresh_bed_label()
+        lying_spot = self._current_bed_spot() if self.show_lying_var.get() else None
+        if lying_spot is not None:
+            try:
+                img = bsc.render_preview(fid, self.selected_furn_rot, lying_spot, under=self.lie_under_var.get(),
+                                         look=self._lie_look())
+                scene_img = img.resize((img.width * self.furn_zoom, img.height * self.furn_zoom), Image.NEAREST)
+            except Exception as e:
+                print("Vista acostado no disponible:", e)
+                lying_spot = None
+        if lying_spot is None:
+            scene_img = fie.render_furniture_scene(
+                furniture_item=fmeta,
+                rot=self.selected_furn_rot,
+                sprite_offset=tuple(curr_offset),
+                show_tiles=self.show_tiles_var.get(),
+                show_subcells=self.show_subcells_var.get(),
+                show_bounding_box=self.show_bbox_var.get(),
+                show_origin=self.show_origin_var.get(),
+                show_avatar=self.show_avatar_on_furn_var.get(),
+                avatar_config=self.config,
+                seat_spot=current_spot,
+                surface_support_item=sup_item,
+                surface_height=int(self.surface_height_var.get()),
+                surface_offset=(int(self.surface_off_x.get()), int(self.surface_off_y.get())),
+                surface_spots=self.current_surface_spots,
+                active_surface_spot_idx=self.surface_spot_idx,
+                show_all_surface_items=self.show_all_surf_items_var.get(),
+                show_surface_markers=self.show_surf_markers_var.get(),
+                catalog_lookup=self.furn_catalog,
+                zoom=self.furn_zoom
+            )
 
         cw = self.furn_canvas.winfo_width() or 460
         ch = self.furn_canvas.winfo_height() or 420

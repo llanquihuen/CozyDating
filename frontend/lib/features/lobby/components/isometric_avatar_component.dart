@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../avatar/components/modular_avatar_component.dart';
+import '../data/bed_sleep_config.dart';
 import '../data/chair_seat_config.dart';
 import '../lighting/room_lighting_renderer.dart';
 import '../utils/isometric_coords.dart';
@@ -23,6 +24,11 @@ class IsometricAvatarComponent extends PositionComponent {
   IsometricFurnitureComponent? sittingChair;
   SeatSpot? sittingSpot;
   AvatarBacklegComponent? backlegComponent;
+
+  /// Bed the avatar is lying on (null when not lying), and whether it is under the covers.
+  IsometricFurnitureComponent? lyingBed;
+  bool lyingUnder = false;
+  bool get isLying => lyingBed != null;
 
   int get sittingSlotIndex => sittingSpot?.slotIndex ?? 0;
   bool get isSitting => avatarRenderer.isSitting;
@@ -129,6 +135,47 @@ class IsometricAvatarComponent extends PositionComponent {
     backlegComponent ??= AvatarBacklegComponent(this);
     backlegComponent!.priority = chair.priority - 2;
     avatarRenderer.sitDown();
+    onSitStateChanged?.call();
+  }
+
+  /// Lies down on [bed] (on top, or [under] the covers). The renderer draws the lying layers
+  /// in bed-sprite pixels, so this component is moved onto the bed sprite's top-left corner
+  /// and sized like it; [standUp] puts it back on the floor next to the bed.
+  void lieOnBed(IsometricFurnitureComponent bed, {bool under = false}) {
+    final spot = BedSleepConfig.spotFor(bed.id, bed.typeName, bed.rotation);
+    final bedSprite = bed.sprite;
+    if (spot == null || bedSprite == null) return;
+
+    _path.clear();
+    _finalGoal = null;
+    if (avatarRenderer.isSitting) {
+      avatarRenderer.standUp();
+      sittingChair = null;
+      sittingSpot = null;
+    }
+
+    // The bed draws its blanket overlay while anyone is under the covers.
+    lyingBed?.sleepersUnder.remove(this);
+    lyingBed = bed;
+    lyingUnder = under;
+    if (under) bed.sleepersUnder.add(this);
+    final head = BedSleepConfig.headInCanvas[spot.view]!;
+    final bedPx = bedSprite.srcSize;
+    avatarRenderer.lieDown(LyingPose(
+      view: spot.view == LieView.a ? 'A' : 'B',
+      mirror: spot.mirror,
+      under: under,
+      canvasOrigin: spot.baseHead - head,
+      bedWidth: bedPx.x,
+      scale: bed.renderSize.x / bedPx.x,
+      blanketEdge: spot.blanketEdge,
+      coveredBelow: spot.coveredBelow,
+    ));
+
+    position = bed.position + bed.spriteOffset;
+    size = bed.renderSize;
+    // Above the bed sprite, below its front overlay (bed.priority + 20: blanket, head/footboard).
+    priority = bed.priority + 10;
     onSitStateChanged?.call();
   }
 
@@ -319,6 +366,28 @@ class IsometricAvatarComponent extends PositionComponent {
     final effectiveObs = obstacles ?? lastObstacles;
     final effectiveEdges = blockedEdges ?? lastBlockedEdges;
 
+    if (isLying) {
+      // Same free-cell search as getting off a chair, starting from the bed's footprint.
+      final exitSubCell = findExitSubCellForChair(
+        lyingBed!,
+        obstacles: effectiveObs,
+        blockedEdges: effectiveEdges,
+      );
+      if (exitSubCell != null) {
+        gridX = exitSubCell.x.toDouble();
+        gridY = exitSubCell.y.toDouble();
+      }
+      avatarRenderer.standUp();
+      lyingBed!.sleepersUnder.remove(this);
+      lyingBed = null;
+      lyingUnder = false;
+      size = Vector2(avatarWidth, avatarHeight);
+      position = _calculateScreenPosition(gridX, gridY);
+      priority = IsometricCoords.getSubZOrder(gridX.round(), gridY.round(), layer: 100);
+      onSitStateChanged?.call();
+      return;
+    }
+
     if (avatarRenderer.isSitting) {
       if (sittingChair != null) {
         final exitSubCell = findExitSubCellForChair(
@@ -343,7 +412,7 @@ class IsometricAvatarComponent extends PositionComponent {
   }
 
   void setPath(List<Point<int>> newPath, Point<int> goal) {
-    if (avatarRenderer.isSitting) {
+    if (avatarRenderer.isSitting || isLying) {
       standUp();
     }
     _path.clear();
@@ -355,7 +424,7 @@ class IsometricAvatarComponent extends PositionComponent {
   }
 
   void teleportTo(double gx, double gy) {
-    if (avatarRenderer.isSitting) {
+    if (avatarRenderer.isSitting || isLying) {
       standUp();
     }
     _path.clear();
