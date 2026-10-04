@@ -13,7 +13,7 @@ class SleepSpot {
   final bool mirror;
 
   /// Where the head point of the lying sprite goes, in bed-sprite pixels of the UNMIRRORED
-  /// base rotation (0 or 2). Tuned against CreateSprites/scratch/lie_sprites previews.
+  /// base rotation (0 or 2). Tuned against CreateSprites/lying_pipeline previews.
   final Offset baseHead;
 
   /// Rotation whose overlay sprites apply (overlays are per real rotation, already mirrored).
@@ -39,7 +39,7 @@ class SleepSpot {
 }
 
 /// Beds the avatar can lie on, per rotation (0: SW, 1: SE, 2: NE, 3: NW).
-/// Overlays come from CreateSprites/scratch/lie_sprites/make_bed_overlays.py; keep edges in sync.
+/// Overlays come from CreateSprites/lying_pipeline/make_bed_overlays.py; keep edges in sync.
 class BedSleepConfig {
   /// Canvas size of the lying layers (assets/images/OCTOPLAYER/Avatar/lying/**).
   static const Size lieCanvas = Size(160, 128);

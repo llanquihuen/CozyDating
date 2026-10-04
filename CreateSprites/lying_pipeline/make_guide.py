@@ -1,10 +1,7 @@
 """Builds the lying-pose guide (view A: head toward back-right, feet toward front-left)
 for the male mannequin, at 1:1 game resolution, to feed PixelLab."""
 import math, os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lie_prototype"))
 from PIL import Image
-import importlib.util
-spec = importlib.util.spec_from_file_location("ps_helpers", os.path.join(os.path.dirname(__file__), "..", "lie_prototype", "proto_scene.py"))
 
 A = r"C:/Users/Asus/ProyectoJuegoDating/frontend/assets/images/OCTOPLAYER/Avatar"
 OUT = os.path.dirname(os.path.abspath(__file__))

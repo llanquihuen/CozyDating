@@ -2,7 +2,6 @@
 import sys
 from PIL import Image, ImageDraw
 import face_layers as fl
-sys.path.insert(0, "../lie_prototype")
 from build_layers import tint
 
 SKIN, EYE, BROW = (0xF2, 0xC8, 0xA8), (0x2B, 0xB3, 0xA3), (0x3A, 0x2A, 0x22)

@@ -39,3 +39,18 @@ backend/cozy_dating.db
 # Cargas multimedia locales
 backend/uploads/
 **/uploads/
+# CreateSprites: scratch is throwaway (verification previews, experiments)
+CreateSprites/scratch/
+# Lying art pipeline: keep scripts + intermediate images, not the verification previews
+CreateSprites/lying_pipeline/**/_*.png
+CreateSprites/lying_pipeline/**/preview_*.png
+CreateSprites/lying_pipeline/**/bodies_*.png
+CreateSprites/lying_pipeline/**/caras_*.png
+CreateSprites/lying_pipeline/**/facciones_*.png
+CreateSprites/lying_pipeline/**/final_*.png
+CreateSprites/lying_pipeline/**/pelo_*.png
+CreateSprites/lying_pipeline/**/ropa_ajustada_*.png
+CreateSprites/lying_pipeline/**/render_en_juego.png
+CreateSprites/lying_pipeline/**/sabana_y_cabecera_en_juego.png
+CreateSprites/lying_pipeline/**/cama_alta_4_rotaciones.png
+CreateSprites/lying_pipeline/**/camas_cara_v2.png
