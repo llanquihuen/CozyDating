@@ -92,6 +92,15 @@ class AvatarEditorController extends ChangeNotifier {
     }
   }
 
+  /// The avatar a thumbnail of [id] in [section] starts from: the current one, or for a body
+  /// type the current look fitted to that body (so it shows items that body can wear).
+  AvatarConfig thumbnailBase(EditorSection section, String id) {
+    if (section.slot == AvatarConfig.bodySlot) {
+      return _config.withItem(AvatarConfig.bodySlot, id).restrictedTo(_gender);
+    }
+    return _config;
+  }
+
   bool isSelected(EditorSection section, String id) {
     final slot = section.slot;
     if (slot == null) return false;

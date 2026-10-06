@@ -95,8 +95,12 @@ Cada fase deja la app funcionando y se puede commitear por separado.
 
 - `AvatarItemPicker`: cuadrícula de 4 columnas con miniatura y nombre corto, marca de
   seleccionado y una casilla "Ninguno" para los slots opcionales. Permite selección múltiple para
-  las marcas y tiene un espacio opcional para una insignia (sin lógica).
-- `AvatarColorRow`: muestras de la paleta del slot + un botón "+" para un color libre.
+  las marcas y tiene un espacio opcional para una insignia (sin lógica). La casilla "Ninguno" es
+  un ícono (círculo tachado), no el avatar sin la prenda.
+- `AvatarColorRow`: muestras de la paleta del slot + un botón "+" para un color libre (tono,
+  intensidad, luz). Debajo de una cuadrícula queda **fija abajo, en una línea que se desplaza de
+  lado**, para no tener que bajar hasta el final de 17 peinados. Las subcategorías que solo tienen
+  color (Piel, Cejas) la muestran en el área principal.
 - `AvatarEditor`: vista previa (`CharacterPreviewGame` con girar, caminar, deshacer y aleatorio)
   + pestañas + píldoras + picker + colores. Recibe un `AvatarEditorController` y no sabe si está
   en el registro o en la sala.

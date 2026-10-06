@@ -19,6 +19,9 @@ class AvatarItem {
   /// the head like face marks.
   final bool underClothes;
 
+  /// Name under the editor thumbnail; null derives it from [label] (see [displayLabel]).
+  final String? shortLabel;
+
   const AvatarItem(
     this.slot,
     this.id,
@@ -27,7 +30,31 @@ class AvatarItem {
     this.fits = AvatarCatalog.bodyTypes,
     this.hasBack = false,
     this.underClothes = false,
+    this.shortLabel,
   });
+
+  /// Words a thumbnail label can drop: the grid already says which part it is.
+  static const _slotWords = ['Ojos de ', 'Ojos ', 'Nariz ', 'Boca ', 'Labial ', 'Sombra ', 'Rubor '];
+
+  /// [shortLabel], else [label] without emoji, without the English name after " / " and without a
+  /// leading slot word ("Ojos Felinos 🐱" -> "Felinos", "Flequillo / Bangs" -> "Flequillo").
+  String get displayLabel {
+    if (shortLabel != null) return shortLabel!;
+    var text = label.split(' / ').first.replaceAll(RegExp(r' \(.*\)'), '');
+    text = text.runes
+        .where((r) => r < 0x2190 || (r >= 0x2C00 && r < 0xFE00) || (r > 0xFE0F && r < 0x1F000))
+        .map(String.fromCharCode)
+        .join()
+        .replaceAll('///', '')
+        .trim();
+    for (final word in _slotWords) {
+      if (text.startsWith(word) && text.length > word.length) {
+        text = text.substring(word.length);
+        break;
+      }
+    }
+    return text.isEmpty ? label : text[0].toUpperCase() + text.substring(1);
+  }
 }
 
 class AvatarCatalog {
@@ -92,7 +119,7 @@ class AvatarCatalog {
     AvatarItem(mouth, 'smirk', 'Sonrisa Pícara 😏'),
     AvatarItem(mouth, 'grin', 'Sonrisa Abierta 😄'),
     AvatarItem(mouth, 'neutral', 'Boca Neutral 😐'),
-    AvatarItem(mouth, 'fang', 'Sonrisa con Colmillo 😺'),
+    AvatarItem(mouth, 'fang', 'Sonrisa con Colmillo 😺', shortLabel: 'Colmillo'),
     AvatarItem(mouth, 'pout', 'Boquita de Beso 😗'),
 
     // Hair
@@ -121,7 +148,7 @@ class AvatarCatalog {
     AvatarItem(top, 'tank', 'Musculosa'),
     AvatarItem(top, 'longsleeve', 'Manga Larga'),
     AvatarItem(top, 'dress_shirt', 'Camisa'),
-    AvatarItem(top, 'hoodie', 'Polerón con Capucha'),
+    AvatarItem(top, 'hoodie', 'Polerón con Capucha', shortLabel: 'Polerón'),
     AvatarItem(top, 'bikini_top', 'Bikini (Arriba) 👙', audience: AvatarAudience.feminine, fits: ['female']),
     AvatarItem(bottom, 'jeans', 'Jeans Clásicos'),
     AvatarItem(bottom, 'sweatpants', 'Pantalón de Buzo'),
@@ -137,15 +164,15 @@ class AvatarCatalog {
 
     // Marks
     AvatarItem(mark, 'freckles', 'Pecas ✨'),
-    AvatarItem(mark, 'scar_eye', 'Cicatriz en el Ojo ⚔️'),
-    AvatarItem(mark, 'mole_mouth', 'Lunar junto a la Boca'),
-    AvatarItem(mark, 'mole_eye', 'Lunar bajo el Ojo'),
+    AvatarItem(mark, 'scar_eye', 'Cicatriz en el Ojo ⚔️', shortLabel: 'Cicatriz'),
+    AvatarItem(mark, 'mole_mouth', 'Lunar junto a la Boca', shortLabel: 'Lunar boca'),
+    AvatarItem(mark, 'mole_eye', 'Lunar bajo el Ojo', shortLabel: 'Lunar ojo'),
     AvatarItem(mark, 'tattoo_tear', 'Lágrima Tatuada 💧'),
-    AvatarItem(mark, 'tattoo_star', 'Estrella en la Mejilla ⭐'),
-    AvatarItem(mark, 'tattoo_heart', 'Corazón en la Mejilla ❤️'),
+    AvatarItem(mark, 'tattoo_star', 'Estrella en la Mejilla ⭐', shortLabel: 'Estrella'),
+    AvatarItem(mark, 'tattoo_heart', 'Corazón en la Mejilla ❤️', shortLabel: 'Corazón'),
     AvatarItem(mark, 'tattoo_sleeves', 'Brazos Tatuados', underClothes: true),
     AvatarItem(mark, 'tattoo_bands', 'Brazaletes Tatuados', underClothes: true),
-    AvatarItem(mark, 'tattoo_roses', 'Rosas en los Hombros 🌹', underClothes: true),
+    AvatarItem(mark, 'tattoo_roses', 'Rosas en los Hombros 🌹', underClothes: true, shortLabel: 'Rosas'),
 
     // Makeup (blush sprites in OCTOPLAYER/Avatar/makeup/blush/)
     AvatarItem(blush, 'blush_soft', 'Rubor Suave'),
