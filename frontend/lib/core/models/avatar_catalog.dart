@@ -105,7 +105,14 @@ class AvatarCatalog {
 
     // Clothing
     AvatarItem(top, 'jacket', 'Chaqueta'),
+    AvatarItem(top, 'tshirt', 'Polera'),
+    AvatarItem(top, 'tank', 'Musculosa'),
+    AvatarItem(top, 'longsleeve', 'Manga Larga'),
+    AvatarItem(top, 'dress_shirt', 'Camisa'),
     AvatarItem(bottom, 'jeans', 'Jeans Clásicos'),
+    AvatarItem(bottom, 'sweatpants', 'Pantalón de Buzo'),
+    AvatarItem(bottom, 'leggings', 'Calzas'),
+    AvatarItem(bottom, 'shorts', 'Shorts'),
     AvatarItem(shoes, 'boots', 'Botas de Cuero 🥾'),
 
     // Marks

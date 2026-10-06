@@ -27,6 +27,7 @@ CATALOG_SLOTS: Dict[str, str] = {
     "eyes": "eyes", "nose": "nose", "mouth": "mouth", "hair": "hair",
     "tops": "top", "bottoms": "bottom", "shoes": "shoes", "marks": "mark", "makeup/blush": "blush",
 }
+BODY_TYPES = ("female", "male")
 # Slots painted at load time over the eyes/mouth (face_makeup.dart): they have no sprites.
 RUNTIME_SLOTS = {"eyeshadow", "lipstick"}
 ITEM_RE = re.compile(r"AvatarItem\((\w+|'[^']*'),\s*'([^']+)'")
@@ -78,6 +79,9 @@ def scan_flat_category(cat_name: str) -> List[str]:
             items.add(f[:-5])
         elif f.endswith("_S.png"):
             items.add(f[:-6])
+    # body-fitted clothes (<style>_female1.png / <style>_male1.png) are versions of <style>
+    for body in BODY_TYPES:
+        items = {i[:-len(body) - 1] if i.endswith(f"_{body}") else i for i in items}
     return sorted(list(items))
 
 def scan_accessory_slots() -> Dict[str, List[str]]:

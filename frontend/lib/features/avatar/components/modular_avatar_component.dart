@@ -3,8 +3,8 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flame/components.dart';
-import 'package:flame/flame.dart';
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
+import 'package:flutter/services.dart' show rootBundle;
 import '../../../core/models/avatar_catalog.dart';
 import '../../../core/models/avatar_config.dart';
 import 'face_makeup.dart';
@@ -162,19 +162,35 @@ class ModularAvatarComponent extends PositionComponent {
     }
   }
 
+  static const _assetRoot = 'assets/images/OCTOPLAYER/Avatar/';
+  static final Map<String, Future<Image?>> _sprites = {};
+
+  /// An avatar sprite, or null when it does not ship with the app (optional frames: body-fitted
+  /// clothes, fallbacks). Loaded straight from the bundle instead of through Flame's image cache,
+  /// which reports a missing asset as an uncaught error even when the caller catches it. Shared by
+  /// every avatar, like that cache.
+  static Future<Image?> _loadSprite(String relativePath) {
+    return _sprites.putIfAbsent(relativePath, () async {
+      try {
+        final data = await rootBundle.load('$_assetRoot$relativePath');
+        final codec = await instantiateImageCodec(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+        return (await codec.getNextFrame()).image;
+      } catch (_) {
+        return null;
+      }
+    });
+  }
+
   Future<void> _loadOctoFrame(String layerKey, String relativePath, String cacheKey) async {
-    try {
-      final img = await Flame.images.load('OCTOPLAYER/Avatar/$relativePath');
-      _octoImageCache['$layerKey:$cacheKey'] = img;
-    } catch (_) {
-      // Ignored if specific file doesn't exist
-    }
+    final img = await _loadSprite(relativePath);
+    if (img != null) _octoImageCache['$layerKey:$cacheKey'] = img;
   }
 
   Future<void> _loadOctoEyesFrame(String relativePath, String cacheKey,
       {List<int> up = FaceMakeup.standingUp}) async {
+    final baseImg = await _loadSprite(relativePath);
+    if (baseImg == null) return;
     try {
-      final baseImg = await Flame.images.load('OCTOPLAYER/Avatar/$relativePath');
       final byteData = await baseImg.toByteData(format: ImageByteFormat.rawRgba);
       if (byteData == null) {
         _octoImageCache['eyes:$cacheKey'] = baseImg;
@@ -269,8 +285,9 @@ class ModularAvatarComponent extends PositionComponent {
       {List<int> up = FaceMakeup.standingUp}) async {
     final lipstick = config.makeup[AvatarCatalog.lipstick];
     if (lipstick == null) return _loadOctoFrame('mouth', relativePath, cacheKey);
+    final baseImg = await _loadSprite(relativePath);
+    if (baseImg == null) return;
     try {
-      final baseImg = await Flame.images.load('OCTOPLAYER/Avatar/$relativePath');
       final byteData = await baseImg.toByteData(format: ImageByteFormat.rawRgba);
       if (byteData == null) {
         _octoImageCache['mouth:$cacheKey'] = baseImg;
@@ -285,6 +302,17 @@ class ModularAvatarComponent extends PositionComponent {
     } catch (_) {
       // Ignored if specific file doesn't exist
     }
+  }
+
+  /// Garment frame fitted to the body type (`<style>_<body><suffix>`), else the style's generic one
+  /// (shared by both bodies, like the original jacket and jeans).
+  Future<void> _loadFitted(String layerKey, String folder, String style, String suffix, String cacheKey,
+      String bodyType) {
+    return _loadOctoFrame(layerKey, '$folder/${style}_$bodyType$suffix', cacheKey).then((_) {
+      if (!_octoImageCache.containsKey('$layerKey:$cacheKey')) {
+        return _loadOctoFrame(layerKey, '$folder/$style$suffix', cacheKey);
+      }
+    });
   }
 
   Future<void> reloadSprites() async {
@@ -353,12 +381,12 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Tops
         if (config.topStyle != 'none') {
-          futures.add(_loadOctoFrame('tops', 'tops/$top$k.png', k));
+          futures.add(_loadFitted('tops', 'tops', top, '$k.png', k, bodyType));
         }
 
         // Bottoms
         if (config.bottomStyle != 'none') {
-          futures.add(_loadOctoFrame('bottoms', 'bottoms/$bottom$k.png', k));
+          futures.add(_loadFitted('bottoms', 'bottoms', bottom, '$k.png', k, bodyType));
         }
 
         // Shoes (if present)
@@ -409,7 +437,7 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Tops sit frame: e.g. tops/jacket_SE_sit1.png
         if (config.topStyle != 'none') {
-          futures.add(_loadOctoFrame('tops', 'tops/${top}_${cardinal}_sit$f.png', sitKey).then((_) {
+          futures.add(_loadFitted('tops', 'tops', top, '_${cardinal}_sit$f.png', sitKey, bodyType).then((_) {
             if (!_octoImageCache.containsKey('tops:$sitKey')) {
               return _loadOctoFrame('tops', 'tops/${top}${d}_sitting_f$f.png', sitKey);
             }
@@ -418,7 +446,7 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Bottoms sit frame: e.g. bottoms/jeans_SE_sit1.png
         if (config.bottomStyle != 'none') {
-          futures.add(_loadOctoFrame('bottoms', 'bottoms/${bottom}_${cardinal}_sit$f.png', sitKey).then((_) {
+          futures.add(_loadFitted('bottoms', 'bottoms', bottom, '_${cardinal}_sit$f.png', sitKey, bodyType).then((_) {
             if (!_octoImageCache.containsKey('bottoms:$sitKey')) {
               return _loadOctoFrame('bottoms', 'bottoms/${bottom}${d}_sitting_f$f.png', sitKey);
             }
@@ -438,7 +466,7 @@ class ModularAvatarComponent extends PositionComponent {
         if ((d == 4 || d == 6) && f == 3) {
           futures.add(_loadOctoFrame('body_backleg', 'body/${bodyType}${d}_sitting_f3_backleg.png', sitKey));
           if (config.bottomStyle != 'none') {
-            futures.add(_loadOctoFrame('bottoms_backleg', 'bottoms/${bottom}_${cardinal}_backleg_sit3.png', sitKey));
+            futures.add(_loadFitted('bottoms_backleg', 'bottoms', bottom, '_${cardinal}_backleg_sit3.png', sitKey, bodyType));
           }
           if (config.shoeStyle != 'none') {
             futures.add(_loadOctoFrame('shoes_backleg', 'shoes/${config.shoeStyle}_${cardinal}_backleg_sit3.png', sitKey).then((_) {
