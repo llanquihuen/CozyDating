@@ -188,13 +188,18 @@ class AvatarLayers {
     await Future.wait(futures);
   }
 
-  /// [config] standing still, drawn on a 64x128 image like the sprite canvas.
-  static Future<Image> renderStill(AvatarConfig config, {int direction = 1}) async {
+  /// The sprite canvas every standing layer is drawn on.
+  static const Rect canvasRect = Rect.fromLTWH(0, 0, 64, 128);
+
+  /// [config] standing still, drawn at sprite resolution: the whole 64x128 canvas, or only the
+  /// [crop] part of it (in canvas pixels).
+  static Future<Image> renderStill(AvatarConfig config, {int direction = 1, Rect crop = canvasRect}) async {
     final layers = AvatarLayers(config);
     await layers.loadStill(direction: direction);
     final recorder = PictureRecorder();
-    layers.paint(Canvas(recorder), const Rect.fromLTWH(0, 0, 64, 128), '$direction');
-    return recorder.endRecording().toImage(64, 128);
+    final canvas = Canvas(recorder)..translate(-crop.left, -crop.top);
+    layers.paint(canvas, canvasRect, '$direction');
+    return recorder.endRecording().toImage(crop.width.round(), crop.height.round());
   }
 
   void _addStandingLoads(List<Future<void>> futures, int d, String k) {

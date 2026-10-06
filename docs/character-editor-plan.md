@@ -67,14 +67,16 @@ Cada fase deja la app funcionando y se puede commitear por separado.
   - Aplica el ítem sobre `base`, carga el cuadro frontal en reposo (dirección 1), pinta con
     `PictureRecorder` y recorta con `ThumbCrop` (`face`, `head`, `torso`, `legs`, `feet`, `full`).
     Los rectángulos de recorte son constantes sobre el lienzo de 64×128.
-  - Clave de caché = slot + ítem + solo los campos de la config que afectan a ese recorte (piel,
-    tipo de cuerpo, color del slot; el pelo actual en los recortes de cara/cabeza, etc.). Así,
-    cambiar el color de la polera no repinta los peinados.
+  - Clave de caché = la config con el ítem puesto, sin los campos que solo se dibujan fuera del
+    recorte (`AvatarThumbnailService.relevant`, según las filas que usa el arte). Así, cambiar los
+    zapatos o el pantalón no repinta los peinados, y cambiar los ojos o la polera no repinta los
+    zapatos. El cuello de la polera sí se ve en el recorte de cabeza. Un test comprueba, ítem por
+    ítem del catálogo, que esto no cambia ningún píxel dentro del recorte.
   - LRU de ~200 imágenes y una cola con como máximo 3 renders a la vez. Solo se pide lo visible
     (pestaña y píldora activas).
 - Pintado sin suavizado (`FilterQuality.none`) para mantener el pixel art nítido.
-- Tests: la miniatura no sale vacía; cambiar la piel invalida la caché y cambiar el color de
-  `top` no invalida las miniaturas de `hair`.
+- Tests: la miniatura no sale vacía; cambiar la piel invalida la caché y cambiar los zapatos no
+  invalida las miniaturas de `hair`.
 
 ### Fase 3 — Controlador y descripción de pestañas
 

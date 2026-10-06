@@ -244,6 +244,35 @@ class AvatarConfig extends Equatable {
     return copyWith(marks: next);
   }
 
+  /// Wears catalog item [id] in [slot] ('none' empties an optional slot). A mark is added to the
+  /// worn ones; 'none' for [AvatarCatalog.mark] removes them all.
+  AvatarConfig withItem(String slot, String id) {
+    switch (slot) {
+      case AvatarCatalog.eyes:
+        return copyWith(eyeStyle: id);
+      case AvatarCatalog.nose:
+        return copyWith(noseStyle: id);
+      case AvatarCatalog.mouth:
+        return copyWith(mouthStyle: id);
+      case AvatarCatalog.hair:
+        return copyWith(hairStyle: id);
+      case AvatarCatalog.top:
+        return copyWith(topStyle: id);
+      case AvatarCatalog.bottom:
+        return copyWith(bottomStyle: id);
+      case AvatarCatalog.shoes:
+        return copyWith(shoeStyle: id);
+      case AvatarCatalog.dress:
+        return copyWith(dressStyle: id);
+      case AvatarCatalog.mark:
+        if (id == 'none') return copyWith(marks: const []);
+        return marks.contains(id) ? this : copyWith(marks: [...marks, id]);
+    }
+    if (AvatarCatalog.accessorySlots.contains(slot)) return withAccessory(slot, id);
+    if (AvatarCatalog.makeupSlots.contains(slot)) return withMakeup(slot, id);
+    throw ArgumentError.value(slot, 'slot', 'not an avatar slot');
+  }
+
   /// This config made valid for a profile [gender] ('MAN', 'WOMAN', 'NON_BINARY'...): the body is
   /// locked for men and women, and items aimed at another audience or without art for the body are
   /// swapped for the first allowed style of their slot (or emptied).
