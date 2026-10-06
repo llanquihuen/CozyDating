@@ -20,7 +20,7 @@ Future<Uint8List> _render(AvatarConfig config, String name,
       view: lyingView,
       mirror: false,
       under: false,
-      barefoot: true,
+      barefoot: false, // lying off-bed keeps the shoes on
       canvasOrigin: ui.Offset.zero,
       bedWidth: 160,
       scale: 1,
@@ -42,14 +42,18 @@ Future<Uint8List> _render(AvatarConfig config, String name,
 void main() {
   final garments = [
     for (final item in AvatarCatalog.items)
-      if ((item.slot == AvatarCatalog.top || item.slot == AvatarCatalog.bottom) &&
-          !const {'jacket', 'jeans'}.contains(item.id))
+      if (const {AvatarCatalog.top, AvatarCatalog.bottom, AvatarCatalog.shoes}.contains(item.slot) &&
+          !const {'jacket', 'jeans', 'boots'}.contains(item.id))
         item,
   ];
 
   test('every fitted garment ships its own lying views (else the jacket/jeans fallback is drawn)', () {
     for (final item in garments) {
-      final folder = item.slot == AvatarCatalog.top ? 'tops' : 'bottoms';
+      final folder = const {
+        AvatarCatalog.top: 'tops',
+        AvatarCatalog.bottom: 'bottoms',
+        AvatarCatalog.shoes: 'shoes',
+      }[item.slot];
       for (final body in item.fits) {
         for (final v in ['A', 'B']) {
           final path = 'assets/images/OCTOPLAYER/Avatar/lying/$folder/${item.id}_${body}_lie$v.png';
@@ -75,9 +79,11 @@ void main() {
           for (final e in poses.entries) e.key: await e.value(bare, '${body}_bare_${e.key}'),
         };
         for (final item in garments.where((g) => g.fits.contains(body))) {
-          final dressed = item.slot == AvatarCatalog.top
-              ? bare.copyWith(topStyle: item.id)
-              : bare.copyWith(bottomStyle: item.id);
+          final dressed = switch (item.slot) {
+            AvatarCatalog.top => bare.copyWith(topStyle: item.id),
+            AvatarCatalog.bottom => bare.copyWith(bottomStyle: item.id),
+            _ => bare.copyWith(shoeStyle: item.id),
+          };
           for (final e in poses.entries) {
             final render = await e.value(dressed, '${body}_${item.id}_${e.key}');
             expect(render, isNot(equals(bareRenders[e.key])), reason: '${item.id} on $body, ${e.key}');

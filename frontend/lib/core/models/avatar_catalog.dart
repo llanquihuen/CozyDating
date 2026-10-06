@@ -114,6 +114,8 @@ class AvatarCatalog {
     AvatarItem(bottom, 'leggings', 'Calzas'),
     AvatarItem(bottom, 'shorts', 'Shorts'),
     AvatarItem(shoes, 'boots', 'Botas de Cuero 🥾'),
+    AvatarItem(shoes, 'sneakers', 'Zapatillas 👟'),
+    AvatarItem(shoes, 'sandals', 'Sandalias 🩴'),
 
     // Marks
     AvatarItem(mark, 'freckles', 'Pecas ✨'),

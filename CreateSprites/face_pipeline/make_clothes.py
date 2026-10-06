@@ -28,7 +28,8 @@ API = "https://api.pixellab.ai/v2"
 SKIN = (252, 213, 181)
 
 # Crop windows (y0) of the 64x128 sprite per slot: 64 rows each.
-WINDOW = {"top": 36, "bottom": 62}
+WINDOW = {"top": 36, "bottom": 62, "shoes": 64}
+FOLDER = {"top": "tops", "bottom": "bottoms", "shoes": "shoes"}
 CARDINAL = {1: "S", 2: "SE", 3: "E", 4: "NE", 5: "N", 6: "NW", 7: "W", 8: "SW"}
 MIRROR_OF = {6: 4, 7: 3, 8: 2}
 
@@ -56,6 +57,11 @@ GARMENTS = {
                      prompt="tight fitted leggings down to the ankles, light blue"),
     "shorts": dict(slot="bottom", label="Shorts", audience="neutral",
                    prompt="plain casual shorts ending above the knees with bare legs below, light blue"),
+    "sneakers": dict(slot="shoes", label="Zapatillas", audience="neutral",
+                     prompt="a pair of low-top canvas sneakers with laces and white rubber soles, light blue"),
+    "sandals": dict(slot="shoes", label="Sandalias", audience="neutral",
+                    prompt="a pair of flat strappy sandals with thin straps, the toes and most of the foot visible, "
+                           "light blue straps"),
 }
 
 
@@ -107,8 +113,11 @@ def body_paths(key, body):
 
 def other_clothes(key, slot):
     """Neutral clothes on the other half so PixelLab only dresses the requested one: jeans under a
-    top, the jacket over a bottom (both tinted far from the requested colours)."""
+    top, the jacket over a bottom (both tinted far from the requested colours). Shoes go on bare
+    legs, so the whole shoe is drawn (trousers would hide its ankle)."""
     kind, d = key[0], key[1]
+    if slot == "shoes":
+        return None
     folder, style, rgb = ("bottoms", "jeans", (40, 40, 48)) if slot == "top" else ("tops", "jacket", (40, 40, 48))
     if kind == "sit":
         path = f"{folder}/{style}_{CARDINAL[d]}_sit{key[2]}.png"
@@ -254,7 +263,7 @@ def isolate(gen, inp, slot="top"):
     # clearly coloured (as every prompt asks), drop its gray, unsaturated non-outline pixels.
     sat = lambda p: max(p[:3]) - min(p[:3])
     sats = sorted(sat(gp[p]) for p in mask)
-    if slot == "bottom" and sats and sats[len(sats) // 2] > 60:
+    if slot in ("bottom", "shoes") and sats and sats[len(sats) // 2] > 60:
         mask = {p for p in mask if sat(gp[p]) >= 20 or _lum(gp[p]) < 25}
     # drop specks: a garment is one or a few big pieces
     comps, seen = [], set()
@@ -345,7 +354,7 @@ def _out_names(garment, body, key):
 def build(garment, body):
     spec = GARMENTS[garment]
     slot = spec["slot"]
-    folder = {"top": "tops", "bottom": "bottoms"}[slot]
+    folder = FOLDER[slot]
     y0 = WINDOW[slot]
     sprites, backlegs = {}, {}
     for group in GROUPS:
@@ -359,7 +368,7 @@ def build(garment, body):
             full.alpha_composite(crop, (0, y0))
             if slot == "bottom":
                 full = raise_waist(full, key)
-            if slot == "bottom" and key[0] == "sit" and key[1] == 4 and key[2] == 3:
+            if slot in ("bottom", "shoes") and key[0] == "sit" and key[1] == 4 and key[2] == 3:
                 # the back leg is drawn behind the furniture: split the garment over it
                 backleg = _load(f"body/{body}4_sitting_f3_backleg.png")
                 main = _load(f"body/{body}4_sitting_f3.png")
@@ -397,9 +406,10 @@ LYING_FRAMES = [(b, v) for b in ("female", "male") for v in "AB"]
 def lying_input(body, view, slot):
     canvas = Image.new("RGBA", (160, 128))
     canvas.alpha_composite(_tint(_load(f"lying/body/{body}_lie{view}.png"), SKIN))
-    other = _load(f"lying/bottoms/jeans_{body}_lie{view}.png" if slot == "top" else
-                  f"lying/tops/jacket_{body}_lie{view}.png")
-    canvas.alpha_composite(_tint(other, (40, 40, 48)))
+    if slot != "shoes":
+        other = _load(f"lying/bottoms/jeans_{body}_lie{view}.png" if slot == "top" else
+                      f"lying/tops/jacket_{body}_lie{view}.png")
+        canvas.alpha_composite(_tint(other, (40, 40, 48)))
     return canvas.crop(LYING_CROP)
 
 
@@ -430,7 +440,7 @@ def generate_lying(garment, seed=42):
 
 def build_lying(garment):
     spec = GARMENTS[garment]
-    folder = {"top": "tops", "bottom": "bottoms"}[spec["slot"]]
+    folder = FOLDER[spec["slot"]]
     for b, v in LYING_FRAMES:
         path = os.path.join(GEN, f"{garment}_{b}_lie{v}.png")
         if not os.path.exists(path):

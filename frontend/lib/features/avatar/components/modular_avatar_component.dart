@@ -398,7 +398,11 @@ class ModularAvatarComponent extends PositionComponent {
               ? '${config.shoeStyle}_${cardinal}_walk$walkFrame.png'
               : '${config.shoeStyle}_$cardinal.png';
 
-          futures.add(_loadOctoFrame('shoes', 'shoes/$shoeFileName', k).then((_) {
+          // body-fitted frames first (sneakers_female1.png), then the shared cardinal / numbered ones
+          futures.add(_loadOctoFrame('shoes', 'shoes/${config.shoeStyle}_$bodyType$k.png', k).then((_) {
+            if (_octoImageCache.containsKey('shoes:$k')) return null;
+            return _loadOctoFrame('shoes', 'shoes/$shoeFileName', k);
+          }).then((_) {
             if (!_octoImageCache.containsKey('shoes:$k')) {
               return _loadOctoFrame('shoes', 'shoes/${config.shoeStyle}$k.png', k);
             }
@@ -455,7 +459,7 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Shoes sit frame: e.g. shoes/boots_SE_sit1.png
         if (config.shoeStyle != 'none') {
-          futures.add(_loadOctoFrame('shoes', 'shoes/${config.shoeStyle}_${cardinal}_sit$f.png', sitKey).then((_) {
+          futures.add(_loadFitted('shoes', 'shoes', config.shoeStyle, '_${cardinal}_sit$f.png', sitKey, bodyType).then((_) {
             if (!_octoImageCache.containsKey('shoes:$sitKey')) {
               return _loadOctoFrame('shoes', 'shoes/${config.shoeStyle}${d}_sitting_f$f.png', sitKey);
             }
@@ -469,7 +473,7 @@ class ModularAvatarComponent extends PositionComponent {
             futures.add(_loadFitted('bottoms_backleg', 'bottoms', bottom, '_${cardinal}_backleg_sit3.png', sitKey, bodyType));
           }
           if (config.shoeStyle != 'none') {
-            futures.add(_loadOctoFrame('shoes_backleg', 'shoes/${config.shoeStyle}_${cardinal}_backleg_sit3.png', sitKey).then((_) {
+            futures.add(_loadFitted('shoes_backleg', 'shoes', config.shoeStyle, '_${cardinal}_backleg_sit3.png', sitKey, bodyType).then((_) {
               if (!_octoImageCache.containsKey('shoes_backleg:$sitKey')) {
                 return _loadOctoFrame('shoes_backleg', 'shoes/${config.shoeStyle}${d}_sitting_f3_backleg.png', sitKey);
               }
