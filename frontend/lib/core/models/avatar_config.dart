@@ -244,10 +244,49 @@ class AvatarConfig extends Equatable {
     return copyWith(marks: next);
   }
 
+  /// Pseudo-slots for the base choices that are not catalog items: [availableBodyTypes] and
+  /// [availableFaceShapes]. [withItem] and [itemIn] accept them like catalog slots.
+  static const String bodySlot = 'body';
+  static const String faceShapeSlot = 'face_shape';
+
+  /// What is worn in [slot] ('none' when empty). For [AvatarCatalog.mark], which holds several,
+  /// use [marks].
+  String itemIn(String slot) {
+    switch (slot) {
+      case bodySlot:
+        return bodyType;
+      case faceShapeSlot:
+        return faceShape;
+      case AvatarCatalog.eyes:
+        return eyeStyle;
+      case AvatarCatalog.nose:
+        return noseStyle;
+      case AvatarCatalog.mouth:
+        return mouthStyle;
+      case AvatarCatalog.hair:
+        return hairStyle;
+      case AvatarCatalog.top:
+        return topStyle;
+      case AvatarCatalog.bottom:
+        return bottomStyle;
+      case AvatarCatalog.shoes:
+        return shoeStyle;
+      case AvatarCatalog.dress:
+        return dressStyle;
+    }
+    if (AvatarCatalog.accessorySlots.contains(slot)) return accessoryIn(slot);
+    if (AvatarCatalog.makeupSlots.contains(slot)) return makeupIn(slot);
+    throw ArgumentError.value(slot, 'slot', 'not a single-item avatar slot');
+  }
+
   /// Wears catalog item [id] in [slot] ('none' empties an optional slot). A mark is added to the
   /// worn ones; 'none' for [AvatarCatalog.mark] removes them all.
   AvatarConfig withItem(String slot, String id) {
     switch (slot) {
+      case bodySlot:
+        return copyWith(bodyType: id);
+      case faceShapeSlot:
+        return copyWith(faceShape: id);
       case AvatarCatalog.eyes:
         return copyWith(eyeStyle: id);
       case AvatarCatalog.nose:
