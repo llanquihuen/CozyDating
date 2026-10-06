@@ -341,15 +341,18 @@ def compose_octo_avatar(config: dict, direction: int = 1, action: str = "idle", 
     bottoms_img = _get_tinted("bottoms", bottoms_file, bottoms_rgb)
     if bottoms_img:
         canvas = Image.alpha_composite(canvas, bottoms_img)
-        # En modo caminata / detenido, estampar manos del cuerpo encima de la ropa inferior
-        if not is_sit and body_img:
-            hands_layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-            for y in range(50, 92):
-                for x in list(range(0, 25)) + list(range(39, 64)):
-                    bp = body_img.getpixel((x, y))
-                    if bp[3] > 0:
-                        hands_layer.putpixel((x, y), bp)
-            canvas = Image.alpha_composite(canvas, hands_layer)
+        # En modo caminata / detenido, las manos del cuerpo van encima de la ropa inferior. Igual
+        # que el juego: capa body/{cuerpo}_hands{d}.png (o _walk_hands_f{n}); vacía donde la mano
+        # no cruza el pantalón, así las caderas no se pintan de piel.
+        if not is_sit:
+            if action == "walk":
+                hands_name = f"{body_file}{direction}_walk_hands_f{frame + 1}.png"
+            else:
+                hands_name = f"{body_file}_hands{direction}.png"
+            hands_path = os.path.join(OCTO_AVATAR_DIR, "body", hands_name)
+            if os.path.exists(hands_path):
+                hands_img = colorize_sprite(Image.open(hands_path).convert("RGBA"), skin_rgb, category="skin")
+                canvas = Image.alpha_composite(canvas, hands_img)
 
     # 4. SHOES (Calzado)
     shoes_file = config.get("shoes", {}).get("file", "none")
