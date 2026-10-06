@@ -390,6 +390,56 @@ public class GameServerTests {
         assertNull(gameSessionService.getRoomForUser("userB")); // Bob still waiting
     }
 
+    private void setAge(String userId, int age, Integer seekingMin, Integer seekingMax) {
+        jdbcTemplate.update("UPDATE users SET age = ? WHERE id = ?", age, userId);
+        databaseService.updateUserSeekingAgeRange(userId, seekingMin, seekingMax);
+    }
+
+    private void joinSilent(String userId, String name, TestWebSocketSession session) {
+        matchmakingService.joinQueue(userId, "Santiago", "20", "SILENT", session, null, null, name, "[]", 25.0, "OTHER", "ANY", false, null, null);
+    }
+
+    @Test
+    public void testAgeFilterOffByDefault() {
+        setAge("userA", 30, null, null);
+        setAge("userB", 52, null, null);
+        joinSilent("userA", "Alice", new TestWebSocketSession("ws_age_a"));
+        joinSilent("userB", "Bob", new TestWebSocketSession("ws_age_b"));
+        assertNotNull(gameSessionService.getRoomForUser("userA"), "no age filter: any age matches");
+    }
+
+    @Test
+    public void testAgeFilterReciprocal() {
+        setAge("userA", 30, 25, 35);   // Alice seeks 25-35
+        setAge("userB", 45, null, null); // Bob is outside Alice's range
+        setAge("userD", 28, 40, 50);   // David is in Alice's range but seeks 40-50: Alice (30) is outside his, Bob (45) inside
+        joinSilent("userA", "Alice", new TestWebSocketSession("ws_age2_a"));
+        joinSilent("userB", "Bob", new TestWebSocketSession("ws_age2_b"));
+        joinSilent("userD", "David", new TestWebSocketSession("ws_age2_d"));
+        assertNull(gameSessionService.getRoomForUser("userA"), "Bob is too old for Alice; Alice too old for David");
+        assertNotNull(gameSessionService.getRoomForUser("userB"), "Bob and David have no conflicting range");
+        assertNotNull(gameSessionService.getRoomForUser("userD"));
+    }
+
+    @Test
+    public void testAgeFilterCompatibleBothWays() {
+        setAge("userA", 30, 25, 35);
+        setAge("userB", 33, 28, 40);
+        joinSilent("userA", "Alice", new TestWebSocketSession("ws_age3_a"));
+        joinSilent("userB", "Bob", new TestWebSocketSession("ws_age3_b"));
+        assertNotNull(gameSessionService.getRoomForUser("userA"));
+        assertNotNull(gameSessionService.getRoomForUser("userB"));
+    }
+
+    @Test
+    public void testUnknownAgePassesFilters() {
+        assertTrue(MatchmakingService.isAgeCompatible(25, 35, 0), "age 0 = unknown");
+        assertTrue(MatchmakingService.isAgeCompatible(null, null, 70));
+        assertTrue(MatchmakingService.isAgeCompatible(25, null, 70), "only a lower bound");
+        assertFalse(MatchmakingService.isAgeCompatible(null, 30, 31), "only an upper bound");
+        assertTrue(MatchmakingService.isAgeCompatible(25, 35, 35), "bounds are inclusive");
+    }
+
     @Test
     public void testProximityPrioritization() {
         TestWebSocketSession sessionA = new TestWebSocketSession("ws_prox_a");

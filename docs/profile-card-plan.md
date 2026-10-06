@@ -93,11 +93,14 @@ Cada fase deja la app funcionando y va en su propio commit.
   borrarlo) y conserva la intención local al leer la respuesta (el servidor no la guarda).
 - Tests: `profile_card_style_test.dart` (8) y 2 tests nuevos en `AuthAndRoomPersistenceTests`.
 
-### Fase 2 — Emparejamiento por edad
+### Fase 2 — Emparejamiento por edad — hecha
 
-- `MatchmakingService`: además del género y la distancia, la edad de cada jugador debe caer en el
-  rango del otro cuando ese rango existe. Sin rango, no filtra.
-- Tests de backend: sin filtros; filtro de un lado que excluye; filtro de ambos lados compatible.
+- `MatchmakingService`: cada jugador debe caer en el rango de edad del otro, si lo tiene
+  (`isAgeCompatible`, límites inclusivos). La edad y el rango se leen de la base al entrar a la cola
+  (son preferencias guardadas, no vienen en el mensaje de conexión). Edad desconocida (0) pasa
+  cualquier filtro; sin rango no se filtra.
+- Tests: sin filtro empareja cualquier edad; filtro recíproco (Alice acepta a David, pero David no
+  a Alice → no se emparejan; David y Bob sí); compatibles en ambos sentidos; casos de borde.
 
 ### Fase 3 — Catálogo de temas y widget `ProfileCard`
 

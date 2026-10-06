@@ -42,6 +42,11 @@ public class MatchmakingService {
         public final boolean isInternational;
         public final Double latitude;
         public final Double longitude;
+        /** Player's age; 0 when unknown (then it passes any age filter). */
+        public final int age;
+        /** Age range sought; a null bound means no limit on that side. */
+        public final Integer seekingAgeMin;
+        public final Integer seekingAgeMax;
 
         public QueueEntry(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
                           Object avatarConfig, Object roomConfig, String username, Object tastes, double maxDistanceKm) {
@@ -52,6 +57,14 @@ public class MatchmakingService {
         public QueueEntry(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
                           Object avatarConfig, Object roomConfig, String username, Object tastes, double maxDistanceKm,
                           String gender, String seekingGender, boolean isInternational, Double latitude, Double longitude) {
+            this(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, tastes, maxDistanceKm,
+                 gender, seekingGender, isInternational, latitude, longitude, 0, null, null);
+        }
+
+        public QueueEntry(String userId, String commune, String timeSlot, String mode, WebSocketSession session,
+                          Object avatarConfig, Object roomConfig, String username, Object tastes, double maxDistanceKm,
+                          String gender, String seekingGender, boolean isInternational, Double latitude, Double longitude,
+                          int age, Integer seekingAgeMin, Integer seekingAgeMax) {
             this.userId = userId;
             this.commune = commune != null && !commune.trim().isEmpty() ? commune : "Santiago";
             this.timeSlot = timeSlot;
@@ -67,6 +80,9 @@ public class MatchmakingService {
             this.isInternational = isInternational;
             this.latitude = latitude;
             this.longitude = longitude;
+            this.age = age;
+            this.seekingAgeMin = seekingAgeMin;
+            this.seekingAgeMax = seekingAgeMax;
             this.timestamp = System.currentTimeMillis();
         }
 
@@ -144,12 +160,17 @@ public class MatchmakingService {
         Double resolvedLat = latitude != null ? latitude : (userEntity != null ? userEntity.getLatitude() : null);
         Double resolvedLon = longitude != null ? longitude : (userEntity != null ? userEntity.getLongitude() : null);
         double resolvedMaxDist = maxDistanceKm > 0 ? maxDistanceKm : (userEntity != null && userEntity.getMaxDistanceKm() > 0 ? userEntity.getMaxDistanceKm() : 25.0);
+        // Age and the age range sought are stored profile preferences, not part of the join request.
+        int resolvedAge = userEntity != null ? userEntity.getAge() : 0;
+        Integer resolvedAgeMin = userEntity != null ? userEntity.getSeekingAgeMin() : null;
+        Integer resolvedAgeMax = userEntity != null ? userEntity.getSeekingAgeMax() : null;
 
         for (int i = 0; i < queue.size(); i++) {
             QueueEntry entry = queue.get(i);
             if (entry.userId.equals(userId)) {
                 logger.info("[MATCHMAKING UPDATE] User {} is ALREADY in queue. Updating session and candidate parameters.", userId);
-                queue.set(i, new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes, resolvedMaxDist, resolvedGender, resolvedSeeking, resolvedIntl, resolvedLat, resolvedLon));
+                queue.set(i, new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes, resolvedMaxDist, resolvedGender, resolvedSeeking, resolvedIntl, resolvedLat, resolvedLon,
+                        resolvedAge, resolvedAgeMin, resolvedAgeMax));
                 checkAndFormMatches();
                 return true;
             }
@@ -164,7 +185,8 @@ public class MatchmakingService {
             }
         }
 
-        QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes, resolvedMaxDist, resolvedGender, resolvedSeeking, resolvedIntl, resolvedLat, resolvedLon);
+        QueueEntry newEntry = new QueueEntry(userId, commune, timeSlot, mode, session, avatarConfig, roomConfig, username, resolvedTastes, resolvedMaxDist, resolvedGender, resolvedSeeking, resolvedIntl, resolvedLat, resolvedLon,
+                resolvedAge, resolvedAgeMin, resolvedAgeMax);
         queue.add(newEntry);
         logger.info("[MATCHMAKING QUEUED] User {} successfully added to queue. Current Queue Size: {}", userId, queue.size());
 
@@ -198,6 +220,14 @@ public class MatchmakingService {
             return true;
         }
         return seeking.trim().equalsIgnoreCase(candidateGender.trim());
+    }
+
+    /** Whether {@code candidateAge} falls in the range sought (null bounds: no limit; unknown age 0: passes). */
+    public static boolean isAgeCompatible(Integer seekingMin, Integer seekingMax, int candidateAge) {
+        if (candidateAge <= 0) {
+            return true;
+        }
+        return (seekingMin == null || candidateAge >= seekingMin) && (seekingMax == null || candidateAge <= seekingMax);
     }
 
     @Scheduled(fixedDelay = 3000)
@@ -234,9 +264,13 @@ public class MatchmakingService {
                 boolean genderMatch = isGenderCompatible(entryA.seekingGender, entryB.gender)
                         && isGenderCompatible(entryB.seekingGender, entryA.gender);
 
+                // Like gender: each must fall in the other's age range, when one is set.
+                boolean ageMatch = isAgeCompatible(entryA.seekingAgeMin, entryA.seekingAgeMax, entryB.age)
+                        && isAgeCompatible(entryB.seekingAgeMin, entryB.seekingAgeMax, entryA.age);
+
                 boolean distanceMatch = entryA.isInternational || entryB.isInternational || (distanceKm <= radiusA && distanceKm <= radiusB);
 
-                if (modeMatch && slotMatch && differentUsers && notBlocked && notPreviouslyMet && genderMatch && distanceMatch) {
+                if (modeMatch && slotMatch && differentUsers && notBlocked && notPreviouslyMet && genderMatch && ageMatch && distanceMatch) {
                     if (distanceKm < bestDistance) {
                         bestDistance = distanceKm;
                         bestCandidate = entryB;
