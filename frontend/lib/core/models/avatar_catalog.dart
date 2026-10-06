@@ -50,6 +50,14 @@ class AvatarCatalog {
     AvatarItem(eyes, 'cateyes', 'Ojos Felinos 🐱'),
     AvatarItem(eyes, 'closedeyes', 'Ojos Cerrados 😌'),
     AvatarItem(eyes, 'relax', 'Ojos Relajados 🍃'),
+    AvatarItem(eyes, 'sparkle', 'Ojos Kawaii ✨'),
+    AvatarItem(eyes, 'anime', 'Ojos Anime 🌟'),
+    AvatarItem(eyes, 'serious', 'Ojos Serios 😐'),
+    AvatarItem(eyes, 'sleepy', 'Ojos Somnolientos 😪'),
+    AvatarItem(eyes, 'winged', 'Ojos Delineados 💅'),
+    AvatarItem(eyes, 'puppy', 'Ojos de Cachorrito 🥺'),
+    AvatarItem(eyes, 'hearts', 'Ojos Enamorados 😍'),
+    AvatarItem(eyes, 'wink', 'Guiño 😉'),
 
     // Nose
     AvatarItem(nose, 'small', 'Nariz Pequeña'),
@@ -60,6 +68,10 @@ class AvatarCatalog {
     AvatarItem(mouth, 'catmouth', 'Boca Gatito 🐱'),
     AvatarItem(mouth, 'smile', 'Sonrisa Dulce 😊'),
     AvatarItem(mouth, 'smirk', 'Sonrisa Pícara 😏'),
+    AvatarItem(mouth, 'grin', 'Sonrisa Abierta 😄'),
+    AvatarItem(mouth, 'neutral', 'Boca Neutral 😐'),
+    AvatarItem(mouth, 'fang', 'Sonrisa con Colmillo 😺'),
+    AvatarItem(mouth, 'pout', 'Boquita de Beso 😗'),
 
     // Hair
     AvatarItem(hair, 'bangs', 'Flequillo / Bangs'),
