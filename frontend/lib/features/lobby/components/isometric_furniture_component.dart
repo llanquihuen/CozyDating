@@ -71,15 +71,11 @@ class IsometricFurnitureComponent extends PositionComponent {
 
   bool get isWardrobe => type == FurnitureType.wardrobe || id.contains('wardrobe') || typeName.contains('wardrobe');
   bool get isPortal => type == FurnitureType.portal || id.contains('portal') || typeName.contains('portal');
-  bool get isChair =>
-      id.contains('chair') ||
-      typeName.contains('chair') ||
-      id.contains('armchair') ||
-      typeName.contains('armchair') ||
-      id.contains('sofa') ||
-      typeName.contains('sofa') ||
-      id.contains('couch') ||
-      typeName.contains('couch');
+  /// Furniture an avatar can sit on, by name: chairs, armchairs, sofas, couches and the toilet.
+  static bool isSeatName(String name) =>
+      name.contains('chair') || name.contains('sofa') || name.contains('couch') || name.contains('toilet');
+
+  bool get isChair => isSeatName(id) || isSeatName(typeName);
   final bool hasTableMagnet;
   bool get canSnapToTable {
     if (hasTableMagnet) return true;
@@ -99,6 +95,20 @@ class IsometricFurnitureComponent extends PositionComponent {
 
   final Map<int, Sprite> chairBaseSprites;
   final Map<int, Sprite> chairFrontSprites;
+
+  /// Base / front layers used instead of the above while someone sits here (the toilet with
+  /// its lid up), from *_rot{r}_seated.png and *_rot{r}_seated_front.png.
+  final Map<int, Sprite> chairSeatedBaseSprites;
+  final Map<int, Sprite> chairSeatedFrontSprites;
+
+  /// Avatars sitting on this seat (kept by IsometricAvatarComponent.sitOnChair / standUp).
+  final Set<Object> seatedAvatars = {};
+  bool get isOccupied => seatedAvatars.isNotEmpty;
+
+  Sprite? get currentChairBaseSprite =>
+      (isOccupied ? chairSeatedBaseSprites[rotation] : null) ?? chairBaseSprites[rotation];
+  Sprite? get currentChairFrontSprite =>
+      (isOccupied ? chairSeatedFrontSprites[rotation] : null) ?? chairFrontSprites[rotation];
   final Map<int, List<Sprite>> animatedRotationSprites;
   bool isActivated;
   double frameDuration;
@@ -117,8 +127,9 @@ class IsometricFurnitureComponent extends PositionComponent {
   Map<int, Sprite> get chairBackrestSprites => chairFrontSprites;
   ChairBackrestOverlayComponent? _backrestOverlay;
 
-  /// Avatars lying under this bed's covers (its blanket overlay is drawn while non-empty).
-  final Set<Object> sleepersUnder = {};
+  /// Avatars lying under this bed's covers -> the side they lie on (the blanket overlay of
+  /// those sides is drawn while non-empty).
+  final Map<Object, int> sleepersUnder = {};
   BedFrontOverlayComponent? _bedOverlay;
   bool get isSurfaceItem => footprint == 'surface' || id == 'table_lamp' || id == 'coffee_mug' || id == 'open_book' || id == 'cooking_pot' || id == 'cutting_board' || id == 'soap_bottles' || id == 'plush_teddy' || typeName == 'table_lamp' || typeName == 'coffee_mug' || typeName == 'open_book' || typeName == 'cooking_pot' || typeName == 'cutting_board' || typeName == 'soap_bottles' || typeName == 'plush_teddy';
   bool get isWallItem {
@@ -156,6 +167,8 @@ class IsometricFurnitureComponent extends PositionComponent {
     this.hasTableMagnet = false,
     Map<int, Sprite>? chairBaseSprites,
     Map<int, Sprite>? chairFrontSprites,
+    Map<int, Sprite>? chairSeatedBaseSprites,
+    Map<int, Sprite>? chairSeatedFrontSprites,
     Map<int, Sprite>? chairBackrestSprites,
     Map<int, Sprite>? rotationSprites,
     Map<int, List<Sprite>>? animatedRotationSprites,
@@ -166,6 +179,8 @@ class IsometricFurnitureComponent extends PositionComponent {
   })  : id = id ?? (type == FurnitureType.portal ? 'portal' : (type == FurnitureType.wardrobe ? 'closet' : 'furniture_${gridX}_$gridY')),
         typeName = typeName ?? id ?? (type == FurnitureType.portal ? 'portal' : (type == FurnitureType.wardrobe ? 'closet' : 'furniture_${gridX}_$gridY')),
         chairBaseSprites = chairBaseSprites ?? {},
+        chairSeatedBaseSprites = chairSeatedBaseSprites ?? {},
+        chairSeatedFrontSprites = chairSeatedFrontSprites ?? {},
         chairFrontSprites = chairFrontSprites ?? chairBackrestSprites ?? {},
         rotationSprites = rotationSprites ?? {},
         animatedRotationSprites = animatedRotationSprites ?? {} {
@@ -746,7 +761,7 @@ class IsometricFurnitureComponent extends PositionComponent {
     }
 
     if (isChair) {
-      final base = chairBaseSprites[rotation] ?? sprite;
+      final base = currentChairBaseSprite ?? sprite;
       if (base != null) {
         base.render(
           canvas,
@@ -1027,7 +1042,7 @@ class ChairBackrestOverlayComponent extends PositionComponent {
   void render(Canvas canvas) {
     if (!chair.isMounted || !chair.isChair) return;
 
-    final front = chair.chairFrontSprites[chair.rotation];
+    final front = chair.currentChairFrontSprite;
     if (front == null) return;
 
     canvas.save();
@@ -1048,7 +1063,8 @@ class ChairBackrestOverlayComponent extends PositionComponent {
 /// Bed parts that stand in front of a lying avatar, drawn above it like a chair's backrest:
 /// the head/footboard wood at the pillow-facing end (always) and the blanket redrawn with the
 /// body's bulge (only while someone is under the covers). Sprites are per rotation, from
-/// assets/images/furniture/sleep_overlays/ (see BedSleepConfig.overlayPath).
+/// assets/images/furniture/sleep_overlays/ (see BedSleepConfig.frontOverlayPath and
+/// blanketOverlayPath).
 class BedFrontOverlayComponent extends PositionComponent {
   final IsometricFurnitureComponent bed;
   final Map<String, Sprite?> _cache = {};
@@ -1056,8 +1072,7 @@ class BedFrontOverlayComponent extends PositionComponent {
 
   BedFrontOverlayComponent(this.bed);
 
-  Sprite? _sprite(bool blanket) {
-    final path = BedSleepConfig.overlayPath(bed.id, bed.typeName, bed.rotation, blanket: blanket);
+  Sprite? _sprite(String? path) {
     if (path == null) return null;
     if (_cache.containsKey(path)) return _cache[path];
     if (_loading.add(path)) _load(path);
@@ -1083,8 +1098,9 @@ class BedFrontOverlayComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     if (!bed.isMounted) return;
-    final front = _sprite(false);
-    final blanket = bed.sleepersUnder.isNotEmpty ? _sprite(true) : null;
+    final front = _sprite(BedSleepConfig.frontOverlayPath(bed.id, bed.typeName, bed.rotation));
+    final blanket = _sprite(BedSleepConfig.blanketOverlayPath(
+        bed.id, bed.typeName, bed.rotation, bed.sleepersUnder.values.toSet()));
     if (front == null && blanket == null) return;
 
     canvas.save();

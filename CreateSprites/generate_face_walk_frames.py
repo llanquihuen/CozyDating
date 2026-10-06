@@ -1,5 +1,5 @@
 """
-generate_face_walk_frames.py - Generador de frames de caminata para Ojos, Nariz, Boca, Cabeza, Accesorios y Pelo
+generate_face_walk_frames.py - Generador de frames de caminata para Ojos, Nariz, Boca, Cabeza, Marcas, Accesorios y Pelo
 Toma los sprites estáticos (1..8) y genera automáticamente los 32 frames de caminata (4 frames x 8 direcciones).
 Convención de pantalla: Y positivo (hacia arriba) = -dy en pantalla.
 """
@@ -93,12 +93,13 @@ def generate_walk_frames_for_hair():
     print(f"[OK] Creados {count} frames de caminata para 'hair' (front y back).")
 
 def regenerate_all_walk_frames():
-    print("=== Regenerando frames de caminata para Ojos, Nariz, Boca, Cabeza, Accesorios y Pelo ===")
+    print("=== Regenerando frames de caminata para Ojos, Nariz, Boca, Cabeza, Marcas, Accesorios y Pelo ===")
     generate_walk_frames_for_category("eyes")
     generate_walk_frames_for_category("nose")
     generate_walk_frames_for_category("mouth")
     generate_walk_frames_for_category("head")
-    generate_walk_frames_for_category("accessories")
+    generate_walk_frames_for_category("marks")
+    generate_walk_frames_for_category("accessories")  # recorre las subcarpetas por espacio
     generate_walk_frames_for_hair()
     print("=== Completado con éxito ===")
 

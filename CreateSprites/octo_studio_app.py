@@ -92,11 +92,16 @@ class OctoStudioApp:
         self.seat_voff_y = tk.DoubleVar(value=0.0)
         self.seat_toff_x = tk.DoubleVar(value=0.0)
         self.seat_toff_y = tk.DoubleVar(value=-18.0)
+        # Working copy {item_id: {rot: [spots]}} seeded from chair_seat_config.dart, so edits in one
+        # rotation survive switching to another until they are saved or copied.
+        self.seat_work = {}
 
         # Estado calibrador de camas (acostarse) — fuente de verdad: bed_sleep_config.dart
         self.show_lying_var = tk.BooleanVar(value=False)
         self.lie_under_var = tk.BooleanVar(value=False)
         self.lie_body_var = tk.StringVar(value="male")
+        self.lie_side_var = tk.IntVar(value=0)            # side of a bed for two (king_bed)
+        self.lie_other_var = tk.BooleanVar(value=True)    # also draw whoever lies on the other side
         self.lie_hair_var = tk.StringVar(value="comb_over")
         self.lie_eyes_var = tk.StringVar(value="cateyes")
         self.lie_mouth_var = tk.StringVar(value="smile")
@@ -1202,8 +1207,10 @@ class OctoStudioApp:
         tk.Button(vo_btns, text="▲▲ -5y", font=("Segoe UI", 8), bg="#1E2030", fg="#FFF", bd=0, padx=3, pady=1, command=lambda: self._nudge_seat_visual_offset(0, -5)).pack(side=tk.LEFT, padx=1)
         tk.Button(vo_btns, text="▼▼ +5y", font=("Segoe UI", 8), bg="#1E2030", fg="#FFF", bd=0, padx=3, pady=1, command=lambda: self._nudge_seat_visual_offset(0, 5)).pack(side=tk.LEFT, padx=1)
 
+        save_seat_btn = tk.Button(self.seat_box, text="💾 Guardar en chair_seat_config.dart (4 rotaciones)", font=("Segoe UI", 9, "bold"), bg="#16A34A", fg="#FFF", bd=0, pady=4, cursor="hand2", command=self._save_seat_config)
+        save_seat_btn.pack(fill=tk.X, pady=(6, 2))
         copy_seat_btn = tk.Button(self.seat_box, text="📋 Copiar Configuración Dart (chair_seat_config.dart)", font=("Segoe UI", 9, "bold"), bg="#0284C7", fg="#FFF", bd=0, pady=4, cursor="hand2", command=self._copy_seat_dart_code)
-        copy_seat_btn.pack(fill=tk.X, pady=(6, 2))
+        copy_seat_btn.pack(fill=tk.X, pady=(2, 2))
 
         # 2b. CALIBRADOR DE CAMAS (ACOSTARSE)
         self._build_bed_sleep_calibrator(r_content)
@@ -1629,23 +1636,8 @@ class OctoStudioApp:
         fmeta = self.furn_catalog.get(fid, {})
         self.custom_sprite_offset = None # Usar offset por defecto del mueble
 
-        # Cargar preset de asiento si existe
-        seat_presets = fie.DEFAULT_SEAT_CONFIGS.get(fid, {})
-        rot_spots = seat_presets.get(self.selected_furn_rot, [])
-        if rot_spots:
-            idx = min(self.seat_slot_idx, len(rot_spots) - 1)
-            spot = rot_spots[idx]
-            self.seat_sub_u.set(spot["sub_cell"][0])
-            self.seat_sub_v.set(spot["sub_cell"][1])
-            self.seat_voff_x.set(spot["visual_offset"][0])
-            self.seat_voff_y.set(spot["visual_offset"][1])
-            self.seat_toff_x.set(spot["tap_offset"][0])
-            self.seat_toff_y.set(spot["tap_offset"][1])
-        else:
-            self.seat_sub_u.set(0)
-            self.seat_sub_v.set(0)
-            self.seat_voff_x.set(-2.0)
-            self.seat_voff_y.set(0.0)
+        # Cargar el asiento tal como lo usa el juego (copia de trabajo de chair_seat_config.dart)
+        self._load_seat_vars()
 
         # Configurar superficie si aplica
         if fmeta.get("supports_surface") or fmeta.get("footprint") == "surface":
@@ -1665,23 +1657,15 @@ class OctoStudioApp:
         self._update_furniture_preview()
 
     def _set_furniture_rot(self, rot_val):
+        if self.furn_catalog.get(self.selected_furn_id.get(), {}).get("is_chair"):
+            self._store_seat_vars()   # keep what was typed for the rotation we leave
         self.selected_furn_rot = rot_val
         for k, btn in self.furn_rot_btns.items():
             btn.config(bg="#2563EB" if k == rot_val else "#262A40")
 
-        # Cargar valores de asiento para esta rotación si existen
+        # Cargar valores de asiento para esta rotación (copia de trabajo: no se pierden al rotar)
         fid = self.selected_furn_id.get()
-        seat_presets = fie.DEFAULT_SEAT_CONFIGS.get(fid, {})
-        rot_spots = seat_presets.get(rot_val, [])
-        if rot_spots:
-            idx = min(self.seat_slot_idx, len(rot_spots) - 1)
-            spot = rot_spots[idx]
-            self.seat_sub_u.set(spot["sub_cell"][0])
-            self.seat_sub_v.set(spot["sub_cell"][1])
-            self.seat_voff_x.set(spot["visual_offset"][0])
-            self.seat_voff_y.set(spot["visual_offset"][1])
-            self.seat_toff_x.set(spot["tap_offset"][0])
-            self.seat_toff_y.set(spot["tap_offset"][1])
+        self._load_seat_vars()
 
         # Cargar valores de superficie para esta rotación si aplican
         fmeta = self.furn_catalog.get(fid, {})
@@ -1728,7 +1712,8 @@ class OctoStudioApp:
         box.pack(fill=tk.X, pady=4)
         guide_txt = (
             "ℹ️ CÓMO CALIBRAR CAMAS:\n"
-            "1. Elige una cama (single_bed / single_high_bed) y activa 'Avatar Acostado' arriba.\n"
+            "1. Elige una cama (single_bed / single_high_bed / king_bed) y activa 'Avatar Acostado' arriba.\n"
+            "   En la cama King elige el 'Lado' a calibrar (1 = la mitad más cercana a la cámara).\n"
             "2. La cruz roja es baseHead (dónde va la cabeza); la línea es el eje del cuerpo.\n"
             "   Céntrala a lo largo del colchón y con la cabeza sobre la almohada.\n"
             "3. Las flechas diagonales siguen los ejes isométricos de la cama (ancho / largo).\n"
@@ -1742,6 +1727,13 @@ class OctoStudioApp:
         for val, txt in (("male", "Hombre"), ("female", "Mujer")):
             tk.Radiobutton(opt, text=txt, value=val, variable=self.lie_body_var, bg="#181926", fg="#E2E8F0", selectcolor="#2D3250",
                            font=("Segoe UI", 8), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=2)
+        sides = tk.Frame(box, bg="#181926"); sides.pack(fill=tk.X, pady=2)
+        tk.Label(sides, text="Lado (cama King):", font=("Segoe UI", 8), bg="#181926", fg="#94A3B8").pack(side=tk.LEFT, padx=(2, 4))
+        for val in (0, 1):
+            tk.Radiobutton(sides, text=str(val), value=val, variable=self.lie_side_var, bg="#181926", fg="#E2E8F0", selectcolor="#2D3250",
+                           font=("Segoe UI", 8), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=2)
+        tk.Checkbutton(sides, text="Mostrar al otro lado", variable=self.lie_other_var, bg="#181926", fg="#A78BFA", selectcolor="#2D3250",
+                       font=("Segoe UI", 8), command=self._update_furniture_preview).pack(side=tk.LEFT, padx=6)
 
         # Look of the preview avatar: every style that has lying art (scanned from lying/ folders)
         styles = bsc.available_styles()
@@ -1852,16 +1844,24 @@ class OctoStudioApp:
         self.lie_wardrobe_colors_var.set(True)
         self._update_furniture_preview()
 
+    def _bed_side(self):
+        """Side being calibrated, clamped to the sides this bed has."""
+        n = bsc.side_count(self.bed_spots, self.selected_furn_id.get())
+        return min(self.lie_side_var.get(), max(0, n - 1))
+
+    def _bed_key(self):
+        return bsc.spot_key(self.selected_furn_id.get(), self._bed_side())
+
     def _current_bed_spot(self):
-        return self.bed_spots.get(self.selected_furn_id.get(), {}).get(self.selected_furn_rot)
+        return self.bed_spots.get(self._bed_key(), {}).get(self.selected_furn_rot)
 
     def _refresh_bed_label(self):
         spot = self._current_bed_spot()
         if spot is None:
-            self.bed_head_lbl.config(text="Este mueble no es una cama configurable\n(bed_sleep_config.dart: single_bed, single_high_bed).")
+            self.bed_head_lbl.config(text="Este mueble no es una cama configurable\n(bed_sleep_config.dart: single_bed, single_high_bed, king_bed).")
             return
         self.bed_head_lbl.config(text=(
-            f"rot {self.selected_furn_rot}: vista {spot['view'].upper()}  espejo={'sí' if spot['mirror'] else 'no'}\n"
+            f"{self._bed_key()}  rot {self.selected_furn_rot}: vista {spot['view'].upper()}  espejo={'sí' if spot['mirror'] else 'no'}\n"
             f"baseHead = ({spot['head'][0]:g}, {spot['head'][1]:g})  (px del sprite, rotación base sin espejo)"))
 
     def _nudge_bed_head(self, dx, dy):
@@ -1875,7 +1875,7 @@ class OctoStudioApp:
         if self.lie_sync_mirror_var.get():
             targets.append(rot ^ 1)   # 0<->1, 2<->3 share the same (unmirrored) baseHead
         for r in targets:
-            s = self.bed_spots[self.selected_furn_id.get()].get(r)
+            s = self.bed_spots[self._bed_key()].get(r)
             if s is not None:
                 s["head"] = [s["head"][0] + bdx, s["head"][1] + bdy]
         self._update_furniture_preview()
@@ -1899,52 +1899,77 @@ class OctoStudioApp:
             messagebox.showerror("Calibrador de Camas", f"No se pudo leer: {e}")
         self._update_furniture_preview()
 
+    def _seat_rot_spots(self, fid=None, rot=None):
+        """Working list of seats for an item rotation, seeded from chair_seat_config.dart (or the
+        game's geometric fallback for a seat that is not configured yet)."""
+        fid = fid if fid is not None else self.selected_furn_id.get()
+        rot = rot if rot is not None else self.selected_furn_rot
+        work = self.seat_work.setdefault(fid, {})
+        if rot not in work:
+            preset = fie.DEFAULT_SEAT_CONFIGS.get(fid, {}).get(rot)
+            fp = self.furn_catalog.get(fid, {}).get("footprint", "1x1")
+            work[rot] = [dict(sp) for sp in preset] if preset else [fie.default_seat_spot(fp)]
+        return work[rot]
+
+    def _load_seat_vars(self):
+        spots = self._seat_rot_spots()
+        spot = spots[min(self.seat_slot_idx, len(spots) - 1)]
+        self.seat_sub_u.set(spot["sub_cell"][0])
+        self.seat_sub_v.set(spot["sub_cell"][1])
+        self.seat_voff_x.set(spot["visual_offset"][0])
+        self.seat_voff_y.set(spot["visual_offset"][1])
+        self.seat_toff_x.set(spot["tap_offset"][0])
+        self.seat_toff_y.set(spot["tap_offset"][1])
+        if hasattr(self, "seat_vo_lbl"):
+            self.seat_vo_lbl.config(text=f"visualOffset: dx={self.seat_voff_x.get():.1f}, dy={self.seat_voff_y.get():.1f}")
+
+    def _store_seat_vars(self):
+        """Writes the calibrator fields back into the working copy (current item, rotation, slot)."""
+        spots = self._seat_rot_spots()
+        idx = self.seat_slot_idx
+        while len(spots) <= idx:
+            spots.append(dict(spots[-1], slot=len(spots)))
+        spots[idx] = {
+            "slot": idx,
+            "sub_cell": [int(self.seat_sub_u.get()), int(self.seat_sub_v.get())],
+            "visual_offset": [float(self.seat_voff_x.get()), float(self.seat_voff_y.get())],
+            "tap_offset": [float(self.seat_toff_x.get()), float(self.seat_toff_y.get())],
+        }
+
     def _on_seat_slot_changed(self, event=None):
         self.seat_slot_idx = self.seat_slot_combo.current()
-        fid = self.selected_furn_id.get()
-        seat_presets = fie.DEFAULT_SEAT_CONFIGS.get(fid, {})
-        rot_spots = seat_presets.get(self.selected_furn_rot, [])
-        if rot_spots and self.seat_slot_idx < len(rot_spots):
-            spot = rot_spots[self.seat_slot_idx]
-            self.seat_sub_u.set(spot["sub_cell"][0])
-            self.seat_sub_v.set(spot["sub_cell"][1])
-            self.seat_voff_x.set(spot["visual_offset"][0])
-            self.seat_voff_y.set(spot["visual_offset"][1])
-            self.seat_toff_x.set(spot["tap_offset"][0])
-            self.seat_toff_y.set(spot["tap_offset"][1])
+        self._load_seat_vars()
         self._update_furniture_preview()
 
     def _on_seat_param_changed(self):
+        self._store_seat_vars()
         self._update_furniture_preview()
 
     def _nudge_seat_visual_offset(self, dx, dy):
         self.seat_voff_x.set(round(self.seat_voff_x.get() + dx, 1))
         self.seat_voff_y.set(round(self.seat_voff_y.get() + dy, 1))
+        self._store_seat_vars()
         self._update_furniture_preview()
 
-    def _copy_seat_dart_code(self):
+    def _seat_dict_for_save(self):
         fid = self.selected_furn_id.get()
-        # Construir estructura para todas las 4 rotaciones usando los valores actuales
-        seat_dict = {}
-        for r in range(4):
-            preset_spots = fie.DEFAULT_SEAT_CONFIGS.get(fid, {}).get(r, [])
-            if r == self.selected_furn_rot:
-                current_spot = {
-                    "slot": self.seat_slot_idx,
-                    "sub_cell": [int(self.seat_sub_u.get()), int(self.seat_sub_v.get())],
-                    "visual_offset": [float(self.seat_voff_x.get()), float(self.seat_voff_y.get())],
-                    "tap_offset": [float(self.seat_toff_x.get()), float(self.seat_toff_y.get())]
-                }
-                if preset_spots and len(preset_spots) > 1:
-                    spots = list(preset_spots)
-                    spots[min(self.seat_slot_idx, len(spots) - 1)] = current_spot
-                    seat_dict[r] = spots
-                else:
-                    seat_dict[r] = [current_spot]
-            else:
-                seat_dict[r] = preset_spots if preset_spots else [{
-                    "slot": 0, "sub_cell": [0, 0], "visual_offset": [0.0, 0.0], "tap_offset": [0.0, -18.0]
-                }]
+        self._store_seat_vars()
+        return fid, {r: [dict(sp) for sp in self._seat_rot_spots(fid, r)] for r in range(4)}
+
+    def _save_seat_config(self):
+        fid, seat_dict = self._seat_dict_for_save()
+        try:
+            fie.save_seat_config(fid, seat_dict)
+        except Exception as e:
+            messagebox.showerror("Calibrador de Asientos", f"No se pudo guardar: {e}")
+            return
+        messagebox.showinfo("Calibrador de Asientos",
+                            f"'{fid}' guardado en chair_seat_config.dart (4 rotaciones).\n"
+                            "En el juego haz HOT RESTART (R) para verlo.")
+
+    def _copy_seat_dart_code(self):
+        # Las 4 rotaciones con lo editado en cada una (copia de trabajo)
+        fid, seat_dict = self._seat_dict_for_save()
 
         dart_code = fie.generate_chair_seat_dart_code(fid, seat_dict)
         self.root.clipboard_clear()
@@ -2182,7 +2207,12 @@ class OctoStudioApp:
         lying_spot = self._current_bed_spot() if self.show_lying_var.get() else None
         if lying_spot is not None:
             try:
+                n_sides = bsc.side_count(self.bed_spots, fid)
+                side = self._bed_side()
+                others = [(o, self.bed_spots[bsc.spot_key(fid, o)][self.selected_furn_rot], self.lie_under_var.get())
+                          for o in range(n_sides) if o != side and self.lie_other_var.get()]
                 img = bsc.render_preview(fid, self.selected_furn_rot, lying_spot, under=self.lie_under_var.get(),
+                                         others=others, n_sides=n_sides, side=side,
                                          look=self._lie_look())
                 scene_img = img.resize((img.width * self.furn_zoom, img.height * self.furn_zoom), Image.NEAREST)
             except Exception as e:

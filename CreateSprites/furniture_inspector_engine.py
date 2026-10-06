@@ -23,7 +23,127 @@ TILE_H = 64
 SUB_W = 64
 SUB_H = 32
 
-# Presets iniciales de asientos desde chair_seat_config.dart
+FURNITURE_DIR = os.path.dirname(NEW_ADDED_DIR)
+ESTABLISHED_DIR = os.path.join(FURNITURE_DIR, "established_furniture")
+SEAT_CONFIG_DART = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "..", "frontend", "lib", "features", "lobby", "data", "chair_seat_config.dart"
+))
+
+# Same as the game's ModularAvatarComponent size (IsometricAvatarComponent.avatarWidth/Height = 30x60
+# Flame units): the 64x128 sprite is drawn SHRUNK to 60x120 HD px, feet 4 Flame units above its bottom.
+AVATAR_HD_W, AVATAR_HD_H = 60, 120
+
+
+def is_seat_name(name):
+    """Same rule as IsometricFurnitureComponent.isSeatName."""
+    return any(k in name for k in ("chair", "sofa", "couch", "toilet"))
+
+
+def default_seat_spot(footprint):
+    """The game's geometric fallback (ChairSeatConfig.getSpots) for a seat that is not configured."""
+    w, h = {"0.5x0.5": (1, 1), "1x1": (2, 2), "2x1": (4, 2), "1x2": (2, 4), "2x2": (4, 4)}.get(footprint, (2, 2))
+    big = w > 1 or h > 1
+    return {"slot": 0, "sub_cell": [1 if w > 1 else 0, 1 if h > 1 else 0],
+            "visual_offset": [0.0, -6.0] if big else [0.0, 0.0], "tap_offset": [0.0, -18.0]}
+
+
+_SEAT_RE = re.compile(
+    r"SeatSpot\(\s*slotIndex:\s*(\d+),\s*subCell:\s*const Point\((-?\d+),\s*(-?\d+)\),\s*"
+    r"visualOffset:\s*Vector2\(([-\d.]+),\s*([-\d.]+)\)"
+    r"(?:,\s*tapOffset:\s*Vector2\(([-\d.]+),\s*([-\d.]+)\))?\s*\)")
+_SEAT_MAP_START = "static final Map<String, Map<int, List<SeatSpot>>> _spots = {"
+
+
+def _seat_map_bounds(src):
+    start = src.index(_SEAT_MAP_START) + len(_SEAT_MAP_START)
+    return start, src.index("\n  };", start)
+
+
+def load_seat_configs():
+    """{item_id: {rot: [spot dicts]}} read straight from chair_seat_config.dart (what the game uses)."""
+    src = open(SEAT_CONFIG_DART, encoding="utf-8").read()
+    start, end = _seat_map_bounds(src)
+    body = src[start:end]
+    out = {}
+    items = list(re.finditer(r"^    '([\w-]+)':\s*\{", body, re.M))
+    for i, m in enumerate(items):
+        block = body[m.end(): items[i + 1].start() if i + 1 < len(items) else len(body)]
+        rots = {}
+        rot_heads = list(re.finditer(r"^\s*(\d):\s*\[", block, re.M))
+        for j, rm in enumerate(rot_heads):
+            chunk = block[rm.end(): rot_heads[j + 1].start() if j + 1 < len(rot_heads) else len(block)]
+            rots[int(rm.group(1))] = [
+                {"slot": int(g[0]), "sub_cell": [int(g[1]), int(g[2])],
+                 "visual_offset": [float(g[3]), float(g[4])],
+                 "tap_offset": [float(g[5]), float(g[6])] if g[5] else [0.0, -18.0]}
+                for g in _SEAT_RE.findall(chunk)]
+        out[m.group(1)] = rots
+    return out
+
+
+def save_seat_config(item_id, seat_data_by_rot):
+    """Writes (replaces or adds) one seat entry in chair_seat_config.dart; the rest stays untouched."""
+    src = open(SEAT_CONFIG_DART, encoding="utf-8").read()
+    start, end = _seat_map_bounds(src)
+    body = src[start:end]
+    code = _compact_seat_dart_code(item_id, seat_data_by_rot)
+    m = re.search(r"^    '" + re.escape(item_id) + r"':\s*\{.*?^    \},", body, re.M | re.S)
+    new_spots = [sp for rot in range(4) for sp in seat_data_by_rot.get(rot, [])]
+    if m and len(_SEAT_RE.findall(m.group(0))) == len(new_spots) and \
+            sorted(int(r) for r in re.findall(r"^\s*(\d):\s*\[", m.group(0), re.M)) == [r for r in range(4) if seat_data_by_rot.get(r)]:
+        # Same seats as before: rewrite each SeatSpot(...) in place, keeping comments and layout.
+        it = iter(new_spots)
+        block = _SEAT_RE.sub(lambda _: _seat_spot_dart(next(it)), m.group(0))
+        body = body[:m.start()] + block + body[m.end():]
+    elif m:
+        body = body[:m.start()] + code + body[m.end():]
+    else:
+        body = body.rstrip() + "\n" + code
+    with open(SEAT_CONFIG_DART, "w", encoding="utf-8", newline="\n") as f:
+        f.write(src[:start] + body + src[end:])
+    DEFAULT_SEAT_CONFIGS[item_id] = {r: [dict(x) for x in v] for r, v in seat_data_by_rot.items()}
+
+
+def _seat_spot_dart(sp):
+    sub, vo, to = sp.get("sub_cell", [0, 0]), sp.get("visual_offset", [0.0, 0.0]), sp.get("tap_offset", [0.0, -18.0])
+    return (f"SeatSpot(slotIndex: {sp.get('slot', 0)}, subCell: const Point({sub[0]}, {sub[1]}), "
+            f"visualOffset: Vector2({vo[0]:.1f}, {vo[1]:.1f}), tapOffset: Vector2({to[0]:.0f}, {to[1]:.0f}))")
+
+
+def _compact_seat_dart_code(item_id, seat_data_by_rot):
+    """Same layout as the hand-written entries: one line per rotation (one line per seat for sofas)."""
+    lines = [f"    '{item_id}': {{"]
+    for rot in range(4):
+        spots = seat_data_by_rot.get(rot, [])
+        if len(spots) == 1:
+            lines.append(f"      {rot}: [{_seat_spot_dart(spots[0])}],")
+        else:
+            lines.append(f"      {rot}: [")
+            lines += [f"        {_seat_spot_dart(sp)}," for sp in spots]
+            lines.append("      ],")
+    lines.append("    },")
+    return "\n".join(lines)
+
+
+def seat_layer_paths(item_id, rot):
+    """Seat layers the game loads from established_furniture (_loadChairLayerSprites): front (over the
+    sitter) and the replacements used while someone sits (*_seated / *_seated_front)."""
+    def first(*names):
+        for n in names:
+            pth = os.path.join(ESTABLISHED_DIR, n)
+            if os.path.exists(pth):
+                return pth
+        return None
+    base = item_id[:-3] if item_id.endswith("_sm") else item_id
+    back = (f"{item_id}_rot{rot}_back.png", f"{base}_sm_rot{rot}_back.png", f"{base}_rot{rot}_back_sm.png") if rot in (2, 3) else ()
+    return {
+        "front": first(f"{item_id}_rot{rot}_front.png", f"{item_id}_front_rot{rot}.png", f"{base}_sm_rot{rot}_front.png", *back),
+        "seated": first(f"{item_id}_rot{rot}_seated.png"),
+        "seated_front": first(f"{item_id}_rot{rot}_seated_front.png"),
+    }
+
+
+# Fallback presets if chair_seat_config.dart can't be read; normally replaced by load_seat_configs()
 DEFAULT_SEAT_CONFIGS = {
     "simple_chair": {
         0: [{"slot": 0, "sub_cell": [0, 0], "visual_offset": [-2.0, 0.0], "tap_offset": [0.0, -18.0]}],
@@ -66,6 +186,10 @@ DEFAULT_SEAT_CONFIGS = {
         ],
     },
 }
+try:
+    DEFAULT_SEAT_CONFIGS = load_seat_configs()
+except Exception as _e:  # keep the fallback presets above
+    print("[furniture_inspector_engine] chair_seat_config.dart no se pudo leer:", _e)
 
 # Presets de lugares sobre superficies (Surface Spots) para mesas, escritorios y muebles que soportan superficie
 DEFAULT_SURFACE_SPOTS = {
@@ -244,7 +368,7 @@ def scan_new_added_furniture():
                     "footprint": eff_footprint,
                     "folder": rel_folder,
                     "rotations": {},
-                    "is_chair": item_id in DEFAULT_SEAT_CONFIGS or "chair" in item_id or "sofa" in item_id or "armchair" in item_id,
+                    "is_chair": item_id in DEFAULT_SEAT_CONFIGS or is_seat_name(item_id),
                     "supports_surface": eff_supports,
                     "surface_height": eff_s_height,
                     "surface_offset": eff_s_offset,
@@ -279,9 +403,12 @@ def scan_new_added_furniture():
             if not rot_spots and eff_spots_dict:
                 rot_spots = eff_spots_dict.get(rot_idx, eff_spots_dict.get(str(rot_idx), eff_spots_dict.get(0, [])))
 
+            layers = seat_layer_paths(item_id, rot_idx)
             catalog[item_id]["rotations"][rot_idx] = {
                 "image_path": full_path,
-                "front_path": front_path if has_front else None,
+                "front_path": front_path if has_front else layers["front"],
+                "seated_path": layers["seated"],
+                "seated_front_path": layers["seated_front"],
                 "canvas_size": [cw, ch],
                 "sprite_offset": final_off,
                 "surface_spots": [dict(s) for s in rot_spots] if rot_spots else [],
@@ -472,16 +599,18 @@ def render_furniture_scene(
             draw.text((origin_x + 54, surf_y - 6), f"h = {surface_height}px", fill=(245, 158, 11, 255))
 
 
-    # Cargar imagen base del mueble en resolución nativa HD 1:1
+    # Cargar imagen base del mueble en resolución nativa HD 1:1 (con alguien sentado, la variante
+    # *_seated si existe, como el juego: p. ej. la taza con la tapa arriba)
+    seated = bool(show_avatar and seat_spot)
     furn_img = None
-    furn_path = rot_data.get("image_path")
+    furn_path = (seated and rot_data.get("seated_path")) or rot_data.get("image_path")
     if furn_path and os.path.exists(furn_path):
         with Image.open(furn_path) as im:
             furn_img = im.convert("RGBA")
 
     # Cargar imagen frontal si existe (_front.png) en resolución nativa HD 1:1
     front_img = None
-    front_path = rot_data.get("front_path")
+    front_path = (seated and rot_data.get("seated_front_path")) or rot_data.get("front_path")
     if front_path and os.path.exists(front_path):
         with Image.open(front_path) as fim:
             front_img = fim.convert("RGBA")
@@ -627,15 +756,17 @@ def render_furniture_scene(
         # Posición del asiento en pantalla
         spot_sx, spot_sy = subcell_to_screen(u, v, origin_x, origin_y, footprint=footprint)
 
-        # Avatar 64x128 anclado en los pies (Flame: centerTile.x - avatarWidth/2 = -15 Flame units = -30 px HD)
-        av_x = int(spot_sx - 30 + v_off[0] * 2)
-        av_y = int(spot_sy - 112 + v_off[1] * 2)
+        # Igual que Flame: position = centerTile - (avatarWidth/2, avatarHeight - feetBottomPadding)
+        # = (-15, -56) unidades = (-30, -112) px HD, y el sprite 64x128 se dibuja en 30x60 unidades.
+        av_x = int(round(spot_sx - AVATAR_HD_W / 2 + v_off[0] * 2))
+        av_y = int(round(spot_sy - (AVATAR_HD_H - 8) + v_off[1] * 2))
 
-
-        # Obtener capas separadas del avatar sentado (full 64x128 HD, sin reescalar)
+        # Capas separadas del avatar sentado, reducidas a 60x120 HD como en el juego
         av_layers = octo_engine.compose_octo_avatar(
             avatar_config, direction=sit_dir, action="sit", frame=2, separate_sitting_layers=True
         )
+        av_layers = {k: (im.resize((AVATAR_HD_W, AVATAR_HD_H), Image.NEAREST) if im is not None else None)
+                     for k, im in av_layers.items()}
 
         # Capa 2: Pierna trasera (Backleg) para NE y NW
         if sit_dir in (4, 6) and av_layers.get("backleg"):
@@ -655,7 +786,7 @@ def render_furniture_scene(
 
         # Dibujar punto del SeatSpot
         draw.ellipse([spot_sx - 3, spot_sy - 3, spot_sx + 3, spot_sy + 3], fill=(239, 68, 68, 255))
-        draw.line([(spot_sx, spot_sy), (av_x + 32, av_y + 112)], fill=(239, 68, 68, 180), width=1)
+        draw.line([(spot_sx, spot_sy), (av_x + AVATAR_HD_W // 2, av_y + AVATAR_HD_H - 8)], fill=(239, 68, 68, 180), width=1)
 
     elif front_img:
         # Si no hay avatar, estampar el front directamente

@@ -27,7 +27,6 @@ class AvatarStorageService {
       bottomColor: Color(0xFF2563EB), // Denim Blue
       shoeStyle: 'none',
       shoeColor: Color(0xFF78350F),
-      accessoryStyle: 'none',
       accessoryColor: Color(0xFFEAB308),
     ),
     'bob': const AvatarConfig(
@@ -49,7 +48,6 @@ class AvatarStorageService {
       bottomColor: Color(0xFF1E293B), // Navy Slate
       shoeStyle: 'none',
       shoeColor: Color(0xFFF8FAFC),
-      accessoryStyle: 'none',
       accessoryColor: Color(0xFFDC2626),
     ),
     'charlie': const AvatarConfig(
@@ -71,7 +69,6 @@ class AvatarStorageService {
       bottomColor: Color(0xFF78350F), // Leather
       shoeStyle: 'none',
       shoeColor: Color(0xFF451A03),
-      accessoryStyle: 'none',
       accessoryColor: Color(0xFFEAB308),
     ),
     'david': const AvatarConfig(
@@ -93,7 +90,6 @@ class AvatarStorageService {
       bottomColor: Color(0xFF64748B),
       shoeStyle: 'none',
       shoeColor: Color(0xFF451A03),
-      accessoryStyle: 'none',
       accessoryColor: Color(0xFF16A34A),
     ),
     'userA': const AvatarConfig(

@@ -76,7 +76,7 @@ def load_spots():
     end = src.index("\n  };", start)
     spots, current = {}, None
     for line in src[start:end].splitlines():
-        m_bed = re.match(r"\s*'([\w-]+)':\s*\{", line)
+        m_bed = re.match(r"\s*'([\w:-]+)':\s*\{", line)   # 'king_bed:1' = side 1 of a bed for two
         if m_bed:
             current = m_bed.group(1); spots[current] = {}
             continue
@@ -162,12 +162,49 @@ def _garment(folder, style, body, v, fallback):
     return None
 
 
-def render_preview(bed_id, rot, spot, under=False, look=None, guides=True, **overrides):
+def spot_key(bed_id, side=0):
+    """Key of a side in the `_spots` map: side 0 is the bed id, side N of a bed for two 'bed_id:N'."""
+    return bed_id if side == 0 else f"{bed_id}:{side}"
+
+
+def side_count(spots, bed_id):
+    n = 1 if bed_id in spots else 0
+    while spot_key(bed_id, n) in spots:
+        n += 1
+    return n
+
+
+def blanket_overlay(bed_id, rot, sides, n_sides):
+    """Same choice as BedSleepConfig.blanketOverlayPath."""
+    if not sides:
+        return None
+    suffix = "" if n_sides == 1 or len(sides) > 1 else str(next(iter(sides)))
+    return os.path.join(OVERLAYS, f"{bed_id}_rot{rot}_blanket{suffix}.png")
+
+
+def render_preview(bed_id, rot, spot, under=False, look=None, guides=True, others=(), n_sides=1, side=0, **overrides):
     """Bed sprite + lying avatar exactly as the game draws it, at bed-sprite resolution.
-    `look` = DEFAULT_LOOK-shaped dict (styles + colours); keyword overrides win over it."""
+    `look` = DEFAULT_LOOK-shaped dict (styles + colours); keyword overrides win over it.
+    On a bed for two, `others` = [(side, spot, under)] of the other sleepers, drawn in side order."""
+    sleepers = sorted([(side, spot, under, True)] + [(s, sp, u, False) for s, sp, u in others], key=lambda t: t[0])
+    out = None
+    for s, sp, u, main in sleepers:
+        out = _render_one(bed_id, rot, sp, u, look, guides and main, out, **overrides)
+    r = spot["mask_rot"]
+    blanket = blanket_overlay(bed_id, r, {s for s, _, u, _ in sleepers if u}, n_sides)
+    for path in ([blanket] if blanket else []) + [os.path.join(OVERLAYS, f"{bed_id}_rot{r}_front.png")]:
+        ov = _load(path)
+        if ov is not None:
+            out.alpha_composite(ov)
+    if guides:
+        _draw_guides(out, spot)
+    return out
+
+
+def _render_one(bed_id, rot, spot, under, look, guides, base, **overrides):
     look = {**DEFAULT_LOOK, **(look or {}), **overrides}
     body, hair, skin = look["body"], look["hair"], look["skin"]
-    bed = _load(os.path.join(FURN, f"{bed_id}_rot{rot}.png"))
+    bed = base if base is not None else _load(os.path.join(FURN, f"{bed_id}_rot{rot}.png"))
     if bed is None:
         raise FileNotFoundError(f"{bed_id}_rot{rot}.png")
     W, H = bed.size
@@ -221,13 +258,12 @@ def render_preview(bed_id, rot, spot, under=False, look=None, guides=True, **ove
     out.alpha_composite(place(body_parts))
     if hair_img is not None:
         out.alpha_composite(place([hair_img]))
-    r = spot["mask_rot"]
-    for kind in (["blanket"] if under else []) + ["front"]:
-        ov = _load(os.path.join(OVERLAYS, f"{bed_id}_rot{r}_{kind}.png"))
-        if ov is not None:
-            out.alpha_composite(ov)
+    return out
 
-    if guides:
+
+def _draw_guides(out, spot):
+    W = out.width
+    if True:
         d = ImageDraw.Draw(out)
         x, y = spot["head"]
         if spot["mirror"]:
@@ -240,7 +276,6 @@ def render_preview(bed_id, rot, spot, under=False, look=None, guides=True, **ove
             sign_x = -sign_x
         sign_y = 1 if spot["view"] == "a" else -1
         d.line([(x, y), (x + sign_x * 120, y + sign_y * 60)], fill=(255, 60, 60, 120))
-    return out
 
 
 def _composite_clipped(canvas, part, ox, oy):

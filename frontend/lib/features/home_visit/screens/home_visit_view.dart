@@ -94,10 +94,10 @@ class _HomeVisitViewState extends State<HomeVisitView> {
               slotIndex: spot.slotIndex,
             ));
       },
-      onLocalAvatarLie: (bed, under) {
+      onLocalAvatarLie: (bed, under, side) {
         context.read<GameBloc>().add(SendHomeAvatarSitEvent(
               chairId: bed.id,
-              slotIndex: 0,
+              slotIndex: side, // the side of a bed for two
               pose: under ? 'lie_under' : 'lie_top',
             ));
       },
@@ -310,7 +310,8 @@ class _HomeVisitViewState extends State<HomeVisitView> {
           _lastHandledSitTrigger = state.partnerHomeSitTrigger;
           final pose = state.partnerHomePose ?? 'sit';
           if (pose.startsWith('lie')) {
-            _game.lieDownPartnerAvatar(state.partnerHomeChairId!, under: pose == 'lie_under');
+            _game.lieDownPartnerAvatar(state.partnerHomeChairId!,
+                under: pose == 'lie_under', side: state.partnerHomeSlotIndex ?? 0);
           } else {
             _game.sitPartnerAvatar(
               state.partnerHomeChairId!,

@@ -159,7 +159,6 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
       bottomColor: randomBottomColor,
       shoeStyle: 'none',
       shoeColor: const Color(0xFF78350F),
-      accessoryStyle: 'none',
       accessoryColor: const Color(0xFFEAB308),
     );
 
@@ -1147,6 +1146,17 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           selectedColor: _avatarConfig.skinColor,
           onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(skinColor: color)),
         ),
+        const SizedBox(height: 20),
+        _buildSectionHeader(
+          icon: Icons.grain,
+          title: 'Marcas en la Piel',
+          subtitle: 'Pecas, lunares, tatuajes y cicatrices: combina las que quieras',
+        ),
+        _buildOptionList(
+          options: AvatarConfig.availableMarks,
+          selectedAll: _avatarConfig.marks,
+          onSelected: (val) => _updateAvatarConfig(_avatarConfig.toggleMark(val)),
+        ),
       ],
     );
   }
@@ -1339,20 +1349,32 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
   }
 
   Widget _buildAccessoriesTab() {
+    final slots = AvatarConfig.accessorySlots
+        .where((slot) => AvatarConfig.availableAccessoriesBySlot[slot]?.isNotEmpty ?? false);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         _buildSectionHeader(
           icon: Icons.auto_awesome,
-          title: 'Accesorio Temático',
-          subtitle: 'Gafas de erudito, bandanas, auriculares y flores',
+          title: 'Accesorios',
+          subtitle: 'Uno por espacio: sombrero, lentes, bolso, cintillo',
         ),
-        _buildOptionList(
-          options: AvatarConfig.availableAccessoryStyles,
-          selected: _avatarConfig.accessoryStyle,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(accessoryStyle: val)),
-        ),
-        const SizedBox(height: 20),
+        for (final slot in slots) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Text(
+              AvatarConfig.formatSlotName(slot),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFCBD5E1)),
+            ),
+          ),
+          _buildOptionList(
+            options: ['none', ...AvatarConfig.availableAccessoriesBySlot[slot]!],
+            selected: _avatarConfig.accessoryIn(slot),
+            onSelected: (val) => _updateAvatarConfig(_avatarConfig.withAccessory(slot, val)),
+          ),
+          const SizedBox(height: 12),
+        ],
+        const SizedBox(height: 8),
         _buildSectionHeader(
           icon: Icons.palette,
           title: 'Color de Accesorio',
@@ -1366,6 +1388,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
       ],
     );
   }
+
 
   Widget _buildSectionHeader({
     required IconData icon,
@@ -1414,16 +1437,18 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
     );
   }
 
+  /// Single-select via [selected], or multi-select (toggle chips) via [selectedAll].
   Widget _buildOptionList({
     required List<String> options,
-    required String selected,
+    String? selected,
+    Iterable<String>? selectedAll,
     required ValueChanged<String> onSelected,
   }) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: options.map((opt) {
-        final isSelected = opt == selected;
+        final isSelected = selectedAll?.contains(opt) ?? opt == selected;
         return InkWell(
           onTap: () => onSelected(opt),
           borderRadius: BorderRadius.circular(10),

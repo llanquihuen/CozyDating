@@ -22,7 +22,12 @@ class AvatarConfig extends Equatable {
   final Color bottomColor;
   final String shoeStyle;
   final Color shoeColor;
-  final String accessoryStyle;
+  /// Body marks (freckles, moles, tattoos, scars): any number at once, drawn on the skin.
+  /// They stay visible when worn accessories are taken off (e.g. sleeping under the covers).
+  final List<String> marks;
+
+  /// Worn accessories, slot -> style (see [accessorySlots]): at most one per slot.
+  final Map<String, String> accessories;
   final Color accessoryColor;
 
   const AvatarConfig({
@@ -46,7 +51,8 @@ class AvatarConfig extends Equatable {
     this.bottomColor = const Color(0xFF2563EB),
     this.shoeStyle = 'none',
     this.shoeColor = const Color(0xFF78350F),
-    this.accessoryStyle = 'none',
+    this.marks = const [],
+    this.accessories = const {},
     this.accessoryColor = const Color(0xFFEAB308),
   });
 
@@ -183,12 +189,63 @@ class AvatarConfig extends Equatable {
     'boots',
   ];
 
-  static const List<String> availableAccessoryStyles = [
-    'none',
+  static const List<String> availableMarks = [
     'freckles',
-    'nice_lenses',
-    'normal_lenses',
   ];
+
+  /// Accessory slots in draw order (later slots are drawn on top).
+  static const List<String> accessorySlots = [
+    'bag',
+    'glasses',
+    'headband',
+    'hat',
+  ];
+
+  /// Styles per slot; assets live in OCTOPLAYER/Avatar/accessories/<slot>/.
+  static const Map<String, List<String>> availableAccessoriesBySlot = {
+    'glasses': [
+      'nice_lenses',
+      'normal_lenses',
+    ],
+  };
+
+  static String slotOf(String accessoryStyle) {
+    for (final entry in availableAccessoriesBySlot.entries) {
+      if (entry.value.contains(accessoryStyle)) return entry.key;
+    }
+    return 'none';
+  }
+
+  static String formatSlotName(String slot) {
+    switch (slot) {
+      case 'hat': return 'Sombrero';
+      case 'glasses': return 'Lentes';
+      case 'bag': return 'Bolso';
+      case 'headband': return 'Cintillo';
+      default: return slot.replaceAll('_', ' ');
+    }
+  }
+
+  /// Equipped style for [slot], or 'none'.
+  String accessoryIn(String slot) => accessories[slot] ?? 'none';
+
+  /// Equips [style] in [slot] ('none' empties the slot).
+  AvatarConfig withAccessory(String slot, String style) {
+    final next = Map<String, String>.of(accessories);
+    if (style == 'none') {
+      next.remove(slot);
+    } else {
+      next[slot] = style;
+    }
+    return copyWith(accessories: next);
+  }
+
+  /// Adds or removes a body mark.
+  AvatarConfig toggleMark(String mark) {
+    final next = List<String>.of(marks);
+    if (!next.remove(mark)) next.add(mark);
+    return copyWith(marks: next);
+  }
 
   static String formatName(String id) {
     switch (id) {
@@ -227,7 +284,7 @@ class AvatarConfig extends Equatable {
 
       // Face Details
       case 'blush': return 'Rubor Suave';
-      case 'freckles': return 'Pecas';
+      case 'freckles': return 'Pecas ✨';
       case 'scar': return 'Cicatriz';
 
       // Hair
@@ -283,7 +340,8 @@ class AvatarConfig extends Equatable {
     Color? bottomColor,
     String? shoeStyle,
     Color? shoeColor,
-    String? accessoryStyle,
+    List<String>? marks,
+    Map<String, String>? accessories,
     Color? accessoryColor,
   }) {
     return AvatarConfig(
@@ -307,7 +365,8 @@ class AvatarConfig extends Equatable {
       bottomColor: bottomColor ?? this.bottomColor,
       shoeStyle: shoeStyle ?? this.shoeStyle,
       shoeColor: shoeColor ?? this.shoeColor,
-      accessoryStyle: accessoryStyle ?? this.accessoryStyle,
+      marks: marks ?? this.marks,
+      accessories: accessories ?? this.accessories,
       accessoryColor: accessoryColor ?? this.accessoryColor,
     );
   }
@@ -334,7 +393,8 @@ class AvatarConfig extends Equatable {
       'bottomColor': bottomColor.value,
       'shoeStyle': shoeStyle,
       'shoeColor': shoeColor.value,
-      'accessoryStyle': accessoryStyle,
+      'marks': marks,
+      'accessories': accessories,
       'accessoryColor': accessoryColor.value,
     };
   }
@@ -380,10 +440,30 @@ class AvatarConfig extends Equatable {
       return 'none';
     }
 
-    String mapAccessory(String? a) {
-      if (a == 'nice_lenses') return 'nice_lenses';
-      if (a == 'normal_lenses') return 'normal_lenses';
-      return 'none';
+    final marks = <String>[];
+    final accessories = <String, String>{};
+    final rawMarks = json['marks'];
+    if (rawMarks is List) {
+      for (final m in rawMarks) {
+        if (availableMarks.contains(m) && !marks.contains(m)) marks.add(m as String);
+      }
+    }
+    final rawAccessories = json['accessories'];
+    if (rawAccessories is Map) {
+      rawAccessories.forEach((slot, style) {
+        if (availableAccessoriesBySlot[slot]?.contains(style) ?? false) {
+          accessories[slot as String] = style as String;
+        }
+      });
+    }
+    // Legacy configs had a single 'accessoryStyle' mixing marks and worn accessories.
+    final legacy = json['accessoryStyle'];
+    if (rawMarks == null && rawAccessories == null && legacy is String) {
+      if (availableMarks.contains(legacy)) {
+        marks.add(legacy);
+      } else if (slotOf(legacy) != 'none') {
+        accessories[slotOf(legacy)] = legacy;
+      }
     }
 
     return AvatarConfig(
@@ -407,7 +487,8 @@ class AvatarConfig extends Equatable {
       bottomColor: json['bottomColor'] != null ? Color(json['bottomColor'] as int) : const Color(0xFF2563EB),
       shoeStyle: mapShoe(json['shoeStyle'] as String?),
       shoeColor: json['shoeColor'] != null ? Color(json['shoeColor'] as int) : const Color(0xFF78350F),
-      accessoryStyle: mapAccessory(json['accessoryStyle'] as String?),
+      marks: marks,
+      accessories: accessories,
       accessoryColor: json['accessoryColor'] != null ? Color(json['accessoryColor'] as int) : const Color(0xFFEAB308),
     );
   }
@@ -434,7 +515,8 @@ class AvatarConfig extends Equatable {
         bottomColor,
         shoeStyle,
         shoeColor,
-        accessoryStyle,
+        marks,
+        accessories,
         accessoryColor,
       ];
 }

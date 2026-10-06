@@ -57,7 +57,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   final void Function(IsometricFurnitureComponent chair, SeatSpot spot)? onLocalAvatarSit;
   final void Function(Point<int> standPos)? onLocalAvatarStand;
   /// Local avatar lay down on a bed (on top, or [under] the covers).
-  final void Function(IsometricFurnitureComponent bed, bool under)? onLocalAvatarLie;
+  /// [side] is which half of a bed for two (always 0 on single beds).
+  final void Function(IsometricFurnitureComponent bed, bool under, int side)? onLocalAvatarLie;
 
   IsometricAvatarComponent? avatar;
   IsometricAvatarComponent? partnerAvatar;
@@ -97,6 +98,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   IsometricFurnitureComponent? _pendingSitChair;
   SeatSpot? _pendingSitSpot;
   IsometricFurnitureComponent? _pendingLieBed;
+  int _pendingLieSide = 0;
 
   // A wall must be held (touched without much movement) for this long before it's
   // selected and armed for dragging — see onDragStart/onDragUpdate.
@@ -322,13 +324,13 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     }
   }
 
-  void lieDownPartnerAvatar(String bedId, {bool under = false}) {
+  void lieDownPartnerAvatar(String bedId, {bool under = false, int side = 0}) {
     if (partnerAvatar == null) return;
     final bed = world.children
         .whereType<IsometricFurnitureComponent>()
         .firstWhereOrNull((b) => b.id == bedId);
     if (bed != null) {
-      partnerAvatar!.lieOnBed(bed, under: under);
+      partnerAvatar!.lieOnBed(bed, under: under, side: side);
     }
   }
 
@@ -436,17 +438,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       final rotSprites = await _loadRotationSprites(targetTypeName);
       final isNorth = !isWall || (footprint == 'wall_n');
 
-      Map<int, Sprite> chairBaseMap = {};
-      Map<int, Sprite> chairFrontMap = {};
-      if (targetTypeName.contains('chair') ||
-          targetTypeName.contains('armchair') ||
-          targetTypeName.contains('sofa') ||
-          targetTypeName.contains('couch') ||
-          item.id.contains('chair') ||
-          item.id.contains('sofa')) {
-        final pair = await _loadChairLayerSprites(targetTypeName);
-        chairBaseMap = pair.$1;
-        chairFrontMap = pair.$2;
+      var chairLayers = const _ChairLayers();
+      if (IsometricFurnitureComponent.isSeatName(targetTypeName) || IsometricFurnitureComponent.isSeatName(item.id)) {
+        chairLayers = await _loadChairLayerSprites(targetTypeName);
       }
 
       Map<int, List<Sprite>> animatedMap = {};
@@ -469,8 +463,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         type: targetTypeName.contains('wardrobe') ? FurnitureType.wardrobe : (targetTypeName.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
         sprite: isWall ? (isNorth ? rotSprites[0] : (rotSprites[1] ?? rotSprites[0])) : (rotSprites[item.rotation] ?? rotSprites[0]),
         rotationSprites: rotSprites,
-        chairBaseSprites: chairBaseMap,
-        chairFrontSprites: chairFrontMap,
+        chairBaseSprites: chairLayers.base,
+        chairFrontSprites: chairLayers.front,
+        chairSeatedBaseSprites: chairLayers.seatedBase,
+        chairSeatedFrontSprites: chairLayers.seatedFront,
         animatedRotationSprites: animatedMap,
         hasTableMagnet: catalogItem?.hasTableMagnet ??
             (targetTypeName == 'simple_chair_sm' ||
@@ -657,9 +653,11 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     return map;
   }
 
-  Future<(Map<int, Sprite>, Map<int, Sprite>)> _loadChairLayerSprites(String id) async {
+  Future<_ChairLayers> _loadChairLayerSprites(String id) async {
     final Map<int, Sprite> baseMap = {};
     final Map<int, Sprite> frontMap = {};
+    final Map<int, Sprite> seatedBaseMap = {};
+    final Map<int, Sprite> seatedFrontMap = {};
     final cleanId = id.replaceAll(RegExp(r'_rot\d$'), '');
     final baseName = cleanId.replaceAll(RegExp(r'_sm$'), '');
 
@@ -696,12 +694,23 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
           break;
         } catch (_) {}
       }
+
+      // 3. Optional layers while someone sits (e.g. the toilet with its lid up)
+      try {
+        seatedBaseMap[rot] = await loadSprite('furniture/established_furniture/${cleanId}_rot${rot}_seated.png');
+      } catch (_) {}
+      try {
+        seatedFrontMap[rot] = await loadSprite('furniture/established_furniture/${cleanId}_rot${rot}_seated_front.png');
+      } catch (_) {}
     }
 
-    for (final s in baseMap.values) SpriteAlphaCache.warm(s.image);
-    for (final s in frontMap.values) SpriteAlphaCache.warm(s.image);
+    for (final m in [baseMap, frontMap, seatedBaseMap, seatedFrontMap]) {
+      for (final s in m.values) {
+        SpriteAlphaCache.warm(s.image);
+      }
+    }
 
-    return (baseMap, frontMap);
+    return _ChairLayers(base: baseMap, front: frontMap, seatedBase: seatedBaseMap, seatedFront: seatedFrontMap);
   }
 
   Future<Map<int, List<Sprite>>> _loadFurnitureGifFrames(String id) async {
@@ -965,17 +974,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     final uniqueId = '${catalogItem.id}_${DateTime.now().microsecondsSinceEpoch}';
 
-    Map<int, Sprite> chairBaseMap = {};
-    Map<int, Sprite> chairFrontMap = {};
-    if (catalogItem.id.contains('chair') ||
-        catalogItem.id.contains('armchair') ||
-        catalogItem.id.contains('sofa') ||
-        catalogItem.id.contains('couch') ||
-        initialTypeName.contains('chair') ||
-        initialTypeName.contains('sofa')) {
-      final pair = await _loadChairLayerSprites(initialTypeName);
-      chairBaseMap = pair.$1;
-      chairFrontMap = pair.$2;
+    var chairLayers = const _ChairLayers();
+    if (IsometricFurnitureComponent.isSeatName(catalogItem.id) || IsometricFurnitureComponent.isSeatName(initialTypeName)) {
+      chairLayers = await _loadChairLayerSprites(initialTypeName);
     }
 
     Map<int, List<Sprite>> animatedMap = {};
@@ -999,8 +1000,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       type: catalogItem.id.contains('wardrobe') ? FurnitureType.wardrobe : (catalogItem.id.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
       sprite: rotSprites[0],
       rotationSprites: rotSprites,
-      chairBaseSprites: chairBaseMap,
-      chairFrontSprites: chairFrontMap,
+      chairBaseSprites: chairLayers.base,
+      chairFrontSprites: chairLayers.front,
+      chairSeatedBaseSprites: chairLayers.seatedBase,
+      chairSeatedFrontSprites: chairLayers.seatedFront,
       animatedRotationSprites: animatedMap,
       hasTableMagnet: catalogItem.hasTableMagnet,
       onInteract: catalogItem.id.contains('wardrobe') ? onOpenWardrobe : null,
@@ -1440,7 +1443,25 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     return null;
   }
 
-  void _handleBedTap(IsometricFurnitureComponent bed) {
+  /// Side of [bed] the local avatar lies on when [worldPos] is tapped: the tapped half of a bed
+  /// for two, or the other half when the partner already lies there; null when the bed is full.
+  @visibleForTesting
+  int? sideToLieOn(IsometricFurnitureComponent bed, Vector2 worldPos) {
+    final sides = BedSleepConfig.sideCount(bed.id, bed.typeName);
+    final partner = partnerAvatar;
+    final taken = partner != null && partner.isLying && partner.lyingBed == bed ? partner.lyingSide : null;
+    var side = 0;
+    final sprite = bed.sprite;
+    if (sides > 1 && sprite != null) {
+      final local = worldPos - bed.position - bed.spriteOffset;
+      final px = Offset(local.x / bed.renderSize.x * sprite.srcSize.x, local.y / bed.renderSize.y * sprite.srcSize.y);
+      side = BedSleepConfig.sideAt(bed.id, bed.typeName, bed.rotation, px, sprite.srcSize.x);
+    }
+    if (taken == side) side = sides > 1 ? 1 - side : -1;
+    return side < 0 ? null : side;
+  }
+
+  void _handleBedTap(IsometricFurnitureComponent bed, Vector2 worldPos) {
     final me = avatar!;
     _pendingSitChair = null;
     _pendingSitSpot = null;
@@ -1448,8 +1469,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
 
     if (me.isLying && me.lyingBed == bed) {
       if (!me.lyingUnder) {
-        me.lieOnBed(bed, under: true);
-        onLocalAvatarLie?.call(bed, true);
+        me.lieOnBed(bed, under: true, side: me.lyingSide);
+        onLocalAvatarLie?.call(bed, true, me.lyingSide);
       } else {
         me.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
         onLocalAvatarStand?.call(Point(me.gridX.round(), me.gridY.round()));
@@ -1457,8 +1478,9 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       return;
     }
 
-    // Single beds hold one sleeper.
-    if (partnerAvatar != null && partnerAvatar!.isLying && partnerAvatar!.lyingBed == bed) return;
+    // One sleeper per side: a single bed taken by the partner is full.
+    final side = sideToLieOn(bed, worldPos);
+    if (side == null) return;
 
     if (me.isSitting || me.isLying) {
       me.standUp(obstacles: obstacles, blockedEdges: blockedEdges);
@@ -1468,8 +1490,8 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     final footprint = bed.occupiedSubCells.toSet();
     final start = Point(me.gridX.round(), me.gridY.round());
     if (footprint.any((c) => (c.x - start.x).abs() <= 1 && (c.y - start.y).abs() <= 1)) {
-      me.lieOnBed(bed);
-      onLocalAvatarLie?.call(bed, false);
+      me.lieOnBed(bed, side: side);
+      onLocalAvatarLie?.call(bed, false, side);
       return;
     }
 
@@ -1494,6 +1516,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       );
       if (path.isEmpty) continue;
       _pendingLieBed = bed;
+      _pendingLieSide = side;
       world.add(_TapWaveComponent(grid: goal, isSubGrid: true));
       me.setPath(path, goal);
       onLocalAvatarMove?.call(goal);
@@ -1507,8 +1530,15 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     if (_pendingLieBed != null && avatar != null) {
       final bed = _pendingLieBed!;
       _pendingLieBed = null;
-      avatar!.lieOnBed(bed);
-      onLocalAvatarLie?.call(bed, false);
+      // The partner may have taken that side while we walked over.
+      final partner = partnerAvatar;
+      var side = _pendingLieSide;
+      if (partner != null && partner.isLying && partner.lyingBed == bed && partner.lyingSide == side) {
+        if (BedSleepConfig.sideCount(bed.id, bed.typeName) < 2) return;
+        side = 1 - side;
+      }
+      avatar!.lieOnBed(bed, side: side);
+      onLocalAvatarLie?.call(bed, false, side);
       return;
     }
 
@@ -3163,7 +3193,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     // Tapping a bed: 1st tap lies on top, 2nd gets under the covers, 3rd gets up.
     final hitBed = _hitTestBed(worldPos);
     if (hitBed != null && avatar != null) {
-      _handleBedTap(hitBed);
+      _handleBedTap(hitBed, worldPos);
       return;
     }
 
@@ -3955,4 +3985,15 @@ class LightPanelEntry {
     required this.color,
     required this.sector,
   });
+}
+
+/// Layer sprites of a seat per rotation: base (behind the sitter), front (over the sitter), and
+/// their optional replacements while someone sits there.
+class _ChairLayers {
+  final Map<int, Sprite> base;
+  final Map<int, Sprite> front;
+  final Map<int, Sprite> seatedBase;
+  final Map<int, Sprite> seatedFront;
+
+  const _ChairLayers({this.base = const {}, this.front = const {}, this.seatedBase = const {}, this.seatedFront = const {}});
 }

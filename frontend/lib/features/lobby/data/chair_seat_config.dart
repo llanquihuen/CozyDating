@@ -68,6 +68,14 @@ class ChairSeatConfig {
       2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 14.0), tapOffset: Vector2(0, -20))],
       3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(0.0, 14.0), tapOffset: Vector2(0, -20))],
     },
+    // Taza de baño (1x1) - 1 asiento. Rot 2/3 se ven desde atrás: el estanque y la tapa levantada
+    // (bathroom_toilet_rot{2,3}_seated_front.png) quedan delante del avatar.
+    'bathroom_toilet': {
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(1, 1), visualOffset: Vector2(1.0, -6.0), tapOffset: Vector2(0, -18))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(1, 1), visualOffset: Vector2(-1.0, -6.0), tapOffset: Vector2(0, -18))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(1, 1), visualOffset: Vector2(3.0, -9.0), tapOffset: Vector2(0, -18))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(1, 1), visualOffset: Vector2(-4.0, -9.0), tapOffset: Vector2(0, -18))],
+    },
     // 3. Sofá simple (2x1 y 1x2) - 3 plazas (Izquierda, Centro, Derecha)
     'simple_sofa': {
       // Rot 0: Mirando a SW (frente a la cámara, 2x1 baldosas)

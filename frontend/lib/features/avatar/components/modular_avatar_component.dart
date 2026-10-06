@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import '../../../core/models/avatar_config.dart';
 
 enum AvatarDirection {
@@ -34,8 +35,11 @@ class LyingPose {
   /// Draw the lying layers horizontally flipped across the bed sprite (rotations 1/3).
   final bool mirror;
 
-  /// Under the blanket: sleeping (closed) eyes and the "under" masks.
+  /// Under the blanket: asleep, so closed eyes, the "under" masks, and worn accessories taken off.
   final bool under;
+
+  /// Shoes taken off (lying on a bed). Lying on the floor or in a park keeps them on.
+  final bool barefoot;
 
   /// Top-left of the 160x128 lying canvas, in unmirrored bed-sprite pixels.
   final Offset canvasOrigin;
@@ -56,6 +60,7 @@ class LyingPose {
     required this.view,
     required this.mirror,
     required this.under,
+    this.barefoot = false,
     required this.canvasOrigin,
     required this.bedWidth,
     required this.scale,
@@ -143,7 +148,8 @@ class ModularAvatarComponent extends PositionComponent {
         config.skinColor != newConfig.skinColor ||
         config.shoeStyle != newConfig.shoeStyle ||
         config.shoeColor != newConfig.shoeColor ||
-        config.accessoryStyle != newConfig.accessoryStyle ||
+        !listEquals(config.marks, newConfig.marks) ||
+        !mapEquals(config.accessories, newConfig.accessories) ||
         config.accessoryColor != newConfig.accessoryColor;
 
     config = newConfig;
@@ -333,10 +339,15 @@ class ModularAvatarComponent extends PositionComponent {
           }));
         }
 
-        // Accessories (if present)
-        if (config.accessoryStyle != 'none') {
-          futures.add(_loadOctoFrame('accessories', 'accessories/${config.accessoryStyle}$k.png', k));
+        // Body marks (several at once)
+        for (final mark in config.marks) {
+          futures.add(_loadOctoFrame('mark_$mark', 'marks/$mark$k.png', k));
         }
+
+        // Worn accessories (one per slot)
+        config.accessories.forEach((slot, style) {
+          futures.add(_loadOctoFrame('accessory_$slot', 'accessories/$slot/$style$k.png', k));
+        });
       }
     }
 
@@ -431,6 +442,10 @@ class ModularAvatarComponent extends PositionComponent {
           return _loadOctoEyesFrame('lying/eyes/cateyes_lie$v.png', key);
         }
       }));
+      // Body marks have no fallback: a mark without lying art is simply not drawn.
+      for (final mark in config.marks) {
+        futures.add(_loadOctoFrame('mark_$mark', 'lying/marks/${mark}_lie$v.png', key));
+      }
       // Asleep under the covers the eyes are always closed, whatever the chosen style.
       futures.add(_loadOctoEyesFrame('lying/eyes/closedeyes_lie$v.png', '${key}_closed'));
       // Clothes are fitted per body type (e.g. jacket_female_lieA); then the style's generic
@@ -452,6 +467,15 @@ class ModularAvatarComponent extends PositionComponent {
       if (config.hairStyle != 'none') {
         futures.add(_loadOctoFrame('hair_front', 'lying/hair/$hair/${hair}_lie$v.png', key));
       }
+      // Shoes and accessories have no default fallback: without lying art they are not drawn.
+      if (config.shoeStyle != 'none') {
+        final shoe = config.shoeStyle;
+        futures.add(withFallback(
+            'shoes', 'lying/shoes/${shoe}_${bodyType}_lie$v.png', 'lying/shoes/${shoe}_lie$v.png', key));
+      }
+      config.accessories.forEach((slot, style) {
+        futures.add(_loadOctoFrame('accessory_$slot', 'lying/accessories/$slot/${style}_lie$v.png', key));
+      });
     }
   }
 
@@ -598,15 +622,29 @@ class ModularAvatarComponent extends PositionComponent {
     drawLayers((draw) {
       draw('body', key, config.skinColor);
       draw('nose', key, config.skinColor);
+      // Marks stay under the covers too (unlike worn accessories, which are never drawn lying).
+      for (final mark in config.marks) {
+        draw('mark_$mark', key, null);
+      }
       draw('mouth', key, null);
       draw('eyes', pose.under ? '${key}_closed' : key, null);
       if (config.bottomStyle != 'none') draw('bottoms', key, config.bottomColor);
+      if (config.shoeStyle != 'none' && !pose.barefoot) draw('shoes', key, config.shoeColor);
       if (config.topStyle != 'none') draw('tops', key, config.topColor);
     }, clipToBlanket: true);
 
     // The hairstyle is never cropped.
     if (config.hairStyle != 'none') {
       drawLayers((draw) => draw('hair_front', key, config.hairColor));
+    }
+
+    // Worn accessories stay on while lying awake; asleep under the covers they are taken off.
+    if (!pose.under) {
+      drawLayers((draw) {
+        for (final slot in AvatarConfig.accessorySlots) {
+          if (config.accessories.containsKey(slot)) draw('accessory_$slot', key, config.accessoryColor);
+        }
+      });
     }
 
     canvas.restore();
@@ -646,7 +684,8 @@ class ModularAvatarComponent extends PositionComponent {
              layerKey == 'eyes' ||
              layerKey == 'hair_front' ||
              layerKey == 'hair_back' ||
-             layerKey == 'accessories')) {
+             layerKey.startsWith('mark_') ||
+             layerKey.startsWith('accessory_'))) {
           img = _octoImageCache['$layerKey:$sitDirNum'];
         }
       } else {
@@ -711,6 +750,11 @@ class ModularAvatarComponent extends PositionComponent {
     // Layer 7: Head / Face Shape (Skin Color, rendered over clothes)
     drawLayer('head', config.skinColor);
 
+    // Layer 7b: Body marks (own colors, drawn on the skin under the facial features)
+    for (final mark in config.marks) {
+      drawLayer('mark_$mark', null);
+    }
+
     // Layer 8: Nose (Skin Color outline)
     drawLayer('nose', config.skinColor);
 
@@ -725,9 +769,11 @@ class ModularAvatarComponent extends PositionComponent {
       drawLayer('hair_front', config.hairColor);
     }
 
-    // Layer 12: Accessories
-    if (config.accessoryStyle != 'none') {
-      drawLayer('accessories', config.accessoryColor);
+    // Layer 12: Worn accessories, in slot order
+    for (final slot in AvatarConfig.accessorySlots) {
+      if (config.accessories.containsKey(slot)) {
+        drawLayer('accessory_$slot', config.accessoryColor);
+      }
     }
   }
 }

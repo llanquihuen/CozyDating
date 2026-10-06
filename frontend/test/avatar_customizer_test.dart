@@ -29,7 +29,6 @@ void main() {
         bottomColor: Color(0xFF78350F),
         shoeStyle: 'none',
         shoeColor: Color(0xFF451A03),
-        accessoryStyle: 'none',
         accessoryColor: Color(0xFFEAB308),
       );
 
@@ -48,7 +47,8 @@ void main() {
       expect(deserialized.topStyle, equals('jacket'));
       expect(deserialized.bottomStyle, equals('jeans'));
       expect(deserialized.shoeStyle, equals('none'));
-      expect(deserialized.accessoryStyle, equals('none'));
+      expect(deserialized.marks, isEmpty);
+      expect(deserialized.accessories, isEmpty);
       expect(deserialized, equals(config));
     });
 
@@ -57,17 +57,47 @@ void main() {
         bodyType: 'female',
         shoeStyle: 'boots',
         shoeColor: Color(0xFFDC2626),
-        accessoryStyle: 'nice_lenses',
+        accessories: {'glasses': 'nice_lenses'},
       );
 
       final json = configWithBoots.toJson();
       expect(json['shoeStyle'], equals('boots'));
-      expect(json['accessoryStyle'], equals('nice_lenses'));
+      expect(json['accessories'], equals({'glasses': 'nice_lenses'}));
 
       final deserialized = AvatarConfig.fromJson(json);
       expect(deserialized.shoeStyle, equals('boots'));
       expect(deserialized.shoeColor, equals(const Color(0xFFDC2626)));
-      expect(deserialized.accessoryStyle, equals('nice_lenses'));
+      expect(deserialized.accessories, equals({'glasses': 'nice_lenses'}));
+    });
+
+    test('Body marks stack while worn accessories hold one style per slot', () {
+      var config = const AvatarConfig().toggleMark('freckles');
+      expect(config.marks, equals(['freckles']));
+
+      config = config.withAccessory('glasses', 'nice_lenses').withAccessory('glasses', 'normal_lenses');
+      expect(config.accessories, equals({'glasses': 'normal_lenses'}));
+      expect(config.marks, equals(['freckles']));
+
+      final roundTrip = AvatarConfig.fromJson(config.toJson());
+      expect(roundTrip, equals(config));
+
+      config = config.withAccessory('glasses', 'none').toggleMark('freckles');
+      expect(config.accessories, isEmpty);
+      expect(config.marks, isEmpty);
+    });
+
+    test('Legacy single accessoryStyle migrates into marks or a slot', () {
+      final freckles = AvatarConfig.fromJson({'accessoryStyle': 'freckles'});
+      expect(freckles.marks, equals(['freckles']));
+      expect(freckles.accessories, isEmpty);
+
+      final lenses = AvatarConfig.fromJson({'accessoryStyle': 'normal_lenses'});
+      expect(lenses.marks, isEmpty);
+      expect(lenses.accessories, equals({'glasses': 'normal_lenses'}));
+
+      final none = AvatarConfig.fromJson({'accessoryStyle': 'none'});
+      expect(none.marks, isEmpty);
+      expect(none.accessories, isEmpty);
     });
 
     test('AvatarStorageService saves and retrieves current avatar config', () {
