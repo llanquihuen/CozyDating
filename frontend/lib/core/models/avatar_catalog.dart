@@ -90,6 +90,18 @@ class AvatarCatalog {
     AvatarItem(hair, 'flow', 'Cabello Flow', hasBack: true),
     AvatarItem(hair, 'long_flow', 'Melena Fluida', audience: AvatarAudience.feminine, hasBack: true),
     AvatarItem(hair, 'twintails', 'Dos Coletas / Twintails 👧', audience: AvatarAudience.feminine, hasBack: true),
+    AvatarItem(hair, 'buzz', 'Rapado'),
+    AvatarItem(hair, 'afro', 'Afro'),
+    AvatarItem(hair, 'undercut', 'Undercut', audience: AvatarAudience.masculine),
+    AvatarItem(hair, 'messy', 'Despeinado', audience: AvatarAudience.masculine),
+    AvatarItem(hair, 'curly_short', 'Rizos Cortos', audience: AvatarAudience.masculine),
+    AvatarItem(hair, 'spiky', 'Puntas Anime', audience: AvatarAudience.masculine),
+    AvatarItem(hair, 'man_bun', 'Moño Masculino', audience: AvatarAudience.masculine),
+    AvatarItem(hair, 'bob', 'Bob', audience: AvatarAudience.feminine),
+    AvatarItem(hair, 'pixie', 'Pixie', audience: AvatarAudience.feminine),
+    AvatarItem(hair, 'space_buns', 'Moños Dobles', audience: AvatarAudience.feminine),
+    AvatarItem(hair, 'ponytail', 'Cola de Caballo', audience: AvatarAudience.feminine, hasBack: true),
+    AvatarItem(hair, 'wavy_long', 'Ondas Largas', audience: AvatarAudience.feminine, hasBack: true),
 
     // Clothing
     AvatarItem(top, 'jacket', 'Chaqueta'),

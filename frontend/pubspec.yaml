@@ -45,6 +45,20 @@ flutter:
     - assets/images/OCTOPLAYER/Avatar/hair/braids/front/
     - assets/images/OCTOPLAYER/Avatar/hair/twintails/front/
     - assets/images/OCTOPLAYER/Avatar/hair/twintails/back/
+    - assets/images/OCTOPLAYER/Avatar/hair/afro/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/bob/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/buzz/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/curly_short/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/man_bun/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/messy/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/pixie/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/ponytail/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/ponytail/back/
+    - assets/images/OCTOPLAYER/Avatar/hair/space_buns/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/spiky/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/undercut/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/wavy_long/front/
+    - assets/images/OCTOPLAYER/Avatar/hair/wavy_long/back/
     - assets/images/OCTOPLAYER/Avatar/tops/
     - assets/images/OCTOPLAYER/Avatar/bottoms/
     - assets/images/OCTOPLAYER/Avatar/shoes/
@@ -67,4 +81,16 @@ flutter:
     - assets/images/OCTOPLAYER/Avatar/lying/hair/flow/
     - assets/images/OCTOPLAYER/Avatar/lying/hair/long_flow/
     - assets/images/OCTOPLAYER/Avatar/lying/hair/twintails/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/buzz/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/afro/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/undercut/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/messy/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/curly_short/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/spiky/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/man_bun/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/bob/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/pixie/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/space_buns/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/ponytail/
+    - assets/images/OCTOPLAYER/Avatar/lying/hair/wavy_long/
     - assets/images/furniture/sleep_overlays/
