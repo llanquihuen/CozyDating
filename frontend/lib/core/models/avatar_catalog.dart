@@ -41,6 +41,9 @@ class AvatarCatalog {
   static const String bottom = 'bottom';
   static const String shoes = 'shoes';
 
+  /// One-piece outfits (dresses): worn over both halves, hiding the top and bottom while on.
+  static const String dress = 'dress';
+
   /// Body marks (freckles, moles, tattoos, scars): stackable, see AvatarConfig.marks.
   static const String mark = 'mark';
 
@@ -53,11 +56,15 @@ class AvatarCatalog {
   static const String blush = 'blush';
   static const String eyeshadow = 'eyeshadow';
   static const String lipstick = 'lipstick';
-  static const List<String> makeupSlots = [blush, eyeshadow, lipstick];
+
+  /// The eye sprites' blue-coded pixels (the liner drawn over the lid): invisible unless an eyeliner
+  /// is worn, then painted in its colour.
+  static const String eyeliner = 'eyeliner';
+  static const List<String> makeupSlots = [blush, eyeshadow, eyeliner, lipstick];
 
   /// Slots that can be left empty ('none').
   static const Set<String> _optionalSlots = {
-    hair, top, bottom, shoes, 'bag', 'glasses', 'headband', 'hat', blush, eyeshadow, lipstick,
+    hair, top, bottom, shoes, dress, 'bag', 'glasses', 'headband', 'hat', blush, eyeshadow, eyeliner, lipstick,
   };
 
   static const List<AvatarItem> items = [
@@ -115,12 +122,15 @@ class AvatarCatalog {
     AvatarItem(top, 'longsleeve', 'Manga Larga'),
     AvatarItem(top, 'dress_shirt', 'Camisa'),
     AvatarItem(top, 'hoodie', 'Polerón con Capucha'),
+    AvatarItem(top, 'bikini_top', 'Bikini (Arriba) 👙', audience: AvatarAudience.feminine, fits: ['female']),
     AvatarItem(bottom, 'jeans', 'Jeans Clásicos'),
     AvatarItem(bottom, 'sweatpants', 'Pantalón de Buzo'),
     AvatarItem(bottom, 'leggings', 'Calzas'),
     AvatarItem(bottom, 'shorts', 'Shorts'),
     AvatarItem(bottom, 'skirt_short', 'Falda Corta', audience: AvatarAudience.feminine, fits: ['female']),
     AvatarItem(bottom, 'skirt_long', 'Falda Larga', audience: AvatarAudience.feminine, fits: ['female']),
+    AvatarItem(bottom, 'bikini_bottom', 'Bikini (Abajo) 👙', audience: AvatarAudience.feminine, fits: ['female']),
+    AvatarItem(dress, 'lolita', 'Vestido Lolita 🎀', audience: AvatarAudience.feminine, fits: ['female']),
     AvatarItem(shoes, 'boots', 'Botas de Cuero 🥾'),
     AvatarItem(shoes, 'sneakers', 'Zapatillas 👟'),
     AvatarItem(shoes, 'sandals', 'Sandalias 🩴'),
@@ -143,6 +153,7 @@ class AvatarCatalog {
     AvatarItem(blush, 'blush_strong', 'Rubor Intenso'),
     AvatarItem(eyeshadow, 'shadow_soft', 'Sombra Suave'),
     AvatarItem(eyeshadow, 'shadow_smoky', 'Sombra Ahumada'),
+    AvatarItem(eyeliner, 'liner', 'Delineado'),
     AvatarItem(lipstick, 'lip_natural', 'Labial Natural'),
     AvatarItem(lipstick, 'lip_bold', 'Labial Intenso'),
 

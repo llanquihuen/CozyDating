@@ -28,8 +28,8 @@ API = "https://api.pixellab.ai/v2"
 SKIN = (252, 213, 181)
 
 # Crop windows (y0) of the 64x128 sprite per slot: 64 rows each.
-WINDOW = {"top": 36, "bottom": 62, "shoes": 64, "tattoo": 36}
-FOLDER = {"top": "tops", "bottom": "bottoms", "shoes": "shoes", "tattoo": "tattoos"}
+WINDOW = {"top": 36, "bottom": 62, "shoes": 64, "tattoo": 36, "dress": 40}
+FOLDER = {"top": "tops", "bottom": "bottoms", "shoes": "shoes", "tattoo": "tattoos", "dress": "dresses"}
 CARDINAL = {1: "S", 2: "SE", 3: "E", 4: "NE", 5: "N", 6: "NW", 7: "W", 8: "SW"}
 MIRROR_OF = {6: 4, 7: 3, 8: 2}
 
@@ -75,6 +75,15 @@ GARMENTS = {
     "tattoo_roses": dict(slot="tattoo", label="Rosas en los Hombros", audience="neutral",
                          prompt="a small colourful tattoo of a red rose with green leaves on each shoulder, the same "
                                 "on both shoulders; the character stays naked, no clothes"),
+    # feminine one-offs: female body only for now
+    "bikini_top": dict(slot="top", label="Bikini (Arriba)", audience="feminine", fits=("female",), bare=True,
+                       prompt="a triangle bikini top with thin straps, light blue"),
+    "bikini_bottom": dict(slot="bottom", label="Bikini (Abajo)", audience="feminine", fits=("female",), bare=True,
+                          raise_waist=False,
+                          prompt="a low-rise bikini bottom with side ties, bare legs and belly, light blue"),
+    "lolita": dict(slot="dress", label="Vestido Lolita", audience="feminine", fits=("female",),
+                   prompt="a sweet lolita dress: puffy short sleeves, a lace collar, a fitted bodice with a "
+                          "ribbon bow and a full knee-length bell-shaped skirt with ruffled layers, light blue"),
     "sneakers": dict(slot="shoes", label="Zapatillas", audience="neutral",
                      prompt="a pair of low-top canvas sneakers with laces and white rubber soles, light blue"),
     "sandals": dict(slot="shoes", label="Sandalias", audience="neutral",
@@ -145,14 +154,14 @@ def other_clothes(key, slot):
     return _tint(im, rgb) if im else None
 
 
-def frame_input(key, body, slot):
+def frame_input(key, body, slot, bare=False):
     canvas = Image.new("RGBA", (64, 128))
     layers = [_load(p) for p in body_paths(key, body)]
     # draw order like the game: body, bottoms, hands, tops
     if len(layers) == 3:  # sitting back leg, behind everything
         canvas.alpha_composite(_tint(layers[0], SKIN))
     canvas.alpha_composite(_tint(layers[-2], SKIN))
-    other = other_clothes(key, slot)
+    other = None if bare or slot == "dress" else other_clothes(key, slot)
     if other and slot == "top":
         canvas.alpha_composite(other)
     if layers[-1]:
@@ -203,7 +212,7 @@ def generate(garment, body, groups=None, seed=None):
     headers = {"Authorization": f"Bearer {_key()}", "Content-Type": "application/json"}
     for gi in groups if groups is not None else range(len(GROUPS)):
         keys = GROUPS[gi]
-        frames = [frame_input(k, body, spec["slot"]) for k in keys]
+        frames = [frame_input(k, body, spec["slot"], spec.get("bare", False)) for k in keys]
         for k, im in zip(keys, frames):
             im.save(os.path.join(GEN, f"_input_{garment}_{body}_{_name(k)}.png"))
         payload = {
@@ -238,7 +247,7 @@ def _shift(im, dx, dy):
 
 # Rows of the crop compared when aligning: the part of the figure the garment never reaches, so
 # loose garments (hoodie, skirts) that change the silhouette do not skew the match.
-ALIGN_ROWS = {"top": (44, 64), "bottom": (0, 12), "shoes": (0, 40), "tattoo": (0, 64)}
+ALIGN_ROWS = {"top": (44, 64), "bottom": (0, 12), "shoes": (0, 40), "tattoo": (0, 64), "dress": (0, 64)}
 
 
 def align(gen, inp, slot=None):
@@ -442,7 +451,7 @@ def build(garment, body):
         return build_tattoo(garment, body)
     folder = FOLDER[slot]
     y0 = WINDOW[slot]
-    sprites, backlegs = {}, {}
+    sprites, backlegs, skirts = {}, {}, {}
     for group in GROUPS:
         for key in group:
             n = _name(key)
@@ -452,14 +461,25 @@ def build(garment, body):
             crop = to_gray(gen, mask)
             full = Image.new("RGBA", (64, 128))
             full.alpha_composite(crop, (0, y0))
-            if slot == "bottom":
+            if slot == "bottom" and spec.get("raise_waist", True):
                 full = raise_waist(full, key)
-            if slot in ("bottom", "shoes") and key[0] == "sit" and key[1] == 4 and key[2] == 3:
-                # the back leg is drawn behind the furniture: split the garment over it
+            if slot == "dress":
+                # bodice drawn as a top (over the swinging arm), skirt as a bottom (under it): split
+                # at the waist, taken from the shipped jeans' top row in this frame
+                jeans = _load(_jeans_path(key))
+                waist = min((y for y in range(128) for x in range(64) if jeans and jeans.getpixel((x, y))[3]),
+                            default=80)
+                skirt = full.copy()
+                full.paste((0, 0, 0, 0), (0, waist, 64, 128))
+                skirt.paste((0, 0, 0, 0), (0, 0, 64, waist))
+                skirts[key] = skirt
+            if slot in ("bottom", "shoes", "dress") and key[0] == "sit" and key[1] == 4 and key[2] == 3:
+                # the back leg is drawn behind the furniture: split the garment (a dress: its skirt) over it
+                legs = skirts[key] if slot == "dress" else full
                 backleg = _load(f"body/{body}4_sitting_f3_backleg.png")
                 main = _load(f"body/{body}4_sitting_f3.png")
-                bp, mp, fp = backleg.load(), main.load(), full.load()
-                piece = Image.new("RGBA", full.size)
+                bp, mp, fp = backleg.load(), main.load(), legs.load()
+                piece = Image.new("RGBA", legs.size)
                 pp = piece.load()
                 for y in range(128):
                     for x in range(64):
@@ -469,17 +489,23 @@ def build(garment, body):
                     backlegs[4] = piece
             sprites[key] = full
     # W / SW / NW walk and sit frames mirror E / SE / NE
-    for key in list(sprites):
-        if key[0] in ("walk", "sit") and key[1] in (2, 3, 4):
-            twin = {2: 8, 3: 7, 4: 6}[key[1]]
-            sprites[(key[0], twin) + key[2:]] = ImageOps.mirror(sprites[key])
+    for frames in (sprites, skirts):
+        for key in list(frames):
+            if key[0] in ("walk", "sit") and key[1] in (2, 3, 4):
+                twin = {2: 8, 3: 7, 4: 6}[key[1]]
+                frames[(key[0], twin) + key[2:]] = ImageOps.mirror(frames[key])
     if 4 in backlegs:
         backlegs[6] = ImageOps.mirror(backlegs[4])
     out_dir = os.path.join(AV, folder)
+    os.makedirs(out_dir, exist_ok=True)
+    stem = f"{garment}_{body}"
     for key, im in sprites.items():
         im.save(os.path.join(out_dir, _out_names(garment, body, key)))
+    for key, im in skirts.items():  # dresses: <id>_<body>_skirt…
+        im.save(os.path.join(out_dir, _out_names(garment, body, key).replace(stem, f"{stem}_skirt", 1)))
+    backleg_stem = f"{stem}_skirt" if slot == "dress" else stem
     for d, im in backlegs.items():
-        im.save(os.path.join(out_dir, f"{garment}_{body}_{CARDINAL[d]}_backleg_sit3.png"))
+        im.save(os.path.join(out_dir, f"{backleg_stem}_{CARDINAL[d]}_backleg_sit3.png"))
     print(f"{garment}/{body}: {len(sprites)} frames + {len(backlegs)} back legs -> {folder}/")
 
 
@@ -489,10 +515,10 @@ LYING_CROP = (16, 16, 144, 112)
 LYING_FRAMES = [(b, v) for b in ("female", "male") for v in "AB"]
 
 
-def lying_input(body, view, slot):
+def lying_input(body, view, slot, bare=False):
     canvas = Image.new("RGBA", (160, 128))
     canvas.alpha_composite(_tint(_load(f"lying/body/{body}_lie{view}.png"), SKIN))
-    if slot not in ("shoes", "tattoo"):
+    if slot not in ("shoes", "tattoo", "dress") and not bare:
         other = _load(f"lying/bottoms/jeans_{body}_lie{view}.png" if slot == "top" else
                       f"lying/tops/jacket_{body}_lie{view}.png")
         canvas.alpha_composite(_tint(other, (40, 40, 48)))
@@ -502,7 +528,7 @@ def lying_input(body, view, slot):
 def generate_lying(garment, seed=42):
     spec = GARMENTS[garment]
     frames = [(b, v) for b, v in LYING_FRAMES if b in spec.get("fits", ("female", "male"))]
-    images = [lying_input(b, v, spec["slot"]) for b, v in frames]
+    images = [lying_input(b, v, spec["slot"], spec.get("bare", False)) for b, v in frames]
     for (b, v), im in zip(frames, images):
         im.save(os.path.join(GEN, f"_input_{garment}_{b}_lie{v}.png"))
     headers = {"Authorization": f"Bearer {_key()}", "Content-Type": "application/json"}

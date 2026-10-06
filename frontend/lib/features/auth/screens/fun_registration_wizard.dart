@@ -1337,6 +1337,28 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           selectedColor: _avatarConfig.topColor,
           onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(topColor: color)),
         ),
+        // One-piece outfits, only when the player has any to choose from
+        if (_optionsFor(AvatarCatalog.dress).length > 1) ...[
+          const SizedBox(height: 24),
+          _buildSectionHeader(
+            icon: Icons.dry_cleaning,
+            title: 'Vestido / Una Pieza',
+            subtitle: 'Mientras lo uses reemplaza la prenda de arriba y la de abajo',
+          ),
+          _buildOptionList(
+            options: _optionsFor(AvatarCatalog.dress),
+            selected: _avatarConfig.dressStyle,
+            onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(dressStyle: val)),
+          ),
+          if (_avatarConfig.dressStyle != 'none') ...[
+            const SizedBox(height: 16),
+            _buildColorPalette(
+              colors: AvatarConfig.clothingColors,
+              selectedColor: _avatarConfig.dressColor,
+              onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(dressColor: color)),
+            ),
+          ],
+        ],
       ],
     );
   }

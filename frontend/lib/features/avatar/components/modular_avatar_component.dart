@@ -150,6 +150,8 @@ class ModularAvatarComponent extends PositionComponent {
         config.skinColor != newConfig.skinColor ||
         config.shoeStyle != newConfig.shoeStyle ||
         config.shoeColor != newConfig.shoeColor ||
+        config.dressStyle != newConfig.dressStyle ||
+        config.dressColor != newConfig.dressColor ||
         !listEquals(config.marks, newConfig.marks) ||
         !mapEquals(config.accessories, newConfig.accessories) ||
         config.accessoryColor != newConfig.accessoryColor ||
@@ -215,9 +217,9 @@ class ModularAvatarComponent extends PositionComponent {
       final browG = config.eyebrowColor.green;
       final browB = config.eyebrowColor.blue;
 
-      final skinR = config.skinColor.red;
-      final skinG = config.skinColor.green;
-      final skinB = config.skinColor.blue;
+      final linerColor = config.makeup.containsKey(AvatarCatalog.eyeliner)
+          ? config.makeupColor(AvatarCatalog.eyeliner)
+          : null;
 
       for (int i = 0; i < length; i += 4) {
         final a = buffer[i + 3];
@@ -241,23 +243,16 @@ class ModularAvatarComponent extends PositionComponent {
           buffer[i + 1] = (browG * factor).round().clamp(0, 255);
           buffer[i + 2] = (browB * factor).round().clamp(0, 255);
         }
-        // Blue-dominant: Sombra o delineado de ojos (si no hay azul, queda transparente)
+        // Blue-dominant: the liner drawn over the lid. Invisible unless an eyeliner is worn; then its
+        // colour, from the lightest blue (soft lid shadow) to the darkest (the line), premultiplied.
         else if (b > r + 15 && b > g + 15 && b >= 40) {
-          if (b >= 180) {
-            // Sombra suave de piel
-            buffer[i] = (skinR * 0.82).round().clamp(0, 255);
-            buffer[i + 1] = (skinG * 0.70).round().clamp(0, 255);
-            buffer[i + 2] = (skinB * 0.65).round().clamp(0, 255);
-          } else if (b >= 120) {
-            // Sombra profunda / pliegue de párpado
-            buffer[i] = (skinR * 0.60).round().clamp(0, 255);
-            buffer[i + 1] = (skinG * 0.46).round().clamp(0, 255);
-            buffer[i + 2] = (skinB * 0.42).round().clamp(0, 255);
+          if (linerColor == null) {
+            buffer[i] = buffer[i + 1] = buffer[i + 2] = buffer[i + 3] = 0;
           } else {
-            // Delineado oscuro carbón
-            buffer[i] = 32;
-            buffer[i + 1] = 24;
-            buffer[i + 2] = 38;
+            final k = (b >= 180 ? 0.95 : (b >= 120 ? 0.75 : 0.55)) * a / 255;
+            buffer[i] = (linerColor.red * k).round();
+            buffer[i + 1] = (linerColor.green * k).round();
+            buffer[i + 2] = (linerColor.blue * k).round();
           }
         }
         // Other pixels (black eyeliner/lashes, white sclera) remain unchanged
@@ -379,14 +374,21 @@ class ModularAvatarComponent extends PositionComponent {
           futures.add(_loadOctoFrame('hair_front', 'hair/$hair/front/$hair$k.png', k));
         }
 
-        // Tops
-        if (config.topStyle != 'none') {
-          futures.add(_loadFitted('tops', 'tops', top, '$k.png', k, bodyType));
-        }
+        // A dress fills both garment layers: bodice as the top, skirt as the bottom
+        if (_wearsDress) {
+          final dress = 'dresses/${config.dressStyle}_$bodyType';
+          futures.add(_loadOctoFrame('tops', '$dress$k.png', k));
+          futures.add(_loadOctoFrame('bottoms', '${dress}_skirt$k.png', k));
+        } else {
+          // Tops
+          if (config.topStyle != 'none') {
+            futures.add(_loadFitted('tops', 'tops', top, '$k.png', k, bodyType));
+          }
 
-        // Bottoms
-        if (config.bottomStyle != 'none') {
-          futures.add(_loadFitted('bottoms', 'bottoms', bottom, '$k.png', k, bodyType));
+          // Bottoms
+          if (config.bottomStyle != 'none') {
+            futures.add(_loadFitted('bottoms', 'bottoms', bottom, '$k.png', k, bodyType));
+          }
         }
 
         // Shoes (if present)
@@ -452,8 +454,14 @@ class ModularAvatarComponent extends PositionComponent {
         // Hands sit frame
         futures.add(_loadOctoFrame('hands', 'body/${bodyType}${d}_sitting_hands_f$f.png', sitKey));
 
+        if (_wearsDress) {
+          final dress = 'dresses/${config.dressStyle}_$bodyType';
+          futures.add(_loadOctoFrame('tops', '${dress}_${cardinal}_sit$f.png', sitKey));
+          futures.add(_loadOctoFrame('bottoms', '${dress}_skirt_${cardinal}_sit$f.png', sitKey));
+        }
+
         // Tops sit frame: e.g. tops/jacket_SE_sit1.png
-        if (config.topStyle != 'none') {
+        if (!_wearsDress && config.topStyle != 'none') {
           futures.add(_loadFitted('tops', 'tops', top, '_${cardinal}_sit$f.png', sitKey, bodyType).then((_) {
             if (!_octoImageCache.containsKey('tops:$sitKey')) {
               return _loadOctoFrame('tops', 'tops/${top}${d}_sitting_f$f.png', sitKey);
@@ -462,7 +470,7 @@ class ModularAvatarComponent extends PositionComponent {
         }
 
         // Bottoms sit frame: e.g. bottoms/jeans_SE_sit1.png
-        if (config.bottomStyle != 'none') {
+        if (!_wearsDress && config.bottomStyle != 'none') {
           futures.add(_loadFitted('bottoms', 'bottoms', bottom, '_${cardinal}_sit$f.png', sitKey, bodyType).then((_) {
             if (!_octoImageCache.containsKey('bottoms:$sitKey')) {
               return _loadOctoFrame('bottoms', 'bottoms/${bottom}${d}_sitting_f$f.png', sitKey);
@@ -482,7 +490,10 @@ class ModularAvatarComponent extends PositionComponent {
         // Backleg frame for sitting (only applicable to NE (4) and NW (6) at frame 3)
         if ((d == 4 || d == 6) && f == 3) {
           futures.add(_loadOctoFrame('body_backleg', 'body/${bodyType}${d}_sitting_f3_backleg.png', sitKey));
-          if (config.bottomStyle != 'none') {
+          if (_wearsDress) {
+            futures.add(_loadOctoFrame('bottoms_backleg',
+                'dresses/${config.dressStyle}_${bodyType}_skirt_${cardinal}_backleg_sit3.png', sitKey));
+          } else if (config.bottomStyle != 'none') {
             futures.add(_loadFitted('bottoms_backleg', 'bottoms', bottom, '_${cardinal}_backleg_sit3.png', sitKey, bodyType));
           }
           if (config.shoeStyle != 'none') {
@@ -558,11 +569,16 @@ class ModularAvatarComponent extends PositionComponent {
         });
       }
 
-      if (config.topStyle != 'none') {
-        futures.add(garment('tops', 'tops', top, 'jacket'));
-      }
-      if (config.bottomStyle != 'none') {
-        futures.add(garment('bottoms', 'bottoms', bottom, 'jeans'));
+      if (_wearsDress) {
+        // lying, the whole dress is one layer
+        futures.add(_loadOctoFrame('tops', 'lying/dresses/${config.dressStyle}_${bodyType}_lie$v.png', key));
+      } else {
+        if (config.topStyle != 'none') {
+          futures.add(garment('tops', 'tops', top, 'jacket'));
+        }
+        if (config.bottomStyle != 'none') {
+          futures.add(garment('bottoms', 'bottoms', bottom, 'jeans'));
+        }
       }
       if (config.hairStyle != 'none') {
         futures.add(_loadOctoFrame('hair_front', 'lying/hair/$hair/${hair}_lie$v.png', key));
@@ -578,6 +594,13 @@ class ModularAvatarComponent extends PositionComponent {
       });
     }
   }
+
+  /// A dress (one-piece) is drawn through the top and bottom layers and hides the worn top/bottom.
+  bool get _wearsDress => config.dressStyle != 'none';
+  bool get _hasTop => _wearsDress || config.topStyle != 'none';
+  bool get _hasBottom => _wearsDress || config.bottomStyle != 'none';
+  Color get _topTint => _wearsDress ? config.dressColor : config.topColor;
+  Color get _bottomTint => _wearsDress ? config.dressColor : config.bottomColor;
 
   static bool _isBodyArt(String mark) => AvatarCatalog.find(AvatarCatalog.mark, mark)?.underClothes ?? false;
 
@@ -670,8 +693,8 @@ class ModularAvatarComponent extends PositionComponent {
     drawBacklegLayer('body_backleg', config.skinColor);
 
     // Layer 2: Bottoms backleg (e.g. Jeans - rendered over body skin)
-    if (config.bottomStyle != 'none') {
-      drawBacklegLayer('bottoms_backleg', config.bottomColor);
+    if (_hasBottom) {
+      drawBacklegLayer('bottoms_backleg', _bottomTint);
     }
 
     // Layer 3: Shoes backleg (rendered over pants/skin)
@@ -680,8 +703,8 @@ class ModularAvatarComponent extends PositionComponent {
     }
 
     // Layer 4: Tops backleg (rendered over pants/skin)
-    if (config.topStyle != 'none') {
-      drawBacklegLayer('tops_backleg', config.topColor);
+    if (_hasTop) {
+      drawBacklegLayer('tops_backleg', _topTint);
     }
   }
 
@@ -736,9 +759,9 @@ class ModularAvatarComponent extends PositionComponent {
       }
       draw('mouth', key, null);
       draw('eyes', pose.under ? '${key}_closed' : key, null);
-      if (config.bottomStyle != 'none') draw('bottoms', key, config.bottomColor);
+      if (_hasBottom) draw('bottoms', key, _bottomTint);
       if (config.shoeStyle != 'none' && !pose.barefoot) draw('shoes', key, config.shoeColor);
-      if (config.topStyle != 'none') draw('tops', key, config.topColor);
+      if (_hasTop) draw('tops', key, _topTint);
     }, clipToBlanket: true);
 
     // The hairstyle is never cropped.
@@ -829,13 +852,13 @@ class ModularAvatarComponent extends PositionComponent {
     }
 
     // Layer 3a: Bottoms Backleg (Only when NOT rendered separately behind furniture)
-    if (!renderBacklegSeparately && isSitting && config.bottomStyle != 'none') {
-      drawLayer('bottoms_backleg', config.bottomColor);
+    if (!renderBacklegSeparately && isSitting && _hasBottom) {
+      drawLayer('bottoms_backleg', _bottomTint);
     }
 
     // Layer 3: Bottoms / Pants / Jeans
-    if (config.bottomStyle != 'none') {
-      drawLayer('bottoms', config.bottomColor);
+    if (_hasBottom) {
+      drawLayer('bottoms', _bottomTint);
     }
 
     // Layer 4: Hands (Skin Color - Rendered over pants so arms/hands aren't covered by bottoms)
@@ -857,13 +880,13 @@ class ModularAvatarComponent extends PositionComponent {
     }
 
     // Layer 6a: Tops Backleg (Only when NOT rendered separately behind furniture)
-    if (!renderBacklegSeparately && isSitting && config.topStyle != 'none') {
-      drawLayer('tops_backleg', config.topColor);
+    if (!renderBacklegSeparately && isSitting && _hasTop) {
+      drawLayer('tops_backleg', _topTint);
     }
 
     // Layer 6: Tops / Jacket / Shirt
-    if (config.topStyle != 'none') {
-      drawLayer('tops', config.topColor);
+    if (_hasTop) {
+      drawLayer('tops', _topTint);
     }
 
     // Layer 7: Head / Face Shape (Skin Color, rendered over clothes)

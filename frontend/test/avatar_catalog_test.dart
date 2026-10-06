@@ -16,8 +16,9 @@ void main() {
           AvatarCatalog.top => AvatarConfig(topStyle: item.id),
           AvatarCatalog.bottom => AvatarConfig(bottomStyle: item.id),
           AvatarCatalog.shoes => AvatarConfig(shoeStyle: item.id),
+          AvatarCatalog.dress => AvatarConfig(dressStyle: item.id),
           AvatarCatalog.mark => AvatarConfig(marks: [item.id]),
-          AvatarCatalog.blush || AvatarCatalog.eyeshadow || AvatarCatalog.lipstick =>
+          AvatarCatalog.blush || AvatarCatalog.eyeshadow || AvatarCatalog.eyeliner || AvatarCatalog.lipstick =>
             AvatarConfig(makeup: {item.slot: item.id}),
           _ => AvatarConfig(accessories: {item.slot: item.id}),
         };

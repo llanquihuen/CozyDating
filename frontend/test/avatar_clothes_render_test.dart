@@ -48,6 +48,14 @@ void main() {
   ];
 
   test('every fitted garment ships its own lying views (else the jacket/jeans fallback is drawn)', () {
+    for (final item in AvatarCatalog.items.where((i) => i.slot == AvatarCatalog.dress)) {
+      for (final body in item.fits) {
+        for (final v in ['A', 'B']) {
+          final path = 'assets/images/OCTOPLAYER/Avatar/lying/dresses/${item.id}_${body}_lie$v.png';
+          expect(File(path).existsSync(), isTrue, reason: path);
+        }
+      }
+    }
     for (final item in garments) {
       final folder = const {
         AvatarCatalog.top: 'tops',
@@ -61,6 +69,36 @@ void main() {
         }
       }
     }
+  });
+
+  testWidgets('a dress replaces the top and bottom while worn and is drawn in every pose', (tester) async {
+    await tester.runAsync(() async {
+      final dresses = [
+        for (final item in AvatarCatalog.items)
+          if (item.slot == AvatarCatalog.dress) item,
+      ];
+      expect(dresses, isNotEmpty);
+      for (final item in dresses) {
+        for (final body in item.fits) {
+          final bare = AvatarConfig(bodyType: body, hairStyle: 'none', topStyle: 'none', bottomStyle: 'none');
+          final dressed = bare.copyWith(dressStyle: item.id);
+          final withClothes = dressed.copyWith(topStyle: 'tshirt', bottomStyle: 'jeans');
+          for (final pose in <String, Future<Uint8List> Function(AvatarConfig, String)>{
+            'S': (c, n) => _render(c, n),
+            'N': (c, n) => _render(c, n, direction: AvatarDirection.north),
+            'SE_sit': (c, n) => _render(c, n, direction: AvatarDirection.southEast, sitting: true),
+            'NW_sit': (c, n) => _render(c, n, direction: AvatarDirection.northWest, sitting: true),
+            'lieA': (c, n) => _render(c, n, lyingView: 'A'),
+          }.entries) {
+            final dressOnly = await pose.value(dressed, '${body}_${item.id}_${pose.key}');
+            expect(dressOnly, isNot(equals(await pose.value(bare, '${body}_bare_${pose.key}'))),
+                reason: '${item.id} drawn ${pose.key}');
+            expect(await pose.value(withClothes, '${body}_${item.id}_over_${pose.key}'), equals(dressOnly),
+                reason: '${item.id} hides the worn top and bottom ${pose.key}');
+          }
+        }
+      }
+    });
   });
 
   testWidgets('every fitted garment is drawn on its bodies: standing, from behind, sitting and lying',

@@ -3087,6 +3087,28 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           selectedColor: _currentConfig.topColor,
           onColorSelected: (color) => _updateConfig(_currentConfig.copyWith(topColor: color)),
         ),
+        // One-piece outfits, only when the player has any to choose from
+        if (_optionsFor(AvatarCatalog.dress).length > 1) ...[
+          const SizedBox(height: 24),
+          _buildSectionHeader(
+            icon: Icons.dry_cleaning,
+            title: 'Vestido / Una Pieza',
+            subtitle: 'Mientras lo uses reemplaza la prenda de arriba y la de abajo',
+          ),
+          _buildOptionList(
+            options: _optionsFor(AvatarCatalog.dress),
+            selected: _currentConfig.dressStyle,
+            onSelected: (val) => _updateConfig(_currentConfig.copyWith(dressStyle: val)),
+          ),
+          if (_currentConfig.dressStyle != 'none') ...[
+            const SizedBox(height: 16),
+            _buildColorPalette(
+              colors: AvatarConfig.clothingColors,
+              selectedColor: _currentConfig.dressColor,
+              onColorSelected: (color) => _updateConfig(_currentConfig.copyWith(dressColor: color)),
+            ),
+          ],
+        ],
       ],
     );
   }

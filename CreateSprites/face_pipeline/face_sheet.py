@@ -30,7 +30,7 @@ def compose(cfg, d, overlays=(), makeup=None):
     from color_engine import colorize_sprite, hex_to_rgb
     import makeup_preview as mk
     makeup = makeup or {}
-    if not overlays and not makeup:
+    if not overlays and not makeup and False:  # always compose here: the liner rule differs from octo_engine
         return octo_engine.compose_octo_avatar(cfg, direction=d)
     bare_cfg = {**cfg, "eyes": {**cfg["eyes"], "file": "none"}, "mouth": {"file": "none"},
                 "hair": {**cfg["hair"], "file": "none"}}
@@ -48,8 +48,10 @@ def compose(cfg, d, overlays=(), makeup=None):
     hair_rgb, skin_rgb = hex_to_rgb(cfg["hair"]["color"]), hex_to_rgb(cfg["body"]["color"])
     raw = octo_engine.load_octo_layer("eyes", cfg["eyes"]["file"], d)
     if raw:
+        # liner (blue-coded pixels) invisible unless an eyeliner is worn, like the game
+        liner = makeup.get("eyeliner", (None, "none"))[1]
         eyes = colorize_sprite(raw.copy(), hex_to_rgb(cfg["eyes"]["color"]), category="eyes",
-                               eyebrow_rgb=hair_rgb, skin_rgb=skin_rgb)
+                               eyebrow_rgb=hair_rgb, skin_rgb=skin_rgb, eyeshadow_rgb=liner)
         if "eyeshadow" in makeup:
             style, rgb = makeup["eyeshadow"]
             mk.paint(eyes, mk.eyeshadow_targets(raw, (0, -1), smoky=style == "shadow_smoky"), rgb)

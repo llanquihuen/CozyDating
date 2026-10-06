@@ -25,7 +25,7 @@ AVATAR_CATALOG_PATH = os.path.join(PROJECT_ROOT, "frontend", "lib", "core", "mod
 # Carpeta escaneada -> slot de AvatarCatalog (en Dart la constante se llama igual que su valor).
 CATALOG_SLOTS: Dict[str, str] = {
     "eyes": "eyes", "nose": "nose", "mouth": "mouth", "hair": "hair",
-    "tops": "top", "bottoms": "bottom", "shoes": "shoes", "marks": "mark", "tattoos": "mark", "makeup/blush": "blush",
+    "tops": "top", "bottoms": "bottom", "shoes": "shoes", "marks": "mark", "tattoos": "mark", "dresses": "dress", "makeup/blush": "blush",
 }
 BODY_TYPES = ("female", "male")
 # Slots painted at load time over the eyes/mouth (face_makeup.dart): they have no sprites.
@@ -79,6 +79,8 @@ def scan_flat_category(cat_name: str) -> List[str]:
             items.add(f[:-5])
         elif f.endswith("_S.png"):
             items.add(f[:-6])
+    # a dress's skirt half (<style>_<body>_skirt1.png) belongs to the dress
+    items = {i[:-len("_skirt")] if i.endswith("_skirt") else i for i in items}
     # body-fitted clothes (<style>_female1.png / <style>_male1.png) are versions of <style>
     for body in BODY_TYPES:
         items = {i[:-len(body) - 1] if i.endswith(f"_{body}") else i for i in items}
@@ -264,6 +266,7 @@ def sync_all(generate_walk: bool = True):
         "head": scan_flat_category("head"),
         "makeup/blush": scan_flat_category(os.path.join("makeup", "blush")),
         "tattoos": scan_flat_category("tattoos"),
+        "dresses": scan_flat_category("dresses"),
     }
     accessory_slots = scan_accessory_slots()
     hair_styles, hairs_with_back = scan_hair_styles()

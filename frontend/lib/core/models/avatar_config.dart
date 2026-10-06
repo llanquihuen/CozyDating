@@ -24,6 +24,11 @@ class AvatarConfig extends Equatable {
   final Color bottomColor;
   final String shoeStyle;
   final Color shoeColor;
+
+  /// One-piece outfit ([AvatarCatalog.dress]); while not 'none' it replaces the top and bottom on
+  /// screen, which stay selected for when it is taken off.
+  final String dressStyle;
+  final Color dressColor;
   /// Body marks (freckles, moles, tattoos, scars): any number at once, drawn on the skin.
   /// They stay visible when worn accessories are taken off (e.g. sleeping under the covers).
   final List<String> marks;
@@ -59,6 +64,8 @@ class AvatarConfig extends Equatable {
     this.bottomColor = const Color(0xFF2563EB),
     this.shoeStyle = 'none',
     this.shoeColor = const Color(0xFF78350F),
+    this.dressStyle = 'none',
+    this.dressColor = const Color(0xFFDB2777),
     this.marks = const [],
     this.accessories = const {},
     this.accessoryColor = const Color(0xFFEAB308),
@@ -69,6 +76,7 @@ class AvatarConfig extends Equatable {
   static const Map<String, Color> defaultMakeupColors = {
     'blush': Color(0xFFEC708C),
     'eyeshadow': Color(0xFF9D5C8F),
+    'eyeliner': Color(0xFF2B2530),
     'lipstick': Color(0xFFC0304A),
   };
 
@@ -189,6 +197,7 @@ class AvatarConfig extends Equatable {
       case 'headband': return 'Cintillo';
       case 'blush': return 'Rubor';
       case 'eyeshadow': return 'Sombra de Ojos';
+      case 'eyeliner': return 'Delineado';
       case 'lipstick': return 'Labial';
       default: return slot.replaceAll('_', ' ');
     }
@@ -256,6 +265,7 @@ class AvatarConfig extends Equatable {
       topStyle: pick(AvatarCatalog.top, topStyle),
       bottomStyle: pick(AvatarCatalog.bottom, bottomStyle),
       shoeStyle: pick(AvatarCatalog.shoes, shoeStyle),
+      dressStyle: allowed(AvatarCatalog.dress, dressStyle) ? dressStyle : 'none',
       marks: [for (final m in marks) if (allowed(AvatarCatalog.mark, m)) m],
       accessories: {
         for (final e in accessories.entries) if (allowed(e.key, e.value)) e.key: e.value,
@@ -313,6 +323,8 @@ class AvatarConfig extends Equatable {
     Color? bottomColor,
     String? shoeStyle,
     Color? shoeColor,
+    String? dressStyle,
+    Color? dressColor,
     List<String>? marks,
     Map<String, String>? accessories,
     Color? accessoryColor,
@@ -340,6 +352,8 @@ class AvatarConfig extends Equatable {
       bottomColor: bottomColor ?? this.bottomColor,
       shoeStyle: shoeStyle ?? this.shoeStyle,
       shoeColor: shoeColor ?? this.shoeColor,
+      dressStyle: dressStyle ?? this.dressStyle,
+      dressColor: dressColor ?? this.dressColor,
       marks: marks ?? this.marks,
       accessories: accessories ?? this.accessories,
       accessoryColor: accessoryColor ?? this.accessoryColor,
@@ -370,6 +384,8 @@ class AvatarConfig extends Equatable {
       'bottomColor': bottomColor.value,
       'shoeStyle': shoeStyle,
       'shoeColor': shoeColor.value,
+      'dressStyle': dressStyle,
+      'dressColor': dressColor.value,
       'marks': marks,
       'accessories': accessories,
       'accessoryColor': accessoryColor.value,
@@ -448,6 +464,8 @@ class AvatarConfig extends Equatable {
       bottomColor: json['bottomColor'] != null ? Color(json['bottomColor'] as int) : const Color(0xFF2563EB),
       shoeStyle: known(AvatarCatalog.shoes, json['shoeStyle'], 'none'),
       shoeColor: json['shoeColor'] != null ? Color(json['shoeColor'] as int) : const Color(0xFF78350F),
+      dressStyle: known(AvatarCatalog.dress, json['dressStyle'], 'none'),
+      dressColor: json['dressColor'] != null ? Color(json['dressColor'] as int) : const Color(0xFFDB2777),
       marks: marks,
       accessories: accessories,
       accessoryColor: json['accessoryColor'] != null ? Color(json['accessoryColor'] as int) : const Color(0xFFEAB308),
@@ -478,6 +496,8 @@ class AvatarConfig extends Equatable {
         bottomColor,
         shoeStyle,
         shoeColor,
+        dressStyle,
+        dressColor,
         marks,
         accessories,
         accessoryColor,

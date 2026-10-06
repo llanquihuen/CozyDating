@@ -65,6 +65,23 @@ void main() {
     });
   });
 
+  testWidgets('the eye liner (blue-coded pixels) is invisible unless an eyeliner is worn', (tester) async {
+    await tester.runAsync(() async {
+      // cateyes draws its liner in blue over the lid
+      const eyes = AvatarConfig(eyeStyle: 'cateyes', hairStyle: 'none', topStyle: 'none', bottomStyle: 'none');
+      final none = await _render(eyes, 'liner_none');
+      final dark = await _render(eyes.withMakeup('eyeliner', 'liner'), 'liner_default');
+      final teal = await _render(
+          eyes.withMakeup('eyeliner', 'liner').withMakeupColor('eyeliner', const ui.Color(0xFF3FA796)), 'liner_teal');
+      expect(dark, isNot(equals(none)), reason: 'wearing an eyeliner shows it');
+      expect(teal, isNot(equals(dark)), reason: 'its colour is applied');
+      for (var i = 0; i < none.length; i += 4) {
+        final r = none[i], g = none[i + 1], b = none[i + 2];
+        expect(none[i + 3] > 0 && b > r + 25 && b > g + 25, isFalse, reason: 'no raw blue left at pixel ${i ~/ 4}');
+      }
+    });
+  });
+
   testWidgets('makeup and new marks are drawn lying down', (tester) async {
     await tester.runAsync(() async {
       for (final view in ['A', 'B']) {
