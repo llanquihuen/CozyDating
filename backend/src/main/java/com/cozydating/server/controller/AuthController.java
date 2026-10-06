@@ -114,6 +114,7 @@ public class AuthController {
         }
 
         databaseService.createUser(newUser);
+        applyCardFields(userId, newUser, body);
 
         String token = jwtUtil.generateToken(userId, username.trim(), 30L * 24 * 3600 * 1000);
 
@@ -322,7 +323,52 @@ public class AuthController {
             user.setLifestyle(lifestyleJson);
         }
 
+        applyCardFields(resolvedUserId, user, body);
+
         return ResponseEntity.ok(formatUserResponse(user));
+    }
+
+    /**
+     * Bio, profile card style (JSON) and the age range sought. A present key with a null value clears it:
+     * a null age bound means no limit on that side.
+     */
+    private void applyCardFields(String userId, User user, Map<String, Object> body) {
+        if (body.containsKey("bio")) {
+            String bio = body.get("bio") != null ? body.get("bio").toString().trim() : "";
+            if (bio.length() > MAX_BIO_LENGTH) {
+                bio = bio.substring(0, MAX_BIO_LENGTH);
+            }
+            databaseService.updateUserBio(userId, bio);
+            user.setBio(bio);
+        }
+        if (body.containsKey("cardStyle")) {
+            String cardStyleJson = extractJsonString(body.get("cardStyle"));
+            databaseService.updateUserCardStyle(userId, cardStyleJson);
+            user.setCardStyle(cardStyleJson);
+        }
+        if (body.containsKey("seekingAgeMin") || body.containsKey("seekingAgeMax")) {
+            Integer min = body.containsKey("seekingAgeMin") ? ageBound(body.get("seekingAgeMin")) : user.getSeekingAgeMin();
+            Integer max = body.containsKey("seekingAgeMax") ? ageBound(body.get("seekingAgeMax")) : user.getSeekingAgeMax();
+            if (min != null && max != null && min > max) {
+                Integer swap = min;
+                min = max;
+                max = swap;
+            }
+            databaseService.updateUserSeekingAgeRange(userId, min, max);
+            user.setSeekingAgeMin(min);
+            user.setSeekingAgeMax(max);
+        }
+    }
+
+    private static final int MAX_BIO_LENGTH = 180; // the editor's limit
+    private static final int MIN_AGE = 18;
+    private static final int MAX_AGE = 99;
+
+    private Integer ageBound(Object value) {
+        if (!(value instanceof Number)) {
+            return null;
+        }
+        return Math.max(MIN_AGE, Math.min(MAX_AGE, ((Number) value).intValue()));
     }
 
     private Map<String, Object> formatUserResponse(User user) {
@@ -347,6 +393,10 @@ public class AuthController {
         map.put("longitude", user.getLongitude());
         map.put("maxDistanceKm", user.getMaxDistanceKm());
         map.put("lifestyle", user.getLifestyle());
+        map.put("bio", user.getBio());
+        map.put("cardStyle", user.getCardStyle());
+        map.put("seekingAgeMin", user.getSeekingAgeMin());
+        map.put("seekingAgeMax", user.getSeekingAgeMax());
         return map;
     }
 }

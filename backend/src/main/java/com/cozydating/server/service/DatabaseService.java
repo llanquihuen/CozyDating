@@ -63,6 +63,12 @@ public class DatabaseService {
                 }
                 user.setLifestyle(rs.getString("lifestyle"));
             } catch (Exception ignored) {}
+            try {
+                user.setBio(rs.getString("bio"));
+                user.setCardStyle(rs.getString("card_style"));
+                user.setSeekingAgeMin(rs.getObject("seeking_age_min") != null ? rs.getInt("seeking_age_min") : null);
+                user.setSeekingAgeMax(rs.getObject("seeking_age_max") != null ? rs.getInt("seeking_age_max") : null);
+            } catch (Exception ignored) {}
             return user;
         }
     };
@@ -165,6 +171,13 @@ public class DatabaseService {
         try {
             jdbcTemplate.execute("ALTER TABLE users ADD COLUMN lifestyle LONGTEXT");
         } catch (Exception ignored) {}
+
+        // Profile card: the bio, the card style (JSON) and the optional age range sought (null = no filter)
+        for (String col : new String[] {"bio TEXT", "card_style LONGTEXT", "seeking_age_min INT NULL", "seeking_age_max INT NULL"}) {
+            try {
+                jdbcTemplate.execute("ALTER TABLE users ADD COLUMN " + col);
+            } catch (Exception ignored) {}
+        }
 
         // Create mailbox_matches table for asynchronous letterbox post-game decisions
         jdbcTemplate.execute(
@@ -428,6 +441,22 @@ public class DatabaseService {
     @Transactional
     public void updateUserLifestyle(String userId, String lifestyleJson) {
         jdbcTemplate.update("UPDATE users SET lifestyle = ? WHERE id = ?", lifestyleJson, userId);
+    }
+
+    @Transactional
+    public void updateUserBio(String userId, String bio) {
+        jdbcTemplate.update("UPDATE users SET bio = ? WHERE id = ?", bio, userId);
+    }
+
+    @Transactional
+    public void updateUserCardStyle(String userId, String cardStyleJson) {
+        jdbcTemplate.update("UPDATE users SET card_style = ? WHERE id = ?", cardStyleJson, userId);
+    }
+
+    /** Age range sought; a null bound means no limit on that side. */
+    @Transactional
+    public void updateUserSeekingAgeRange(String userId, Integer minAge, Integer maxAge) {
+        jdbcTemplate.update("UPDATE users SET seeking_age_min = ?, seeking_age_max = ? WHERE id = ?", minAge, maxAge, userId);
     }
 
     @Transactional

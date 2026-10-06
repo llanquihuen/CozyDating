@@ -5,6 +5,7 @@ import 'package:http_parser/http_parser.dart';
 import '../config/app_config.dart';
 import '../models/avatar_config.dart';
 import '../models/lifestyle_badges.dart';
+import '../models/profile_card_style.dart';
 import '../models/room_config.dart';
 import '../models/user_profile.dart';
 import '../../features/mailbox/services/mailbox_service.dart';
@@ -513,6 +514,7 @@ class AuthService {
     double? latitude,
     double? longitude,
     LifestyleBadges? lifestyle,
+    ProfileCardStyle? cardStyle,
   }) {
     if (_currentUser == null) return;
     _currentUser = _currentUser!.copyWith(
@@ -530,10 +532,18 @@ class AuthService {
       latitude: latitude,
       longitude: longitude,
       lifestyle: lifestyle,
+      cardStyle: cardStyle,
     );
     if (lifestyle != null) {
       AvatarStorageService.saveUserLifestyle(_currentUser!.id, lifestyle);
     }
+  }
+
+  /// Age range sought in the current session user (null bounds: no limit); sent with
+  /// [saveProfileToBackend].
+  static void updateSeekingAgeRange(int? min, int? max) {
+    if (_currentUser == null) return;
+    _currentUser = _currentUser!.withSeekingAgeRange(min, max);
   }
 
   /// Update lifestyle badges directly
@@ -567,7 +577,7 @@ class AuthService {
     return false;
   }
 
-  /// Sync location, gender and lifestyle preferences to backend
+  /// Sync location, gender, lifestyle, bio, card style and age range preferences to backend
   static Future<bool> saveProfileToBackend() async {
     if (_currentUser == null) return false;
     try {
@@ -587,12 +597,18 @@ class AuthService {
         if (_currentUser!.latitude != null) 'latitude': _currentUser!.latitude,
         if (_currentUser!.longitude != null) 'longitude': _currentUser!.longitude,
         if (_currentUser!.lifestyle.hasAnyBadge) 'lifestyle': _currentUser!.lifestyle.toJson(),
+        'bio': _currentUser!.bio,
+        if (_currentUser!.cardStyle != null) 'cardStyle': _currentUser!.cardStyle!.toJson(),
+        // Always sent, so clearing the filter (nulls) reaches the server.
+        'seekingAgeMin': _currentUser!.seekingAgeMin,
+        'seekingAgeMax': _currentUser!.seekingAgeMax,
       });
 
       final response = await http.post(url, headers: headers, body: body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        _currentUser = UserProfile.fromMap(data);
+        // The server does not keep the intent; carry it over.
+        _currentUser = UserProfile.fromMap(data).copyWith(intent: _currentUser!.intent);
         return true;
       }
     } catch (e) {

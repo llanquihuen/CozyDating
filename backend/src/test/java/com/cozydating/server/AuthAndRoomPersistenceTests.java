@@ -86,6 +86,80 @@ public class AuthAndRoomPersistenceTests {
     }
 
     @Test
+    public void testProfileCardStyleAndAgeRangePersistence() throws Exception {
+        User user = new User("user_card_1", "cardMaker", "card@test.com",
+                databaseService.getPasswordEncoder().encode("pass123"), 27, "Ñuñoa", 5, "{}", "[]", "{}");
+        databaseService.createUser(user);
+        String token = jwtUtil.generateToken("user_card_1", "cardMaker", 100000);
+
+        // New accounts: no card style and no age filter
+        User fresh = databaseService.findUserById("user_card_1");
+        assertNull(fresh.getCardStyle());
+        assertNull(fresh.getSeekingAgeMin());
+        assertNull(fresh.getSeekingAgeMax());
+
+        String style = "{\"themeId\":\"arcade\",\"accent\":\"#00F0FF\",\"phrase\":\"Speedruns y ramen\",\"featuredTastes\":[\"tech_pc_gamer\"]}";
+        mockMvc.perform(post("/auth/profile")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"bio\":\"  Hago el mejor ramen  \",\"cardStyle\":\"" + style.replace("\"", "\\\"") + "\",\"seekingAgeMin\":30,\"seekingAgeMax\":24}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bio").value("Hago el mejor ramen"))
+                .andExpect(jsonPath("$.cardStyle").value(style))
+                .andExpect(jsonPath("$.seekingAgeMin").value(24))   // swapped into order
+                .andExpect(jsonPath("$.seekingAgeMax").value(30));
+
+        User saved = databaseService.findUserById("user_card_1");
+        assertEquals(style, saved.getCardStyle());
+        assertEquals("Hago el mejor ramen", saved.getBio());
+        assertEquals(24, saved.getSeekingAgeMin());
+        assertEquals(30, saved.getSeekingAgeMax());
+
+        // Out-of-range bounds are clamped to 18..99; an unrelated update keeps the card fields
+        mockMvc.perform(post("/auth/profile")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"seekingAgeMin\":12,\"seekingAgeMax\":140}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.seekingAgeMin").value(18))
+                .andExpect(jsonPath("$.seekingAgeMax").value(99));
+        mockMvc.perform(post("/auth/profile")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"commune\":\"Providencia\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cardStyle").value(style))
+                .andExpect(jsonPath("$.seekingAgeMax").value(99));
+
+        // Null clears the filter again (no limit)
+        mockMvc.perform(post("/auth/profile")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"seekingAgeMin\":null,\"seekingAgeMax\":null}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.seekingAgeMin").doesNotExist());
+        User cleared = databaseService.findUserById("user_card_1");
+        assertNull(cleared.getSeekingAgeMin());
+        assertNull(cleared.getSeekingAgeMax());
+    }
+
+    @Test
+    public void testRegistrationAcceptsCardStyle() throws Exception {
+        String payload = "{\"username\":\"newCard\",\"password\":\"secret123\",\"email\":\"new@card.com\",\"age\":30," +
+                "\"cardStyle\":\"{\\\"themeId\\\":\\\"matcha\\\"}\",\"seekingAgeMin\":25}";
+        mockMvc.perform(post("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.cardStyle").value("{\"themeId\":\"matcha\"}"))
+                .andExpect(jsonPath("$.user.seekingAgeMin").value(25));
+        User user = databaseService.findUserByUsername("newCard");
+        assertEquals("{\"themeId\":\"matcha\"}", user.getCardStyle());
+        assertEquals(25, user.getSeekingAgeMin());
+        assertNull(user.getSeekingAgeMax());
+    }
+
+    @Test
     public void testRoomConfigPersistence() throws Exception {
         User user = new User(
                 "user_test_1",

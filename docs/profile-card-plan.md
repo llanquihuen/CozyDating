@@ -74,19 +74,24 @@ outline selectivo queda como mejora posterior.
 
 Cada fase deja la app funcionando y va en su propio commit.
 
-### Fase 1 — Datos de la tarjeta (cliente y servidor)
+### Fase 1 — Datos de la tarjeta (cliente y servidor) — hecha
 
-- Modelo `ProfileCardStyle` (cliente) con `themeId`, `accent`, `phrase` (≤ 60) y
-  `featuredTastes` (1-5, ids de gustos que la persona tiene), serializado a JSON en
-  `UserProfile.cardStyle`. Por defecto: tema según los gustos (o Café), sin frase, los 3 primeros
-  gustos.
-- Rango de edad buscado: `UserProfile.seekingAgeMin` / `seekingAgeMax`, ambos nulos = sin filtro.
-- Backend: columnas `card_style LONGTEXT`, `seeking_age_min INT NULL`, `seeking_age_max INT NULL`
-  (mismo patrón de `ALTER TABLE`); leerlas y escribirlas en `POST /auth/profile`, el login y el
-  registro.
-- Tests: ida y vuelta JSON en el cliente; `mvn test` para guardar y leer el perfil.
-- Ojo: un push a `main` que toque `backend/**` despliega solo a Lightsail. Las columnas nuevas son
-  opcionales, así que los clientes viejos siguen funcionando.
+- `ProfileCardStyle` (`core/models/profile_card_style.dart`): `themeId`, `accent` (null = el del
+  tema), `phrase` (≤ 60 caracteres visibles, espacios colapsados) y `featuredTastes` (1-5, nunca la
+  intención). `defaultFor(tastes)` sugiere el tema por los gustos (`themeHints`; empate → el que va
+  antes; ninguno → Café) y destaca los 3 primeros gustos; `normalizedFor(tastes)` lo mantiene
+  válido si cambian los gustos. Lectura tolerante a datos rotos.
+- `UserProfile`: `cardStyle` (null hasta que la persona elige; `effectiveCardStyle` da el que se
+  muestra), `seekingAgeMin` / `seekingAgeMax` (null = sin límite) con `withSeekingAgeRange`.
+- **La bio ahora se guarda en el servidor.** Hasta hoy solo vivía en memoria del teléfono: se
+  perdía al cerrar la app y la otra persona veía una bio genérica en la revelación.
+- Backend: columnas `bio TEXT`, `card_style LONGTEXT`, `seeking_age_min INT NULL`,
+  `seeking_age_max INT NULL` (patrón `ALTER TABLE` al arrancar). `POST /auth/profile` y el registro
+  las aceptan: bio recortada a 180; edades limitadas a 18-99 y ordenadas; `null` borra el filtro.
+  Las respuestas de login, registro y perfil las devuelven.
+- `AuthService.saveProfileToBackend` envía bio, estilo y rango (el rango siempre, para poder
+  borrarlo) y conserva la intención local al leer la respuesta (el servidor no la guarda).
+- Tests: `profile_card_style_test.dart` (8) y 2 tests nuevos en `AuthAndRoomPersistenceTests`.
 
 ### Fase 2 — Emparejamiento por edad
 

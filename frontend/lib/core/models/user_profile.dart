@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'avatar_config.dart';
 import 'lifestyle_badges.dart';
+import 'profile_card_style.dart';
 import 'preference_tags.dart';
 import 'room_config.dart';
 
@@ -29,6 +30,14 @@ class UserProfile {
   final double? longitude;
   final LifestyleBadges lifestyle;
 
+  /// The card style the player chose; null until they do (see [effectiveCardStyle]).
+  final ProfileCardStyle? cardStyle;
+
+  /// Age range sought when matchmaking; a null bound means no limit on that side (both null: no
+  /// age filter, the default).
+  final int? seekingAgeMin;
+  final int? seekingAgeMax;
+
   const UserProfile({
     required this.id,
     required this.username,
@@ -53,7 +62,31 @@ class UserProfile {
     this.latitude,
     this.longitude,
     this.lifestyle = const LifestyleBadges(),
+    this.cardStyle,
+    this.seekingAgeMin,
+    this.seekingAgeMax,
   });
+
+  /// The card style to show: the chosen one, else a default from the tastes; always valid for the
+  /// current tastes.
+  ProfileCardStyle get effectiveCardStyle =>
+      (cardStyle ?? ProfileCardStyle.defaultFor(tastes)).normalizedFor(tastes);
+
+  bool get hasAgeFilter => seekingAgeMin != null || seekingAgeMax != null;
+
+  /// This profile seeking ages [min]..[max] (null bounds: no limit; both null: no filter).
+  UserProfile withSeekingAgeRange(int? min, int? max) {
+    return UserProfile(
+      id: id, username: username, email: email, age: age, commune: commune,
+      ticketsBalance: ticketsBalance, coinsBalance: coinsBalance, avatarConfig: avatarConfig,
+      tastes: tastes, profilePhoto: profilePhoto, photos: photos, bio: bio, intent: intent,
+      maxDistanceKm: maxDistanceKm, roomConfig: roomConfig, isVerified: isVerified,
+      verificationSelfie: verificationSelfie, gender: gender, seekingGender: seekingGender,
+      isInternational: isInternational, latitude: latitude, longitude: longitude,
+      lifestyle: lifestyle, cardStyle: cardStyle,
+      seekingAgeMin: min, seekingAgeMax: max,
+    );
+  }
 
   /// Primary photo for fallback/compatibility
   String? get primaryPhoto => (profilePhoto != null && profilePhoto!.isNotEmpty)
@@ -107,6 +140,7 @@ class UserProfile {
     double? latitude,
     double? longitude,
     LifestyleBadges? lifestyle,
+    ProfileCardStyle? cardStyle,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -132,6 +166,9 @@ class UserProfile {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       lifestyle: lifestyle ?? this.lifestyle,
+      cardStyle: cardStyle ?? this.cardStyle,
+      seekingAgeMin: seekingAgeMin,
+      seekingAgeMax: seekingAgeMax,
     );
   }
 
@@ -160,6 +197,9 @@ class UserProfile {
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (lifestyle.hasAnyBadge) 'lifestyle': lifestyle.toJson(),
+      if (cardStyle != null) 'cardStyle': cardStyle!.toJson(),
+      if (seekingAgeMin != null) 'seekingAgeMin': seekingAgeMin,
+      if (seekingAgeMax != null) 'seekingAgeMax': seekingAgeMax,
     };
   }
 
@@ -280,6 +320,9 @@ class UserProfile {
       latitude: (map['latitude'] as num?)?.toDouble(),
       longitude: (map['longitude'] as num?)?.toDouble(),
       lifestyle: parsedLifestyle,
+      cardStyle: ProfileCardStyle.tryParse(map['cardStyle'] ?? map['card_style']),
+      seekingAgeMin: (map['seekingAgeMin'] as num?)?.toInt(),
+      seekingAgeMax: (map['seekingAgeMax'] as num?)?.toInt(),
     );
   }
 

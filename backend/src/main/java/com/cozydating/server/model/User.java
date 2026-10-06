@@ -22,6 +22,10 @@ public class User {
     private Double longitude;
     private double maxDistanceKm = 25.0;
     private String lifestyle; // JSON string of lifestyle badges
+    private String bio; // "Acerca de mí", shown on the real face of the profile card
+    private String cardStyle; // JSON string of the profile card style (theme, accent, phrase, featured tastes)
+    private Integer seekingAgeMin; // null = no lower age limit when matchmaking
+    private Integer seekingAgeMax; // null = no upper age limit when matchmaking
     private String createdAt;
     private String updatedAt;
 
@@ -214,6 +218,38 @@ public class User {
 
     public void setLifestyle(String lifestyle) {
         this.lifestyle = lifestyle;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getCardStyle() {
+        return cardStyle;
+    }
+
+    public void setCardStyle(String cardStyle) {
+        this.cardStyle = cardStyle;
+    }
+
+    public Integer getSeekingAgeMin() {
+        return seekingAgeMin;
+    }
+
+    public void setSeekingAgeMin(Integer seekingAgeMin) {
+        this.seekingAgeMin = seekingAgeMin;
+    }
+
+    public Integer getSeekingAgeMax() {
+        return seekingAgeMax;
+    }
+
+    public void setSeekingAgeMax(Integer seekingAgeMax) {
+        this.seekingAgeMax = seekingAgeMax;
     }
 
     public String getCreatedAt() {
