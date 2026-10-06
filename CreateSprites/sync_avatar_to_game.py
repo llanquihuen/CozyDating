@@ -7,8 +7,9 @@ Este script realiza el paso 3 (y opcionalmente el paso 2) de forma automática:
    - Accesorios: una subcarpeta por espacio, accessories/<slot>/ (hat, glasses, bag, headband).
 2. Genera los frames de caminata faltantes llamando a generate_face_walk_frames.
 3. Actualiza pubspec.yaml con las carpetas de pelo nuevas (front y back) y de accesorios por espacio.
-4. Actualiza avatar_config.dart con las listas de estilos disponibles y hairsWithBack.
-5. Actualiza modular_avatar_component.dart para soportar las capas traseras de pelo automáticamente.
+4. Agrega a avatar_catalog.dart los estilos nuevos (neutros y para ambos cuerpos: revisar luego su
+   audience/fits a mano) y avisa de ítems del catálogo sin sprites o con capa trasera desalineada.
+   Nunca borra ni modifica entradas existentes.
 """
 
 import os
@@ -19,8 +20,14 @@ from typing import Dict, List, Set, Tuple
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 AVATAR_ASSETS_DIR = os.path.join(PROJECT_ROOT, "frontend", "assets", "images", "OCTOPLAYER", "Avatar")
 PUBSPEC_PATH = os.path.join(PROJECT_ROOT, "frontend", "pubspec.yaml")
-AVATAR_CONFIG_PATH = os.path.join(PROJECT_ROOT, "frontend", "lib", "core", "models", "avatar_config.dart")
-MODULAR_AVATAR_PATH = os.path.join(PROJECT_ROOT, "frontend", "lib", "features", "avatar", "components", "modular_avatar_component.dart")
+AVATAR_CATALOG_PATH = os.path.join(PROJECT_ROOT, "frontend", "lib", "core", "models", "avatar_catalog.dart")
+
+# Carpeta escaneada -> slot de AvatarCatalog (en Dart la constante se llama igual que su valor).
+CATALOG_SLOTS: Dict[str, str] = {
+    "eyes": "eyes", "nose": "nose", "mouth": "mouth", "hair": "hair",
+    "tops": "top", "bottoms": "bottom", "shoes": "shoes", "marks": "mark",
+}
+ITEM_RE = re.compile(r"AvatarItem\((\w+|'[^']*'),\s*'([^']+)'")
 
 NAME_LABELS: Dict[str, str] = {
     # Ojos
@@ -170,143 +177,59 @@ def update_pubspec(hair_styles: List[str], accessory_slots: List[str]) -> bool:
     print("[OK] pubspec.yaml actualizado.")
     return True
 
-def format_dart_list(items: List[str], include_none: bool = False) -> str:
-    cleaned = list(dict.fromkeys(items))
-    if include_none:
-        if "none" in cleaned:
-            cleaned.remove("none")
-        cleaned.append("none")
-    lines = ["[\n"]
-    for it in cleaned:
-        lines.append(f"    '{it}',\n")
-    lines.append("  ]")
-    return "".join(lines)
-
-def format_dart_slot_map(slots: Dict[str, List[str]]) -> str:
-    lines = ["{\n"]
-    for slot, styles in slots.items():
-        lines.append(f"    '{slot}': [\n")
-        for st in styles:
-            lines.append(f"      '{st}',\n")
-        lines.append("    ],\n")
-    lines.append("  }")
-    return "".join(lines)
-
-def update_avatar_config(catalog: Dict[str, List[str]], hairs_with_back: List[str], accessory_slots: Dict[str, List[str]]) -> bool:
-    if not os.path.exists(AVATAR_CONFIG_PATH):
-        print(f"[ERROR] No se encontró {AVATAR_CONFIG_PATH}")
+def update_avatar_catalog(catalog: Dict[str, List[str]], hairs_with_back: List[str], accessory_slots: Dict[str, List[str]]) -> bool:
+    if not os.path.exists(AVATAR_CATALOG_PATH):
+        print(f"[ERROR] No se encontró {AVATAR_CATALOG_PATH}")
         return False
 
-    with open(AVATAR_CONFIG_PATH, "r", encoding="utf-8") as f:
+    with open(AVATAR_CATALOG_PATH, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # 1. Asegurar hairsWithBack
-    back_list_str = format_dart_list(hairs_with_back, include_none=False)
-    if "static const List<String> hairsWithBack" in content:
-        content = re.sub(
-            r"static const List<String> hairsWithBack = \[.*?\];",
-            f"static const List<String> hairsWithBack = {back_list_str};",
-            content,
-            flags=re.DOTALL
-        )
-    else:
-        insertion = f"  static const List<String> hairsWithBack = {back_list_str};\n\n"
-        content = content.replace("  static const List<String> availableEyeStyles =", insertion + "  static const List<String> availableEyeStyles =")
+    start = content.find("static const List<AvatarItem> items = [")
+    end = content.find("\n  ];", start)
+    if start < 0 or end < 0:
+        print("[ERROR] No se encontró la lista AvatarCatalog.items en avatar_catalog.dart")
+        return False
+    items_block = content[start:end]
+    existing = {(slot.strip("'"), item_id) for slot, item_id in ITEM_RE.findall(items_block)}
 
-    # 2. Actualizar availableEyeStyles
-    eyes_list_str = format_dart_list(catalog["eyes"], include_none=False)
-    content = re.sub(
-        r"static const List<String> availableEyeStyles = \[.*?\];",
-        f"static const List<String> availableEyeStyles = {eyes_list_str};",
-        content,
-        flags=re.DOTALL
-    )
+    scanned: List[Tuple[str, str]] = [(CATALOG_SLOTS[cat], item) for cat in CATALOG_SLOTS for item in catalog.get(cat, [])]
+    scanned += [(slot, style) for slot, styles in accessory_slots.items() for style in styles]
 
-    # 3. Actualizar availableNoseStyles
-    nose_list_str = format_dart_list(catalog["nose"], include_none=False)
-    content = re.sub(
-        r"static const List<String> availableNoseStyles = \[.*?\];",
-        f"static const List<String> availableNoseStyles = {nose_list_str};",
-        content,
-        flags=re.DOTALL
-    )
+    new_lines = []
+    for slot, item in scanned:
+        if (slot, item) in existing:
+            continue
+        slot_expr = slot if slot in CATALOG_SLOTS.values() else f"'{slot}'"
+        label = NAME_LABELS.get(item, item.replace("_", " ").title()).replace("'", "\\'")
+        back = ", hasBack: true" if slot == "hair" and item in hairs_with_back else ""
+        new_lines.append(f"    AvatarItem({slot_expr}, '{item}', '{label}'{back}),")
 
-    # 4. Actualizar availableMouthStyles
-    mouth_list_str = format_dart_list(catalog["mouth"], include_none=False)
-    content = re.sub(
-        r"static const List<String> availableMouthStyles = \[.*?\];",
-        f"static const List<String> availableMouthStyles = {mouth_list_str};",
-        content,
-        flags=re.DOTALL
-    )
-
-    # 5. Actualizar availableHairStyles
-    hair_list_str = format_dart_list(catalog["hair"], include_none=True)
-    content = re.sub(
-        r"static const List<String> availableHairStyles = \[.*?\];",
-        f"static const List<String> availableHairStyles = {hair_list_str};",
-        content,
-        flags=re.DOTALL
-    )
-
-    # 6. Actualizar availableMarks y availableAccessoriesBySlot
-    marks_list_str = format_dart_list(catalog["marks"], include_none=False)
-    content = re.sub(
-        r"static const List<String> availableMarks = \[.*?\];",
-        f"static const List<String> availableMarks = {marks_list_str};",
-        content,
-        flags=re.DOTALL
-    )
-    slots_map_str = format_dart_slot_map(accessory_slots)
-    content = re.sub(
-        r"static const Map<String, List<String>> availableAccessoriesBySlot = \{.*?\n  \};",
-        f"static const Map<String, List<String>> availableAccessoriesBySlot = {slots_map_str};",
-        content,
-        flags=re.DOTALL
-    )
+    for slot, item in sorted(existing - set(scanned)):
+        print(f"[AVISO] '{slot}/{item}' está en el catálogo pero no tiene sprites.")
+    for line in items_block.splitlines():
+        m = ITEM_RE.search(line)
+        if m and m.group(1) == "hair":
+            in_catalog, on_disk = "hasBack: true" in line, m.group(2) in hairs_with_back
+            if in_catalog != on_disk:
+                print(f"[AVISO] Pelo '{m.group(2)}': hasBack en el catálogo = {in_catalog}, capa back/ en disco = {on_disk}.")
     slot_order = content.split("accessorySlots = [", 1)[-1].split("];", 1)[0]
     unknown_slots = [s for s in accessory_slots if f"'{s}'" not in slot_order]
     if unknown_slots:
-        print(f"[AVISO] Espacios de accesorio sin orden de dibujo en AvatarConfig.accessorySlots: {', '.join(unknown_slots)}")
+        print(f"[AVISO] Espacios de accesorio sin orden de dibujo en AvatarCatalog.accessorySlots: {', '.join(unknown_slots)}")
 
-    # 7. Actualizar formatName con casos faltantes
-    all_accessories = [st for styles in accessory_slots.values() for st in styles]
-    all_items = set(catalog["eyes"] + catalog["nose"] + catalog["mouth"] + catalog["hair"] + catalog["marks"] + all_accessories)
-    cases_to_add = []
-    for item in sorted(all_items):
-        case_pattern = f"case '{item}':"
-        if case_pattern not in content:
-            label = NAME_LABELS.get(item, item.replace("_", " ").title())
-            cases_to_add.append(f"      case '{item}': return '{label}';")
-
-    if cases_to_add:
-        insertion_code = "\n".join(cases_to_add) + "\n"
-        content = content.replace("      default:", f"{insertion_code}\n      default:")
-        print(f"  + Agregados {len(cases_to_add)} casos nuevos a formatName() en avatar_config.dart.")
-
-    with open(AVATAR_CONFIG_PATH, "w", encoding="utf-8") as f:
-        f.write(content)
-
-    print("[OK] avatar_config.dart actualizado exitosamente.")
-    return True
-
-def update_modular_avatar_component() -> bool:
-    if not os.path.exists(MODULAR_AVATAR_PATH):
-        return False
-
-    with open(MODULAR_AVATAR_PATH, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    old_condition = "if (hair == 'long_flow' || hair == 'flow')"
-    new_condition = "if (AvatarConfig.hairsWithBack.contains(hair))"
-
-    if old_condition in content:
-        content = content.replace(old_condition, new_condition)
-        with open(MODULAR_AVATAR_PATH, "w", encoding="utf-8") as f:
-            f.write(content)
-        print("[OK] modular_avatar_component.dart actualizado para usar AvatarConfig.hairsWithBack.")
+    if not new_lines:
+        print("[OK] avatar_catalog.dart ya contiene todos los estilos.")
         return True
-    return False
+
+    block = "\n\n    // Agregados por sync_avatar_to_game.py: neutros y para ambos cuerpos hasta revisarlos.\n" + "\n".join(new_lines)
+    content = content[:end] + block + content[end:]
+    with open(AVATAR_CATALOG_PATH, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"[OK] {len(new_lines)} estilos nuevos agregados a avatar_catalog.dart (revisa audience/fits):")
+    for line in new_lines:
+        print("   " + line.strip())
+    return True
 
 def sync_all(generate_walk: bool = True):
     print("=" * 60)
@@ -346,8 +269,7 @@ def sync_all(generate_walk: bool = True):
 
     print("\n>> Actualizando archivos del juego...")
     update_pubspec(hair_styles, list(accessory_slots))
-    update_avatar_config(catalog, hairs_with_back, accessory_slots)
-    update_modular_avatar_component()
+    update_avatar_catalog(catalog, hairs_with_back, accessory_slots)
 
     print("\n" + "=" * 60)
     print(" [LISTO] ¡Todos los elementos están sincronizados en el juego!")
