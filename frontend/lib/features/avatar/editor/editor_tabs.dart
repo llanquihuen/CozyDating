@@ -123,7 +123,9 @@ final List<EditorTab> editorTabs = [
       label: 'Peinado',
       slot: AvatarCatalog.hair,
       crop: ThumbCrop.head,
-      color: ColorTarget('Color del pelo', AvatarConfig.hairColors, (c) => c.hairColor, (c, v) => c.copyWith(hairColor: v)),
+      // The brows follow a new hair colour, as in the original editors; Cara > Cejas sets them apart.
+      color: ColorTarget('Color del pelo', AvatarConfig.hairColors, (c) => c.hairColor,
+          (c, v) => c.copyWith(hairColor: v, eyebrowColor: v)),
     ),
   ]),
   EditorTab(id: 'clothes', label: 'Ropa', icon: Icons.checkroom, faceFocus: false, sections: [

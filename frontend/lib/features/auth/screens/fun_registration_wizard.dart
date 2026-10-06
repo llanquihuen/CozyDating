@@ -1,13 +1,12 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
-import '../../../core/models/avatar_catalog.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/preference_tags.dart';
 import '../../../core/models/room_config.dart';
 import '../../../core/services/auth_service.dart';
-import '../../avatar/games/character_preview_game.dart';
-import '../../avatar/screens/character_creator_screen.dart';
+import '../../avatar/editor/avatar_editor_controller.dart';
+import '../../avatar/services/avatar_thumbnail_service.dart';
+import '../../avatar/widgets/avatar_editor.dart';
 import '../../lobby/games/cozy_room_game.dart';
 
 class FunRegistrationWizardScreen extends StatefulWidget {
@@ -22,8 +21,7 @@ class FunRegistrationWizardScreen extends StatefulWidget {
   State<FunRegistrationWizardScreen> createState() => _FunRegistrationWizardScreenState();
 }
 
-class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScreen>
-    with TickerProviderStateMixin {
+class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScreen> {
   int _currentStep = 0; // 0: Identity, 1: Avatar, 2: Tastes & Intentions, 3: Room Starter Pack
   bool _isLoading = false;
 
@@ -44,14 +42,10 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
     'Antofagasta', 'Temuco', 'Puerto Montt', 'Otra Región'
   ];
 
-  // Step 2: Avatar Data & Controllers
-  late AvatarConfig _avatarConfig;
-  late CharacterPreviewGame _avatarPreviewGame;
-  late TabController _avatarFaceTabController;
-  late TabController _avatarClothesTabController;
-  int _avatarMainSectionIndex = 0;
-  bool _syncBrowsWithHair = true;
-  double _dragDeltaAccumulator = 0.0;
+  // Step 2: Avatar (the shared editor; its thumbnail cache outlives leaving and re-entering the step)
+  late final AvatarEditorController _avatarEditor;
+  final AvatarThumbnailService _avatarThumbnails = AvatarThumbnailService();
+  AvatarConfig get _avatarConfig => _avatarEditor.config;
 
   // Step 3: Tastes Data
   final Set<String> _selectedTastes = {
@@ -75,21 +69,18 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
   @override
   void initState() {
     super.initState();
-    _avatarConfig = const AvatarConfig(
-      faceShape: 'oval',
-      skinColor: Color(0xFFFCD5B5),
-      eyeStyle: 'cateyes',
-      hairStyle: 'long_flow',
-      topStyle: 'jacket',
-      topColor: Color(0xFFDC2626),
-      bottomStyle: 'jeans',
-    ).restrictedTo(_selectedGender);
-    _avatarPreviewGame = CharacterPreviewGame(
-      config: _avatarConfig,
-      initialFaceZoom: true,
-    );
-    _avatarFaceTabController = TabController(length: 3, vsync: this);
-    _avatarClothesTabController = TabController(length: 4, vsync: this);
+    _avatarEditor = AvatarEditorController(
+      initial: const AvatarConfig(
+        faceShape: 'oval',
+        skinColor: Color(0xFFFCD5B5),
+        eyeStyle: 'cateyes',
+        hairStyle: 'long_flow',
+        topStyle: 'jacket',
+        topColor: Color(0xFFDC2626),
+        bottomStyle: 'jeans',
+      ),
+      gender: _selectedGender,
+    )..addListener(_onAvatarChanged);
 
     _updateRoomPreview();
   }
@@ -99,31 +90,12 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _avatarFaceTabController.dispose();
-    _avatarClothesTabController.dispose();
+    _avatarEditor.dispose();
     super.dispose();
   }
 
-  void _onAvatarMainSectionChanged(int index) {
-    if (_avatarMainSectionIndex == index) return;
-    setState(() {
-      _avatarMainSectionIndex = index;
-    });
-    _avatarPreviewGame.setFaceFocus(index == 0);
-  }
-
-  /// Styles offered for [slot] given the player's gender and current body.
-  List<String> _optionsFor(String slot) =>
-      AvatarCatalog.options(slot, gender: _selectedGender, bodyType: _avatarConfig.bodyType);
-
-  void _updateAvatarConfig(AvatarConfig config) {
-    final newConfig = config.restrictedTo(_selectedGender);
-    setState(() {
-      _avatarConfig = newConfig;
-    });
-    _avatarPreviewGame.updateConfig(newConfig);
-    _updateRoomPreview();
-  }
+  /// The skip hint hides once the avatar is touched.
+  void _onAvatarChanged() => setState(() {});
 
   void _updateRoomPreview() {
     _previewRoomConfig = PreferenceCatalog.generateStarterRoomConfig(
@@ -135,47 +107,6 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
       avatarConfig: _avatarConfig,
       roomConfig: _previewRoomConfig,
     );
-  }
-
-  void _randomizeAvatar() {
-    final rand = Random();
-    final randomSkin = AvatarConfig.skinTones[rand.nextInt(AvatarConfig.skinTones.length)];
-    final randomEyeColor = AvatarConfig.eyeColors[rand.nextInt(AvatarConfig.eyeColors.length)];
-    final randomHairColor = AvatarConfig.hairColors[rand.nextInt(AvatarConfig.hairColors.length)];
-    final randomTopColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
-    final randomBottomColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
-
-    final body = AvatarCatalog.lockedBodyFor(_selectedGender) ??
-        AvatarConfig.availableBodyTypes[rand.nextInt(AvatarConfig.availableBodyTypes.length)];
-    String pick(String slot) {
-      final options = AvatarCatalog.options(slot, gender: _selectedGender, bodyType: body);
-      return options[rand.nextInt(options.length)];
-    }
-
-    final newConfig = AvatarConfig(
-      bodyType: body,
-      faceShape: AvatarConfig.availableFaceShapes[rand.nextInt(AvatarConfig.availableFaceShapes.length)],
-      skinColor: randomSkin,
-      eyeStyle: pick(AvatarCatalog.eyes),
-      eyeColor: randomEyeColor,
-      eyebrowStyle: 'none',
-      eyebrowColor: randomHairColor,
-      noseStyle: pick(AvatarCatalog.nose),
-      mouthStyle: pick(AvatarCatalog.mouth),
-      faceDetail: 'none',
-      faceDetailColor: const Color(0xFFFF7777),
-      hairStyle: pick(AvatarCatalog.hair),
-      hairColor: randomHairColor,
-      topStyle: pick(AvatarCatalog.top),
-      topColor: randomTopColor,
-      bottomStyle: pick(AvatarCatalog.bottom),
-      bottomColor: randomBottomColor,
-      shoeStyle: 'none',
-      shoeColor: const Color(0xFF78350F),
-      accessoryColor: const Color(0xFFEAB308),
-    );
-
-    _updateAvatarConfig(newConfig);
   }
 
   Future<void> _completeRegistration() async {
@@ -545,7 +476,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
                         onSelected: (val) {
                           if (!val) return;
                           setState(() => _selectedGender = 'MAN');
-                          _updateAvatarConfig(_avatarConfig);
+                          _avatarEditor.gender = 'MAN';
                         },
                       ),
                       const SizedBox(width: 8),
@@ -561,7 +492,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
                         onSelected: (val) {
                           if (!val) return;
                           setState(() => _selectedGender = 'WOMAN');
-                          _updateAvatarConfig(_avatarConfig);
+                          _avatarEditor.gender = 'WOMAN';
                         },
                       ),
                       const SizedBox(width: 8),
@@ -577,7 +508,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
                         onSelected: (val) {
                           if (!val) return;
                           setState(() => _selectedGender = 'NON_BINARY');
-                          _updateAvatarConfig(_avatarConfig);
+                          _avatarEditor.gender = 'NON_BINARY';
                         },
                       ),
                     ],
@@ -676,932 +607,27 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
   }
 
   // -------------------------------------------------------------
-  // STEP 2: AVATAR CREATION & CUSTOMIZATION (ESTILO ARMARIO COMPLETO)
+  // STEP 2: AVATAR (the shared editor)
   // -------------------------------------------------------------
   Widget _buildStep2Avatar() {
     return Column(
       key: const ValueKey('step_1'),
       children: [
-        // Top section: Interactive Vertical Preview Studio with Controls
-        SizedBox(
-          height: 200,
-          child: _buildAvatarPreviewPanel(),
-        ),
-        Container(
-          height: 1,
-          color: const Color(0xFF334155),
-        ),
-        // Bottom section: Customization Workspace (2 Sections + SubTabs + Color Palettes)
-        Expanded(
-          child: _buildAvatarCustomizationWorkspace(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAvatarPreviewPanel() {
-    final canvasWidget = Stack(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF334155), width: 2),
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF1E293B),
-                Color(0xFF0F172A),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onHorizontalDragUpdate: (details) {
-              _dragDeltaAccumulator += details.delta.dx;
-              const double stepThreshold = 18.0;
-              if (_dragDeltaAccumulator >= stepThreshold) {
-                setState(() {
-                  _avatarPreviewGame.rotateRight();
-                });
-                _dragDeltaAccumulator -= stepThreshold;
-              } else if (_dragDeltaAccumulator <= -stepThreshold) {
-                setState(() {
-                  _avatarPreviewGame.rotateLeft();
-                });
-                _dragDeltaAccumulator += stepThreshold;
-              }
-            },
-            onHorizontalDragEnd: (_) {
-              _dragDeltaAccumulator = 0.0;
-            },
-            child: GameWidget(game: _avatarPreviewGame),
-          ),
-        ),
-        // Camera Mode Badge (clickable toggle)
-        Positioned(
-          top: 8,
-          left: 8,
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                _avatarPreviewGame.toggleFaceFocus();
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A).withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: _avatarPreviewGame.isFaceZoom
-                      ? const Color(0xFF38BDF8)
-                      : const Color(0xFF818CF8),
-                  width: 1.2,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _avatarPreviewGame.isFaceZoom ? Icons.zoom_in : Icons.accessibility_new,
-                    size: 12,
-                    color: _avatarPreviewGame.isFaceZoom
-                        ? const Color(0xFF38BDF8)
-                        : const Color(0xFFA5B4FC),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    _avatarPreviewGame.isFaceZoom ? 'Zoom Rostro' : 'Cuerpo Entero',
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.bold,
-                      color: _avatarPreviewGame.isFaceZoom
-                          ? const Color(0xFF38BDF8)
-                          : const Color(0xFFA5B4FC),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // Rotate quick buttons
-        Positioned(
-          top: 8,
-          right: 8,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildQuickRotateBtn(Icons.rotate_left, () {
-                setState(() {
-                  _avatarPreviewGame.rotateLeft();
-                });
-              }),
-              const SizedBox(width: 4),
-              _buildQuickRotateBtn(Icons.rotate_right, () {
-                setState(() {
-                  _avatarPreviewGame.rotateRight();
-                });
-              }),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    final controlsWidget = Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Randomize Button
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
-            foregroundColor: const Color(0xFFA78BFA),
-            side: const BorderSide(color: Color(0xFF8B5CF6)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
-          onPressed: _randomizeAvatar,
-          icon: const Icon(Icons.casino, size: 16),
-          label: const Text(
-            'Sorpréndeme 🎲',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          ),
-        ),
-
-        // Walk toggle button
-        InkWell(
-          onTap: () {
-            setState(() {
-              _avatarPreviewGame.toggleWalk();
-            });
-          },
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: _avatarPreviewGame.isWalking
-                  ? const Color(0xFFDC2626).withValues(alpha: 0.2)
-                  : const Color(0xFF16A34A).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: _avatarPreviewGame.isWalking
-                    ? const Color(0xFFEF4444)
-                    : const Color(0xFF22C55E),
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _avatarPreviewGame.isWalking ? Icons.pause : Icons.directions_walk,
-                  size: 15,
-                  color: _avatarPreviewGame.isWalking
-                      ? const Color(0xFFFCA5A5)
-                      : const Color(0xFF86EFAC),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _avatarPreviewGame.isWalking ? 'Pausar' : 'Caminar',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: _avatarPreviewGame.isWalking
-                        ? const Color(0xFFFCA5A5)
-                        : const Color(0xFF86EFAC),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Zoom shortcut
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF38BDF8),
-            side: const BorderSide(color: Color(0xFF0284C7)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
-          onPressed: () {
-            setState(() {
-              _avatarPreviewGame.toggleFaceFocus();
-            });
-          },
-          icon: Icon(
-            _avatarPreviewGame.isFaceZoom ? Icons.accessibility_new : Icons.zoom_in,
-            size: 15,
-          ),
-          label: Text(
-            _avatarPreviewGame.isFaceZoom ? 'Ver Cuerpo' : 'Ver Rostro',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ],
-    );
-
-    return Container(
-      color: const Color(0xFF131A2A),
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Left: Vertical Rectangular Canvas
-          Expanded(
-            flex: 5,
-            child: canvasWidget,
-          ),
-          const SizedBox(width: 12),
-          // Right: Studio Controls
-          Expanded(
-            flex: 5,
-            child: controlsWidget,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickRotateBtn(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F172A).withValues(alpha: 0.85),
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFF475569)),
-        ),
-        child: Icon(icon, size: 13, color: const Color(0xFFE2E8F0)),
-      ),
-    );
-  }
-
-  Widget _buildAvatarCustomizationWorkspace() {
-    return Column(
-      children: [
-        // Top 2-Section Switcher Header
-        _buildAvatarMainSectionSwitcher(),
-        // Sub-tabs for the selected section
-        Container(
-          color: const Color(0xFF1E293B),
-          child: _avatarMainSectionIndex == 0
-              ? TabBar(
-                  controller: _avatarFaceTabController,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  indicatorColor: const Color(0xFF38BDF8),
-                  indicatorWeight: 3,
-                  labelColor: const Color(0xFF38BDF8),
-                  unselectedLabelColor: const Color(0xFF94A3B8),
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  tabs: const [
-                    Tab(icon: Icon(Icons.face, size: 18), text: 'Cara & Piel'),
-                    Tab(icon: Icon(Icons.visibility, size: 18), text: 'Expresión & Ojos'),
-                    Tab(icon: Icon(Icons.content_cut, size: 18), text: 'Peinado'),
-                  ],
-                )
-              : TabBar(
-                  controller: _avatarClothesTabController,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  indicatorColor: const Color(0xFFA78BFA),
-                  indicatorWeight: 3,
-                  labelColor: const Color(0xFFA78BFA),
-                  unselectedLabelColor: const Color(0xFF94A3B8),
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  tabs: const [
-                    Tab(icon: Icon(Icons.checkroom, size: 18), text: 'Prenda Superior'),
-                    Tab(icon: Icon(Icons.style, size: 18), text: 'Prenda Inferior'),
-                    Tab(icon: Icon(Icons.roller_skating, size: 18), text: 'Calzado'),
-                    Tab(icon: Icon(Icons.auto_awesome, size: 18), text: 'Accesorios'),
-                  ],
-                ),
-        ),
-        // Content view
-        Expanded(
-          child: _avatarMainSectionIndex == 0
-              ? TabBarView(
-                  controller: _avatarFaceTabController,
-                  children: [
-                    _buildFaceShapeAndSkinTab(),
-                    _buildEyesAndExpressionTab(),
-                    _buildHairTab(),
-                  ],
-                )
-              : TabBarView(
-                  controller: _avatarClothesTabController,
-                  children: [
-                    _buildTopClothingTab(),
-                    _buildBottomClothingTab(),
-                    _buildShoesTab(),
-                    _buildAccessoriesTab(),
-                  ],
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAvatarMainSectionSwitcher() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      color: const Color(0xFF131A2A),
-      child: Row(
-        children: [
-          // Section 1: Rostro & Cabello
-          Expanded(
-            child: _buildSectionTabButton(
-              index: 0,
-              title: '1. Rostro & Cabello',
-              subtitle: 'Piel, Ojos, Pelo',
-              icon: Icons.face_retouching_natural,
-              activeColor: const Color(0xFF0284C7),
-              activeBorderColor: const Color(0xFF38BDF8),
-            ),
-          ),
-          const SizedBox(width: 10),
-          // Section 2: Vestimenta & Estilo
-          Expanded(
-            child: _buildSectionTabButton(
-              index: 1,
-              title: '2. Vestimenta & Estilo',
-              subtitle: 'Ropa y Calzado',
-              icon: Icons.dry_cleaning,
-              activeColor: const Color(0xFF7C3AED),
-              activeBorderColor: const Color(0xFFA78BFA),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTabButton({
-    required int index,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color activeColor,
-    required Color activeBorderColor,
-  }) {
-    final isSelected = _avatarMainSectionIndex == index;
-    return GestureDetector(
-      onTap: () => _onAvatarMainSectionChanged(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor.withValues(alpha: 0.2) : const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? activeBorderColor : const Color(0xFF334155),
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: activeColor.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: isSelected ? activeColor : const Color(0xFF0F172A),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 16,
-                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : const Color(0xFFE2E8F0),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: isSelected ? activeBorderColor : const Color(0xFF64748B),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // -------------------------------------------------------------
-  // SECCIÓN 1: ROSTRO & CABELLO TABS
-  // -------------------------------------------------------------
-  Widget _buildFaceShapeAndSkinTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // Men and women get the matching body; non-binary players pick either.
-        if (AvatarCatalog.lockedBodyFor(_selectedGender) == null) ...[
-          _buildSectionHeader(
-            icon: Icons.wc,
-            title: 'Tipo de Cuerpo / Género',
-            subtitle: 'Selecciona la complexión base',
-          ),
-          _buildOptionList(
-            options: AvatarConfig.availableBodyTypes,
-            selected: _avatarConfig.bodyType,
-            onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(bodyType: val)),
-          ),
-          const SizedBox(height: 20),
-        ],
-        _buildSectionHeader(
-          icon: Icons.face_6,
-          title: 'Forma del Rostro',
-          subtitle: 'Contorno base del personaje',
-        ),
-        _buildOptionList(
-          options: AvatarConfig.availableFaceShapes,
-          selected: _avatarConfig.faceShape,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(faceShape: val)),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          icon: Icons.palette,
-          title: 'Tono de Piel',
-          subtitle: 'Selecciona una tonalidad para la tez',
-        ),
-        _buildColorPalette(
-          colors: AvatarConfig.skinTones,
-          selectedColor: _avatarConfig.skinColor,
-          onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(skinColor: color)),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          icon: Icons.grain,
-          title: 'Marcas en la Piel',
-          subtitle: 'Pecas, lunares, tatuajes y cicatrices: combina las que quieras',
-        ),
-        _buildOptionList(
-          options: _optionsFor(AvatarCatalog.mark),
-          selectedAll: _avatarConfig.marks,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.toggleMark(val)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEyesAndExpressionTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionHeader(
-          icon: Icons.remove_red_eye,
-          title: 'Estilo de Ojos',
-          subtitle: 'Expresión visual de la mirada',
-        ),
-        _buildOptionList(
-          options: _optionsFor(AvatarCatalog.eyes),
-          selected: _avatarConfig.eyeStyle,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(eyeStyle: val)),
-        ),
-        const SizedBox(height: 18),
-        _buildSectionHeader(
-          icon: Icons.color_lens,
-          title: 'Color del Iris (Ojos)',
-          subtitle: 'Tonalidad de los ojos',
-        ),
-        _buildColorPalette(
-          colors: AvatarConfig.eyeColors,
-          selectedColor: _avatarConfig.eyeColor,
-          onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(eyeColor: color)),
-        ),
-        const SizedBox(height: 18),
-        _buildSectionHeader(
-          icon: Icons.brush,
-          title: 'Color de Cejas',
-          subtitle: 'Tonalidad de las cejas',
-        ),
-        _buildColorPalette(
-          colors: AvatarConfig.hairColors,
-          selectedColor: _avatarConfig.eyebrowColor,
-          onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(eyebrowColor: color)),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          icon: Icons.arrow_drop_down_circle,
-          title: 'Nariz',
-          subtitle: 'Estilo de nariz',
-        ),
-        _buildOptionList(
-          options: _optionsFor(AvatarCatalog.nose),
-          selected: _avatarConfig.noseStyle,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(noseStyle: val)),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          icon: Icons.sentiment_satisfied_alt,
-          title: 'Boca & Expresión',
-          subtitle: 'Sonrisa o actitud del avatar',
-        ),
-        _buildOptionList(
-          options: _optionsFor(AvatarCatalog.mouth),
-          selected: _avatarConfig.mouthStyle,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(mouthStyle: val)),
-        ),
-        const SizedBox(height: 24),
-        _buildSectionHeader(
-          icon: Icons.brush,
-          title: 'Maquillaje',
-          subtitle: 'Rubor, sombra de ojos y labial, cada uno con su color',
-        ),
-        for (final slot in AvatarCatalog.makeupSlots) ...[
+        Expanded(child: AvatarEditor(controller: _avatarEditor, thumbnails: _avatarThumbnails)),
+        // Until the avatar is touched the default look can be kept as is; it can be changed later
+        // from the room.
+        if (!_avatarEditor.isDirty)
           Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 8),
-            child: Text(
-              AvatarConfig.formatSlotName(slot),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFCBD5E1)),
-            ),
-          ),
-          _buildOptionList(
-            options: _optionsFor(slot),
-            selected: _avatarConfig.makeupIn(slot),
-            onSelected: (val) => _updateAvatarConfig(_avatarConfig.withMakeup(slot, val)),
-          ),
-          if (_avatarConfig.makeup.containsKey(slot)) ...[
-            const SizedBox(height: 10),
-            _buildColorPalette(
-              colors: AvatarConfig.makeupPalette,
-              selectedColor: _avatarConfig.makeupColor(slot),
-              onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.withMakeupColor(slot, color)),
-            ),
-          ],
-          const SizedBox(height: 12),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildHairTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionHeader(
-          icon: Icons.content_cut,
-          title: 'Estilo de Cabello',
-          subtitle: 'Cortes clásicos, modernos y anime',
-        ),
-        _buildOptionList(
-          options: _optionsFor(AvatarCatalog.hair),
-          selected: _avatarConfig.hairStyle,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(hairStyle: val)),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          icon: Icons.color_lens,
-          title: 'Color de Cabello',
-          subtitle: 'Paleta completa de tonos naturales y de fantasía',
-        ),
-        _buildColorPalette(
-          colors: AvatarConfig.hairColors,
-          selectedColor: _avatarConfig.hairColor,
-          onColorSelected: (color) {
-            final updated = _avatarConfig.copyWith(
-              hairColor: color,
-              eyebrowColor: _syncBrowsWithHair ? color : _avatarConfig.eyebrowColor,
-            );
-            _updateAvatarConfig(updated);
-          },
-        ),
-      ],
-    );
-  }
-
-  // -------------------------------------------------------------
-  // SECCIÓN 2: VESTIMENTA & ESTILO TABS
-  // -------------------------------------------------------------
-  Widget _buildTopClothingTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionHeader(
-          icon: Icons.checkroom,
-          title: 'Prenda Superior',
-          subtitle: 'Camisas, sudaderas, chaquetas y túnicas',
-        ),
-        _buildOptionList(
-          options: _optionsFor(AvatarCatalog.top),
-          selected: _avatarConfig.topStyle,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(topStyle: val)),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          icon: Icons.palette,
-          title: 'Color de Prenda Superior',
-          subtitle: 'Elige la tintura de la tela superior',
-        ),
-        _buildColorPalette(
-          colors: AvatarConfig.clothingColors,
-          selectedColor: _avatarConfig.topColor,
-          onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(topColor: color)),
-        ),
-        // One-piece outfits, only when the player has any to choose from
-        if (_optionsFor(AvatarCatalog.dress).length > 1) ...[
-          const SizedBox(height: 24),
-          _buildSectionHeader(
-            icon: Icons.dry_cleaning,
-            title: 'Vestido / Una Pieza',
-            subtitle: 'Mientras lo uses reemplaza la prenda de arriba y la de abajo',
-          ),
-          _buildOptionList(
-            options: _optionsFor(AvatarCatalog.dress),
-            selected: _avatarConfig.dressStyle,
-            onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(dressStyle: val)),
-          ),
-          if (_avatarConfig.dressStyle != 'none') ...[
-            const SizedBox(height: 16),
-            _buildColorPalette(
-              colors: AvatarConfig.clothingColors,
-              selectedColor: _avatarConfig.dressColor,
-              onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(dressColor: color)),
-            ),
-          ],
-        ],
-      ],
-    );
-  }
-
-  Widget _buildBottomClothingTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionHeader(
-          icon: Icons.style,
-          title: 'Prenda Inferior',
-          subtitle: 'Pantalones, shorts, faldas y overoles',
-        ),
-        _buildOptionList(
-          options: _optionsFor(AvatarCatalog.bottom),
-          selected: _avatarConfig.bottomStyle,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(bottomStyle: val)),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          icon: Icons.palette,
-          title: 'Color de Prenda Inferior',
-          subtitle: 'Tonalidad para la parte inferior del atuendo',
-        ),
-        _buildColorPalette(
-          colors: AvatarConfig.clothingColors,
-          selectedColor: _avatarConfig.bottomColor,
-          onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(bottomColor: color)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildShoesTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionHeader(
-          icon: Icons.roller_skating,
-          title: 'Calzado',
-          subtitle: 'Botas de aventura, zapatillas y zapatos casuales',
-        ),
-        _buildOptionList(
-          options: _optionsFor(AvatarCatalog.shoes),
-          selected: _avatarConfig.shoeStyle,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(shoeStyle: val)),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          icon: Icons.palette,
-          title: 'Color del Calzado',
-          subtitle: 'Cuero, goma o tela tintada',
-        ),
-        _buildColorPalette(
-          colors: AvatarConfig.clothingColors,
-          selectedColor: _avatarConfig.shoeColor,
-          onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(shoeColor: color)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAccessoriesTab() {
-    final slots = AvatarCatalog.accessorySlots.where((slot) => _optionsFor(slot).length > 1);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildSectionHeader(
-          icon: Icons.auto_awesome,
-          title: 'Accesorios',
-          subtitle: 'Uno por espacio: sombrero, lentes, bolso, cintillo',
-        ),
-        for (final slot in slots) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 8),
-            child: Text(
-              AvatarConfig.formatSlotName(slot),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFCBD5E1)),
-            ),
-          ),
-          _buildOptionList(
-            options: _optionsFor(slot),
-            selected: _avatarConfig.accessoryIn(slot),
-            onSelected: (val) => _updateAvatarConfig(_avatarConfig.withAccessory(slot, val)),
-          ),
-          const SizedBox(height: 12),
-        ],
-        const SizedBox(height: 8),
-        _buildSectionHeader(
-          icon: Icons.palette,
-          title: 'Color de Accesorio',
-          subtitle: 'Personaliza los detalles del accesorio',
-        ),
-        _buildColorPalette(
-          colors: AvatarConfig.clothingColors,
-          selectedColor: _avatarConfig.accessoryColor,
-          onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.copyWith(accessoryColor: color)),
-        ),
-      ],
-    );
-  }
-
-
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            margin: const EdgeInsets.only(top: 2, right: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0284C7).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(icon, size: 16, color: const Color(0xFF38BDF8)),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFF1F5F9),
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Single-select via [selected], or multi-select (toggle chips) via [selectedAll].
-  Widget _buildOptionList({
-    required List<String> options,
-    String? selected,
-    Iterable<String>? selectedAll,
-    required ValueChanged<String> onSelected,
-  }) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: options.map((opt) {
-        final isSelected = selectedAll?.contains(opt) ?? opt == selected;
-        return InkWell(
-          onTap: () => onSelected(opt),
-          borderRadius: BorderRadius.circular(10),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF0369A1) : const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF334155),
-                width: isSelected ? 1.8 : 1.0,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF0284C7).withValues(alpha: 0.35),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      )
-                    ]
-                  : null,
-            ),
-            child: Text(
-              AvatarConfig.formatName(opt),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
+            padding: const EdgeInsets.only(top: 4),
+            child: TextButton(
+              onPressed: _nextStep,
+              child: const Text(
+                'Saltar por ahora: puedes cambiarlo después desde tu sala',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
               ),
             ),
           ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildColorPalette({
-    required List<Color> colors,
-    required Color selectedColor,
-    required ValueChanged<Color> onColorSelected,
-  }) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: colors.map((color) {
-        final isSelected = color.value == selectedColor.value;
-        return GestureDetector(
-          onTap: () => onColorSelected(color),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isSelected ? Colors.white : const Color(0xFF475569),
-                width: isSelected ? 3 : 1.5,
-              ),
-              boxShadow: [
-                if (isSelected)
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.6),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  )
-                else
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 3,
-                    offset: const Offset(0, 2),
-                  ),
-              ],
-            ),
-            child: isSelected
-                ? const Icon(Icons.check, size: 18, color: Colors.white)
-                : null,
-          ),
-        );
-      }).toList(),
+      ],
     );
   }
 

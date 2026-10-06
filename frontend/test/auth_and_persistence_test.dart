@@ -74,45 +74,53 @@ void main() {
   });
 
   group('FunRegistrationWizardScreen Widget Tests', () {
-    testWidgets('Step 2 renders complete Avatar Creator with 2 sections and zoom controls', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: FunRegistrationWizardScreen(
-            onRegistrationSuccess: () {},
-          ),
-        ),
-      );
-
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // Fill Step 1 Form
+    Future<void> fillStep1AndContinue(WidgetTester tester) async {
       await tester.enterText(find.byType(TextFormField).at(0), 'GamerCozy');
       await tester.enterText(find.byType(TextFormField).at(1), 'password123');
       await tester.enterText(find.byType(TextFormField).at(2), 'gamer@cozy.com');
       await tester.pump(const Duration(milliseconds: 100));
-
-      // Tap Continuar to Step 2
+      await tester.ensureVisible(find.text('Continuar ➔'));
       await tester.tap(find.text('Continuar ➔'));
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 300));
+    }
 
-      // Verify Step 2 Avatar Section 1
-      expect(find.text('1. Rostro & Cabello'), findsOneWidget);
-      expect(find.text('2. Vestimenta & Estilo'), findsOneWidget);
-      expect(find.text('Cara & Piel'), findsOneWidget);
-      expect(find.text('Expresión & Ojos'), findsOneWidget);
-      expect(find.text('Peinado'), findsOneWidget);
-      expect(find.text('Sorpréndeme 🎲'), findsOneWidget);
+    testWidgets('Step 2 is the shared avatar editor, with a skip hint until the avatar is touched',
+        (tester) async {
+      await tester.pumpWidget(MaterialApp(home: FunRegistrationWizardScreen(onRegistrationSuccess: () {})));
+      await tester.pump(const Duration(milliseconds: 100));
+      await fillStep1AndContinue(tester);
 
-      // Tap Section 2 (Vestimenta & Estilo)
-      await tester.tap(find.text('2. Vestimenta & Estilo'));
+      for (final tab in ['Cuerpo', 'Cara', 'Maquillaje', 'Pelo', 'Ropa', 'Accesorios']) {
+        expect(find.text(tab), findsOneWidget, reason: tab);
+      }
+      expect(find.text('Complexión'), findsNothing, reason: 'default gender MAN: body locked');
+      final skip = find.textContaining('Saltar por ahora');
+      expect(skip, findsOneWidget);
+
+      await tester.tap(find.text('Pelo'));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Rapado'));
+      await tester.pump();
+      await tester.tap(find.text('Rapado'));
+      await tester.pump();
+      expect(skip, findsNothing, reason: 'the avatar was touched');
+
+      await tester.tap(skip.evaluate().isEmpty ? find.text('Continuar ➔') : skip);
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('3. Gustos & Vibes'), findsOneWidget);
+    });
 
-      expect(find.widgetWithText(Tab, 'Prenda Superior'), findsOneWidget);
-      expect(find.widgetWithText(Tab, 'Prenda Inferior'), findsOneWidget);
-      expect(find.widgetWithText(Tab, 'Calzado'), findsOneWidget);
-      expect(find.widgetWithText(Tab, 'Accesorios'), findsOneWidget);
+    testWidgets('a gender chosen in step 1 reaches the avatar editor', (tester) async {
+      await tester.pumpWidget(MaterialApp(home: FunRegistrationWizardScreen(onRegistrationSuccess: () {})));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.ensureVisible(find.text('✨ No binario'));
+      await tester.tap(find.text('✨ No binario'));
+      await tester.pump();
+      await fillStep1AndContinue(tester);
+
+      expect(find.text('Complexión'), findsOneWidget, reason: 'non-binary players pick their body');
     });
   });
 }

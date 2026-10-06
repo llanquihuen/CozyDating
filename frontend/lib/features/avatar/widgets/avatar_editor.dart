@@ -29,6 +29,10 @@ class _AvatarEditorState extends State<AvatarEditor> {
   late final CharacterPreviewGame _preview;
   String _tabId = editorTabs.first.id;
 
+  /// Horizontal drag on the preview turns the avatar one direction per [_dragStep] pixels.
+  static const double _dragStep = 18;
+  double _drag = 0;
+
   /// Open section per tab, so coming back to a tab shows the same pill.
   final Map<String, String> _sectionOfTab = {};
 
@@ -143,7 +147,20 @@ class _AvatarEditorState extends State<AvatarEditor> {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          Positioned.fill(child: GameWidget(game: _preview)),
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onHorizontalDragUpdate: (details) {
+                _drag += details.delta.dx;
+                while (_drag.abs() >= _dragStep) {
+                  _drag > 0 ? _preview.rotateRight() : _preview.rotateLeft();
+                  _drag -= _drag.sign * _dragStep;
+                }
+              },
+              onHorizontalDragEnd: (_) => _drag = 0,
+              child: GameWidget(game: _preview),
+            ),
+          ),
           Positioned(
             left: 10,
             bottom: 10,
