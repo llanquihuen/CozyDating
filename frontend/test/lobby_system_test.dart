@@ -1,10 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/features/avatar/screens/avatar_editor_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/models/room_config.dart';
 import 'package:frontend/core/network/websocket_client.dart';
+import 'package:frontend/core/models/user_profile.dart';
+import 'package:frontend/core/services/auth_service.dart';
 import 'package:frontend/core/services/avatar_storage_service.dart';
 import 'package:frontend/features/game/bloc/game_bloc.dart';
 import 'package:frontend/features/lobby/screens/cozy_lobby_view.dart';
@@ -211,6 +214,35 @@ void main() {
       expect(find.text('Buscar Cita'), findsOneWidget);
       expect(find.text('Muros'), findsOneWidget);
       expect(find.text('🧑‍🦰 Alice (Explorador)'), findsOneWidget);
+    });
+
+    testWidgets('the profile card offers the avatar and the dating profile; the avatar opens the new editor',
+        (tester) async {
+      AuthService.setCurrentUserForTesting(const UserProfile(id: 'alice', username: 'Alice', gender: 'WOMAN'));
+      addTearDown(() => AuthService.setCurrentUserForTesting(null));
+      final gameBloc = GameBloc(webSocketClient: WebSocketClient());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider<GameBloc>.value(
+            value: gameBloc,
+            child: CozyLobbyView(activeUserId: 'alice', onUserChanged: (_) {}),
+          ),
+        ),
+      );
+      // The card's badge row overflows with the wide test font (not with real fonts).
+      final overflow = tester.takeException();
+      expect(overflow == null || '$overflow'.contains('overflowed'), isTrue, reason: '$overflow');
+      await tester.tap(find.text('Alice'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Tu avatar'), findsOneWidget);
+      expect(find.text('Tu perfil de citas'), findsOneWidget);
+
+      await tester.tap(find.text('Tu avatar'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.byType(AvatarEditorScreen), findsOneWidget);
     });
 
     testWidgets('Tapping Decorar button enters decorate mode with Muebles & Decoracion bottom bar', (tester) async {

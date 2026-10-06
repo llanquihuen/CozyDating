@@ -11,6 +11,7 @@ import '../../../core/models/user_profile.dart';
 import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
+import '../../avatar/screens/avatar_editor_screen.dart';
 import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
 import '../../campfire/widgets/post_campfire_decision_dialog.dart';
@@ -168,7 +169,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     _roomGame = CozyRoomGame(
       avatarConfig: _currentAvatarConfig,
       roomConfig: _currentRoomConfig,
-      onOpenWardrobe: _openWardrobe,
+      onOpenWardrobe: _openAvatarEditor,
       onOpenMatchmaking: _startMatchmaking,
       onFurnitureSelected: (comp) {
         setState(() {
@@ -208,12 +209,50 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     }
   }
 
-  void _openWardrobe({int initialMode = 0}) {
+  /// The profile card: choose between the avatar and the dating profile (the wardrobe furniture
+  /// opens the avatar editor directly).
+  void _openWardrobe() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1E1C27),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.checkroom, color: Color(0xFFFFB300)),
+                title: const Text('Tu avatar', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('Cuerpo, cara, pelo, ropa y accesorios', style: TextStyle(color: Colors.white54)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _openAvatarEditor();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.favorite_outline, color: Color(0xFFFF4081)),
+                title: const Text('Tu perfil de citas', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('Fotos, bio, distancia y gustos', style: TextStyle(color: Colors.white54)),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _openDatingProfile();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openAvatarEditor() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => CharacterCreatorScreen(
+        builder: (context) => AvatarEditorScreen(
           initialConfig: _currentAvatarConfig,
-          initialScreenMode: initialMode,
+          gender: AuthService.currentUser?.gender ?? 'OTHER',
           onSaved: (newConfig) {
             AvatarStorageService.saveUserConfig(widget.activeUserId, newConfig);
             AuthService.saveAvatarConfig(newConfig);
@@ -221,7 +260,30 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             setState(() {
               _currentAvatarConfig = newConfig;
             });
-            _showTopNotification('✨ Perfil y avatar actualizados');
+            _showTopNotification('✨ Avatar actualizado');
+          },
+        ),
+      ),
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  // TODO(character-editor phase 7): open the standalone dating profile screen.
+  void _openDatingProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CharacterCreatorScreen(
+          initialConfig: _currentAvatarConfig,
+          initialScreenMode: 1,
+          onSaved: (newConfig) {
+            AvatarStorageService.saveUserConfig(widget.activeUserId, newConfig);
+            AuthService.saveAvatarConfig(newConfig);
+            _roomGame.updateAvatarConfig(newConfig);
+            setState(() {
+              _currentAvatarConfig = newConfig;
+            });
+            _showTopNotification('✨ Perfil actualizado');
           },
         ),
       ),
@@ -680,7 +742,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             label: const Text('Certificar Ahora'),
             onPressed: () {
               Navigator.pop(ctx);
-              _openWardrobe(initialMode: 1);
+              _openDatingProfile();
             },
           ),
         ],

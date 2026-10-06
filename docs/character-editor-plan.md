@@ -121,9 +121,10 @@ Cada fase deja la app funcionando y se puede commitear por separado.
 
 - Pantalla nueva que envuelve `AvatarEditor` con una barra superior (atrás + Guardar) y un
   `PopScope` que, si `isDirty`, pregunta "¿Descartar cambios?".
-- `cozy_lobby_view._openWardrobe` abre esta pantalla; el `onSaved` actual
-  (`AvatarStorageService.saveUserConfig`, `AuthService.saveAvatarConfig`, actualizar la sala) no
-  cambia.
+- La tarjeta de perfil de la sala abre un menú con "Tu avatar" y "Tu perfil de citas"; el mueble
+  armario abre el editor de avatar directo. El `onSaved` (`AvatarStorageService.saveUserConfig`,
+  `AuthService.saveAvatarConfig`, actualizar la sala) no cambia. Hasta la fase 7, "Tu perfil de
+  citas" abre la pantalla vieja en modo perfil.
 
 ### Fase 7 — Mi perfil aparte
 
@@ -131,7 +132,8 @@ Cada fase deja la app funcionando y se puede commitear por separado.
   galería, bio, distancia, estilo de vida, gustos y vista previa) a
   `features/profile/screens/dating_profile_screen.dart`, con el mismo esquema de borrador y
   Guardar.
-- En la sala, el acceso que hoy usa `_openWardrobe(initialMode: 1)` abre `DatingProfileScreen`.
+- `_openDatingProfile` en la sala (menú de la tarjeta y diálogo de certificación) abre
+  `DatingProfileScreen`.
 - Borrar `character_creator_screen.dart`.
 - Tests: `dating_profile_preview_test.dart` pasa a la pantalla nueva.
 
