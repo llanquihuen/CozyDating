@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
+import '../../../core/models/avatar_catalog.dart';
 import '../../../core/models/avatar_config.dart';
 
 enum AvatarDirection {
@@ -307,7 +308,7 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Hair Back & Front
         if (config.hairStyle != 'none') {
-          if (AvatarConfig.hairsWithBack.contains(hair)) {
+          if (AvatarCatalog.find(AvatarCatalog.hair, hair)?.hasBack ?? false) {
             futures.add(_loadOctoFrame('hair_back', 'hair/$hair/back/$hair$k.png', k));
           }
           futures.add(_loadOctoFrame('hair_front', 'hair/$hair/front/$hair$k.png', k));
@@ -641,7 +642,7 @@ class ModularAvatarComponent extends PositionComponent {
     // Worn accessories stay on while lying awake; asleep under the covers they are taken off.
     if (!pose.under) {
       drawLayers((draw) {
-        for (final slot in AvatarConfig.accessorySlots) {
+        for (final slot in AvatarCatalog.accessorySlots) {
           if (config.accessories.containsKey(slot)) draw('accessory_$slot', key, config.accessoryColor);
         }
       });
@@ -770,7 +771,7 @@ class ModularAvatarComponent extends PositionComponent {
     }
 
     // Layer 12: Worn accessories, in slot order
-    for (final slot in AvatarConfig.accessorySlots) {
+    for (final slot in AvatarCatalog.accessorySlots) {
       if (config.accessories.containsKey(slot)) {
         drawLayer('accessory_$slot', config.accessoryColor);
       }

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
+import '../../../core/models/avatar_catalog.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/preference_tags.dart';
 import '../../../core/models/room_config.dart';
@@ -82,7 +83,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
       topStyle: 'jacket',
       topColor: Color(0xFFDC2626),
       bottomStyle: 'jeans',
-    );
+    ).restrictedTo(_selectedGender);
     _avatarPreviewGame = CharacterPreviewGame(
       config: _avatarConfig,
       initialFaceZoom: true,
@@ -111,7 +112,12 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
     _avatarPreviewGame.setFaceFocus(index == 0);
   }
 
-  void _updateAvatarConfig(AvatarConfig newConfig) {
+  /// Styles offered for [slot] given the player's gender and current body.
+  List<String> _optionsFor(String slot) =>
+      AvatarCatalog.options(slot, gender: _selectedGender, bodyType: _avatarConfig.bodyType);
+
+  void _updateAvatarConfig(AvatarConfig config) {
+    final newConfig = config.restrictedTo(_selectedGender);
     setState(() {
       _avatarConfig = newConfig;
     });
@@ -139,23 +145,30 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
     final randomTopColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
     final randomBottomColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
 
+    final body = AvatarCatalog.lockedBodyFor(_selectedGender) ??
+        AvatarConfig.availableBodyTypes[rand.nextInt(AvatarConfig.availableBodyTypes.length)];
+    String pick(String slot) {
+      final options = AvatarCatalog.options(slot, gender: _selectedGender, bodyType: body);
+      return options[rand.nextInt(options.length)];
+    }
+
     final newConfig = AvatarConfig(
-      bodyType: AvatarConfig.availableBodyTypes[rand.nextInt(AvatarConfig.availableBodyTypes.length)],
+      bodyType: body,
       faceShape: AvatarConfig.availableFaceShapes[rand.nextInt(AvatarConfig.availableFaceShapes.length)],
       skinColor: randomSkin,
-      eyeStyle: AvatarConfig.availableEyeStyles[rand.nextInt(AvatarConfig.availableEyeStyles.length)],
+      eyeStyle: pick(AvatarCatalog.eyes),
       eyeColor: randomEyeColor,
       eyebrowStyle: 'none',
       eyebrowColor: randomHairColor,
-      noseStyle: AvatarConfig.availableNoseStyles[rand.nextInt(AvatarConfig.availableNoseStyles.length)],
-      mouthStyle: AvatarConfig.availableMouthStyles[rand.nextInt(AvatarConfig.availableMouthStyles.length)],
+      noseStyle: pick(AvatarCatalog.nose),
+      mouthStyle: pick(AvatarCatalog.mouth),
       faceDetail: 'none',
       faceDetailColor: const Color(0xFFFF7777),
-      hairStyle: AvatarConfig.availableHairStyles[rand.nextInt(AvatarConfig.availableHairStyles.length)],
+      hairStyle: pick(AvatarCatalog.hair),
       hairColor: randomHairColor,
-      topStyle: AvatarConfig.availableTopStyles[rand.nextInt(AvatarConfig.availableTopStyles.length)],
+      topStyle: pick(AvatarCatalog.top),
       topColor: randomTopColor,
-      bottomStyle: AvatarConfig.availableBottomStyles[rand.nextInt(AvatarConfig.availableBottomStyles.length)],
+      bottomStyle: pick(AvatarCatalog.bottom),
       bottomColor: randomBottomColor,
       shoeStyle: 'none',
       shoeColor: const Color(0xFF78350F),
@@ -530,7 +543,9 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
                           fontSize: 12,
                         ),
                         onSelected: (val) {
-                          if (val) setState(() => _selectedGender = 'MAN');
+                          if (!val) return;
+                          setState(() => _selectedGender = 'MAN');
+                          _updateAvatarConfig(_avatarConfig);
                         },
                       ),
                       const SizedBox(width: 8),
@@ -544,7 +559,9 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
                           fontSize: 12,
                         ),
                         onSelected: (val) {
-                          if (val) setState(() => _selectedGender = 'WOMAN');
+                          if (!val) return;
+                          setState(() => _selectedGender = 'WOMAN');
+                          _updateAvatarConfig(_avatarConfig);
                         },
                       ),
                       const SizedBox(width: 8),
@@ -558,7 +575,9 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
                           fontSize: 12,
                         ),
                         onSelected: (val) {
-                          if (val) setState(() => _selectedGender = 'NON_BINARY');
+                          if (!val) return;
+                          setState(() => _selectedGender = 'NON_BINARY');
+                          _updateAvatarConfig(_avatarConfig);
                         },
                       ),
                     ],
@@ -1114,17 +1133,20 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSectionHeader(
-          icon: Icons.wc,
-          title: 'Tipo de Cuerpo / Género',
-          subtitle: 'Selecciona la complexión base',
-        ),
-        _buildOptionList(
-          options: AvatarConfig.availableBodyTypes,
-          selected: _avatarConfig.bodyType,
-          onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(bodyType: val)),
-        ),
-        const SizedBox(height: 20),
+        // Men and women get the matching body; non-binary players pick either.
+        if (AvatarCatalog.lockedBodyFor(_selectedGender) == null) ...[
+          _buildSectionHeader(
+            icon: Icons.wc,
+            title: 'Tipo de Cuerpo / Género',
+            subtitle: 'Selecciona la complexión base',
+          ),
+          _buildOptionList(
+            options: AvatarConfig.availableBodyTypes,
+            selected: _avatarConfig.bodyType,
+            onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(bodyType: val)),
+          ),
+          const SizedBox(height: 20),
+        ],
         _buildSectionHeader(
           icon: Icons.face_6,
           title: 'Forma del Rostro',
@@ -1153,7 +1175,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           subtitle: 'Pecas, lunares, tatuajes y cicatrices: combina las que quieras',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableMarks,
+          options: _optionsFor(AvatarCatalog.mark),
           selectedAll: _avatarConfig.marks,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.toggleMark(val)),
         ),
@@ -1171,7 +1193,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           subtitle: 'Expresión visual de la mirada',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableEyeStyles,
+          options: _optionsFor(AvatarCatalog.eyes),
           selected: _avatarConfig.eyeStyle,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(eyeStyle: val)),
         ),
@@ -1204,7 +1226,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           subtitle: 'Estilo de nariz',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableNoseStyles,
+          options: _optionsFor(AvatarCatalog.nose),
           selected: _avatarConfig.noseStyle,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(noseStyle: val)),
         ),
@@ -1215,7 +1237,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           subtitle: 'Sonrisa o actitud del avatar',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableMouthStyles,
+          options: _optionsFor(AvatarCatalog.mouth),
           selected: _avatarConfig.mouthStyle,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(mouthStyle: val)),
         ),
@@ -1233,7 +1255,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           subtitle: 'Cortes clásicos, modernos y anime',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableHairStyles,
+          options: _optionsFor(AvatarCatalog.hair),
           selected: _avatarConfig.hairStyle,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(hairStyle: val)),
         ),
@@ -1271,7 +1293,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           subtitle: 'Camisas, sudaderas, chaquetas y túnicas',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableTopStyles,
+          options: _optionsFor(AvatarCatalog.top),
           selected: _avatarConfig.topStyle,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(topStyle: val)),
         ),
@@ -1300,7 +1322,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           subtitle: 'Pantalones, shorts, faldas y overoles',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableBottomStyles,
+          options: _optionsFor(AvatarCatalog.bottom),
           selected: _avatarConfig.bottomStyle,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(bottomStyle: val)),
         ),
@@ -1329,7 +1351,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           subtitle: 'Botas de aventura, zapatillas y zapatos casuales',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableShoeStyles,
+          options: _optionsFor(AvatarCatalog.shoes),
           selected: _avatarConfig.shoeStyle,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(shoeStyle: val)),
         ),
@@ -1349,8 +1371,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
   }
 
   Widget _buildAccessoriesTab() {
-    final slots = AvatarConfig.accessorySlots
-        .where((slot) => AvatarConfig.availableAccessoriesBySlot[slot]?.isNotEmpty ?? false);
+    final slots = AvatarCatalog.accessorySlots.where((slot) => _optionsFor(slot).length > 1);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -1368,7 +1389,7 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
             ),
           ),
           _buildOptionList(
-            options: ['none', ...AvatarConfig.availableAccessoriesBySlot[slot]!],
+            options: _optionsFor(slot),
             selected: _avatarConfig.accessoryIn(slot),
             onSelected: (val) => _updateAvatarConfig(_avatarConfig.withAccessory(slot, val)),
           ),

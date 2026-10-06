@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:equatable/equatable.dart';
 
+import 'avatar_catalog.dart';
+
 class AvatarConfig extends Equatable {
   final String bodyType; // 'female' or 'male'
   final String spriteResolution; // '64x128' (Detailed) or '32x64' (Pixel Chibi)
@@ -26,7 +28,7 @@ class AvatarConfig extends Equatable {
   /// They stay visible when worn accessories are taken off (e.g. sleeping under the covers).
   final List<String> marks;
 
-  /// Worn accessories, slot -> style (see [accessorySlots]): at most one per slot.
+  /// Worn accessories, slot -> style (see [AvatarCatalog.accessorySlots]): at most one per slot.
   final Map<String, String> accessories;
   final Color accessoryColor;
 
@@ -132,86 +134,18 @@ class AvatarConfig extends Equatable {
     'oval',
   ];
 
-  static const List<String> hairsWithBack = [
-    'flow',
-    'long_flow',
-    'twintails',
-  ];
-
-  static const List<String> availableEyeStyles = [
-    'cateyes',
-    'closedeyes',
-    'relax',
-  ];
-
   static const List<String> availableEyebrowStyles = [
     'none',
-  ];
-
-  static const List<String> availableNoseStyles = [
-    'small',
-    'standard',
-  ];
-
-  static const List<String> availableMouthStyles = [
-    'biglips',
-    'catmouth',
-    'smile',
-    'smirk',
   ];
 
   static const List<String> availableFaceDetails = [
     'none',
   ];
 
-  static const List<String> availableHairStyles = [
-    'bangs',
-    'braids',
-    'comb_over',
-    'flow',
-    'long_flow',
-    'twintails',
-    'none',
-  ];
-
-  static const List<String> availableTopStyles = [
-    'jacket',
-    'none',
-  ];
-
-  static const List<String> availableBottomStyles = [
-    'jeans',
-    'none',
-  ];
-
-  static const List<String> availableShoeStyles = [
-    'none',
-    'boots',
-  ];
-
-  static const List<String> availableMarks = [
-    'freckles',
-  ];
-
-  /// Accessory slots in draw order (later slots are drawn on top).
-  static const List<String> accessorySlots = [
-    'bag',
-    'glasses',
-    'headband',
-    'hat',
-  ];
-
-  /// Styles per slot; assets live in OCTOPLAYER/Avatar/accessories/<slot>/.
-  static const Map<String, List<String>> availableAccessoriesBySlot = {
-    'glasses': [
-      'nice_lenses',
-      'normal_lenses',
-    ],
-  };
-
+  /// Accessory slot holding [accessoryStyle], or 'none'.
   static String slotOf(String accessoryStyle) {
-    for (final entry in availableAccessoriesBySlot.entries) {
-      if (entry.value.contains(accessoryStyle)) return entry.key;
+    for (final slot in AvatarCatalog.accessorySlots) {
+      if (AvatarCatalog.find(slot, accessoryStyle) != null) return slot;
     }
     return 'none';
   }
@@ -247,7 +181,37 @@ class AvatarConfig extends Equatable {
     return copyWith(marks: next);
   }
 
+  /// This config made valid for a profile [gender] ('MAN', 'WOMAN', 'NON_BINARY'...): the body is
+  /// locked for men and women, and items aimed at another audience or without art for the body are
+  /// swapped for the first allowed style of their slot (or emptied).
+  AvatarConfig restrictedTo(String gender) {
+    final body = AvatarCatalog.lockedBodyFor(gender) ?? bodyType;
+    bool allowed(String slot, String id) => AvatarCatalog.isAllowedId(slot, id, gender: gender, bodyType: body);
+    String pick(String slot, String current) {
+      if (allowed(slot, current)) return current;
+      final options = AvatarCatalog.options(slot, gender: gender, bodyType: body);
+      return options.firstWhere((id) => id != 'none', orElse: () => options.isEmpty ? current : options.first);
+    }
+
+    return copyWith(
+      bodyType: body,
+      eyeStyle: pick(AvatarCatalog.eyes, eyeStyle),
+      noseStyle: pick(AvatarCatalog.nose, noseStyle),
+      mouthStyle: pick(AvatarCatalog.mouth, mouthStyle),
+      hairStyle: pick(AvatarCatalog.hair, hairStyle),
+      topStyle: pick(AvatarCatalog.top, topStyle),
+      bottomStyle: pick(AvatarCatalog.bottom, bottomStyle),
+      shoeStyle: pick(AvatarCatalog.shoes, shoeStyle),
+      marks: [for (final m in marks) if (allowed(AvatarCatalog.mark, m)) m],
+      accessories: {
+        for (final e in accessories.entries) if (allowed(e.key, e.value)) e.key: e.value,
+      },
+    );
+  }
+
   static String formatName(String id) {
+    final label = AvatarCatalog.labelOf(id);
+    if (label != null) return label;
     switch (id) {
       // Body Type / Gender
       case 'female': return 'Femenino ♀';
@@ -264,55 +228,7 @@ class AvatarConfig extends Equatable {
       case 'square_jaw': return 'Mandíbula Firme';
       case 'heart': return 'Forma de Corazón';
 
-      // Eyes
-      case 'cateyes': return 'Ojos Felinos 🐱';
-      case 'relax': return 'Ojos Relajados 🍃';
-
-      // Brows
-      case 'normal': return 'Normales';
       case 'none': return 'Ninguno';
-
-      // Nose
-      case 'standard': return 'Nariz Estándar';
-      case 'small': return 'Nariz Pequeña';
-      case 'subtle': return 'Sutil';
-
-      // Mouth
-      case 'catmouth': return 'Boca Gatito 🐱';
-      case 'smile': return 'Sonrisa Dulce 😊';
-      case 'smirk': return 'Sonrisa Pícara 😏';
-
-      // Face Details
-      case 'blush': return 'Rubor Suave';
-      case 'freckles': return 'Pecas ✨';
-      case 'scar': return 'Cicatriz';
-
-      // Hair
-      case 'long_flow': return 'Melena Fluida';
-      case 'flow': return 'Cabello Flow';
-      case 'comb_over': return 'Raya al Lado / Comb Over';
-      case 'bangs': return 'Flequillo / Bangs';
-      case 'braids': return 'Trenzas / Braids';
-
-      // Tops
-      case 'jacket': return 'Chaqueta';
-
-      // Bottoms
-      case 'jeans': return 'Jeans Clásicos';
-
-      // Calzado
-      case 'boots': return 'Botas de Cuero 🥾';
-      case 'farmer_boots': return 'Botas';
-
-      // Accesorios
-      case 'nice_lenses': return 'Gafas Modernas 🕶️';
-      case 'normal_lenses': return 'Lentes Clásicos 👓';
-      case 'straw_hat': return 'Sombrero';
-      case 'none': return 'Ninguno';
-
-      case 'biglips': return 'Labios Grandes 💋';
-      case 'closedeyes': return 'Ojos Cerrados 😌';
-      case 'twintails': return 'Dos Coletas / Twintails 👧';
 
       default:
         return id.replaceAll('_', ' ');
@@ -400,66 +316,30 @@ class AvatarConfig extends Equatable {
   }
 
   factory AvatarConfig.fromJson(Map<String, dynamic> json) {
-    String mapHair(String? h) {
-      if (h == 'flow') return 'flow';
-      if (h == 'comb_over') return 'comb_over';
-      if (h == 'bangs') return 'bangs';
-      if (h == 'braids') return 'braids';
-      if (h == 'none') return 'none';
-      return 'long_flow';
-    }
-
-    String mapTop(String? t) {
-      if (t == 'none') return 'none';
-      return 'jacket';
-    }
-
-    String mapBottom(String? b) {
-      if (b == 'none') return 'none';
-      return 'jeans';
-    }
-
-    String mapEyes(String? e) {
-      if (e == 'relax') return 'relax';
-      return 'cateyes';
-    }
-
-    String mapNose(String? n) {
-      if (n == 'small') return 'small';
-      return 'standard';
-    }
-
-    String mapMouth(String? m) {
-      if (m == 'smile') return 'smile';
-      if (m == 'smirk') return 'smirk';
-      return 'catmouth';
-    }
-
-    String mapShoe(String? s) {
-      if (s == 'boots') return 'boots';
-      return 'none';
-    }
+    // Unknown or missing styles (removed items, older/newer clients) fall back to a default.
+    String known(String slot, Object? value, String fallback) =>
+        value is String && AvatarCatalog.isKnown(slot, value) ? value : fallback;
 
     final marks = <String>[];
     final accessories = <String, String>{};
     final rawMarks = json['marks'];
     if (rawMarks is List) {
       for (final m in rawMarks) {
-        if (availableMarks.contains(m) && !marks.contains(m)) marks.add(m as String);
+        if (m is String && AvatarCatalog.isKnown(AvatarCatalog.mark, m) && !marks.contains(m)) marks.add(m);
       }
     }
     final rawAccessories = json['accessories'];
     if (rawAccessories is Map) {
       rawAccessories.forEach((slot, style) {
-        if (availableAccessoriesBySlot[slot]?.contains(style) ?? false) {
-          accessories[slot as String] = style as String;
+        if (slot is String && style is String && style != 'none' && AvatarCatalog.isKnown(slot, style)) {
+          accessories[slot] = style;
         }
       });
     }
     // Legacy configs had a single 'accessoryStyle' mixing marks and worn accessories.
     final legacy = json['accessoryStyle'];
     if (rawMarks == null && rawAccessories == null && legacy is String) {
-      if (availableMarks.contains(legacy)) {
+      if (AvatarCatalog.isKnown(AvatarCatalog.mark, legacy)) {
         marks.add(legacy);
       } else if (slotOf(legacy) != 'none') {
         accessories[slotOf(legacy)] = legacy;
@@ -471,21 +351,21 @@ class AvatarConfig extends Equatable {
       spriteResolution: '64x128',
       faceShape: 'oval',
       skinColor: json['skinColor'] != null ? Color(json['skinColor'] as int) : const Color(0xFFFCD5B5),
-      eyeStyle: mapEyes(json['eyeStyle'] as String?),
+      eyeStyle: known(AvatarCatalog.eyes, json['eyeStyle'], 'cateyes'),
       eyeColor: json['eyeColor'] != null ? Color(json['eyeColor'] as int) : const Color(0xFF059669),
       eyebrowStyle: 'none',
       eyebrowColor: json['eyebrowColor'] != null ? Color(json['eyebrowColor'] as int) : const Color(0xFFC85A2A),
-      noseStyle: mapNose(json['noseStyle'] as String?),
-      mouthStyle: mapMouth(json['mouthStyle'] as String?),
+      noseStyle: known(AvatarCatalog.nose, json['noseStyle'], 'standard'),
+      mouthStyle: known(AvatarCatalog.mouth, json['mouthStyle'], 'catmouth'),
       faceDetail: 'none',
       faceDetailColor: json['faceDetailColor'] != null ? Color(json['faceDetailColor'] as int) : const Color(0xFFFF7777),
-      hairStyle: mapHair(json['hairStyle'] as String?),
+      hairStyle: known(AvatarCatalog.hair, json['hairStyle'], 'long_flow'),
       hairColor: json['hairColor'] != null ? Color(json['hairColor'] as int) : const Color(0xFFC85A2A),
-      topStyle: mapTop(json['topStyle'] as String?),
+      topStyle: known(AvatarCatalog.top, json['topStyle'], 'jacket'),
       topColor: json['topColor'] != null ? Color(json['topColor'] as int) : const Color(0xFFDC2626),
-      bottomStyle: mapBottom(json['bottomStyle'] as String?),
+      bottomStyle: known(AvatarCatalog.bottom, json['bottomStyle'], 'jeans'),
       bottomColor: json['bottomColor'] != null ? Color(json['bottomColor'] as int) : const Color(0xFF2563EB),
-      shoeStyle: mapShoe(json['shoeStyle'] as String?),
+      shoeStyle: known(AvatarCatalog.shoes, json['shoeStyle'], 'none'),
       shoeColor: json['shoeColor'] != null ? Color(json['shoeColor'] as int) : const Color(0xFF78350F),
       marks: marks,
       accessories: accessories,

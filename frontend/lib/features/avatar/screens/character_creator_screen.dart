@@ -4,6 +4,7 @@ import 'package:flame/game.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/models/avatar_catalog.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/lifestyle_badges.dart';
 import '../../../core/models/preference_tags.dart';
@@ -105,6 +106,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     _userAge = AuthService.currentUser?.age ?? 24;
     _userCommune = AuthService.currentUser?.commune ?? 'Santiago';
     _userGender = AuthService.currentUser?.gender ?? 'OTHER';
+    _currentConfig = _currentConfig.restrictedTo(_userGender);
     _seekingGender = AuthService.currentUser?.seekingGender ?? 'ANY';
     _isInternational = AuthService.currentUser?.isInternational ?? false;
     _communeController = TextEditingController(text: _userCommune);
@@ -170,7 +172,12 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     _previewGame.setFaceFocus(index == 0);
   }
 
-  void _updateConfig(AvatarConfig newConfig) {
+  /// Styles offered for [slot] given the player's gender and current body.
+  List<String> _optionsFor(String slot) =>
+      AvatarCatalog.options(slot, gender: _userGender, bodyType: _currentConfig.bodyType);
+
+  void _updateConfig(AvatarConfig config) {
+    final newConfig = config.restrictedTo(_userGender);
     setState(() {
       _currentConfig = newConfig;
     });
@@ -185,25 +192,32 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     final randomTopColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
     final randomBottomColor = AvatarConfig.clothingColors[rand.nextInt(AvatarConfig.clothingColors.length)];
 
+    final body = AvatarCatalog.lockedBodyFor(_userGender) ??
+        AvatarConfig.availableBodyTypes[rand.nextInt(AvatarConfig.availableBodyTypes.length)];
+    String pick(String slot) {
+      final options = AvatarCatalog.options(slot, gender: _userGender, bodyType: body);
+      return options[rand.nextInt(options.length)];
+    }
+
     final newConfig = AvatarConfig(
-      bodyType: AvatarConfig.availableBodyTypes[rand.nextInt(AvatarConfig.availableBodyTypes.length)],
+      bodyType: body,
       faceShape: AvatarConfig.availableFaceShapes[rand.nextInt(AvatarConfig.availableFaceShapes.length)],
       skinColor: randomSkin,
-      eyeStyle: AvatarConfig.availableEyeStyles[rand.nextInt(AvatarConfig.availableEyeStyles.length)],
+      eyeStyle: pick(AvatarCatalog.eyes),
       eyeColor: randomEyeColor,
       eyebrowStyle: 'none',
       eyebrowColor: randomHairColor,
-      noseStyle: AvatarConfig.availableNoseStyles[rand.nextInt(AvatarConfig.availableNoseStyles.length)],
-      mouthStyle: AvatarConfig.availableMouthStyles[rand.nextInt(AvatarConfig.availableMouthStyles.length)],
+      noseStyle: pick(AvatarCatalog.nose),
+      mouthStyle: pick(AvatarCatalog.mouth),
       faceDetail: 'none',
       faceDetailColor: const Color(0xFFFF7777),
-      hairStyle: AvatarConfig.availableHairStyles[rand.nextInt(AvatarConfig.availableHairStyles.length)],
+      hairStyle: pick(AvatarCatalog.hair),
       hairColor: randomHairColor,
-      topStyle: AvatarConfig.availableTopStyles[rand.nextInt(AvatarConfig.availableTopStyles.length)],
+      topStyle: pick(AvatarCatalog.top),
       topColor: randomTopColor,
-      bottomStyle: AvatarConfig.availableBottomStyles[rand.nextInt(AvatarConfig.availableBottomStyles.length)],
+      bottomStyle: pick(AvatarCatalog.bottom),
       bottomColor: randomBottomColor,
-      shoeStyle: AvatarConfig.availableShoeStyles[rand.nextInt(AvatarConfig.availableShoeStyles.length)],
+      shoeStyle: pick(AvatarCatalog.shoes),
       shoeColor: const Color(0xFF334155),
       accessoryColor: const Color(0xFFEAB308),
     );
@@ -1865,7 +1879,9 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
                   color: isSelected ? const Color(0xFFFF4081) : const Color(0xFF475569),
                 ),
                 onSelected: (selected) {
-                  if (selected) setState(() => _userGender = opt['value']!);
+                  if (!selected) return;
+                  setState(() => _userGender = opt['value']!);
+                  _updateConfig(_currentConfig);
                 },
               );
             }).toList(),
@@ -2867,17 +2883,20 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSectionHeader(
-          icon: Icons.wc,
-          title: 'Tipo de Cuerpo / Género',
-          subtitle: 'Selecciona la complexión base femenina o masculina',
-        ),
-        _buildOptionList(
-          options: AvatarConfig.availableBodyTypes,
-          selected: _currentConfig.bodyType,
-          onSelected: (val) => _updateConfig(_currentConfig.copyWith(bodyType: val)),
-        ),
-        const SizedBox(height: 24),
+        // Men and women get the matching body; non-binary players pick either.
+        if (AvatarCatalog.lockedBodyFor(_userGender) == null) ...[
+          _buildSectionHeader(
+            icon: Icons.wc,
+            title: 'Tipo de Cuerpo / Género',
+            subtitle: 'Selecciona la complexión base femenina o masculina',
+          ),
+          _buildOptionList(
+            options: AvatarConfig.availableBodyTypes,
+            selected: _currentConfig.bodyType,
+            onSelected: (val) => _updateConfig(_currentConfig.copyWith(bodyType: val)),
+          ),
+          const SizedBox(height: 24),
+        ],
         _buildSectionHeader(
           icon: Icons.face_6,
           title: 'Forma del Rostro / Cabeza',
@@ -2906,7 +2925,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           subtitle: 'Pecas, lunares, tatuajes y cicatrices: combina las que quieras',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableMarks,
+          options: _optionsFor(AvatarCatalog.mark),
           selectedAll: _currentConfig.marks,
           onSelected: (val) => _updateConfig(_currentConfig.toggleMark(val)),
         ),
@@ -2924,7 +2943,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           subtitle: 'Expresión visual de la mirada (8 Direcciones)',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableEyeStyles,
+          options: _optionsFor(AvatarCatalog.eyes),
           selected: _currentConfig.eyeStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(eyeStyle: val)),
         ),
@@ -2957,7 +2976,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           subtitle: 'Estilo de nariz (8 Direcciones)',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableNoseStyles,
+          options: _optionsFor(AvatarCatalog.nose),
           selected: _currentConfig.noseStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(noseStyle: val)),
         ),
@@ -2968,7 +2987,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           subtitle: 'Sonrisa o actitud del avatar (8 Direcciones)',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableMouthStyles,
+          options: _optionsFor(AvatarCatalog.mouth),
           selected: _currentConfig.mouthStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(mouthStyle: val)),
         ),
@@ -2986,7 +3005,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           subtitle: 'Cortes clásicos, modernos y anime',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableHairStyles,
+          options: _optionsFor(AvatarCatalog.hair),
           selected: _currentConfig.hairStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(hairStyle: val)),
         ),
@@ -3024,7 +3043,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           subtitle: 'Camisas, sudaderas, chaquetas y túnicas de explorador',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableTopStyles,
+          options: _optionsFor(AvatarCatalog.top),
           selected: _currentConfig.topStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(topStyle: val)),
         ),
@@ -3053,7 +3072,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           subtitle: 'Pantalones, shorts, faldas y overoles',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableBottomStyles,
+          options: _optionsFor(AvatarCatalog.bottom),
           selected: _currentConfig.bottomStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(bottomStyle: val)),
         ),
@@ -3082,7 +3101,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           subtitle: 'Botas de aventura, zapatillas y zapatos casuales',
         ),
         _buildOptionList(
-          options: AvatarConfig.availableShoeStyles,
+          options: _optionsFor(AvatarCatalog.shoes),
           selected: _currentConfig.shoeStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(shoeStyle: val)),
         ),
@@ -3102,8 +3121,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
   }
 
   Widget _buildAccessoriesTab() {
-    final slots = AvatarConfig.accessorySlots
-        .where((slot) => AvatarConfig.availableAccessoriesBySlot[slot]?.isNotEmpty ?? false);
+    final slots = AvatarCatalog.accessorySlots.where((slot) => _optionsFor(slot).length > 1);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -3121,7 +3139,7 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
             ),
           ),
           _buildOptionList(
-            options: ['none', ...AvatarConfig.availableAccessoriesBySlot[slot]!],
+            options: _optionsFor(slot),
             selected: _currentConfig.accessoryIn(slot),
             onSelected: (val) => _updateConfig(_currentConfig.withAccessory(slot, val)),
           ),
