@@ -15,6 +15,10 @@ class AvatarItem {
   /// Hair drawn in two layers (behind and in front of the body).
   final bool hasBack;
 
+  /// Body marks (tattoos) drawn on the skin under the clothes, fitted per body type, instead of over
+  /// the head like face marks.
+  final bool underClothes;
+
   const AvatarItem(
     this.slot,
     this.id,
@@ -22,6 +26,7 @@ class AvatarItem {
     this.audience = AvatarAudience.neutral,
     this.fits = AvatarCatalog.bodyTypes,
     this.hasBack = false,
+    this.underClothes = false,
   });
 }
 
@@ -128,6 +133,9 @@ class AvatarCatalog {
     AvatarItem(mark, 'tattoo_tear', 'Lágrima Tatuada 💧'),
     AvatarItem(mark, 'tattoo_star', 'Estrella en la Mejilla ⭐'),
     AvatarItem(mark, 'tattoo_heart', 'Corazón en la Mejilla ❤️'),
+    AvatarItem(mark, 'tattoo_sleeves', 'Brazos Tatuados', underClothes: true),
+    AvatarItem(mark, 'tattoo_bands', 'Brazaletes Tatuados', underClothes: true),
+    AvatarItem(mark, 'tattoo_roses', 'Rosas en los Hombros 🌹', underClothes: true),
 
     // Makeup (blush sprites in OCTOPLAYER/Avatar/makeup/blush/)
     AvatarItem(blush, 'blush_soft', 'Rubor Suave'),

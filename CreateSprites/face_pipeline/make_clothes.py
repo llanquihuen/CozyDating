@@ -28,8 +28,8 @@ API = "https://api.pixellab.ai/v2"
 SKIN = (252, 213, 181)
 
 # Crop windows (y0) of the 64x128 sprite per slot: 64 rows each.
-WINDOW = {"top": 36, "bottom": 62, "shoes": 64}
-FOLDER = {"top": "tops", "bottom": "bottoms", "shoes": "shoes"}
+WINDOW = {"top": 36, "bottom": 62, "shoes": 64, "tattoo": 36}
+FOLDER = {"top": "tops", "bottom": "bottoms", "shoes": "shoes", "tattoo": "tattoos"}
 CARDINAL = {1: "S", 2: "SE", 3: "E", 4: "NE", 5: "N", 6: "NW", 7: "W", 8: "SW"}
 MIRROR_OF = {6: 4, 7: 3, 8: 2}
 
@@ -64,6 +64,17 @@ GARMENTS = {
                         prompt="a short flared skirt ending above the knees, bare legs below, light blue"),
     "skirt_long": dict(slot="bottom", label="Falda Larga", audience="feminine", fits=("female",),
                        prompt="a long flowing A-line skirt reaching down to the ankles, light blue"),
+    # Body tattoos: symmetric designs on both arms (PixelLab mixes up left and right across directions).
+    "tattoo_sleeves": dict(slot="tattoo", label="Brazos Tatuados", audience="neutral",
+                           prompt="black ink tattoo sleeves with bold tribal and floral patterns covering both "
+                                  "arms from shoulder to wrist; the character stays naked, no clothes"),
+    "tattoo_bands": dict(slot="tattoo", label="Brazaletes Tatuados", audience="neutral",
+                         prompt="a black ink band tattoo two pixels thick wrapped around the middle of each upper arm, "
+                                "halfway between shoulder and elbow, the same on both arms; the character stays "
+                                "naked, no clothes"),
+    "tattoo_roses": dict(slot="tattoo", label="Rosas en los Hombros", audience="neutral",
+                         prompt="a small colourful tattoo of a red rose with green leaves on each shoulder, the same "
+                                "on both shoulders; the character stays naked, no clothes"),
     "sneakers": dict(slot="shoes", label="Zapatillas", audience="neutral",
                      prompt="a pair of low-top canvas sneakers with laces and white rubber soles, light blue"),
     "sandals": dict(slot="shoes", label="Sandalias", audience="neutral",
@@ -123,7 +134,7 @@ def other_clothes(key, slot):
     top, the jacket over a bottom (both tinted far from the requested colours). Shoes go on bare
     legs, so the whole shoe is drawn (trousers would hide its ankle)."""
     kind, d = key[0], key[1]
-    if slot == "shoes":
+    if slot in ("shoes", "tattoo"):
         return None
     folder, style, rgb = ("bottoms", "jeans", (40, 40, 48)) if slot == "top" else ("tops", "jacket", (40, 40, 48))
     if kind == "sit":
@@ -227,7 +238,7 @@ def _shift(im, dx, dy):
 
 # Rows of the crop compared when aligning: the part of the figure the garment never reaches, so
 # loose garments (hoodie, skirts) that change the silhouette do not skew the match.
-ALIGN_ROWS = {"top": (44, 64), "bottom": (0, 12), "shoes": (0, 40)}
+ALIGN_ROWS = {"top": (44, 64), "bottom": (0, 12), "shoes": (0, 40), "tattoo": (0, 64)}
 
 
 def align(gen, inp, slot=None):
@@ -364,9 +375,71 @@ def _out_names(garment, body, key):
     return f"{stem}_{CARDINAL[d]}_sit{key[2]}.png"
 
 
+def isolate_ink(gen, inp):
+    """Tattoo = what PixelLab changed ON the skin (never outside the body), kept in its own colours.
+    Alpha 235 lets a hint of the skin's shading through."""
+    gen = align(gen, inp, "tattoo")
+    gp, ip = gen.load(), inp.load()
+    ink = Image.new("RGBA", gen.size)
+    op = ink.load()
+    for y in range(gen.height):
+        for x in range(gen.width):
+            g, i = gp[x, y], ip[x, y]
+            if not (g[3] > 128 and i[3] > 128) or _lum(i) < 40:  # off the body, or on its outline
+                continue
+            if max(abs(g[c] - i[c]) for c in range(3)) >= 45 and not _warm_skin(g):
+                op[x, y] = g[:3] + (235,)
+    return ink
+
+
+def _hands_path(body, key):
+    kind, d = key[0], key[1]
+    if kind == "idle":
+        return f"body/{body}_hands{d}.png"
+    if kind == "walk":
+        return f"body/{body}{d}_walk_hands_f{key[2]}.png"
+    return f"body/{body}{d}_sitting_hands_f{key[2]}.png"
+
+
+def build_tattoo(garment, body):
+    """Tattoo frames split by the layer they sit on: `<id>_<body>…` over the body sprite (drawn right
+    after the body) and `<id>_<body>_hands…` over the swinging near arm (drawn right after it), so
+    the near arm never hides or shows the wrong part. Both stay under the clothes."""
+    out_dir = os.path.join(AV, "tattoos")
+    os.makedirs(out_dir, exist_ok=True)
+    frames = {}
+    for group in GROUPS:
+        for key in group:
+            n = _name(key)
+            gen = Image.open(os.path.join(GEN, f"{garment}_{body}_{n}.png")).convert("RGBA")
+            inp = Image.open(os.path.join(GEN, f"_input_{garment}_{body}_{n}.png")).convert("RGBA")
+            full = Image.new("RGBA", (64, 128))
+            full.alpha_composite(isolate_ink(gen, inp), (0, WINDOW["tattoo"]))
+            frames[key] = full
+    for key in list(frames):
+        if key[0] in ("walk", "sit") and key[1] in (2, 3, 4):
+            twin = {2: 8, 3: 7, 4: 6}[key[1]]
+            frames[(key[0], twin) + key[2:]] = ImageOps.mirror(frames[key])
+    for key, full in frames.items():
+        hands = _load(_hands_path(body, key))
+        on_arm, on_body = Image.new("RGBA", full.size), full.copy()
+        if hands is not None:
+            hp, fp, ap, bp = hands.load(), full.load(), on_arm.load(), on_body.load()
+            for y in range(128):
+                for x in range(64):
+                    if fp[x, y][3] and hp[x, y][3]:
+                        ap[x, y], bp[x, y] = fp[x, y], (0, 0, 0, 0)
+        name = _out_names(garment, body, key)
+        on_body.save(os.path.join(out_dir, name))
+        on_arm.save(os.path.join(out_dir, name.replace(f"{garment}_{body}", f"{garment}_{body}_hands", 1)))
+    print(f"{garment}/{body}: {len(frames)} frames (body + arm layers) -> tattoos/")
+
+
 def build(garment, body):
     spec = GARMENTS[garment]
     slot = spec["slot"]
+    if slot == "tattoo":
+        return build_tattoo(garment, body)
     folder = FOLDER[slot]
     y0 = WINDOW[slot]
     sprites, backlegs = {}, {}
@@ -419,7 +492,7 @@ LYING_FRAMES = [(b, v) for b in ("female", "male") for v in "AB"]
 def lying_input(body, view, slot):
     canvas = Image.new("RGBA", (160, 128))
     canvas.alpha_composite(_tint(_load(f"lying/body/{body}_lie{view}.png"), SKIN))
-    if slot != "shoes":
+    if slot not in ("shoes", "tattoo"):
         other = _load(f"lying/bottoms/jeans_{body}_lie{view}.png" if slot == "top" else
                       f"lying/tops/jacket_{body}_lie{view}.png")
         canvas.alpha_composite(_tint(other, (40, 40, 48)))
@@ -460,9 +533,12 @@ def build_lying(garment):
             continue
         gen = Image.open(path).convert("RGBA")
         inp = Image.open(os.path.join(GEN, f"_input_{garment}_{b}_lie{v}.png")).convert("RGBA")
-        gen, mask = isolate(gen, inp, spec["slot"])
         full = Image.new("RGBA", (160, 128))
-        full.alpha_composite(to_gray(gen, mask), LYING_CROP[:2])
+        if spec["slot"] == "tattoo":
+            full.alpha_composite(isolate_ink(gen, inp), LYING_CROP[:2])
+        else:
+            gen, mask = isolate(gen, inp, spec["slot"])
+            full.alpha_composite(to_gray(gen, mask), LYING_CROP[:2])
         os.makedirs(os.path.join(AV, "lying", folder), exist_ok=True)
         full.save(os.path.join(AV, "lying", folder, f"{garment}_{b}_lie{v}.png"))
     print(f"{garment}: lying views built")

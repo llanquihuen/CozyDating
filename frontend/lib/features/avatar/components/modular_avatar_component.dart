@@ -409,9 +409,15 @@ class ModularAvatarComponent extends PositionComponent {
           }));
         }
 
-        // Body marks (several at once)
+        // Body marks (several at once): face marks over the head, body tattoos on the skin in two
+        // layers (over the body sprite / over the swinging near arm)
         for (final mark in config.marks) {
-          futures.add(_loadOctoFrame('mark_$mark', 'marks/$mark$k.png', k));
+          if (_isBodyArt(mark)) {
+            futures.add(_loadOctoFrame('tattoo_$mark', 'tattoos/${mark}_$bodyType$k.png', k));
+            futures.add(_loadOctoFrame('tattoo_hands_$mark', 'tattoos/${mark}_${bodyType}_hands$k.png', k));
+          } else {
+            futures.add(_loadOctoFrame('mark_$mark', 'marks/$mark$k.png', k));
+          }
         }
 
         // Worn accessories (one per slot)
@@ -435,6 +441,13 @@ class ModularAvatarComponent extends PositionComponent {
 
         // Body sit frame
         futures.add(_loadOctoFrame('body', 'body/${bodyType}${d}_sitting_f$f.png', sitKey));
+
+        // Body tattoos sit frames
+        for (final mark in config.marks.where(_isBodyArt)) {
+          futures.add(_loadOctoFrame('tattoo_$mark', 'tattoos/${mark}_${bodyType}_${cardinal}_sit$f.png', sitKey));
+          futures.add(_loadOctoFrame(
+              'tattoo_hands_$mark', 'tattoos/${mark}_${bodyType}_hands_${cardinal}_sit$f.png', sitKey));
+        }
 
         // Hands sit frame
         futures.add(_loadOctoFrame('hands', 'body/${bodyType}${d}_sitting_hands_f$f.png', sitKey));
@@ -529,7 +542,9 @@ class ModularAvatarComponent extends PositionComponent {
       }
       // Body marks have no fallback: a mark without lying art is simply not drawn.
       for (final mark in config.marks) {
-        futures.add(_loadOctoFrame('mark_$mark', 'lying/marks/${mark}_lie$v.png', key));
+        futures.add(_isBodyArt(mark)
+            ? _loadOctoFrame('tattoo_$mark', 'lying/tattoos/${mark}_${bodyType}_lie$v.png', key)
+            : _loadOctoFrame('mark_$mark', 'lying/marks/${mark}_lie$v.png', key));
       }
       // Asleep under the covers the eyes are always closed, whatever the chosen style.
       futures.add(_loadOctoEyesFrame('lying/eyes/closedeyes_lie$v.png', '${key}_closed', up: up));
@@ -563,6 +578,8 @@ class ModularAvatarComponent extends PositionComponent {
       });
     }
   }
+
+  static bool _isBodyArt(String mark) => AvatarCatalog.find(AvatarCatalog.mark, mark)?.underClothes ?? false;
 
   String _dirToCardinal(int d) {
     switch (d) {
@@ -706,6 +723,9 @@ class ModularAvatarComponent extends PositionComponent {
     // sprites drawn above this component (BedFrontOverlayComponent), like a chair's backrest.
     drawLayers((draw) {
       draw('body', key, config.skinColor);
+      for (final mark in config.marks.where(_isBodyArt)) {
+        draw('tattoo_$mark', key, null);
+      }
       draw('nose', key, config.skinColor);
       // Marks stay under the covers too (unlike worn accessories, which are never drawn lying).
       for (final mark in config.marks) {
@@ -803,6 +823,11 @@ class ModularAvatarComponent extends PositionComponent {
     // Layer 2: Body (Base Skin)
     drawLayer('body', config.skinColor);
 
+    // Layer 2b: Body tattoos on the body sprite (clothes are drawn over them)
+    for (final mark in config.marks.where(_isBodyArt)) {
+      drawLayer('tattoo_$mark', null);
+    }
+
     // Layer 3a: Bottoms Backleg (Only when NOT rendered separately behind furniture)
     if (!renderBacklegSeparately && isSitting && config.bottomStyle != 'none') {
       drawLayer('bottoms_backleg', config.bottomColor);
@@ -815,6 +840,11 @@ class ModularAvatarComponent extends PositionComponent {
 
     // Layer 4: Hands (Skin Color - Rendered over pants so arms/hands aren't covered by bottoms)
     drawLayer('hands', config.skinColor);
+
+    // Layer 4b: Body tattoos on the near arm, which swings over the body
+    for (final mark in config.marks.where(_isBodyArt)) {
+      drawLayer('tattoo_hands_$mark', null);
+    }
 
     // Layer 5a: Shoes Backleg (Only when NOT rendered separately behind furniture)
     if (!renderBacklegSeparately && isSitting && config.shoeStyle != 'none') {
