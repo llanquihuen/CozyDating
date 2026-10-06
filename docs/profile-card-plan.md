@@ -102,19 +102,28 @@ Cada fase deja la app funcionando y va en su propio commit.
 - Tests: sin filtro empareja cualquier edad; filtro recíproco (Alice acepta a David, pero David no
   a Alice → no se emparejan; David y Bob sí); compatibles en ambos sentidos; casos de borde.
 
-### Fase 3 — Catálogo de temas y widget `ProfileCard`
+### Fase 3 — Catálogo de temas y widget `ProfileCard` — hecha
 
-- `card_themes.dart`: los 10 temas como datos (colores base, acentos sugeridos, estilo de marco).
-- `ProfileCard`: una tarjeta de proporción fija con dos caras y animación de giro (rotación en Y).
-  - Cara personaje: nombre + insignia, avatar (imagen fija de `AvatarLayers.renderStill`, escalada
-    sin suavizado), frase, gustos destacados como chips del color de acento.
-  - Cara real, con lenguaje de app de citas (tabla "Mismo tema, dos lenguajes"): foto a sangre con
-    carrusel (oficial primero, toques a los lados), degradado del color base del tema, nombre y
-    edad grandes, comuna y distancia, bio, chips translúcidos, insignias de estilo de vida; sello
-    con el mini-avatar en una esquina.
-  - Mismos colores en las dos caras; el marco con adornos es solo de la cara personaje.
-- Tests de widget: ambas caras se dibujan para los 10 temas, el giro cambia de cara, textos largos
-  no desbordan (frase de 60, 5 gustos, texto grande del sistema).
+![Las 10 caras personaje y las 10 caras reales (widget real, sin fotos)](profile-card-widget.png)
+
+- `features/profile/card/card_themes.dart`: los 10 temas (`ProfileCardTheme`: base, panel del
+  avatar, acentos sugeridos, marco) y una paleta común de acentos. El color de texto se elige por
+  contraste (oscuro o claro, el que se lea mejor) y el relleno de los chips toma menos acento si
+  hace falta. Matcha y Retro 70s quedaron un poco más oscuros que en el boceto para que el texto
+  llegue a 4,5:1.
+- `card_frame_painter.dart`: los adornos de cada marco (tachas, madera, moños, neón, estrellas,
+  franjas, línea fina, cuerda).
+- `profile_card.dart`: `ProfileCard(profile, style?, showReal, distanceKm?)`. Se dibuja a un
+  tamaño de diseño fijo (300×454) y se escala, así se ve igual en cualquier pantalla; el texto del
+  sistema se limita a ×1,15 dentro de la tarjeta. Giro en Y de 650 ms.
+  - Cara personaje: nombre + sello de certificación del color de acento, avatar en pixel art,
+    frase, gustos destacados (título corto: `PreferenceCatalog.shortTitle`).
+  - Cara real: foto a sangre con barras de progreso y toques a los lados, degradado del color
+    base, nombre y edad, comuna · distancia, bio (3 líneas), hasta 3 insignias, 3 gustos en chips
+    translúcidos, sello con la cabeza del avatar. Sin fotos, una silueta sobre el degradado.
+- `avatar/widgets/avatar_still_image.dart`: el avatar quieto como imagen nítida, con caché.
+- Tests (`profile_card_test.dart`): contraste de cada tema con cada acento; ambas caras en los 10
+  temas y el giro; contenido al máximo en un teléfono chico con texto grande; sin fotos.
 
 ### Fase 4 — "Tu tarjeta": el menú desde la sala
 

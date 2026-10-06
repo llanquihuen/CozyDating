@@ -547,6 +547,19 @@ class PreferenceCatalog {
     return null;
   }
 
+  /// A taste's title cut for a chip: before " / ", " (" or ", " ("PC Master Race / Steam Deck" ->
+  /// "PC Master Race", "Team Gatos (Misterio y ronroneo)" -> "Team Gatos").
+  static String shortTitle(String id) {
+    final item = getItem(id);
+    if (item == null) return formatTaste(id).replaceFirst('✨ ', '');
+    var title = item.title;
+    for (final cut in const [' / ', ' (', ', ']) {
+      final i = title.indexOf(cut);
+      if (i > 0) title = title.substring(0, i);
+    }
+    return title.trim();
+  }
+
   static String formatTaste(String id) {
     final item = getItem(id);
     if (item != null) {
