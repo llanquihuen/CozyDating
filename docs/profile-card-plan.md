@@ -8,6 +8,8 @@ el perfil de `character_creator_screen.dart` y borrar ese archivo.
 
 ![Los 10 temas en la cara personaje (sprites reales)](profile-card-themes.png)
 
+![Mismo tema, dos lenguajes: cara personaje (juego) y cara real (app de citas)](profile-card-faces.png)
+
 ## 0. Decisiones (2026-10-06)
 
 | Tema | Decisión |
@@ -17,6 +19,7 @@ el perfil de `character_creator_screen.dart` y borrar ese archivo.
 | Cara personaje | Avatar, nombre de usuario, insignia de certificación, **frase corta** (máx. 60 caracteres) y **gustos destacados**. Sin edad, comuna ni intención (se revelan después). |
 | Gustos destacados | **1 a 5**, a elección. |
 | Estilo | **Temas armados + color de acento** (10 temas, abajo). |
+| Lenguaje de cada cara | La cara personaje se siente **juego** (pixel art, marco con adornos del tema). La cara real se siente **app de citas** (estilo Tinder): conserva los colores del tema pero cambia el lenguaje, ver abajo. |
 | Quién la ve | **Cara personaje antes de la fogata** (emparejamiento, presentación de la partida, campamento); **se voltea a la real en la revelación**. |
 | Filtro de edad | Nuevo. **Sin filtro por defecto**; si se ajusta, cuenta **en ambos sentidos** en el emparejamiento (cada uno debe caer en el rango del otro), como el género buscado. |
 
@@ -34,6 +37,17 @@ el perfil de `character_creator_screen.dart` y borrar ese archivo.
 | Retro 70s / Vinyl | terracota tostado | mostaza, naranja quemado | vintage, análogo, atardecer |
 | Monocromo Elegante | negro azabache | gris platino, blanco puro | sobrio, moderno, formal |
 | Costa / Marino | azul petróleo profundo | azul cielo, amarillo faro | mar, brisa, salitre |
+
+### Mismo tema, dos lenguajes
+
+| | Cara personaje (juego) | Cara real (app de citas) |
+|---|---|---|
+| Protagonista | el avatar en pixel art sobre un panel | la foto a sangre, en toda la tarjeta, con barras de progreso arriba |
+| Marco | adornos del tema (tachas, moños, estrellas…) | sin adornos: borde fino del color de acento, esquinas más redondeadas |
+| Texto | sobre el fondo plano del tema | sobre un degradado del color base del tema en la mitad inferior de la foto |
+| Tipografía | lúdica | limpia y moderna; nombre y edad grandes |
+| Gustos | chips llenos del acento | chips translúcidos con borde de acento |
+| Avatar | protagonista | sello redondo pequeño en una esquina (la misma persona) |
 
 Cada tema trae su marco (tachas, madera, moños, neón, estrellas, franjas, cuerda...) y sus acentos
 sugeridos; el color de acento se elige entre los del tema y una paleta corta común. Los marcos se
@@ -86,9 +100,11 @@ Cada fase deja la app funcionando y va en su propio commit.
 - `ProfileCard`: una tarjeta de proporción fija con dos caras y animación de giro (rotación en Y).
   - Cara personaje: nombre + insignia, avatar (imagen fija de `AvatarLayers.renderStill`, escalada
     sin suavizado), frase, gustos destacados como chips del color de acento.
-  - Cara real: carrusel de fotos (oficial primero) con un mini-avatar en la esquina, nombre y edad,
-    comuna y distancia, bio, insignias de estilo de vida.
-  - Mismo marco y colores en las dos caras.
+  - Cara real, con lenguaje de app de citas (tabla "Mismo tema, dos lenguajes"): foto a sangre con
+    carrusel (oficial primero, toques a los lados), degradado del color base del tema, nombre y
+    edad grandes, comuna y distancia, bio, chips translúcidos, insignias de estilo de vida; sello
+    con el mini-avatar en una esquina.
+  - Mismos colores en las dos caras; el marco con adornos es solo de la cara personaje.
 - Tests de widget: ambas caras se dibujan para los 10 temas, el giro cambia de cara, textos largos
   no desbordan (frase de 60, 5 gustos, texto grande del sistema).
 
