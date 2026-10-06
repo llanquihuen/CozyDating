@@ -73,7 +73,7 @@ def scan_flat_category(cat_name: str) -> List[str]:
         if not f.endswith(".png"):
             continue
         # Ignorar frames de caminata, sentarse o internos
-        if "_walk" in f or "_sit" in f or "_f" in f or "hands" in f:
+        if "_walk" in f or "_sit" in f or re.search(r"_f\d", f) or "hands" in f:
             continue
         if f.endswith("1.png"):
             items.add(f[:-5])

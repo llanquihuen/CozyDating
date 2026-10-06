@@ -57,6 +57,13 @@ GARMENTS = {
                      prompt="tight fitted leggings down to the ankles, light blue"),
     "shorts": dict(slot="bottom", label="Shorts", audience="neutral",
                    prompt="plain casual shorts ending above the knees with bare legs below, light blue"),
+    "hoodie": dict(slot="top", label="Polerón con Capucha", audience="neutral",
+                   prompt="a loose cozy pullover hoodie with long sleeves, a front pocket and the hood down "
+                          "resting behind the neck, light blue"),
+    "skirt_short": dict(slot="bottom", label="Falda Corta", audience="feminine", fits=("female",),
+                        prompt="a short flared skirt ending above the knees, bare legs below, light blue"),
+    "skirt_long": dict(slot="bottom", label="Falda Larga", audience="feminine", fits=("female",),
+                       prompt="a long flowing A-line skirt reaching down to the ankles, light blue"),
     "sneakers": dict(slot="shoes", label="Zapatillas", audience="neutral",
                      prompt="a pair of low-top canvas sneakers with laces and white rubber soles, light blue"),
     "sandals": dict(slot="shoes", label="Sandalias", audience="neutral",
@@ -218,15 +225,21 @@ def _shift(im, dx, dy):
     return out
 
 
-def align(gen, inp):
-    """PixelLab may move the figure a few pixels: match silhouettes (clothes barely change them)."""
+# Rows of the crop compared when aligning: the part of the figure the garment never reaches, so
+# loose garments (hoodie, skirts) that change the silhouette do not skew the match.
+ALIGN_ROWS = {"top": (44, 64), "bottom": (0, 12), "shoes": (0, 40)}
+
+
+def align(gen, inp, slot=None):
+    """PixelLab may move the figure a few pixels: match silhouettes outside the garment."""
     ga, ia = gen.split()[3].load(), inp.split()[3].load()
     w, h = gen.size
+    y_from, y_to = ALIGN_ROWS.get(slot, (0, h)) if h == 64 else (0, h)
     best = None
     for dy in range(-3, 4):
         for dx in range(-6, 7):
             miss = 0
-            for y in range(h):
+            for y in range(y_from, y_to):
                 for x in range(w):
                     sx, sy = x - dx, y - dy
                     g = ga[sx, sy] > 128 if 0 <= sx < w and 0 <= sy < h else False
@@ -245,7 +258,7 @@ def isolate(gen, inp, slot="top"):
     """Garment = pixels PixelLab changed that are not skin (the new garment is never skin-toned). For
     bottoms, dark pixels where the input had the dark neutral jacket are that jacket redrawn, not the
     new garment (raise_waist covers that area afterwards)."""
-    gen = align(gen, inp)
+    gen = align(gen, inp, slot)
     gp, ip = gen.load(), inp.load()
     mask = set()
     for y in range(gen.height):
