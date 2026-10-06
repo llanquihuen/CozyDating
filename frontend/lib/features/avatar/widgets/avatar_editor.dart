@@ -108,21 +108,32 @@ class _AvatarEditorState extends State<AvatarEditor> {
                     children: [
                       if (section.slot != null)
                         AvatarItemPicker(controller: widget.controller, section: section, thumbnails: _thumbnails)
-                      else if (section.color != null)
-                        _colorRow(section, singleLine: false),
+                      else
+                        for (final target in section.colors) ...[
+                          _colorRow(target, singleLine: false),
+                          const SizedBox(height: 16),
+                        ],
                     ],
                   ),
                 ),
               ),
               // Under a grid the colours stay pinned in reach, however long the grid is.
-              if (section.slot != null && section.color != null)
+              if (section.slot != null && section.colors.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                   decoration: const BoxDecoration(
                     color: EditorStyle.panel,
                     border: Border(top: BorderSide(color: EditorStyle.line)),
                   ),
-                  child: _colorRow(section, singleLine: true),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final (i, target) in section.colors.indexed) ...[
+                        if (i > 0) const SizedBox(height: 10),
+                        _colorRow(target, singleLine: true),
+                      ],
+                    ],
+                  ),
                 ),
             ],
           );
@@ -131,11 +142,12 @@ class _AvatarEditorState extends State<AvatarEditor> {
     );
   }
 
-  Widget _colorRow(EditorSection section, {required bool singleLine}) => AvatarColorRow(
-        label: section.color!.label,
-        palette: section.color!.palette,
-        selected: widget.controller.colorOf(section),
-        onSelected: (c) => widget.controller.setColor(section, c),
+  Widget _colorRow(ColorTarget target, {required bool singleLine}) => AvatarColorRow(
+        key: ValueKey(target.label),
+        label: target.label,
+        palette: target.palette,
+        selected: widget.controller.colorOf(target),
+        onSelected: (c) => widget.controller.setColor(target, c),
         singleLine: singleLine,
       );
 

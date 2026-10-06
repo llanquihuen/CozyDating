@@ -15,7 +15,7 @@ class ColorTarget {
   final AvatarConfig Function(AvatarConfig config, Color color) write;
 }
 
-/// One sub-category (pill) of an editor tab: a grid of choices for [slot] and/or a colour row.
+/// One sub-category (pill) of an editor tab: a grid of choices for [slot] and/or colour rows.
 class EditorSection {
   const EditorSection({
     required this.id,
@@ -23,21 +23,22 @@ class EditorSection {
     this.slot,
     this.crop = ThumbCrop.full,
     this.cropOf,
-    this.color,
+    this.colors = const [],
   });
 
   final String id;
   final String label;
 
   /// Catalog slot, or [AvatarConfig.bodySlot] / [AvatarConfig.faceShapeSlot]. Null for a
-  /// colour-only section (skin, brows).
+  /// colour-only section (skin).
   final String? slot;
 
   /// Thumbnail crop for the section's items; [cropOf] overrides it per item.
   final ThumbCrop crop;
   final ThumbCrop Function(String id)? cropOf;
 
-  final ColorTarget? color;
+  /// Colour rows shown with the section, in order (eyes: iris, then brows).
+  final List<ColorTarget> colors;
 
   /// Several worn at once (marks): tapping toggles instead of replacing.
   bool get multi => slot == AvatarCatalog.mark;
@@ -81,7 +82,7 @@ final List<EditorTab> editorTabs = [
     EditorSection(
       id: 'skin',
       label: 'Piel',
-      color: ColorTarget('Tono de piel', AvatarConfig.skinTones, (c) => c.skinColor, (c, v) => c.copyWith(skinColor: v)),
+      colors: [ColorTarget('Tono de piel', AvatarConfig.skinTones, (c) => c.skinColor, (c, v) => c.copyWith(skinColor: v))],
     ),
     EditorSection(
       id: 'marks',
@@ -92,30 +93,29 @@ final List<EditorTab> editorTabs = [
   ]),
   EditorTab(id: 'face', label: 'Cara', icon: Icons.face, faceFocus: true, sections: [
     const EditorSection(id: 'face_shape', label: 'Forma', slot: AvatarConfig.faceShapeSlot, crop: ThumbCrop.face),
+    // Brows have no styles yet, only a colour (the hair colour by default), so they live with the eyes.
     EditorSection(
       id: 'eyes',
-      label: 'Ojos',
+      label: 'Ojos y cejas',
       slot: AvatarCatalog.eyes,
       crop: ThumbCrop.face,
-      color: ColorTarget('Color de ojos', AvatarConfig.eyeColors, (c) => c.eyeColor, (c, v) => c.copyWith(eyeColor: v)),
-    ),
-    EditorSection(
-      id: 'brows',
-      label: 'Cejas',
-      color: ColorTarget(
-          'Color de cejas', AvatarConfig.hairColors, (c) => c.eyebrowColor, (c, v) => c.copyWith(eyebrowColor: v)),
+      colors: [
+        ColorTarget('Color de ojos', AvatarConfig.eyeColors, (c) => c.eyeColor, (c, v) => c.copyWith(eyeColor: v)),
+        ColorTarget(
+            'Color de cejas', AvatarConfig.hairColors, (c) => c.eyebrowColor, (c, v) => c.copyWith(eyebrowColor: v)),
+      ],
     ),
     const EditorSection(id: 'nose', label: 'Nariz', slot: AvatarCatalog.nose, crop: ThumbCrop.face),
     const EditorSection(id: 'mouth', label: 'Boca', slot: AvatarCatalog.mouth, crop: ThumbCrop.face),
   ]),
   EditorTab(id: 'makeup', label: 'Maquillaje', icon: Icons.brush, faceFocus: true, sections: [
-    EditorSection(id: 'blush', label: 'Rubor', slot: AvatarCatalog.blush, crop: ThumbCrop.face, color: _makeupColor(AvatarCatalog.blush)),
+    EditorSection(id: 'blush', label: 'Rubor', slot: AvatarCatalog.blush, crop: ThumbCrop.face, colors: [_makeupColor(AvatarCatalog.blush)]),
     EditorSection(
-        id: 'eyeshadow', label: 'Sombra', slot: AvatarCatalog.eyeshadow, crop: ThumbCrop.face, color: _makeupColor(AvatarCatalog.eyeshadow)),
+        id: 'eyeshadow', label: 'Sombra', slot: AvatarCatalog.eyeshadow, crop: ThumbCrop.face, colors: [_makeupColor(AvatarCatalog.eyeshadow)]),
     EditorSection(
-        id: 'eyeliner', label: 'Delineado', slot: AvatarCatalog.eyeliner, crop: ThumbCrop.face, color: _makeupColor(AvatarCatalog.eyeliner)),
+        id: 'eyeliner', label: 'Delineado', slot: AvatarCatalog.eyeliner, crop: ThumbCrop.face, colors: [_makeupColor(AvatarCatalog.eyeliner)]),
     EditorSection(
-        id: 'lipstick', label: 'Labial', slot: AvatarCatalog.lipstick, crop: ThumbCrop.face, color: _makeupColor(AvatarCatalog.lipstick)),
+        id: 'lipstick', label: 'Labial', slot: AvatarCatalog.lipstick, crop: ThumbCrop.face, colors: [_makeupColor(AvatarCatalog.lipstick)]),
   ]),
   EditorTab(id: 'hair', label: 'Pelo', icon: Icons.content_cut, faceFocus: true, sections: [
     EditorSection(
@@ -123,9 +123,10 @@ final List<EditorTab> editorTabs = [
       label: 'Peinado',
       slot: AvatarCatalog.hair,
       crop: ThumbCrop.head,
-      // The brows follow a new hair colour, as in the original editors; Cara > Cejas sets them apart.
-      color: ColorTarget('Color del pelo', AvatarConfig.hairColors, (c) => c.hairColor,
-          (c, v) => c.copyWith(hairColor: v, eyebrowColor: v)),
+      // The brows follow a new hair colour, as in the original editors; Cara > Ojos y cejas sets them
+      // apart.
+      colors: [ColorTarget('Color del pelo', AvatarConfig.hairColors, (c) => c.hairColor,
+          (c, v) => c.copyWith(hairColor: v, eyebrowColor: v))],
     ),
   ]),
   EditorTab(id: 'clothes', label: 'Ropa', icon: Icons.checkroom, faceFocus: false, sections: [
@@ -134,28 +135,28 @@ final List<EditorTab> editorTabs = [
       label: 'Arriba',
       slot: AvatarCatalog.top,
       crop: ThumbCrop.torso,
-      color: _clothesColor((c) => c.topColor, (c, v) => c.copyWith(topColor: v)),
+      colors: [_clothesColor((c) => c.topColor, (c, v) => c.copyWith(topColor: v))],
     ),
     EditorSection(
       id: 'bottom',
       label: 'Abajo',
       slot: AvatarCatalog.bottom,
       crop: ThumbCrop.legs,
-      color: _clothesColor((c) => c.bottomColor, (c, v) => c.copyWith(bottomColor: v)),
+      colors: [_clothesColor((c) => c.bottomColor, (c, v) => c.copyWith(bottomColor: v))],
     ),
     EditorSection(
       id: 'dress',
       label: 'Vestido',
       slot: AvatarCatalog.dress,
       crop: ThumbCrop.torso,
-      color: _clothesColor((c) => c.dressColor, (c, v) => c.copyWith(dressColor: v)),
+      colors: [_clothesColor((c) => c.dressColor, (c, v) => c.copyWith(dressColor: v))],
     ),
     EditorSection(
       id: 'shoes',
       label: 'Calzado',
       slot: AvatarCatalog.shoes,
       crop: ThumbCrop.feet,
-      color: _clothesColor((c) => c.shoeColor, (c, v) => c.copyWith(shoeColor: v)),
+      colors: [_clothesColor((c) => c.shoeColor, (c, v) => c.copyWith(shoeColor: v))],
     ),
   ]),
   EditorTab(id: 'accessories', label: 'Accesorios', icon: Icons.auto_awesome, faceFocus: false, sections: [
@@ -166,8 +167,8 @@ final List<EditorTab> editorTabs = [
         slot: slot,
         crop: slot == 'bag' ? ThumbCrop.torso : ThumbCrop.head,
         // One colour shared by every accessory.
-        color: ColorTarget('Color del accesorio', AvatarConfig.clothingColors, (c) => c.accessoryColor,
-            (c, v) => c.copyWith(accessoryColor: v)),
+        colors: [ColorTarget('Color del accesorio', AvatarConfig.clothingColors, (c) => c.accessoryColor,
+            (c, v) => c.copyWith(accessoryColor: v))],
       ),
   ]),
 ];

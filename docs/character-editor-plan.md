@@ -15,7 +15,8 @@ Accesorios) y el perfil de citas en su propia pantalla.
 | Miniaturas | El propio avatar con el ítem puesto, recortado según la categoría; con caché y repintado al cambiar la piel o los colores |
 | Registro | Editor completo (6 pestañas) + botones Aleatorio y Saltar, en el paso 2 del asistente actual |
 | Marcas | Todas (de cara y de cuerpo) van en **Cuerpo** |
-| Cejas | En **Cara** |
+| Cejas | En **Cara**, en la misma subcategoría que los ojos ("Ojos y cejas"): por ahora solo tienen color, que sigue al del pelo |
+| Orden para hombres | Los ítems pensados para hombres van antes que los neutros (Undercut primero en Pelo); también es su peinado por defecto |
 | Guardado en la sala | Borrador + botón Guardar + diálogo "¿Descartar cambios?" al salir + deshacer |
 | Bloqueos/pago | No por ahora; la miniatura solo deja un espacio opcional para una insignia |
 
@@ -24,7 +25,7 @@ Accesorios) y el perfil de citas en su propia pantalla.
 | Pestaña | Subcategorías (píldoras) | Recorte de miniatura |
 |---|---|---|
 | Cuerpo | Complexión*, Piel, Marcas (multi) | cuerpo entero / torso |
-| Cara | Forma, Ojos (+ color), Cejas (+ color), Nariz, Boca | cara |
+| Cara | Forma, Ojos y cejas (color de ojos + color de cejas), Nariz, Boca | cara |
 | Maquillaje | Rubor, Sombra, Delineado, Labial (cada uno con su color) | cara |
 | Pelo | Peinado (+ color) | cabeza (con el pelo largo incluido) |
 | Ropa | Arriba, Abajo, Vestido, Calzado (cada uno con su color) | torso / piernas / pies |

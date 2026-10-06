@@ -72,7 +72,7 @@ class AvatarEditorController extends ChangeNotifier {
       ];
 
   bool _isVisible(EditorSection section) {
-    if (section.slot == null) return section.color != null;
+    if (section.slot == null) return section.colors.isNotEmpty;
     final choices = options(section).where((id) => id != 'none').length;
     // An optional slot with one item is still a choice (wear it or not).
     return choices > 1 || (choices == 1 && AvatarCatalog.allowsNone(section.slot!));
@@ -119,9 +119,9 @@ class AvatarEditorController extends ChangeNotifier {
     }
   }
 
-  Color colorOf(EditorSection section) => section.color!.read(_config);
+  Color colorOf(ColorTarget target) => target.read(_config);
 
-  void setColor(EditorSection section, Color color) => apply(section.color!.write(_config, color));
+  void setColor(ColorTarget target, Color color) => apply(target.write(_config, color));
 
   /// A random look allowed for [gender]: body (when not locked), styles and colours, always with
   /// a top and a bottom. Marks, makeup, accessories and dresses are left off.

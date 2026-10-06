@@ -125,13 +125,13 @@ class AvatarCatalog {
     // Hair
     AvatarItem(hair, 'bangs', 'Flequillo / Bangs'),
     AvatarItem(hair, 'braids', 'Trenzas / Braids', audience: AvatarAudience.feminine),
+    AvatarItem(hair, 'undercut', 'Undercut', audience: AvatarAudience.masculine),
     AvatarItem(hair, 'comb_over', 'Raya al Lado / Comb Over', audience: AvatarAudience.masculine),
     AvatarItem(hair, 'flow', 'Cabello Flow', hasBack: true),
     AvatarItem(hair, 'long_flow', 'Melena Fluida', audience: AvatarAudience.feminine, hasBack: true),
     AvatarItem(hair, 'twintails', 'Dos Coletas / Twintails 👧', audience: AvatarAudience.feminine, hasBack: true),
     AvatarItem(hair, 'buzz', 'Rapado'),
     AvatarItem(hair, 'afro', 'Afro'),
-    AvatarItem(hair, 'undercut', 'Undercut', audience: AvatarAudience.masculine),
     AvatarItem(hair, 'messy', 'Despeinado', audience: AvatarAudience.masculine),
     AvatarItem(hair, 'curly_short', 'Rizos Cortos', audience: AvatarAudience.masculine),
     AvatarItem(hair, 'spiky', 'Puntas Anime', audience: AvatarAudience.masculine),
@@ -229,12 +229,20 @@ class AvatarCatalog {
     }
   }
 
-  /// Ids offered for [slot], with 'none' first where the slot can be empty.
+  /// Ids offered for [slot], with 'none' first where the slot can be empty. Men see the items aimed
+  /// at men before the neutral ones (a neutral fringe is not what reads as masculine first), in
+  /// catalog order; that first item is also their default (see AvatarConfig.restrictedTo).
   static List<String> options(String slot, {required String gender, required String bodyType}) {
+    final allowed = [
+      for (final item in items)
+        if (item.slot == slot && isAllowed(item, gender: gender, bodyType: bodyType)) item,
+    ];
+    final menFirst = gender == 'MAN';
+    bool leads(AvatarItem item) => menFirst && item.audience == AvatarAudience.masculine;
     return [
       if (allowsNone(slot)) 'none',
-      for (final item in items)
-        if (item.slot == slot && isAllowed(item, gender: gender, bodyType: bodyType)) item.id,
+      for (final item in allowed) if (leads(item)) item.id,
+      for (final item in allowed) if (!leads(item)) item.id,
     ];
   }
 

@@ -29,7 +29,7 @@ void main() {
     expect(_sectionIds(other), isNot(contains('face_shape')), reason: 'one face shape so far');
     expect(_sectionIds(man), isNot(contains('dress')), reason: 'no dress for men yet');
     expect(_sectionIds(other), contains('dress'));
-    expect(_sectionIds(other), containsAll(['skin', 'brows', 'marks', 'glasses']));
+    expect(_sectionIds(other), containsAll(['skin', 'eyes', 'marks', 'glasses']));
     expect(_sectionIds(other), isNot(contains('hat')), reason: 'no hats in the catalog yet');
   });
 
@@ -38,19 +38,19 @@ void main() {
     expect(c.config.bodyType, 'male');
     expect(c.isDirty, isFalse);
 
+    c.select(_section(c, 'hair'), 'messy');
+    expect(c.config.hairStyle, 'messy');
+    expect(c.isSelected(_section(c, 'hair'), 'messy'), isTrue);
+    expect(c.isDirty, isTrue);
+
     c.select(_section(c, 'hair'), 'braids'); // feminine: not offered to men, swapped for an allowed one
     expect(AvatarCatalog.isAllowedId(AvatarCatalog.hair, c.config.hairStyle, gender: 'MAN', bodyType: 'male'), isTrue);
-
-    c.select(_section(c, 'hair'), 'undercut');
-    expect(c.config.hairStyle, 'undercut');
-    expect(c.isSelected(_section(c, 'hair'), 'undercut'), isTrue);
-    expect(c.isDirty, isTrue);
     c.undo();
     c.undo();
     expect(c.isDirty, isFalse);
     expect(c.canUndo, isFalse);
 
-    c.setColor(_section(c, 'hair'), const Color(0xFF7F77DD));
+    c.setColor(_section(c, 'hair').colors.single, const Color(0xFF7F77DD));
     c.markSaved();
     expect(c.isDirty, isFalse);
     expect(c.canUndo, isTrue, reason: 'saving keeps the history');
@@ -58,7 +58,7 @@ void main() {
 
   test('undo keeps the last maxUndo steps and a no-op change is not a step', () {
     final c = AvatarEditorController(initial: const AvatarConfig(), gender: 'WOMAN');
-    final skin = _section(c, 'skin');
+    final skin = _section(c, 'skin').colors.single;
     for (var i = 0; i < AvatarEditorController.maxUndo + 5; i++) {
       c.setColor(skin, AvatarConfig.skinTones[i % 2]);
     }
@@ -87,10 +87,10 @@ void main() {
 
   test('every colour row reads back what it writes', () {
     final c = AvatarEditorController(initial: const AvatarConfig(), gender: 'NON_BINARY');
-    for (final section in c.tabs.expand((t) => t.sections).where((s) => s.color != null)) {
-      final colour = section.color!.palette.last;
-      c.setColor(section, colour);
-      expect(c.colorOf(section), colour, reason: section.id);
+    for (final target in c.tabs.expand((t) => t.sections).expand((s) => s.colors)) {
+      final colour = target.palette.last;
+      c.setColor(target, colour);
+      expect(c.colorOf(target), colour, reason: target.label);
     }
   });
 
@@ -116,5 +116,33 @@ void main() {
         if (gender == 'WOMAN') expect(c.config.bodyType, 'female');
       }
     }
+  });
+
+  test('men see the hairstyles aimed at them first, Undercut leading, and get it by default', () {
+    final men = AvatarCatalog.options(AvatarCatalog.hair, gender: 'MAN', bodyType: 'male');
+    expect(men.take(2), ['none', 'undercut']);
+    final masculine = men.skip(1).takeWhile((id) => AvatarCatalog.find(AvatarCatalog.hair, id)!.audience == AvatarAudience.masculine);
+    expect(masculine.length, AvatarCatalog.items.where((i) => i.audience == AvatarAudience.masculine).length,
+        reason: 'every masculine style comes before the neutral ones');
+    expect(AvatarEditorController(initial: const AvatarConfig(), gender: 'MAN').config.hairStyle, 'undercut',
+        reason: 'the default long hair is swapped for the first style offered');
+
+    final women = AvatarCatalog.options(AvatarCatalog.hair, gender: 'WOMAN', bodyType: 'female');
+    expect(women, [
+      'none',
+      for (final i in AvatarCatalog.items)
+        if (i.slot == AvatarCatalog.hair && i.audience != AvatarAudience.masculine) i.id,
+    ], reason: 'catalog order for everyone else');
+  });
+
+  test('eyes and brows share one section: the eye styles with an iris and a brow colour row', () {
+    final c = AvatarEditorController(initial: const AvatarConfig(), gender: 'WOMAN');
+    final face = c.tabs.firstWhere((t) => t.id == 'face');
+    expect(face.sections.map((s) => s.label), ['Ojos y cejas', 'Nariz', 'Boca']);
+    final eyes = _section(c, 'eyes');
+    expect(eyes.colors.map((t) => t.label), ['Color de ojos', 'Color de cejas']);
+    c.setColor(eyes.colors.last, const Color(0xFF123456));
+    expect(c.config.eyebrowColor, const Color(0xFF123456));
+    expect(c.config.eyeColor, isNot(const Color(0xFF123456)));
   });
 }
