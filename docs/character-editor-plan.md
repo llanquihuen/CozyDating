@@ -127,23 +127,27 @@ Cada fase deja la app funcionando y se puede commitear por separado.
   `AuthService.saveAvatarConfig`, actualizar la sala) no cambia. Hasta la fase 7, "Tu perfil de
   citas" abre la pantalla vieja en modo perfil.
 
-### Fase 7 — Mi perfil aparte
+### Fase 7 — Mi perfil aparte → movida al plan "Tarjeta de perfil de dos caras"
 
-- Mover las secciones de perfil de `character_creator_screen.dart` (foto oficial y verificación,
-  galería, bio, distancia, estilo de vida, gustos y vista previa) a
-  `features/profile/screens/dating_profile_screen.dart`, con el mismo esquema de borrador y
-  Guardar.
-- `_openDatingProfile` en la sala (menú de la tarjeta y diálogo de certificación) abre
-  `DatingProfileScreen`.
-- Borrar `character_creator_screen.dart`.
-- Tests: `dating_profile_preview_test.dart` pasa a la pantalla nueva.
+Decidido el 2026-10-06: en vez de una `DatingProfileScreen` de secciones, que se reemplazaría poco
+después, el perfil se rediseña como una tarjeta de dos caras (personaje / real) en su propio plan.
+Ese plan absorbe esta fase: extraer las secciones de perfil de `character_creator_screen.dart` y
+borrarlo. Mientras tanto, "Tu perfil de citas" abre la pantalla vieja en modo perfil.
 
-### Fase 8 — Cierre
+### Fase 8 — Cierre (hecha)
 
-- `flutter analyze` y `flutter test` en verde.
-- Probar en un emulador: tiempo de la primera carga de una pestaña llena (objetivo: < 300 ms
-  hasta ver las miniaturas) y memoria con la caché llena.
-- Actualizar `CLAUDE.md` (sección Avatar) y la memoria del proyecto.
+- `flutter analyze`: sin errores nuevos. `flutter test`: todo en verde salvo
+  `surface_spots_catalog_test` y `toilet_seat_test`, que ya fallaban en `main` antes de este plan.
+- Tiempos (Windows, motor de render real en `flutter test`; no hay emulador Android configurado):
+  - con caché: cualquier pestaña en < 5 ms;
+  - en frío: las 18 miniaturas de Pelo en 0,4-0,5 s, apareciendo de a poco (la primera, ~200 ms);
+    Ojos, Ropa y Marcas en 70-150 ms. No cumple el objetivo de 300 ms para la pestaña más grande
+    en frío; en un teléfono será más lento. Permitir 6 renders a la vez en lugar de 3 no mejoró de
+    forma consistente.
+  - Mejora posible si se nota en el teléfono: precalentar las miniaturas de la pestaña siguiente
+    mientras se mira la actual, o cargar los sprites del catálogo al abrir el editor.
+- Memoria: la caché llena (200 miniaturas de 14-32 KB) ocupa ~3-6 MB.
+- `CLAUDE.md` actualizado (sección Avatar).
 
 ## 3. Riesgos
 
