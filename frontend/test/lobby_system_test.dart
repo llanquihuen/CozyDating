@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/avatar/screens/avatar_editor_screen.dart';
+import 'package:frontend/features/profile/screens/my_card_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/models/room_config.dart';
@@ -216,7 +217,7 @@ void main() {
       expect(find.text('🧑‍🦰 Alice (Explorador)'), findsOneWidget);
     });
 
-    testWidgets('the profile card offers the avatar and the dating profile; the avatar opens the new editor',
+    testWidgets('the profile card opens "Tu tarjeta", whose avatar button opens the avatar editor',
         (tester) async {
       AuthService.setCurrentUserForTesting(const UserProfile(id: 'alice', username: 'Alice', gender: 'WOMAN'));
       addTearDown(() => AuthService.setCurrentUserForTesting(null));
@@ -235,11 +236,11 @@ void main() {
       expect(overflow == null || '$overflow'.contains('overflowed'), isTrue, reason: '$overflow');
       await tester.tap(find.text('Alice'));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Tu avatar'), findsOneWidget);
-      expect(find.text('Tu perfil de citas'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.byType(MyCardScreen), findsOneWidget);
+      expect(find.text('Tu tarjeta'), findsOneWidget);
 
-      await tester.tap(find.text('Tu avatar'));
+      await tester.tap(find.text('Editar avatar'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       expect(find.byType(AvatarEditorScreen), findsOneWidget);

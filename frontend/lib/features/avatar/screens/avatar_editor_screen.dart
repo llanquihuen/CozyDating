@@ -93,7 +93,7 @@ class _AvatarEditorScreenState extends State<AvatarEditorScreen> {
                   backgroundColor: dirty ? EditorStyle.accent : EditorStyle.line,
                   foregroundColor: dirty ? EditorStyle.background : EditorStyle.muted,
                   visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 child: const Text('Guardar'),
               ),

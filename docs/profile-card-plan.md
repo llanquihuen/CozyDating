@@ -125,14 +125,25 @@ Cada fase deja la app funcionando y va en su propio commit.
 - Tests (`profile_card_test.dart`): contraste de cada tema con cada acento; ambas caras en los 10
   temas y el giro; contenido al máximo en un teléfono chico con texto grande; sin fotos.
 
-### Fase 4 — "Tu tarjeta": el menú desde la sala
+### Fase 4 — "Tu tarjeta": el menú desde la sala — hecha
 
-- Pantalla `MyCardScreen`: tu tarjeta grande, selector Personaje / Real (gira la tarjeta), botón
-  principal "Editar avatar" o "Editar perfil" según la cara, y "Estilo de la tarjeta".
-- "Estilo de la tarjeta" (hoja inferior): tema (miniaturas de tu propia tarjeta en cada tema),
-  color de acento, frase y gustos destacados (elegir 1-5 entre tus gustos), con vista previa.
-- La tarjeta de perfil de la sala abre esta pantalla (adiós al menú de dos opciones); el armario
-  sigue abriendo el editor de avatar directo; "Certificar ahora" abre "Editar perfil".
+![Tu tarjeta: cara personaje, cara real y la hoja de estilo](profile-card-my-card.png)
+
+- `features/profile/screens/my_card_screen.dart` (`MyCardScreen`): la tarjeta grande sobre un
+  fondo del color del tema; se voltea con el selector Personaje / Real, tocándola o deslizando de
+  lado. Botón principal "Editar avatar" / "Editar perfil" según la cara (del color de acento) y
+  "Estilo de la tarjeta". Recibe el perfil y las acciones de edición desde la sala.
+- `features/profile/widgets/card_style_sheet.dart`: hoja con vista previa en vivo de la cara
+  personaje; tema (miniaturas de tu propia tarjeta; cambiar de tema vuelve a su acento), color de
+  acento (los del tema + paleta común), frase (máx. 60) y gustos destacados (1 a 5, sin la
+  intención). Se guarda con "Guardar"; cerrarla descarta.
+- `AuthService.updateCardStyle`: guarda en sesión y en el servidor. Si falla, el estilo se ve en
+  este teléfono y se avisa.
+- Sala: la tarjeta de perfil abre `MyCardScreen` (reemplaza el menú de dos opciones); el armario
+  sigue abriendo el editor de avatar; "Certificar ahora" abre el perfil (pantalla vieja hasta la
+  fase 5).
+- Tests: `my_card_screen_test.dart` (giro y botones, guardar estilo, límites de destacados, fallo
+  al guardar, cerrar sin guardar) y el de la sala actualizado.
 
 ### Fase 5 — "Editar perfil" sobre la tarjeta
 

@@ -12,6 +12,7 @@ import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../avatar/screens/avatar_editor_screen.dart';
+import '../../profile/screens/my_card_screen.dart';
 import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
 import '../../campfire/widgets/post_campfire_decision_dialog.dart';
@@ -209,46 +210,35 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     }
   }
 
-  /// The profile card: choose between the avatar and the dating profile (the wardrobe furniture
-  /// opens the avatar editor directly).
+  /// The profile card: "Tu tarjeta", the two-sided card from which either face is edited (the
+  /// wardrobe furniture opens the avatar editor directly).
   void _openWardrobe() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF1E1C27),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.checkroom, color: Color(0xFFFFB300)),
-                title: const Text('Tu avatar', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('Cuerpo, cara, pelo, ropa y accesorios', style: TextStyle(color: Colors.white54)),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _openAvatarEditor();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.favorite_outline, color: Color(0xFFFF4081)),
-                title: const Text('Tu perfil de citas', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('Fotos, bio, distancia y gustos', style: TextStyle(color: Colors.white54)),
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _openDatingProfile();
-                },
-              ),
-            ],
-          ),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MyCardScreen(
+          profileOf: _cardProfile,
+          onEditAvatar: _openAvatarEditor,
+          onEditProfile: _openDatingProfile,
         ),
       ),
-    );
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
-  void _openAvatarEditor() {
-    Navigator.of(context).push(
+  /// The signed-in profile with the room's live avatar (or a local stand-in without a session).
+  UserProfile _cardProfile() {
+    final user = AuthService.currentUser ??
+        UserProfile(
+          id: widget.activeUserId,
+          username: widget.activeUserId,
+          tastes: AvatarStorageService.getUserTastes(widget.activeUserId),
+        );
+    return user.copyWith(avatarConfig: _currentAvatarConfig);
+  }
+
+  Future<void> _openAvatarEditor() {
+    return Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AvatarEditorScreen(
           initialConfig: _currentAvatarConfig,
@@ -270,8 +260,8 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
   }
 
   // TODO(character-editor phase 7): open the standalone dating profile screen.
-  void _openDatingProfile() {
-    Navigator.of(context).push(
+  Future<void> _openDatingProfile() {
+    return Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => CharacterCreatorScreen(
           initialConfig: _currentAvatarConfig,

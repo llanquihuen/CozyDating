@@ -539,6 +539,13 @@ class AuthService {
     }
   }
 
+  /// Saves the profile card's style for the current user (theme, accent, phrase, featured tastes).
+  static Future<bool> updateCardStyle(ProfileCardStyle style) async {
+    if (_currentUser == null) return false;
+    _currentUser = _currentUser!.copyWith(cardStyle: style.normalizedFor(_currentUser!.tastes));
+    return saveProfileToBackend();
+  }
+
   /// Age range sought in the current session user (null bounds: no limit); sent with
   /// [saveProfileToBackend].
   static void updateSeekingAgeRange(int? min, int? max) {
