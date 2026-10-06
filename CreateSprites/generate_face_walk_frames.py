@@ -29,7 +29,7 @@ HEAD_WALK_OFFSETS = {
 def shift_image(img: Image.Image, dx: int, dy: int) -> Image.Image:
     w, h = img.size
     out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    out.paste(img, (dx, dy), img)
+    out.paste(img, (dx, dy))  # no mask: a self-mask would square the alpha
     return out
 
 def _process_directory_walk_frames(target_dir: str, ase_target_dir: str = None) -> int:

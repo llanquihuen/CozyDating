@@ -1241,6 +1241,35 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
           selected: _avatarConfig.mouthStyle,
           onSelected: (val) => _updateAvatarConfig(_avatarConfig.copyWith(mouthStyle: val)),
         ),
+        const SizedBox(height: 24),
+        _buildSectionHeader(
+          icon: Icons.brush,
+          title: 'Maquillaje',
+          subtitle: 'Rubor, sombra de ojos y labial, cada uno con su color',
+        ),
+        for (final slot in AvatarCatalog.makeupSlots) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Text(
+              AvatarConfig.formatSlotName(slot),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFCBD5E1)),
+            ),
+          ),
+          _buildOptionList(
+            options: _optionsFor(slot),
+            selected: _avatarConfig.makeupIn(slot),
+            onSelected: (val) => _updateAvatarConfig(_avatarConfig.withMakeup(slot, val)),
+          ),
+          if (_avatarConfig.makeup.containsKey(slot)) ...[
+            const SizedBox(height: 10),
+            _buildColorPalette(
+              colors: AvatarConfig.makeupPalette,
+              selectedColor: _avatarConfig.makeupColor(slot),
+              onColorSelected: (color) => _updateAvatarConfig(_avatarConfig.withMakeupColor(slot, color)),
+            ),
+          ],
+          const SizedBox(height: 12),
+        ],
       ],
     );
   }

@@ -170,6 +170,105 @@ MOUTHS = {
 }
 
 
+MARK_PALETTE = {
+    "C": (226, 150, 138),   # scar
+    "c": (184, 108, 100),   # scar shade
+    "N": (92, 58, 44),      # mole
+    "n": (92, 58, 44, 110), # mole soft edge
+    "T": (42, 48, 92),      # tattoo ink
+    "H": (196, 46, 70),     # red tattoo ink
+}
+# Blush is white with alpha: the game tints it with the chosen blush colour.
+BLUSH_PALETTE = {"B": (255, 255, 255, 150), "b": (255, 255, 255, 75), "L": (255, 255, 255, 210)}
+
+# Face marks and blush are lists of (x, y, grid) in front-view (S) canvas coordinates; the other
+# directions are derived from where eyes and mouth move (see face_items_sprites).
+FACE_MARKS = {
+    "scar_eye": dict(label="Cicatriz en el Ojo ⚔️", items=[(22, 25, [
+        "...cC",
+        "...C.",
+        "..cC.",
+        "..C..",
+        "..C..",
+        "..C..",
+        "..C..",
+        ".cC..",
+        ".C...",
+        ".C...",
+        ".C...",
+        "cC...",
+        "C....",
+        "C....",
+    ])]),
+    "mole_mouth": dict(label="Lunar junto a la Boca", dots=True, items=[(37, 39, ["N"])]),
+    "mole_eye": dict(label="Lunar bajo el Ojo", dots=True, items=[(21, 37, ["N"])]),
+    "tattoo_tear": dict(label="Lágrima Tatuada 💧", items=[(21, 37, [".T", "TT", "TT"])]),
+    "tattoo_star": dict(label="Estrella en la Mejilla ⭐", items=[(40, 37, [".T.", "TTT", ".T."])]),
+    "tattoo_heart": dict(label="Corazón en la Mejilla ❤️", items=[(18, 37, ["H.H", "HHH", ".H."])]),
+}
+BLUSH = {
+    "blush_soft": dict(label="Rubor Suave", items=[(18, 37, ["bBBb", "bBBb"]), (42, 37, ["bBBb", "bBBb"])]),
+    "blush_anime": dict(label="Rubor Anime ///", items=[(17, 37, [".L.L.L", "L.L.L."]), (41, 37, [".L.L.L", "L.L.L."])]),
+    "blush_strong": dict(label="Rubor Intenso", items=[(16, 36, [".bBBBb.", "bBBBBBb", ".bBBBb."]),
+                                                 (41, 36, [".bBBBb.", "bBBBBBb", ".bBBBb."])]),
+}
+
+
+def render_grid(grid, palette):
+    """Like render() but keeps the grid's own origin (leading '.' columns/rows count)."""
+    im = Image.new("RGBA", (max(len(r) for r in grid), len(grid)))
+    for y, row in enumerate(grid):
+        for x, c in enumerate(row):
+            if c != ".":
+                col = palette[c]
+                im.putpixel((x, y), col if len(col) == 4 else col + (255,))
+    return im
+
+
+def face_items_sprites(items, palette):
+    """Places front-view items in every face direction: eye-level items follow the eyes, items at
+    mouth level follow the mouth; in profile (E) only the near side shows. W/SW mirror E/SE."""
+    def layout(spec, d):
+        c = Image.new("RGBA", SIZE)
+        for x, y, grid in spec:
+            im = render_grid(grid, palette)
+            near = x + im.width / 2 < 32                 # left half of the front view
+            mouth_level = y + im.height / 2 >= 38
+            if d == 1:
+                nx, ny = x, y
+            elif d == 2:
+                if near or mouth_level:
+                    nx = x + (LEFT_INNER[2] - LEFT_INNER[1])
+                else:
+                    nx = RIGHT_INNER[2] + round((x - RIGHT_INNER[1]) * FAR_EYE_SCALE)
+                ny = y + (1 if mouth_level else 0)
+            else:  # 3: profile, far side hidden
+                if not near:
+                    continue
+                nx = x + (MOUTH_AT[3][0] - 28 if mouth_level else LEFT_INNER[3] - LEFT_INNER[1])
+                ny = y + (1 if mouth_level else 0)
+            c.alpha_composite(im, (int(nx), int(ny)))
+        return c
+
+    mirrored_spec = [(SIZE[0] - x - len(grid[0]), y, [row[::-1] for row in grid]) for x, y, grid in items]
+    out = {d: layout(items, d) for d in (1, 2, 3)}
+    out[7] = shift(ImageOps.mirror(layout(mirrored_spec, 3)), MIRROR_SHIFT[7])
+    out[8] = shift(ImageOps.mirror(layout(mirrored_spec, 2)), MIRROR_SHIFT[8])
+    return {d: on_face(im, d) for d, im in out.items()}
+
+
+def on_face(im, d):
+    """Drops pixels off the head skin (background or its dark outline)."""
+    head = Image.open(os.path.join(AV, "head", f"oval{d}.png")).convert("RGBA")
+    hp, op = head.load(), im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            h = hp[x, y]
+            if op[x, y][3] and not (h[3] and 0.299 * h[0] + 0.587 * h[1] + 0.114 * h[2] > 100):
+                op[x, y] = (0, 0, 0, 0)
+    return im
+
+
 def render(grid, palette):
     w, h = max(len(r) for r in grid), len(grid)
     im = Image.new("RGBA", (w, h))
@@ -248,7 +347,7 @@ def mouth_sprites(style):
 
 def shift(im, dx, dy=0):
     out = Image.new("RGBA", im.size)
-    out.paste(im, (dx, dy), im)
+    out.paste(im, (dx, dy))  # no mask: a self-mask would square the alpha
     return out
 
 
@@ -265,10 +364,12 @@ def write(folder, name, sprites):
             empty.save(os.path.join(AV, folder, f"{name}{d}_walk_f{f}.png"))
 
 
-def write_lying(folder, name):
+def write_lying(folder, name, kind="accessory"):
+    """kind 'accessory' resamples shapes; 'mark' moves single dots one by one."""
     import make_face_items as mfi
+    os.makedirs(os.path.join(AV, "lying", folder), exist_ok=True)
     for view in "AB":
-        im, d, err = mfi.best("accessory", f"{folder}/{name}{{d}}.png", view)
+        im, d, err = mfi.best(kind, f"{folder}/{name}{{d}}.png", view)
         im.save(os.path.join(AV, "lying", folder, f"{name}_lie{view}.png"))
         print(f"  lying/{folder}/{name}_lie{view}: dir {d}, anchor error {err:.2f}px")
 
@@ -280,6 +381,13 @@ def export():
     for name, style in MOUTHS.items():
         write("mouth", name, mouth_sprites(style))
         write_lying("mouth", name)
+    for name, style in FACE_MARKS.items():
+        write("marks", name, face_items_sprites(style["items"], MARK_PALETTE))
+        write_lying("marks", name, "mark" if style.get("dots") else "accessory")
+    os.makedirs(os.path.join(AV, "makeup", "blush"), exist_ok=True)
+    for name, style in BLUSH.items():
+        write("makeup/blush", name, face_items_sprites(style["items"], BLUSH_PALETTE))
+        write_lying("makeup/blush", name)
 
 
 def preview():
@@ -287,9 +395,31 @@ def preview():
     rows = [(n, {"eyes": n}) for n in EYES] + [(n, {"mouth": n}) for n in MOUTHS]
     sheet(rows, os.path.join(HERE, "_nuevos.png"))
     sheet(rows, os.path.join(HERE, "_nuevos_male_dark.png"), body="male", skin="#7A4522", hair="comb_over")
+    pink = (236, 112, 140)
+    extra = [(n, {"overlays": [(f"marks/{n}{{d}}.png", None)]}) for n in FACE_MARKS] +             [(n, {"overlays": [(f"makeup/blush/{n}{{d}}.png", pink)]}) for n in BLUSH]
+    sheet(extra, os.path.join(HERE, "_marcas.png"))
+    sheet(extra, os.path.join(HERE, "_marcas_dark.png"), body="male", skin="#7A4522", hair="comb_over")
+
+
+def makeup_preview():
+    """Eyeshadow and lipstick (painted at load time in the game) on several eye and mouth styles."""
+    from face_sheet import sheet
+    shadow, lip = (157, 92, 143), (192, 48, 74)
+    rows = []
+    for eye in ["cateyes", "relax", "sparkle", "anime", "serious", "winged", "hearts"]:
+        for st in ["shadow_soft", "shadow_smoky"]:
+            rows.append((f"{eye} {st[7:]}", {"eyes": eye, "makeup": {"eyeshadow": (st, shadow)}}))
+    for mouth in ["smile", "catmouth", "biglips", "grin", "neutral", "pout"]:
+        for st in ["lip_natural", "lip_bold"]:
+            rows.append((f"{mouth} {st[4:]}", {"mouth": mouth, "makeup": {"lipstick": (st, lip)}}))
+    sheet(rows, os.path.join(HERE, "_maquillaje.png"))
 
 
 if __name__ == "__main__":
+    if "--makeup" in sys.argv:
+        makeup_preview()
+        sys.exit()
     if "--preview" not in sys.argv:
         export()
     preview()
+

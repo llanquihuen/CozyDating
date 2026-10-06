@@ -32,6 +32,12 @@ class AvatarConfig extends Equatable {
   final Map<String, String> accessories;
   final Color accessoryColor;
 
+  /// Makeup, slot -> style (see [AvatarCatalog.makeupSlots]): at most one per slot.
+  final Map<String, String> makeup;
+
+  /// Makeup colour per slot; slots without one use [defaultMakeupColors].
+  final Map<String, Color> makeupColors;
+
   const AvatarConfig({
     this.bodyType = 'female',
     this.spriteResolution = '64x128',
@@ -56,7 +62,32 @@ class AvatarConfig extends Equatable {
     this.marks = const [],
     this.accessories = const {},
     this.accessoryColor = const Color(0xFFEAB308),
+    this.makeup = const {},
+    this.makeupColors = const {},
   });
+
+  static const Map<String, Color> defaultMakeupColors = {
+    'blush': Color(0xFFEC708C),
+    'eyeshadow': Color(0xFF9D5C8F),
+    'lipstick': Color(0xFFC0304A),
+  };
+
+  static const List<Color> makeupPalette = [
+    Color(0xFFF4A3B4), // Rosa Pastel
+    Color(0xFFEC708C), // Rosa Chicle
+    Color(0xFFF08A6C), // Coral
+    Color(0xFFE9A67A), // Durazno
+    Color(0xFFC0304A), // Rojo Clásico
+    Color(0xFF8E1F3D), // Vino
+    Color(0xFF9D5C8F), // Ciruela
+    Color(0xFFB48EE0), // Lila
+    Color(0xFF6D4C8F), // Púrpura Noche
+    Color(0xFF8A5A44), // Café Nude
+    Color(0xFFD4A84A), // Dorado
+    Color(0xFF5B8FD9), // Azul Hielo
+    Color(0xFF3FA796), // Turquesa
+    Color(0xFF2B2530), // Negro Ahumado
+  ];
 
   // Retro Palettes (SNES / 16-Bit style)
   static const List<Color> skinTones = [
@@ -156,6 +187,9 @@ class AvatarConfig extends Equatable {
       case 'glasses': return 'Lentes';
       case 'bag': return 'Bolso';
       case 'headband': return 'Cintillo';
+      case 'blush': return 'Rubor';
+      case 'eyeshadow': return 'Sombra de Ojos';
+      case 'lipstick': return 'Labial';
       default: return slot.replaceAll('_', ' ');
     }
   }
@@ -173,6 +207,26 @@ class AvatarConfig extends Equatable {
     }
     return copyWith(accessories: next);
   }
+
+  /// Makeup style in [slot], or 'none'.
+  String makeupIn(String slot) => makeup[slot] ?? 'none';
+
+  /// Makeup colour for [slot].
+  Color makeupColor(String slot) => makeupColors[slot] ?? defaultMakeupColors[slot] ?? const Color(0xFFEC708C);
+
+  /// Puts on [style] in makeup [slot] ('none' removes it).
+  AvatarConfig withMakeup(String slot, String style) {
+    final next = Map<String, String>.of(makeup);
+    if (style == 'none') {
+      next.remove(slot);
+    } else {
+      next[slot] = style;
+    }
+    return copyWith(makeup: next);
+  }
+
+  AvatarConfig withMakeupColor(String slot, Color color) =>
+      copyWith(makeupColors: {...makeupColors, slot: color});
 
   /// Adds or removes a body mark.
   AvatarConfig toggleMark(String mark) {
@@ -205,6 +259,9 @@ class AvatarConfig extends Equatable {
       marks: [for (final m in marks) if (allowed(AvatarCatalog.mark, m)) m],
       accessories: {
         for (final e in accessories.entries) if (allowed(e.key, e.value)) e.key: e.value,
+      },
+      makeup: {
+        for (final e in makeup.entries) if (allowed(e.key, e.value)) e.key: e.value,
       },
     );
   }
@@ -259,6 +316,8 @@ class AvatarConfig extends Equatable {
     List<String>? marks,
     Map<String, String>? accessories,
     Color? accessoryColor,
+    Map<String, String>? makeup,
+    Map<String, Color>? makeupColors,
   }) {
     return AvatarConfig(
       bodyType: bodyType ?? this.bodyType,
@@ -284,6 +343,8 @@ class AvatarConfig extends Equatable {
       marks: marks ?? this.marks,
       accessories: accessories ?? this.accessories,
       accessoryColor: accessoryColor ?? this.accessoryColor,
+      makeup: makeup ?? this.makeup,
+      makeupColors: makeupColors ?? this.makeupColors,
     );
   }
 
@@ -312,6 +373,8 @@ class AvatarConfig extends Equatable {
       'marks': marks,
       'accessories': accessories,
       'accessoryColor': accessoryColor.value,
+      'makeup': makeup,
+      'makeupColors': {for (final e in makeupColors.entries) e.key: e.value.value},
     };
   }
 
@@ -331,9 +394,27 @@ class AvatarConfig extends Equatable {
     final rawAccessories = json['accessories'];
     if (rawAccessories is Map) {
       rawAccessories.forEach((slot, style) {
-        if (slot is String && style is String && style != 'none' && AvatarCatalog.isKnown(slot, style)) {
+        if (slot is String && style is String && style != 'none' && AvatarCatalog.accessorySlots.contains(slot) &&
+            AvatarCatalog.isKnown(slot, style)) {
           accessories[slot] = style;
         }
+      });
+    }
+    final makeup = <String, String>{};
+    final makeupColors = <String, Color>{};
+    final rawMakeup = json['makeup'];
+    if (rawMakeup is Map) {
+      rawMakeup.forEach((slot, style) {
+        if (slot is String && style is String && style != 'none' && AvatarCatalog.makeupSlots.contains(slot) &&
+            AvatarCatalog.isKnown(slot, style)) {
+          makeup[slot] = style;
+        }
+      });
+    }
+    final rawMakeupColors = json['makeupColors'];
+    if (rawMakeupColors is Map) {
+      rawMakeupColors.forEach((slot, value) {
+        if (slot is String && value is int && AvatarCatalog.makeupSlots.contains(slot)) makeupColors[slot] = Color(value);
       });
     }
     // Legacy configs had a single 'accessoryStyle' mixing marks and worn accessories.
@@ -370,6 +451,8 @@ class AvatarConfig extends Equatable {
       marks: marks,
       accessories: accessories,
       accessoryColor: json['accessoryColor'] != null ? Color(json['accessoryColor'] as int) : const Color(0xFFEAB308),
+      makeup: makeup,
+      makeupColors: makeupColors,
     );
   }
 
@@ -398,5 +481,7 @@ class AvatarConfig extends Equatable {
         marks,
         accessories,
         accessoryColor,
+        makeup,
+        makeupColors,
       ];
 }

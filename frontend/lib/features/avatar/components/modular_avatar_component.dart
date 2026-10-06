@@ -7,6 +7,7 @@ import 'package:flame/flame.dart';
 import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import '../../../core/models/avatar_catalog.dart';
 import '../../../core/models/avatar_config.dart';
+import 'face_makeup.dart';
 
 enum AvatarDirection {
   south,     // 1: Facing down / screen bottom
@@ -151,7 +152,9 @@ class ModularAvatarComponent extends PositionComponent {
         config.shoeColor != newConfig.shoeColor ||
         !listEquals(config.marks, newConfig.marks) ||
         !mapEquals(config.accessories, newConfig.accessories) ||
-        config.accessoryColor != newConfig.accessoryColor;
+        config.accessoryColor != newConfig.accessoryColor ||
+        !mapEquals(config.makeup, newConfig.makeup) ||
+        !mapEquals(config.makeupColors, newConfig.makeupColors);
 
     config = newConfig;
     if (needsReload) {
@@ -168,7 +171,8 @@ class ModularAvatarComponent extends PositionComponent {
     }
   }
 
-  Future<void> _loadOctoEyesFrame(String relativePath, String cacheKey) async {
+  Future<void> _loadOctoEyesFrame(String relativePath, String cacheKey,
+      {List<int> up = FaceMakeup.standingUp}) async {
     try {
       final baseImg = await Flame.images.load('OCTOPLAYER/Avatar/$relativePath');
       final byteData = await baseImg.toByteData(format: ImageByteFormat.rawRgba);
@@ -179,6 +183,13 @@ class ModularAvatarComponent extends PositionComponent {
 
       final buffer = byteData.buffer.asUint8List();
       final length = buffer.length;
+
+      // Eyeshadow is found on the colour-coded layer, then painted over the tinted result.
+      final shadow = config.makeup[AvatarCatalog.eyeshadow];
+      final shadowTargets = shadow == null
+          ? null
+          : FaceMakeup.eyeshadowTargets(buffer, baseImg.width, baseImg.height,
+              up: up, smoky: shadow == 'shadow_smoky');
 
       final eyeR = config.eyeColor.red;
       final eyeG = config.eyeColor.green;
@@ -235,6 +246,9 @@ class ModularAvatarComponent extends PositionComponent {
         }
         // Other pixels (black eyeliner/lashes, white sclera) remain unchanged
       }
+      if (shadowTargets != null) {
+        FaceMakeup.paint(buffer, shadowTargets, config.makeupColor(AvatarCatalog.eyeshadow));
+      }
 
       final completer = Completer<Image>();
       decodeImageFromPixels(
@@ -245,6 +259,29 @@ class ModularAvatarComponent extends PositionComponent {
         completer.complete,
       );
       _octoImageCache['eyes:$cacheKey'] = await completer.future;
+    } catch (_) {
+      // Ignored if specific file doesn't exist
+    }
+  }
+
+  /// Mouth layer, with lipstick painted on when worn.
+  Future<void> _loadOctoMouthFrame(String relativePath, String cacheKey,
+      {List<int> up = FaceMakeup.standingUp}) async {
+    final lipstick = config.makeup[AvatarCatalog.lipstick];
+    if (lipstick == null) return _loadOctoFrame('mouth', relativePath, cacheKey);
+    try {
+      final baseImg = await Flame.images.load('OCTOPLAYER/Avatar/$relativePath');
+      final byteData = await baseImg.toByteData(format: ImageByteFormat.rawRgba);
+      if (byteData == null) {
+        _octoImageCache['mouth:$cacheKey'] = baseImg;
+        return;
+      }
+      final buffer = byteData.buffer.asUint8List();
+      FaceMakeup.paintLipstick(buffer, baseImg.width, baseImg.height,
+          up: up, color: config.makeupColor(AvatarCatalog.lipstick), bold: lipstick == 'lip_bold');
+      final completer = Completer<Image>();
+      decodeImageFromPixels(buffer, baseImg.width, baseImg.height, PixelFormat.rgba8888, completer.complete);
+      _octoImageCache['mouth:$cacheKey'] = await completer.future;
     } catch (_) {
       // Ignored if specific file doesn't exist
     }
@@ -293,9 +330,9 @@ class ModularAvatarComponent extends PositionComponent {
         }));
 
         // Mouth (with catmouth fallback)
-        futures.add(_loadOctoFrame('mouth', 'mouth/$mouth$k.png', k).then((_) {
+        futures.add(_loadOctoMouthFrame('mouth/$mouth$k.png', k).then((_) {
           if (!_octoImageCache.containsKey('mouth:$k')) {
-            return _loadOctoFrame('mouth', 'mouth/catmouth$k.png', k);
+            return _loadOctoMouthFrame('mouth/catmouth$k.png', k);
           }
         }));
 
@@ -349,6 +386,12 @@ class ModularAvatarComponent extends PositionComponent {
         config.accessories.forEach((slot, style) {
           futures.add(_loadOctoFrame('accessory_$slot', 'accessories/$slot/$style$k.png', k));
         });
+
+        // Blush (tinted with its makeup colour); eyeshadow and lipstick are painted onto eyes/mouth
+        final blush = config.makeup[AvatarCatalog.blush];
+        if (blush != null) {
+          futures.add(_loadOctoFrame('makeup_blush', 'makeup/blush/$blush$k.png', k));
+        }
       }
     }
 
@@ -437,18 +480,27 @@ class ModularAvatarComponent extends PositionComponent {
       final key = 'lie$v';
       futures.add(_loadOctoFrame('body', 'lying/body/${bodyType}_lie$v.png', key));
       futures.add(withFallback('nose', 'lying/nose/${nose}_lie$v.png', 'lying/nose/standard_lie$v.png', key));
-      futures.add(withFallback('mouth', 'lying/mouth/${mouth}_lie$v.png', 'lying/mouth/catmouth_lie$v.png', key));
-      futures.add(_loadOctoEyesFrame('lying/eyes/${eye}_lie$v.png', key).then((_) {
-        if (!_octoImageCache.containsKey('eyes:$key')) {
-          return _loadOctoEyesFrame('lying/eyes/cateyes_lie$v.png', key);
+      final up = FaceMakeup.lyingUp[v]!;
+      futures.add(_loadOctoMouthFrame('lying/mouth/${mouth}_lie$v.png', key, up: up).then((_) {
+        if (!_octoImageCache.containsKey('mouth:$key')) {
+          return _loadOctoMouthFrame('lying/mouth/catmouth_lie$v.png', key, up: up);
         }
       }));
+      futures.add(_loadOctoEyesFrame('lying/eyes/${eye}_lie$v.png', key, up: up).then((_) {
+        if (!_octoImageCache.containsKey('eyes:$key')) {
+          return _loadOctoEyesFrame('lying/eyes/cateyes_lie$v.png', key, up: up);
+        }
+      }));
+      final blush = config.makeup[AvatarCatalog.blush];
+      if (blush != null) {
+        futures.add(_loadOctoFrame('makeup_blush', 'lying/makeup/blush/${blush}_lie$v.png', key));
+      }
       // Body marks have no fallback: a mark without lying art is simply not drawn.
       for (final mark in config.marks) {
         futures.add(_loadOctoFrame('mark_$mark', 'lying/marks/${mark}_lie$v.png', key));
       }
       // Asleep under the covers the eyes are always closed, whatever the chosen style.
-      futures.add(_loadOctoEyesFrame('lying/eyes/closedeyes_lie$v.png', '${key}_closed'));
+      futures.add(_loadOctoEyesFrame('lying/eyes/closedeyes_lie$v.png', '${key}_closed', up: up));
       // Clothes are fitted per body type (e.g. jacket_female_lieA); then the style's generic
       // lying version, then the default garment.
       Future<void> garment(String layerKey, String folder, String style, String fallbackStyle) {
@@ -627,6 +679,9 @@ class ModularAvatarComponent extends PositionComponent {
       for (final mark in config.marks) {
         draw('mark_$mark', key, null);
       }
+      if (config.makeup.containsKey(AvatarCatalog.blush)) {
+        draw('makeup_blush', key, config.makeupColor(AvatarCatalog.blush));
+      }
       draw('mouth', key, null);
       draw('eyes', pose.under ? '${key}_closed' : key, null);
       if (config.bottomStyle != 'none') draw('bottoms', key, config.bottomColor);
@@ -686,6 +741,7 @@ class ModularAvatarComponent extends PositionComponent {
              layerKey == 'hair_front' ||
              layerKey == 'hair_back' ||
              layerKey.startsWith('mark_') ||
+             layerKey.startsWith('makeup_') ||
              layerKey.startsWith('accessory_'))) {
           img = _octoImageCache['$layerKey:$sitDirNum'];
         }
@@ -754,6 +810,11 @@ class ModularAvatarComponent extends PositionComponent {
     // Layer 7b: Body marks (own colors, drawn on the skin under the facial features)
     for (final mark in config.marks) {
       drawLayer('mark_$mark', null);
+    }
+
+    // Layer 7c: Blush (makeup colour); eyeshadow and lipstick are already in the eyes/mouth layers
+    if (config.makeup.containsKey(AvatarCatalog.blush)) {
+      drawLayer('makeup_blush', config.makeupColor(AvatarCatalog.blush));
     }
 
     // Layer 8: Nose (Skin Color outline)

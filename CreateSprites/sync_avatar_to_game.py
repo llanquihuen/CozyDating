@@ -25,8 +25,10 @@ AVATAR_CATALOG_PATH = os.path.join(PROJECT_ROOT, "frontend", "lib", "core", "mod
 # Carpeta escaneada -> slot de AvatarCatalog (en Dart la constante se llama igual que su valor).
 CATALOG_SLOTS: Dict[str, str] = {
     "eyes": "eyes", "nose": "nose", "mouth": "mouth", "hair": "hair",
-    "tops": "top", "bottoms": "bottom", "shoes": "shoes", "marks": "mark",
+    "tops": "top", "bottoms": "bottom", "shoes": "shoes", "marks": "mark", "makeup/blush": "blush",
 }
+# Slots painted at load time over the eyes/mouth (face_makeup.dart): they have no sprites.
+RUNTIME_SLOTS = {"eyeshadow", "lipstick"}
 ITEM_RE = re.compile(r"AvatarItem\((\w+|'[^']*'),\s*'([^']+)'")
 
 NAME_LABELS: Dict[str, str] = {
@@ -206,6 +208,8 @@ def update_avatar_catalog(catalog: Dict[str, List[str]], hairs_with_back: List[s
         new_lines.append(f"    AvatarItem({slot_expr}, '{item}', '{label}'{back}),")
 
     for slot, item in sorted(existing - set(scanned)):
+        if slot in RUNTIME_SLOTS:
+            continue
         print(f"[AVISO] '{slot}/{item}' está en el catálogo pero no tiene sprites.")
     for line in items_block.splitlines():
         m = ITEM_RE.search(line)
@@ -254,6 +258,7 @@ def sync_all(generate_walk: bool = True):
         "bottoms": scan_flat_category("bottoms"),
         "shoes": scan_flat_category("shoes"),
         "head": scan_flat_category("head"),
+        "makeup/blush": scan_flat_category(os.path.join("makeup", "blush")),
     }
     accessory_slots = scan_accessory_slots()
     hair_styles, hairs_with_back = scan_hair_styles()

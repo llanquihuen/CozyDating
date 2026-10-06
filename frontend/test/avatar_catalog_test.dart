@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/models/avatar_catalog.dart';
 import 'package:frontend/core/models/avatar_config.dart';
@@ -15,6 +17,8 @@ void main() {
           AvatarCatalog.bottom => AvatarConfig(bottomStyle: item.id),
           AvatarCatalog.shoes => AvatarConfig(shoeStyle: item.id),
           AvatarCatalog.mark => AvatarConfig(marks: [item.id]),
+          AvatarCatalog.blush || AvatarCatalog.eyeshadow || AvatarCatalog.lipstick =>
+            AvatarConfig(makeup: {item.slot: item.id}),
           _ => AvatarConfig(accessories: {item.slot: item.id}),
         };
         expect(AvatarConfig.fromJson(config.toJson()), equals(config), reason: '${item.slot}/${item.id}');
@@ -60,6 +64,30 @@ void main() {
       expect(AvatarCatalog.lockedBodyFor('WOMAN'), 'female');
       expect(AvatarCatalog.lockedBodyFor('NON_BINARY'), isNull);
       expect(AvatarCatalog.lockedBodyFor('OTHER'), isNull);
+    });
+  });
+
+  group('Makeup', () {
+    test('styles and colours survive a JSON round trip; unknown ones are dropped', () {
+      final config = const AvatarConfig()
+          .withMakeup('blush', 'blush_anime')
+          .withMakeup('lipstick', 'lip_bold')
+          .withMakeupColor('lipstick', const Color(0xFF8E1F3D));
+      expect(AvatarConfig.fromJson(config.toJson()), equals(config));
+      expect(config.makeupColor('blush'), AvatarConfig.defaultMakeupColors['blush']);
+
+      final bad = AvatarConfig.fromJson({
+        'makeup': {'blush': 'glitter_bomb', 'glasses': 'nice_lenses', 'eyeshadow': 'shadow_soft'},
+        'accessories': {'blush': 'blush_soft'},
+      });
+      expect(bad.makeup, {'eyeshadow': 'shadow_soft'});
+      expect(bad.accessories, isEmpty);
+    });
+
+    test('removing a makeup style empties its slot', () {
+      final config = const AvatarConfig().withMakeup('blush', 'blush_soft').withMakeup('blush', 'none');
+      expect(config.makeup, isEmpty);
+      expect(config.makeupIn('blush'), 'none');
     });
   });
 

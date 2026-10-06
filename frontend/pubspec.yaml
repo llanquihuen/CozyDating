@@ -49,6 +49,7 @@ flutter:
     - assets/images/OCTOPLAYER/Avatar/bottoms/
     - assets/images/OCTOPLAYER/Avatar/shoes/
     - assets/images/OCTOPLAYER/Avatar/marks/
+    - assets/images/OCTOPLAYER/Avatar/makeup/blush/
     - assets/images/OCTOPLAYER/Avatar/accessories/glasses/
     - assets/images/OCTOPLAYER/Avatar/lying/body/
     - assets/images/OCTOPLAYER/Avatar/lying/tops/
@@ -57,6 +58,7 @@ flutter:
     - assets/images/OCTOPLAYER/Avatar/lying/nose/
     - assets/images/OCTOPLAYER/Avatar/lying/mouth/
     - assets/images/OCTOPLAYER/Avatar/lying/marks/
+    - assets/images/OCTOPLAYER/Avatar/lying/makeup/blush/
     - assets/images/OCTOPLAYER/Avatar/lying/shoes/
     - assets/images/OCTOPLAYER/Avatar/lying/accessories/glasses/
     - assets/images/OCTOPLAYER/Avatar/lying/hair/bangs/

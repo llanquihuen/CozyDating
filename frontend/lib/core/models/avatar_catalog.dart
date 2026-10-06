@@ -42,8 +42,18 @@ class AvatarCatalog {
   /// Accessory slots in draw order (later slots are drawn on top); one style per slot.
   static const List<String> accessorySlots = ['bag', 'glasses', 'headband', 'hat'];
 
+  /// Makeup slots in draw order; one style per slot, each with its own colour (AvatarConfig.makeup).
+  /// Blush ships sprites; eyeshadow and lipstick are painted at load time around the worn eyes and
+  /// mouth, so they fit every eye and mouth style.
+  static const String blush = 'blush';
+  static const String eyeshadow = 'eyeshadow';
+  static const String lipstick = 'lipstick';
+  static const List<String> makeupSlots = [blush, eyeshadow, lipstick];
+
   /// Slots that can be left empty ('none').
-  static const Set<String> _optionalSlots = {hair, top, bottom, shoes, 'bag', 'glasses', 'headband', 'hat'};
+  static const Set<String> _optionalSlots = {
+    hair, top, bottom, shoes, 'bag', 'glasses', 'headband', 'hat', blush, eyeshadow, lipstick,
+  };
 
   static const List<AvatarItem> items = [
     // Eyes
@@ -88,6 +98,21 @@ class AvatarCatalog {
 
     // Marks
     AvatarItem(mark, 'freckles', 'Pecas ✨'),
+    AvatarItem(mark, 'scar_eye', 'Cicatriz en el Ojo ⚔️'),
+    AvatarItem(mark, 'mole_mouth', 'Lunar junto a la Boca'),
+    AvatarItem(mark, 'mole_eye', 'Lunar bajo el Ojo'),
+    AvatarItem(mark, 'tattoo_tear', 'Lágrima Tatuada 💧'),
+    AvatarItem(mark, 'tattoo_star', 'Estrella en la Mejilla ⭐'),
+    AvatarItem(mark, 'tattoo_heart', 'Corazón en la Mejilla ❤️'),
+
+    // Makeup (blush sprites in OCTOPLAYER/Avatar/makeup/blush/)
+    AvatarItem(blush, 'blush_soft', 'Rubor Suave'),
+    AvatarItem(blush, 'blush_anime', 'Rubor Anime ///'),
+    AvatarItem(blush, 'blush_strong', 'Rubor Intenso'),
+    AvatarItem(eyeshadow, 'shadow_soft', 'Sombra Suave'),
+    AvatarItem(eyeshadow, 'shadow_smoky', 'Sombra Ahumada'),
+    AvatarItem(lipstick, 'lip_natural', 'Labial Natural'),
+    AvatarItem(lipstick, 'lip_bold', 'Labial Intenso'),
 
     // Accessories (assets in OCTOPLAYER/Avatar/accessories/<slot>/)
     AvatarItem('glasses', 'nice_lenses', 'Gafas Modernas 🕶️'),

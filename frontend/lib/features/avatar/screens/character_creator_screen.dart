@@ -2991,6 +2991,35 @@ class _CharacterCreatorScreenState extends State<CharacterCreatorScreen>
           selected: _currentConfig.mouthStyle,
           onSelected: (val) => _updateConfig(_currentConfig.copyWith(mouthStyle: val)),
         ),
+        const SizedBox(height: 24),
+        _buildSectionHeader(
+          icon: Icons.brush,
+          title: 'Maquillaje',
+          subtitle: 'Rubor, sombra de ojos y labial, cada uno con su color',
+        ),
+        for (final slot in AvatarCatalog.makeupSlots) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Text(
+              AvatarConfig.formatSlotName(slot),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFCBD5E1)),
+            ),
+          ),
+          _buildOptionList(
+            options: _optionsFor(slot),
+            selected: _currentConfig.makeupIn(slot),
+            onSelected: (val) => _updateConfig(_currentConfig.withMakeup(slot, val)),
+          ),
+          if (_currentConfig.makeup.containsKey(slot)) ...[
+            const SizedBox(height: 10),
+            _buildColorPalette(
+              colors: AvatarConfig.makeupPalette,
+              selectedColor: _currentConfig.makeupColor(slot),
+              onColorSelected: (color) => _updateConfig(_currentConfig.withMakeupColor(slot, color)),
+            ),
+          ],
+          const SizedBox(height: 12),
+        ],
       ],
     );
   }
