@@ -54,3 +54,6 @@ CreateSprites/lying_pipeline/**/render_en_juego.png
 CreateSprites/lying_pipeline/**/sabana_y_cabecera_en_juego.png
 CreateSprites/lying_pipeline/**/cama_alta_4_rotaciones.png
 CreateSprites/lying_pipeline/**/camas_cara_v2.png
+
+# convert_selout.py cache of the pre-conversion art
+CreateSprites/face_pipeline/selout_originals/
