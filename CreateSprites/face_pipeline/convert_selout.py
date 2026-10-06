@@ -12,6 +12,7 @@ be tuned and re-run without converting twice.
 
   python convert_selout.py            # convert in place
   python convert_selout.py --preview NAME.png   # sheet of the sprites currently on disk
+  python convert_selout.py --scenery [--dry]    # furniture, bed overlays, dungeon objects (full colour)
 """
 import glob
 import os
@@ -170,8 +171,104 @@ def preview(out_name):
     print("saved", out_name)
 
 
+# ---------------------------------------------------------------- scenery (full colour, untinted)
+IMAGES = os.path.join(REPO, "frontend", "assets", "images")
+SCENERY_DIRS = ["furniture/established_furniture", "furniture/sleep_overlays", "furniture/new_added", "dungeon", "."]
+DARK = 28  # lum below this (and unsaturated) = black ink
+SCENERY_REV = "c5c5d73"  # last commit with the original scenery art
+
+
+def scenery_original(path):
+    """The sprite as of SCENERY_REV (cached next to the avatar originals), else the file on disk (art
+    added later). Converting from originals keeps re-runs stable: on already converted art a thick
+    outline's converted pixels would count as fill and darken their neighbours again."""
+    rel = os.path.relpath(path, REPO).replace("\\", "/")
+    cached = os.path.join(ORIG, "_scenery", rel)
+    if not os.path.exists(cached):
+        os.makedirs(os.path.dirname(cached), exist_ok=True)
+        try:
+            data = subprocess.run(["git", "show", f"{SCENERY_REV}:{rel}"], cwd=REPO,
+                                  capture_output=True, check=True).stdout
+            with open(cached, "wb") as f:
+                f.write(data)
+        except subprocess.CalledProcessError:
+            shutil.copy(path, cached)
+    return Image.open(cached).convert("RGBA")
+
+
+def scenery_targets():
+    """Sprites with transparent edges (objects); fully opaque textures (floors, wallpaper, wall
+    tiles) have no outline to convert and are skipped. New art added after SCENERY_REV is converted
+    from disk the first time; run this once after adding furniture."""
+    out = []
+    for d in SCENERY_DIRS:
+        root = os.path.join(IMAGES, d)
+        files = glob.glob(os.path.join(root, "**", "*.png"), recursive=True) if d != "." else             glob.glob(os.path.join(root, "*.png"))
+        for p in files:
+            im = Image.open(p)
+            if im.mode != "RGBA" and "transparency" not in im.info:
+                continue
+            if im.convert("RGBA").getextrema()[3][0] == 255:
+                continue
+            out.append(p)
+    return sorted(out)
+
+
+def convert_colour(im):
+    """Selective outline on colour art: thin black lines take the colour of the fill next to them,
+    darkened (0.45x on the outer edge, 0.40x inside). Large black areas (a TV screen) and lines with
+    no fill beside them (floor cracks) are left alone, so running it twice changes nothing."""
+    w, h = im.size
+    src = im.load()
+    out = im.copy()
+    op = out.load()
+
+    def solid(x, y):
+        return 0 <= x < w and 0 <= y < h and src[x, y][3] >= 200
+
+    def dark(x, y):
+        p = src[x, y]
+        return solid(x, y) and lum(p) < DARK and max(p[:3]) - min(p[:3]) < 30
+
+    for y in range(h):
+        for x in range(w):
+            if not dark(x, y):
+                continue
+            n8 = [(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1) if dx or dy]
+            rim = any(not (0 <= a < w and 0 <= b < h) or src[a, b][3] < 200
+                      for a, b in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)))
+            if not rim and sum(dark(a, b) for a, b in n8) >= 6:
+                continue  # part of a dark fill, not a line
+            fill = []
+            for r in (1, 2):
+                fill = [src[a, b] for a in range(x - r, x + r + 1) for b in range(y - r, y + r + 1)
+                        if 0 <= a < w and 0 <= b < h and solid(a, b) and not dark(a, b)]
+                if fill:
+                    break
+            if not fill:
+                continue
+            k = OUTLINE_SHADE if rim else INNER_SHADE
+            op[x, y] = tuple(round(sum(p[c] for p in fill) / len(fill) * k) for c in range(3)) + (src[x, y][3],)
+    return out
+
+
+def run_scenery(write=True):
+    files = scenery_targets()
+    changed = 0
+    for p in files:
+        im = Image.open(p).convert("RGBA")
+        new = convert_colour(scenery_original(p))
+        if new.tobytes() != im.tobytes():
+            changed += 1
+            if write:
+                new.save(p)
+    print(f"scenery: {len(files)} sprites checked, {changed} {'converted' if write else 'would change'}")
+
+
 if __name__ == "__main__":
     if "--preview" in sys.argv:
         preview(sys.argv[sys.argv.index("--preview") + 1])
+    elif "--scenery" in sys.argv:
+        run_scenery(write="--dry" not in sys.argv)
     else:
         run()
