@@ -145,19 +145,30 @@ Cada fase deja la app funcionando y va en su propio commit.
 - Tests: `my_card_screen_test.dart` (giro y botones, guardar estilo, límites de destacados, fallo
   al guardar, cerrar sin guardar) y el de la sala actualizado.
 
-### Fase 5 — "Editar perfil" sobre la tarjeta
+### Fase 5 — "Editar perfil" sobre la tarjeta — hecha
 
-- Pantalla `EditProfileScreen`: la cara real en vivo arriba (compacta, se encoge al bajar) y debajo
-  todas las secciones en el orden decidido. Borrador + Guardar + "¿Descartar cambios?", como el
-  editor de avatar.
-- Las secciones se **mueven** de `character_creator_screen.dart` a widgets propios en
-  `features/profile/widgets/` sin cambiar su comportamiento (subida de fotos, selfie de
-  certificación, insignias, gustos), salvo:
-  - "Qué sexo buscas conocer" pasa a ser su propia sección (hoy está dentro de distancia);
-  - la última sección suma el filtro de edad: interruptor "Filtrar por edad" (apagado por defecto)
-    y un rango de 18 a 99.
-- Borrar `character_creator_screen.dart` y pasar `dating_profile_preview_test.dart` a las
-  pantallas nuevas.
+![Editar perfil: la cara real arriba; al final, distancia y filtro de edad](profile-card-edit-profile.png)
+
+- `features/profile/screens/edit_profile_screen.dart` (`EditProfileScreen(avatarConfig, onSaved)`):
+  la cara real en vivo arriba, fija y encogiéndose de 360 a 150 px al bajar; debajo las 6
+  secciones numeradas en el orden decidido. Borrador + Guardar (celeste cuando hay cambios) +
+  "¿Descartar cambios?".
+- Las secciones se **movieron tal cual** desde `character_creator_screen.dart` (fotos y selfie de
+  certificación, galería, bio, insignias, gustos e intención). Quedaron como métodos de la pantalla,
+  no como widgets separados como decía el plan: comparten mucho estado (fotos, certificación,
+  controladores) y separarlas era reescribirlas. Lo único que se quitó fue pausar la vista previa
+  del juego al abrir la cámara, que ya no existe aquí.
+- "Soy / Busco conocer" es su propia sección (5). La 6 es ciudad, distancia y el **filtro de
+  edad** (apagado por defecto; al activarlo parte en tu edad ±5; rango 18-99).
+- Si cambia el género, el avatar se reajusta al guardar (`onSaved` entrega el avatar ajustado y la
+  sala lo guarda solo si cambió).
+- Se corrigieron 8 encabezados de secciones movidas que se desbordaban en pantallas angostas o con
+  texto grande (título rígido junto a una insignia o un interruptor).
+- **Borrado `character_creator_screen.dart` (3521 líneas)** y su test de widget;
+  `dating_profile_preview_test.dart` pasó a `edit_profile_screen_test.dart` (orden de secciones,
+  filtro de edad, a quién buscas, género que reajusta el avatar, descartar, foto obligatoria,
+  selfie, insignias). El banner "Vista previa de tu perfil" de la pantalla vieja no se movió: lo
+  reemplaza la tarjeta en vivo y, en la fase 6, "Ver cómo me ven".
 
 ### Fase 6 — La tarjeta frente a los demás
 

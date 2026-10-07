@@ -12,8 +12,8 @@ import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../avatar/screens/avatar_editor_screen.dart';
+import '../../profile/screens/edit_profile_screen.dart';
 import '../../profile/screens/my_card_screen.dart';
-import '../../avatar/screens/character_creator_screen.dart';
 import '../../game/bloc/game_bloc.dart';
 import '../../campfire/widgets/post_campfire_decision_dialog.dart';
 import '../../mailbox/models/mailbox_models.dart';
@@ -259,19 +259,21 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     });
   }
 
-  // TODO(character-editor phase 7): open the standalone dating profile screen.
+  /// "Editar perfil" over the card's real face (from "Tu tarjeta" and "Certificar ahora").
   Future<void> _openDatingProfile() {
     return Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => CharacterCreatorScreen(
-          initialConfig: _currentAvatarConfig,
-          initialScreenMode: 1,
-          onSaved: (newConfig) {
-            AvatarStorageService.saveUserConfig(widget.activeUserId, newConfig);
-            AuthService.saveAvatarConfig(newConfig);
-            _roomGame.updateAvatarConfig(newConfig);
+        builder: (context) => EditProfileScreen(
+          avatarConfig: _currentAvatarConfig,
+          onSaved: (fittedAvatar) {
+            // A new gender can refit the avatar.
+            if (fittedAvatar != _currentAvatarConfig) {
+              AvatarStorageService.saveUserConfig(widget.activeUserId, fittedAvatar);
+              AuthService.saveAvatarConfig(fittedAvatar);
+              _roomGame.updateAvatarConfig(fittedAvatar);
+            }
             setState(() {
-              _currentAvatarConfig = newConfig;
+              _currentAvatarConfig = fittedAvatar;
             });
             _showTopNotification('✨ Perfil actualizado');
           },

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/services/avatar_storage_service.dart';
 import 'package:frontend/features/avatar/components/modular_avatar_component.dart';
-import 'package:frontend/features/avatar/screens/character_creator_screen.dart';
 
 void main() {
   group('AvatarConfig Model & Storage Tests', () {
@@ -129,54 +128,6 @@ void main() {
       expect(AvatarDirection.northWest.dirNumber, equals(6));
       expect(AvatarDirection.west.dirNumber, equals(7));
       expect(AvatarDirection.southWest.dirNumber, equals(8));
-    });
-  });
-
-  group('CharacterCreatorScreen Widget Tests', () {
-    testWidgets('Renders CharacterCreatorScreen 2-section workspace, zoom mode and controls', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: CharacterCreatorScreen(),
-        ),
-      );
-
-      // Verify Title & Save Button
-      expect(find.textContaining('Armario'), findsWidgets);
-      expect(find.text('Guardar'), findsOneWidget);
-
-      // Verify Main 2 Sections
-      expect(find.text('1. Rostro & Cabello'), findsOneWidget);
-      expect(find.text('2. Vestimenta & Estilo'), findsOneWidget);
-
-      // Verify Camera Mode Badge (initial is Face Zoom)
-      expect(find.text('Zoom Rostro'), findsOneWidget);
-
-      // Verify Section 1 Sub-tabs
-      expect(find.text('Cara & Piel'), findsOneWidget);
-      expect(find.text('Expresión & Ojos'), findsOneWidget);
-      expect(find.text('Peinado'), findsOneWidget);
-
-      // Switch to Section 2 (Vestimenta & Estilo)
-      await tester.tap(find.text('2. Vestimenta & Estilo'));
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.pump(const Duration(milliseconds: 300));
-
-      // Verify Section 2 Sub-tabs
-      expect(find.widgetWithText(Tab, 'Prenda Superior'), findsOneWidget);
-      expect(find.widgetWithText(Tab, 'Prenda Inferior'), findsOneWidget);
-      expect(find.widgetWithText(Tab, 'Calzado'), findsOneWidget);
-      expect(find.widgetWithText(Tab, 'Accesorios'), findsOneWidget);
-
-      // Verify Section Switcher Panel (in preview panel)
-      expect(find.text('SECCIONES DE EDICIÓN'), findsOneWidget);
-      expect(find.text('1. Rostro & Cabello'), findsOneWidget);
-      expect(find.text('2. Vestimenta & Estilo'), findsOneWidget);
-      expect(find.byIcon(Icons.rotate_left), findsWidgets);
-      expect(find.byIcon(Icons.rotate_right), findsWidgets);
-
-      // Verify Controls
-      expect(find.byIcon(Icons.casino), findsOneWidget);
-      expect(find.byTooltip('Aleatorio'), findsOneWidget);
     });
   });
 }
