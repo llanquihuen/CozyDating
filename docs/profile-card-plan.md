@@ -193,11 +193,19 @@ Cada fase deja la app funcionando y va en su propio commit.
   presentación con la cara personaje y sin edad/comuna/bio; revelación que se voltea; datos de la
   tarjeta en las cartas; vista previa desde "Tu tarjeta".
 
-### Fase 7 — Cierre
+### Fase 7 — Cierre — hecha (2026-10-07)
 
-- `flutter analyze`, `flutter test`, `mvn test`.
-- Capturas de las pantallas nuevas en tamaño de teléfono.
-- Actualizar `CLAUDE.md` y la memoria del proyecto.
+- `flutter analyze`: 0 errores. `flutter test`: **377 tests en verde**, incluidos los 2 de muebles
+  que fallaban desde que se commitearon (eran datos del test, no del código; commit aparte
+  `f4be9b9`). `mvn test`: 35 tests en verde (corridos en el último commit, en un worktree limpio).
+- Capturas de cada fase en `docs/` (`profile-card-widget.png`, `-my-card.png`, `-edit-profile.png`,
+  `-reveal.png`).
+- `CLAUDE.md`: sección de la tarjeta de perfil; emparejamiento y base de datos actualizados.
+- **Pendiente antes de publicar:** la prueba manual con dos cuentas en local (servidor + dos
+  instancias de la app) y decidir el push. El backend cambió (columnas nuevas, `SESSION_INIT`,
+  cartas), y un push a `main` con cambios en `backend/` se despliega solo en Lightsail. Las
+  columnas nuevas son opcionales y los clientes viejos siguen funcionando, pero la app nueva
+  necesita el backend nuevo para guardar el estilo, la bio y el filtro de edad.
 
 ## 3. Riesgos
 
