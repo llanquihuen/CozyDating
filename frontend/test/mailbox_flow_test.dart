@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/features/revelation/screens/match_reveal_celebration_view.dart';
+import 'package:frontend/features/profile/card/profile_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/features/mailbox/models/mailbox_models.dart';
@@ -213,6 +215,9 @@ void main() {
       // Full profile modal should be displayed
       expect(find.text('CHISPA MUTUA'), findsOneWidget);
       expect(find.text('Conexión Romántica • Claire'), findsOneWidget);
+      // The card flips from her character face to the real one
+      await tester.pump(MatchRevealCelebrationView.revealDelay);
+      await tester.pump(const Duration(milliseconds: 700));
       expect(find.text('Claire, 25'), findsOneWidget);
       expect(find.text('Las Condes'), findsOneWidget);
       expect(find.text('Amante de la astronomía y el buen café.'), findsOneWidget);
@@ -361,7 +366,9 @@ void main() {
       // Modal is open, showing full profile with all 3 photos combined
       expect(find.text('CITA EN LA FOGATA'), findsOneWidget);
       expect(find.text('Decisión pendiente • Camila'), findsOneWidget);
-      expect(find.text('1/3'), findsNWidgets(2)); // 1 on card behind + 1 on modal dialog
+      // The reveal card gets the profile photo and the additional ones combined
+      expect(tester.widget<ProfileCard>(find.byType(ProfileCard)).profile.allPhotos, hasLength(3));
+      expect(find.text('Ver fotos'), findsOneWidget);
     });
 
     testWidgets('Tapping Ampliar button launches FullScreenPhotoViewer with zoom and full navigation', (WidgetTester tester) async {

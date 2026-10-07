@@ -48,7 +48,7 @@ void main() {
       expect(find.text('Esperando la decisión de Bob...'), findsOneWidget);
     });
 
-    testWidgets('MatchRevealCelebrationView renders photos, bio, intent, and chat button', (tester) async {
+    testWidgets('MatchRevealCelebrationView flips the card to the real face: photos, age, place, bio', (tester) async {
       bool homeReturned = false;
 
       const localUser = UserProfile(
@@ -84,10 +84,15 @@ void main() {
 
       expect(find.text('¡HUBO CHISPA MUTUA!'), findsOneWidget);
       expect(find.text('Ambos han sentido esa química especial'), findsOneWidget);
+      // The card opens on the character face, then flips to the real one: the reveal.
+      expect(find.text('Bob'), findsWidgets);
+      expect(find.text('Bob, 26'), findsNothing);
+      await tester.pump(MatchRevealCelebrationView.revealDelay);
+      await tester.pump(const Duration(milliseconds: 700));
       expect(find.text('Bob, 26'), findsOneWidget);
       expect(find.text('Las Condes'), findsOneWidget);
-      expect(find.text('Amor y complicidad 💖'), findsOneWidget);
       expect(find.text('Amante del café y las aventuras cooperativas.'), findsOneWidget);
+      expect(find.text('Ver fotos'), findsOneWidget);
       expect(find.text('Aceptar'), findsOneWidget);
       expect(find.text('Escribir a Bob'), findsNothing);
 

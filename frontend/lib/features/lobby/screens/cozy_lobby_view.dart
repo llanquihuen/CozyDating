@@ -305,18 +305,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
 
     AvatarStorageService.markMatchAcknowledged(letter.id);
 
-    final partnerUser = UserProfile(
-      id: letter.partnerId,
-      username: letter.partnerName,
-      avatarConfig: letter.partnerAvatar,
-      profilePhoto: letter.partnerPhoto ?? (letter.effectivePhotos.isNotEmpty ? letter.effectivePhotos.first : null),
-      photos: letter.effectivePhotos,
-      bio: letter.effectiveBio,
-      intent: letter.effectiveIntent,
-      age: letter.partnerAge,
-      commune: letter.partnerCommune,
-      tastes: letter.commonTastes,
-    );
+    final partnerUser = letter.partnerCardProfile;
 
     final localId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
     final localUser = AuthService.currentUser ??

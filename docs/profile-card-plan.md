@@ -170,14 +170,28 @@ Cada fase deja la app funcionando y va en su propio commit.
   selfie, insignias). El banner "Vista previa de tu perfil" de la pantalla vieja no se movió: lo
   reemplaza la tarjeta en vivo y, en la fase 6, "Ver cómo me ven".
 
-### Fase 6 — La tarjeta frente a los demás
+### Fase 6 — La tarjeta frente a los demás — hecha
 
-- El servidor agrega a los datos de la pareja que manda al iniciar la partida su `cardStyle` y si
-  está certificada; la presentación de la partida y el campamento muestran su **cara personaje**.
-- La revelación (`MatchRevealCelebrationView`) muestra la tarjeta de la pareja que **se voltea** de
-  personaje a real; la vista ampliada de fotos se mantiene. Las cartas del buzón guardan el
-  `cardStyle` para poder repetir la revelación.
-- "Ver cómo me ven" en `MyCardScreen` usa la misma revelación.
+![La revelación: primero la cara personaje, luego el giro a la cara real](profile-card-reveal.png)
+
+- **Antes de la fogata:** el servidor agrega `partnerCardStyle` y `partnerVerified` al
+  `SESSION_INIT` (no la bio). La presentación de la partida (`DungeonMatchIntroView`) muestra la
+  **cara personaje** de la pareja en lugar de su ficha con edad, comuna, intención, bio y todos sus
+  gustos; se mantienen su rol, si está lista y "Su habitación".
+- **Revelación** (`MatchRevealCelebrationView`, 851 → 445 líneas): la tarjeta de la pareja abre en
+  su cara personaje y a los 1,1 s se voltea a la real (temporizador cancelable); tocándola se
+  vuelve a voltear; "Ver fotos" abre el visor a pantalla completa. Mismo comportamiento desde la
+  sala (celebración) y el buzón (perfil completo).
+- **Cartas del buzón:** el servidor agrega a cada carta y al aviso de match mutuo la bio real, el
+  estilo de tarjeta, la certificación y los gustos de la pareja, leídos en vivo de su perfil
+  (`PartnerCardFields`). `MailboxLetter` los guarda; `partnerCardProfile` arma la tarjeta (las
+  cartas viejas sin estos datos usan el estilo por defecto según los gustos). La carta que crea la
+  fogata también los lleva.
+- **"Ver cómo me ven"** (ícono de ojo en "Tu tarjeta"): abre la revelación en vista previa con tu
+  propia tarjeta.
+- Tests: `SESSION_INIT` con tarjeta y sin bio; cartas del buzón con bio, estilo y gustos (backend);
+  presentación con la cara personaje y sin edad/comuna/bio; revelación que se voltea; datos de la
+  tarjeta en las cartas; vista previa desde "Tu tarjeta".
 
 ### Fase 7 — Cierre
 

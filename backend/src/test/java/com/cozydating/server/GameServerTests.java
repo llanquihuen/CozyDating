@@ -390,6 +390,26 @@ public class GameServerTests {
         assertNull(gameSessionService.getRoomForUser("userB")); // Bob still waiting
     }
 
+    @Test
+    public void testSessionInitCarriesPartnerCardButNotTheirBio() {
+        databaseService.updateUserCardStyle("userB", "{\"themeId\":\"arcade\",\"phrase\":\"Speedruns\"}");
+        databaseService.updateUserBio("userB", "Bio real de Bob");
+        TestWebSocketSession sessionA = new TestWebSocketSession("ws_card_a");
+        TestWebSocketSession sessionB = new TestWebSocketSession("ws_card_b");
+        joinSilent("userA", "Alice", sessionA);
+        joinSilent("userB", "Bob", sessionB);
+
+        String toAlice = sessionA.sentMessages.stream().filter(m -> m.contains("SESSION_INIT")).findFirst().orElseThrow();
+        assertTrue(toAlice.contains("\"partnerCardStyle\""), "Alice gets Bob's card style");
+        assertTrue(toAlice.contains("arcade"));
+        assertTrue(toAlice.contains("\"partnerVerified\":true"));
+        assertFalse(toAlice.contains("Bio real de Bob"), "the bio is only revealed after the campfire");
+
+        String toBob = sessionB.sentMessages.stream().filter(m -> m.contains("SESSION_INIT")).findFirst().orElseThrow();
+        assertFalse(toBob.contains("\"partnerCardStyle\""), "Alice never chose a style: none is sent");
+        assertTrue(toBob.contains("\"partnerVerified\":true"));
+    }
+
     private void setAge(String userId, int age, Integer seekingMin, Integer seekingMax) {
         jdbcTemplate.update("UPDATE users SET age = ? WHERE id = ?", age, userId);
         databaseService.updateUserSeekingAgeRange(userId, seekingMin, seekingMax);

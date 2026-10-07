@@ -123,18 +123,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
   void _showMutualMatchDialog(MailboxLetter letter) {
     AvatarStorageService.markMatchAcknowledged(letter.id);
 
-    final partnerUser = UserProfile(
-      id: letter.partnerId,
-      username: letter.partnerName,
-      avatarConfig: letter.partnerAvatar,
-      profilePhoto: letter.partnerPhoto ?? (letter.effectivePhotos.isNotEmpty ? letter.effectivePhotos.first : null),
-      photos: letter.effectivePhotos,
-      bio: letter.effectiveBio,
-      intent: letter.effectiveIntent,
-      age: letter.partnerAge,
-      commune: letter.partnerCommune,
-      tastes: letter.commonTastes,
-    );
+    final partnerUser = letter.partnerCardProfile;
 
     final localId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
     final localUser = AuthService.currentUser ??
@@ -162,18 +151,7 @@ class _MailboxScreenState extends State<MailboxScreen> with SingleTickerProvider
   }
 
   void _showPartnerFullProfile(MailboxLetter letter) {
-    final partnerUser = UserProfile(
-      id: letter.partnerId,
-      username: letter.partnerName,
-      avatarConfig: letter.partnerAvatar,
-      profilePhoto: letter.partnerPhoto ?? (letter.effectivePhotos.isNotEmpty ? letter.effectivePhotos.first : null),
-      photos: letter.effectivePhotos,
-      bio: letter.effectiveBio,
-      intent: letter.effectiveIntent,
-      age: letter.partnerAge,
-      commune: letter.partnerCommune,
-      tastes: letter.commonTastes,
-    );
+    final partnerUser = letter.partnerCardProfile;
 
     final localId = AuthService.currentUser?.id ?? AvatarStorageService.activeUserId;
     final localUser = AuthService.currentUser ??

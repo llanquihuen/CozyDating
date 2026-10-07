@@ -339,6 +339,8 @@ class _GameLauncherScreenState extends State<GameLauncherScreen> with WidgetsBin
               bio: state.partnerBio ?? AvatarStorageService.getUserBio(partnerId),
               profilePhoto: AvatarStorageService.getUserPhoto(partnerId),
               photos: AvatarStorageService.getUserPhotos(partnerId),
+              isVerified: state.session.partnerVerified,
+              cardStyle: state.session.partnerCardStyle,
             );
 
             // Celebrar victoria o consuelo de derrota de mazmorra antes de pasar a la fogata

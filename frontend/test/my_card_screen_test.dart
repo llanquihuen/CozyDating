@@ -4,6 +4,7 @@ import 'package:frontend/core/models/profile_card_style.dart';
 import 'package:frontend/core/models/user_profile.dart';
 import 'package:frontend/features/profile/card/profile_card.dart';
 import 'package:frontend/features/profile/screens/my_card_screen.dart';
+import 'package:frontend/features/revelation/screens/match_reveal_celebration_view.dart';
 
 const _kai = UserProfile(
   id: 'kai',
@@ -152,5 +153,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(calls.saved, isEmpty);
     expect(find.text('“Borrador”'), findsNothing);
+  });
+
+  testWidgets('"Ver cómo me ven" opens the reveal with your own card, which flips', (tester) async {
+    await _open(tester);
+    await tester.tap(find.byTooltip('Ver cómo me ven'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(MatchRevealCelebrationView), findsOneWidget);
+    expect(find.text('VISTA PREVIA DE TU PERFIL'), findsOneWidget);
+    await tester.pump(MatchRevealCelebrationView.revealDelay);
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('Kai, 29'), findsWidgets, reason: 'the reveal card turned to the real face');
   });
 }

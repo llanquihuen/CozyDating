@@ -139,6 +139,7 @@ public class MailboxController {
             item.put("partnerAge", partnerAge);
             item.put("partnerCommune", partnerCommune);
             item.put("commonTastes", m.getCommonTastes());
+            com.cozydating.server.util.PartnerCardFields.putInto(item, partnerUser);
             item.put("myDecision", myDecision != null ? myDecision : "PENDING");
             item.put("myNote", myNote);
             item.put("isMutualMatch", isMutual);
@@ -339,6 +340,7 @@ public class MailboxController {
         resp.put("partnerAge", partnerAge);
         resp.put("partnerCommune", partnerCommune != null ? partnerCommune : "Santiago");
         resp.put("partnerName", partnerName != null ? partnerName : "Compañero");
+        com.cozydating.server.util.PartnerCardFields.putInto(resp, partnerUser);
 
         return ResponseEntity.ok(resp);
     }

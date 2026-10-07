@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:frontend/features/profile/card/profile_card.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/models/game_models.dart';
 import 'package:frontend/core/network/websocket_client.dart';
@@ -190,7 +191,8 @@ void main() {
       expect(find.textContaining('El Hogar de Bob'), findsNothing);
     });
 
-    testWidgets('Displays local player face only (no own room) and partner with age, full bio, room and tastes', (tester) async {
+    testWidgets('Shows the partner as their character face: name, tastes and room, but not age, place or bio',
+        (tester) async {
       final mockClient = _MockWebSocketClient();
       final gameBloc = GameBloc(webSocketClient: mockClient);
 
@@ -208,7 +210,7 @@ void main() {
 
       AvatarStorageService.saveUserAge('bob', 26);
       AvatarStorageService.saveUserCommune('bob', 'Providencia');
-      AvatarStorageService.saveUserBio('bob', 'Diseñador de día, explorador de roguelikes de noche. Me gustan las buenas conversaciones, los paseos con mi perro y la pizza casera 🍕');
+      AvatarStorageService.saveUserBio('bob', 'Diseñador de día, explorador de roguelikes de noche.');
 
       await tester.pumpWidget(
         MaterialApp(
@@ -228,46 +230,46 @@ void main() {
       expect(find.text('Tu Habitación'), findsNothing);
       expect(find.textContaining('Tú ('), findsOneWidget);
 
-      // 2. Partner card displays:
-      // - Name and Age (Bob in DB is 26 years old)
+      // 2. The partner's character face: name and featured tastes (no style chosen: the default)
+      expect(find.byType(ProfileCard), findsOneWidget);
       expect(find.text('Bob Ross'), findsOneWidget);
-      expect(find.textContaining('26 años'), findsOneWidget);
-      expect(find.textContaining('Providencia'), findsOneWidget);
-
-      // - Full Bio (entire description shown)
-      expect(find.text('Acerca de mí'), findsOneWidget);
-      expect(find.textContaining('Diseñador de día'), findsOneWidget);
-
-      // - Partner Room sneakpeek
-      expect(find.textContaining('Cuarto de Bob'), findsOneWidget);
-
-      // - Tastes
-      expect(find.text('Sus Gustos & Intereses'), findsOneWidget);
       expect(find.textContaining('Studio Ghibli'), findsOneWidget);
+
+      // Age, place and bio wait for the reveal after the campfire
+      expect(find.textContaining('26'), findsNothing);
+      expect(find.textContaining('Providencia'), findsNothing);
+      expect(find.textContaining('Diseñador de día'), findsNothing);
+
+      // 3. Partner room sneakpeek stays
+      expect(find.textContaining('Cuarto de Bob'), findsOneWidget);
     });
 
-    testWidgets('Displays real database partnerAge and partnerCommune when received via SessionInitPayload', (tester) async {
+    testWidgets('Uses the card style and verified seal sent with SessionInitPayload', (tester) async {
       final mockClient = _MockWebSocketClient();
       final gameBloc = GameBloc(webSocketClient: mockClient);
 
-      const session = SessionInitPayload(
-        roomId: 'room_custom_db_age',
-        role: 'EXPLORER',
-        mode: 'STANDARD',
-        partnerId: 'user_random_db_id',
-        partnerUsername: 'Carla',
-        partnerAge: 29,
-        partnerCommune: 'Viña del Mar',
-        partnerTastes: ['game_coop'],
-        act: 1,
-      );
+      final session = SessionInitPayload.fromJson({
+        'roomId': 'room_card_style',
+        'role': 'EXPLORER',
+        'mode': 'STANDARD',
+        'partnerId': 'user_random_db_id',
+        'partnerUsername': 'Carla',
+        'partnerAge': 29,
+        'partnerCommune': 'Viña del Mar',
+        'partnerTastes': ['game_coop', 'pet_cat'],
+        'partnerCardStyle': '{"themeId":"mystic","phrase":"Leo tu carta astral","featuredTastes":["pet_cat"]}',
+        'partnerVerified': true,
+        'act': 1,
+      });
+      expect(session.partnerCardStyle!.themeId, 'mystic');
+      expect(session.partnerVerified, isTrue);
 
       await tester.pumpWidget(
         MaterialApp(
           home: BlocProvider.value(
             value: gameBloc,
             child: DungeonMatchIntroView(
-              state: const ActiveGameState(session: session),
+              state: ActiveGameState(session: session),
               onStartGame: () {},
             ),
           ),
@@ -276,10 +278,12 @@ void main() {
 
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Partner card must display Carla's exact database age and commune
       expect(find.text('Carla'), findsOneWidget);
-      expect(find.textContaining('29 años'), findsOneWidget);
-      expect(find.textContaining('Viña del Mar'), findsOneWidget);
+      expect(find.text('“Leo tu carta astral”'), findsOneWidget);
+      expect(find.textContaining('Team Gatos'), findsOneWidget, reason: 'the featured taste');
+      expect(find.bySemanticsLabel('Identidad certificada'), findsOneWidget);
+      expect(find.textContaining('29'), findsNothing);
+      expect(find.textContaining('Viña del Mar'), findsNothing);
     });
   });
 }

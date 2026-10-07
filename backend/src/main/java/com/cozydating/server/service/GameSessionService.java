@@ -105,6 +105,7 @@ public class GameSessionService {
         if (guideUser != null && guideUser.getCommune() != null && !guideUser.getCommune().isEmpty()) {
             explorerInit.put("partnerCommune", guideUser.getCommune());
         }
+        putPartnerCard(explorerInit, guideUser);
         if (distanceKm >= 0) {
             explorerInit.put("distanceKm", Math.round(distanceKm));
         }
@@ -137,6 +138,7 @@ public class GameSessionService {
         if (explorerUser != null && explorerUser.getCommune() != null && !explorerUser.getCommune().isEmpty()) {
             guideInit.put("partnerCommune", explorerUser.getCommune());
         }
+        putPartnerCard(guideInit, explorerUser);
         if (distanceKm >= 0) {
             guideInit.put("distanceKm", Math.round(distanceKm));
         }
@@ -499,6 +501,15 @@ public class GameSessionService {
         if (guideSession != null && guideSession.isOpen() && guideSession != explorerSession) {
             sendJsonMessage(guideSession, swapMsg);
         }
+    }
+
+    /** The partner's profile card style and verified seal, for showing their character face before the reveal. */
+    private void putPartnerCard(Map<String, Object> init, com.cozydating.server.model.User partner) {
+        if (partner == null) return;
+        if (partner.getCardStyle() != null && !partner.getCardStyle().isEmpty()) {
+            init.put("partnerCardStyle", partner.getCardStyle());
+        }
+        init.put("partnerVerified", partner.isVerified());
     }
 
     private void sendJsonMessage(WebSocketSession session, Map<String, Object> message) {

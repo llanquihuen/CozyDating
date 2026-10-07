@@ -1,6 +1,8 @@
 import 'dart:convert';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/preference_tags.dart';
+import '../../../core/models/profile_card_style.dart';
+import '../../../core/models/user_profile.dart';
 import '../../../core/services/avatar_storage_service.dart';
 
 enum MailboxDecision {
@@ -38,6 +40,12 @@ class MailboxLetter {
   final bool isCelebrated;
   final DateTime createdAt;
 
+  /// The partner's profile card style (null: they never chose one), verified seal and tastes, to
+  /// draw their two-sided card at the reveal.
+  final ProfileCardStyle? partnerCardStyle;
+  final bool partnerVerified;
+  final List<String> partnerTastes;
+
   const MailboxLetter({
     required this.id,
     this.ownerId,
@@ -58,7 +66,27 @@ class MailboxLetter {
     this.matchType = ConnectionType.none,
     this.isCelebrated = false,
     required this.createdAt,
+    this.partnerCardStyle,
+    this.partnerVerified = false,
+    this.partnerTastes = const [],
   });
+
+  /// The partner as their profile card shows them (character face, then real face at the reveal).
+  UserProfile get partnerCardProfile => UserProfile(
+        id: partnerId,
+        username: partnerName,
+        age: partnerAge,
+        commune: partnerCommune,
+        avatarConfig: partnerAvatar,
+        profilePhoto: effectivePhotos.isNotEmpty ? effectivePhotos.first : null,
+        photos: effectivePhotos.skip(1).toList(),
+        bio: effectiveBio,
+        intent: partnerIntent ?? '',
+        // The featured tastes must be among the tastes, or the card drops them.
+        tastes: {...partnerTastes, ...?partnerCardStyle?.featuredTastes, ...commonTastes}.toList(),
+        isVerified: partnerVerified,
+        cardStyle: partnerCardStyle,
+      );
 
   List<String> get effectivePhotos {
     final list = <String>[];
@@ -138,6 +166,9 @@ class MailboxLetter {
     ConnectionType? matchType,
     bool? isCelebrated,
     DateTime? createdAt,
+    ProfileCardStyle? partnerCardStyle,
+    bool? partnerVerified,
+    List<String>? partnerTastes,
   }) {
     return MailboxLetter(
       id: id ?? this.id,
@@ -159,6 +190,9 @@ class MailboxLetter {
       matchType: matchType ?? this.matchType,
       isCelebrated: isCelebrated ?? this.isCelebrated,
       createdAt: createdAt ?? this.createdAt,
+      partnerCardStyle: partnerCardStyle ?? this.partnerCardStyle,
+      partnerVerified: partnerVerified ?? this.partnerVerified,
+      partnerTastes: partnerTastes ?? this.partnerTastes,
     );
   }
 
@@ -238,6 +272,13 @@ class MailboxLetter {
       matchType = ConnectionType.friendship;
     }
 
+    List<String> partnerTastes = [];
+    try {
+      final raw = map['partnerTastes'];
+      final decoded = raw is String && raw.isNotEmpty ? jsonDecode(raw) : raw;
+      if (decoded is List) partnerTastes = [for (final t in decoded) t.toString()];
+    } catch (_) {}
+
     DateTime parsedDate;
     try {
       parsedDate = map['createdAt'] != null
@@ -267,6 +308,9 @@ class MailboxLetter {
       matchType: matchType,
       isCelebrated: map['isCelebrated'] == true,
       createdAt: parsedDate,
+      partnerCardStyle: ProfileCardStyle.tryParse(map['partnerCardStyle']),
+      partnerVerified: map['partnerVerified'] == true,
+      partnerTastes: partnerTastes,
     );
   }
 
@@ -309,6 +353,9 @@ class MailboxLetter {
       'isMutualMatch': isMutualMatch,
       'isCelebrated': isCelebrated,
       'createdAt': createdAt.toIso8601String(),
+      if (partnerCardStyle != null) 'partnerCardStyle': partnerCardStyle!.toJson(),
+      'partnerVerified': partnerVerified,
+      'partnerTastes': partnerTastes,
     };
   }
 }

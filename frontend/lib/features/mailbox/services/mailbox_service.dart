@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/models/profile_card_style.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../chat/services/chat_service.dart';
@@ -378,12 +379,18 @@ class MailboxService {
             photosList.insert(0, serverPartnerPhoto);
           }
 
+          final serverTastes = MailboxLetter.fromMap({'partnerTastes': data['partnerTastes']}).partnerTastes;
           final enrichedLetter = letter.copyWith(
             partnerPhoto: (serverPartnerPhoto != null && serverPartnerPhoto.isNotEmpty) ? serverPartnerPhoto : letter.partnerPhoto,
             partnerPhotos: photosList.isNotEmpty ? photosList : letter.partnerPhotos,
             partnerAge: data['partnerAge'] is num ? (data['partnerAge'] as num).toInt() : letter.partnerAge,
             partnerCommune: data['partnerCommune']?.toString() ?? letter.partnerCommune,
             partnerName: data['partnerName']?.toString() ?? letter.partnerName,
+            // The partner's real bio and card, as the server knows them now.
+            partnerBio: data['partnerBio']?.toString() ?? letter.partnerBio,
+            partnerCardStyle: ProfileCardStyle.tryParse(data['partnerCardStyle']) ?? letter.partnerCardStyle,
+            partnerVerified: data['partnerVerified'] == true || letter.partnerVerified,
+            partnerTastes: serverTastes.isNotEmpty ? serverTastes : letter.partnerTastes,
           );
 
           final idx = _cachedLetters.indexWhere((l) => l.id == letter.id);

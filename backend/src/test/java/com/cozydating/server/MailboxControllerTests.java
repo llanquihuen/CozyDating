@@ -74,6 +74,16 @@ public class MailboxControllerTests {
         );
         databaseService.createMailboxMatch(match);
 
+        // Bob's card: real bio, style and tastes, read live from his profile
+        databaseService.updateUserBio("userB", "Bio real de Bob");
+        databaseService.updateUserCardStyle("userB", "{\"themeId\":\"forest\"}");
+        mockMvc.perform(get("/api/mailbox?userId=userA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].partnerBio").value("Bio real de Bob"))
+                .andExpect(jsonPath("$[0].partnerCardStyle").value("{\"themeId\":\"forest\"}"))
+                .andExpect(jsonPath("$[0].partnerTastes").value("[\"game_coop\"]"))
+                .andExpect(jsonPath("$[0].partnerVerified").value(false));
+
         // 1. Check badge count for Alice
         mockMvc.perform(get("/api/mailbox/badge-count?userId=userA"))
                 .andExpect(status().isOk())

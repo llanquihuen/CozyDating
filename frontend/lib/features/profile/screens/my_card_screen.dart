@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/profile_card_style.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/auth_service.dart';
+import '../../revelation/screens/match_reveal_celebration_view.dart';
 import '../card/card_themes.dart';
 import '../card/profile_card.dart';
 import '../widgets/card_style_sheet.dart';
@@ -50,6 +51,23 @@ class _MyCardScreenState extends State<MyCardScreen> {
     if (mounted) setState(() {});
   }
 
+  /// The reveal as a date will see it: the card on its character face, then flipping over.
+  void _previewReveal() {
+    final profile = _profile;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => MatchRevealCelebrationView(
+        localUser: profile,
+        partnerUser: profile,
+        partnerName: profile.username,
+        isCelebration: false,
+        isMutualMatch: false,
+        isPreview: true,
+        onReturnHome: () => Navigator.of(ctx).pop(),
+      ),
+    );
+  }
+
   Future<void> _editStyle() async {
     final chosen = await showCardStyleSheet(context, _profile);
     if (chosen == null || !mounted) return;
@@ -75,6 +93,13 @@ class _MyCardScreenState extends State<MyCardScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text('Tu tarjeta', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+        actions: [
+          IconButton(
+            tooltip: 'Ver cómo me ven',
+            icon: const Icon(Icons.visibility_outlined),
+            onPressed: _previewReveal,
+          ),
+        ],
       ),
       body: SafeArea(
         top: false,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:equatable/equatable.dart';
 import 'avatar_config.dart';
+import 'profile_card_style.dart';
 import 'room_config.dart';
 
 class PlayerProfileMini extends Equatable {
@@ -81,6 +82,11 @@ class SessionInitPayload extends Equatable {
   final String? hostUserId;
   final int? distanceKm;
 
+  /// The partner's profile card style (null: they never chose one) and verified seal, for their
+  /// character face before the reveal.
+  final ProfileCardStyle? partnerCardStyle;
+  final bool partnerVerified;
+
   const SessionInitPayload({
     required this.roomId,
     required this.role,
@@ -98,6 +104,8 @@ class SessionInitPayload extends Equatable {
     this.isHomeVisitActive = false,
     this.hostUserId,
     this.distanceKm,
+    this.partnerCardStyle,
+    this.partnerVerified = false,
   });
 
   factory SessionInitPayload.fromJson(Map<String, dynamic> json) {
@@ -147,6 +155,8 @@ class SessionInitPayload extends Equatable {
       isHomeVisitActive: json['isHomeVisitActive'] == true || (json['mode'] as String? ?? '').toUpperCase() == 'HOME',
       hostUserId: json['hostUserId'] as String?,
       distanceKm: (json['distanceKm'] as num?)?.toInt(),
+      partnerCardStyle: ProfileCardStyle.tryParse(json['partnerCardStyle']),
+      partnerVerified: json['partnerVerified'] == true,
     );
   }
 
@@ -164,6 +174,8 @@ class SessionInitPayload extends Equatable {
       if (partnerAge != null) 'partnerAge': partnerAge,
       if (partnerCommune != null) 'partnerCommune': partnerCommune,
       if (distanceKm != null) 'distanceKm': distanceKm,
+      if (partnerCardStyle != null) 'partnerCardStyle': partnerCardStyle!.toJson(),
+      'partnerVerified': partnerVerified,
       'act': act,
       'seed': seed,
       'isHomeVisitActive': isHomeVisitActive,
@@ -187,6 +199,8 @@ class SessionInitPayload extends Equatable {
     distanceKm,
     act,
     seed,
+    partnerCardStyle,
+    partnerVerified,
   ];
 }
 

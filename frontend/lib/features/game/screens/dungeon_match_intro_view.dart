@@ -3,9 +3,9 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/avatar_config.dart';
-import '../../../core/models/lifestyle_badges.dart';
-import '../../../core/models/preference_tags.dart';
 import '../../../core/models/room_config.dart';
+import '../../profile/card/profile_card.dart';
+import '../../../core/models/user_profile.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../avatar/games/character_preview_game.dart';
@@ -63,9 +63,13 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
     _partnerUserId = partnerCandidate;
 
     _localAvatar = AvatarStorageService.getUserConfig(_localUserId);
-    _partnerAvatar = widget.state.partnerAvatarConfig ?? AvatarStorageService.getUserConfig(_partnerUserId);
+    _partnerAvatar = widget.state.partnerAvatarConfig ??
+        widget.state.session.partnerAvatarConfig ??
+        AvatarStorageService.getUserConfig(_partnerUserId);
     _localRoom = AvatarStorageService.getUserRoomConfig(_localUserId);
-    _partnerRoom = widget.state.partnerRoomConfig ?? AvatarStorageService.getUserRoomConfig(_partnerUserId);
+    _partnerRoom = widget.state.partnerRoomConfig ??
+        widget.state.session.partnerRoomConfig ??
+        AvatarStorageService.getUserRoomConfig(_partnerUserId);
 
     _checkBothReady();
   }
@@ -318,20 +322,10 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
         (widget.state.session.partnerUsername != null && widget.state.session.partnerUsername!.isNotEmpty
             ? widget.state.session.partnerUsername!
             : _formatUserName(_partnerUserId));
-    final partnerBio = widget.state.partnerBio ??
-        AvatarStorageService.getUserBio(_partnerUserId);
-    final partnerIntent = AvatarStorageService.getUserIntent(_partnerUserId);
-    final partnerAge = widget.state.partnerAge ??
-        widget.state.session.partnerAge ??
-        AvatarStorageService.getUserAge(_partnerUserId);
-    final partnerCommune = widget.state.partnerCommune ??
-        widget.state.session.partnerCommune ??
-        AvatarStorageService.getUserCommune(_partnerUserId);
     final partnerTastes = widget.state.partnerTastes ??
         (widget.state.session.partnerTastes.isNotEmpty
             ? widget.state.session.partnerTastes
             : AvatarStorageService.getUserTastes(_partnerUserId));
-    final partnerLifestyle = AvatarStorageService.getUserLifestyle(_partnerUserId);
 
     return Scaffold(
       backgroundColor: const Color(0xFF130F26),
@@ -464,12 +458,7 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
                         avatarConfig: _partnerAvatar,
                         roomConfig: _partnerRoom,
                         isReady: partnerReady,
-                        bio: partnerBio,
-                        intent: partnerIntent,
-                        age: partnerAge,
-                        commune: partnerCommune,
                         tastes: partnerTastes,
-                        lifestyle: partnerLifestyle,
                       ),
 
                       const SizedBox(height: 18),
@@ -497,9 +486,6 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
     );
   }
 
-  String _formatIntentTitle(String intent) {
-    return PreferenceCatalog.formatIntent(intent);
-  }
 
 
   Widget _buildLocalPlayerHeader({
@@ -633,6 +619,17 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
     );
   }
 
+  /// The partner as their card's character face shows them: name, avatar, featured tastes, the
+  /// card style they chose and their verified seal.
+  UserProfile _partnerCardProfile(String name, AvatarConfig avatarConfig, List<String> tastes) => UserProfile(
+        id: _partnerUserId,
+        username: name,
+        avatarConfig: avatarConfig,
+        tastes: tastes,
+        isVerified: widget.state.session.partnerVerified,
+        cardStyle: widget.state.session.partnerCardStyle,
+      );
+
   Widget _buildPartnerFeaturedCard({
     required String name,
     required String roleTitle,
@@ -640,12 +637,7 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
     required AvatarConfig avatarConfig,
     required RoomConfig roomConfig,
     required bool isReady,
-    required String bio,
-    required String intent,
-    required int age,
-    required String commune,
     required List<String> tastes,
-    LifestyleBadges? lifestyle,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -732,230 +724,15 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar + Primary Info Row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Date Avatar
-                    Container(
-                      height: 125,
-                      width: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: const Color(0xFFFFD54F).withValues(alpha: 0.4),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(13),
-                        child: GameWidget(
-                          key: ValueKey('preview_partner_full_${avatarConfig.hashCode}_${avatarConfig.hairStyle}_${avatarConfig.topStyle}'),
-                          game: CharacterPreviewGame(
-                            config: avatarConfig,
-                            initialFaceZoom: false,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Name, Age, Commune, Intent
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(Icons.cake_outlined, size: 14, color: Color(0xFFFFD54F)),
-                              const SizedBox(width: 4),
-                              Text(
-                                '$age años',
-                                style: const TextStyle(
-                                  color: Color(0xFFFFD54F),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
-                                child: Text('•', style: TextStyle(color: Colors.white.withValues(alpha: 0.3))),
-                              ),
-                              const Icon(Icons.location_on_outlined, size: 14, color: Colors.white70),
-                              const SizedBox(width: 2),
-                              Flexible(
-                                child: Text(
-                                  (widget.state.session.distanceKm != null && widget.state.session.distanceKm! >= 0)
-                                      ? '$commune • a ~${widget.state.session.distanceKm} km'
-                                      : commune,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Intent Badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
-                            ),
-                            child: Text(
-                              _formatIntentTitle(intent),
-                              style: const TextStyle(
-                                color: Color(0xFFFBBF24),
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                // Su cara personaje: lo que se ve antes de la revelación (edad, comuna, bio y
+                // fotos se revelan después de la fogata, cuando la tarjeta se voltea).
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 260),
+                    child: ProfileCard(profile: _partnerCardProfile(name, avatarConfig, tastes)),
+                  ),
                 ),
-
-                // Insignias de Realidad de Vida / Estilo de Vida
-                if (lifestyle != null && lifestyle.hasAnyBadge) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: lifestyle.activeBadges.map((badge) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2E204F),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFF38BDF8).withValues(alpha: 0.45),
-                            width: 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(badge.icon, style: const TextStyle(fontSize: 12)),
-                            const SizedBox(width: 4),
-                            Text(
-                              badge.label,
-                              style: const TextStyle(
-                                color: Color(0xFFE0F2FE),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-
-                const SizedBox(height: 14),
-
-                // Full Description (Se ve ENTERA, sin truncar)
-                if (bio.isNotEmpty) ...[
-                  const Row(
-                    children: [
-                      Icon(Icons.format_quote_rounded, size: 16, color: Color(0xFFFFD54F)),
-                      SizedBox(width: 6),
-                      Text(
-                        'Acerca de mí',
-                        style: TextStyle(
-                          color: Color(0xFFFFD54F),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                    ),
-                    child: Text(
-                      '«$bio»',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        fontSize: 12,
-                        height: 1.35,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                ],
-
-                // Sus Gustos (Tastes chips)
-                if (tastes.isNotEmpty) ...[
-                  const Row(
-                    children: [
-                      Icon(Icons.auto_awesome, size: 15, color: Color(0xFFFFB74D)),
-                      SizedBox(width: 6),
-                      Text(
-                        'Sus Gustos & Intereses',
-                        style: TextStyle(
-                          color: Color(0xFFFFB74D),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: tastes.map((t) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2E204F),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: const Color(0xFFFFB74D).withValues(alpha: 0.35),
-                            width: 1.0,
-                          ),
-                        ),
-                        child: Text(
-                          PreferenceCatalog.formatTaste(t),
-                          style: const TextStyle(
-                            color: Color(0xFFFFE082),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 14),
-                ],
+                const SizedBox(height: 16),
 
                 // La Habitación (Interactive sneakpeek card)
                 const Row(

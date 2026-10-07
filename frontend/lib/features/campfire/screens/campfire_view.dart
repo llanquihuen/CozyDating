@@ -463,6 +463,9 @@ class _CampfireViewState extends State<CampfireView> {
       commonTastes: sharedTags.isNotEmpty ? sharedTags : (fallbackTags.isNotEmpty ? fallbackTags : const ['game_coop', 'intent_slow']),
       myDecision: MailboxDecision.pending,
       createdAt: DateTime.now(),
+      partnerCardStyle: partner?.cardStyle,
+      partnerVerified: partner?.isVerified ?? false,
+      partnerTastes: partner?.tastes ?? const [],
     );
     MailboxService.addDateLetter(dateLetter, userId: localId);
     return dateLetter;

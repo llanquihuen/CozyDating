@@ -647,6 +647,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             frame.put("partnerCommune", partnerCommune);
             frame.put("partnerNote", partnerNote);
             frame.put("commonTastes", match.getCommonTastes());
+            com.cozydating.server.util.PartnerCardFields.putInto(frame, partnerUser);
 
             sendJson(session, frame);
             logger.info("[SOCKET MATCH] Dispatched MUTUAL_MATCH_REVEAL for match {} to user {}", match.getId(), targetUserId);

@@ -1,12 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/models/lifestyle_badges.dart';
-import '../../../core/models/preference_tags.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../../core/widgets/fullscreen_photo_viewer.dart';
 import '../../chat/screens/private_chat_screen.dart';
 import '../../mailbox/models/mailbox_models.dart';
+import '../../profile/card/profile_card.dart';
 
 class MatchRevealCelebrationView extends StatefulWidget {
   final UserProfile localUser;
@@ -30,27 +31,41 @@ class MatchRevealCelebrationView extends StatefulWidget {
     this.onReturnHome,
   });
 
+  /// How long the character face shows before the card flips to the real face (the reveal).
+  static const Duration revealDelay = Duration(milliseconds: 1100);
+
   @override
   State<MatchRevealCelebrationView> createState() => _MatchRevealCelebrationViewState();
 }
 
 class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
     with SingleTickerProviderStateMixin {
-  late final PageController _photoPageController;
   late final AnimationController _pulseController;
-  int _currentPhotoIndex = 0;
 
   List<String> _photos = [];
   String _bio = '';
-  String _intent = '';
   int _age = 24;
   String _commune = 'Santiago';
   late LifestyleBadges _lifestyle;
 
+  /// Starts on the character face; flips to the real face shortly after opening (the reveal).
+  bool _showReal = false;
+  Timer? _revealTimer;
+
+  /// The partner as their card shows them, with the photos, bio and badges resolved above.
+  UserProfile get _partnerCard => widget.partnerUser.copyWith(
+        username: widget.partnerName,
+        profilePhoto: _photos.isNotEmpty ? _photos.first : '',
+        photos: _photos.skip(1).toList(),
+        bio: _bio,
+        age: _age,
+        commune: _commune,
+        lifestyle: _lifestyle,
+      );
+
   @override
   void initState() {
     super.initState();
-    _photoPageController = PageController();
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -97,82 +112,23 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
       _bio = 'Aventurero(a) en busca de momentos genuinos, buenas charlas y partidas cooperativas ✨.';
     }
 
-    final rawIntent = partner.intent.isNotEmpty
-        ? partner.intent
-        : AvatarStorageService.getUserIntent(partnerId);
-
-    _intent = PreferenceCatalog.formatIntent(rawIntent);
-
-
     _age = partner.age > 0 ? partner.age : 24;
     _commune = partner.commune.isNotEmpty ? partner.commune : 'Santiago';
     _lifestyle = partner.lifestyle.hasAnyBadge
         ? partner.lifestyle
         : AvatarStorageService.getUserLifestyle(partnerId);
+
+    // A moment on the character face, then the card turns over.
+    _revealTimer = Timer(MatchRevealCelebrationView.revealDelay, () {
+      if (mounted) setState(() => _showReal = true);
+    });
   }
 
   @override
   void dispose() {
-    _photoPageController.dispose();
+    _revealTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
-  }
-
-  Widget _buildPhotoSlot(String photoUrl) {
-    final resolvedUrl = AppConfig.resolveMediaUrl(photoUrl);
-    if (resolvedUrl.startsWith('assets/')) {
-      return Image.asset(
-        resolvedUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          color: const Color(0xFF1E293B),
-          child: const Center(
-            child: Icon(Icons.person_outline, size: 50, color: Colors.white30),
-          ),
-        ),
-      );
-    } else if (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://')) {
-      return Image.network(
-        resolvedUrl,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            color: const Color(0xFF1E293B),
-            child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFD54F)),
-            ),
-          );
-        },
-        errorBuilder: (_, __, ___) => Container(
-          color: const Color(0xFF1E293B),
-          child: const Center(
-            child: Icon(Icons.person_outline, size: 50, color: Colors.white30),
-          ),
-        ),
-      );
-    } else {
-      return Container(
-        color: const Color(0xFF1E293B),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                (widget.isCelebration || widget.isMutualMatch) ? Icons.favorite_rounded : Icons.local_fire_department_rounded,
-                size: 48,
-                color: (widget.isCelebration || widget.isMutualMatch) ? const Color(0xFFE11D48) : const Color(0xFFFF6D00),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                widget.partnerName,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
   }
 
   void _openPrivateChat() {
@@ -325,403 +281,46 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
               ),
             ),
 
-            // Middle Scrollable Section: Photos & Profile info
+            // The partner's two-sided card: it shows their character face, then flips to the real
+            // one (the reveal). Tap to turn it over again.
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Expansive Photos Carousel
-                    SizedBox(
-                      height: 360,
-                      width: double.infinity,
-                      child: _photos.isEmpty
-                          ? Container(
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF1E293B),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.05),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.account_circle,
-                                      size: 100,
-                                      color: Color(0xFFFFD54F),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  const Text(
-                                    'Perfil sin fotos reales aún',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Conexión basada en personalidad ✨',
-                                    style: TextStyle(
-                                      color: Colors.white38,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Stack(
-                              alignment: Alignment.bottomCenter,
-                              children: [
-                                PageView.builder(
-                                  controller: _photoPageController,
-                                  itemCount: _photos.length,
-                                  onPageChanged: (idx) {
-                                    setState(() {
-                                      _currentPhotoIndex = idx;
-                                    });
-                                  },
-                                  itemBuilder: (context, index) {
-                                    return _buildPhotoSlot(_photos[index]);
-                                  },
-                                ),
-
-                          // Left & Right tap zones for quick photo flip + Center tap to open fullscreen
-                          if (_photos.length > 1)
-                            Positioned.fill(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.translucent,
-                                      onTap: () {
-                                        if (_currentPhotoIndex > 0) {
-                                          _photoPageController.previousPage(
-                                            duration: const Duration(milliseconds: 220),
-                                            curve: Curves.easeInOut,
-                                          );
-                                        } else {
-                                          FullScreenPhotoViewer.open(
-                                            context,
-                                            photos: _photos,
-                                            initialIndex: _currentPhotoIndex,
-                                            title: widget.partnerName,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 4,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.translucent,
-                                      onTap: () {
-                                        FullScreenPhotoViewer.open(
-                                          context,
-                                          photos: _photos,
-                                          initialIndex: _currentPhotoIndex,
-                                          title: widget.partnerName,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.translucent,
-                                      onTap: () {
-                                        if (_currentPhotoIndex < _photos.length - 1) {
-                                          _photoPageController.nextPage(
-                                            duration: const Duration(milliseconds: 220),
-                                            curve: Curves.easeInOut,
-                                          );
-                                        } else {
-                                          FullScreenPhotoViewer.open(
-                                            context,
-                                            photos: _photos,
-                                            initialIndex: _currentPhotoIndex,
-                                            title: widget.partnerName,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else
-                            Positioned.fill(
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.translucent,
-                                onTap: () {
-                                  FullScreenPhotoViewer.open(
-                                    context,
-                                    photos: _photos,
-                                    initialIndex: 0,
-                                    title: widget.partnerName,
-                                  );
-                                },
-                              ),
-                            ),
-
-                          // Top Story-style dash indicators
-                          if (_photos.length > 1)
-                            Positioned(
-                              top: 10,
-                              left: 12,
-                              right: 12,
-                              child: Row(
-                                children: List.generate(_photos.length, (idx) {
-                                  final isActive = idx == _currentPhotoIndex;
-                                  return Expanded(
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                                      height: 3.5,
-                                      decoration: BoxDecoration(
-                                        color: isActive ? Colors.white : Colors.white.withOpacity(0.35),
-                                        borderRadius: BorderRadius.circular(2),
-                                        boxShadow: [
-                                          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 2),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              ),
-                            ),
-
-                          // Subtle gradient shadow at bottom
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: 70,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                  colors: [
-                                    Colors.black.withOpacity(0.75),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // Photos counter tag (top right)
-                          if (_photos.length > 1)
-                            Positioned(
-                              top: 22,
-                              right: 12,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.65),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white24),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.photo_camera_rounded, size: 12, color: Colors.white),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${_currentPhotoIndex + 1}/${_photos.length}',
-                                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                          // Fullscreen "Ampliar" button (bottom right)
-                          Positioned(
-                            bottom: 12,
-                            right: 12,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                FullScreenPhotoViewer.open(
-                                  context,
-                                  photos: _photos,
-                                  initialIndex: _currentPhotoIndex,
-                                  title: widget.partnerName,
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.55),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.white30, width: 0.9),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.4),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.fullscreen_rounded, size: 16, color: Colors.white.withOpacity(0.95)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Ampliar',
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.95),
-                                        fontSize: 11.5,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                    Expanded(
+                      child: Center(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => setState(() => _showReal = !_showReal),
+                          child: ProfileCard(profile: _partnerCard, showReal: _showReal),
+                        ),
                       ),
                     ),
-
-                    // User Info Card
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Name, Age & Commune
-                          Row(
-                            children: [
-                              Text(
-                                '${widget.partnerName}, $_age',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 21,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0284C7).withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFF0284C7)),
-                                ),
-                                child: Text(
-                                  _commune,
-                                  style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Intent Badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.pinkAccent.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.pinkAccent.withOpacity(0.5)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Toca la tarjeta para voltearla',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
+                        ),
+                        if (_photos.isNotEmpty) ...[
+                          const SizedBox(width: 6, height: 1),
+                          TextButton.icon(
+                            onPressed: () => FullScreenPhotoViewer.open(
+                              context,
+                              photos: _photos,
+                              initialIndex: 0,
+                              title: widget.partnerName,
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!_intent.startsWith(RegExp(r'[\u{1F1E6}-\u{1FAFF}]', unicode: true))) ...[
-                                  const Text('🎯', style: TextStyle(fontSize: 12)),
-                                  const SizedBox(width: 6),
-                                ],
-                                Flexible(
-                                  child: Text(
-                                    _intent,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 11.5, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                          ),
-
-
-                          // Lifestyle Badges Chips
-                          if (_lifestyle.hasAnyBadge) ...[
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: _lifestyle.activeBadges.map((badge) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1E293B),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: const Color(0xFF38BDF8).withOpacity(0.35),
-                                      width: 1.0,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(badge.icon, style: const TextStyle(fontSize: 12)),
-                                      const SizedBox(width: 4.5),
-                                      Text(
-                                        badge.label,
-                                        style: const TextStyle(
-                                          color: Color(0xFFE2E8F0),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                          const SizedBox(height: 14),
-
-                          // Bio ("Acerca de mí")
-                          const Text(
-                            'Acerca de mí',
-                            style: TextStyle(
-                              color: Color(0xFF94A3B8),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E293B),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white10),
-                            ),
-                            child: Text(
-                              _bio,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
-                            ),
+                            icon: const Icon(Icons.photo_library_outlined, size: 16),
+                            label: const Text('Ver fotos'),
+                            style: TextButton.styleFrom(foregroundColor: const Color(0xFFFDE68A)),
                           ),
                         ],
-                      ),
+                      ],
                     ),
                   ],
                 ),
