@@ -751,7 +751,6 @@ class GameBloc extends Bloc<GameEvent, GameState> {
 
   Future<void> _onJoinQueue(JoinQueueEvent event, Emitter<GameState> emit) async {
     print('[BLOC EVENT] JoinQueueEvent triggered [Commune: ${event.commune}, Mode: ${event.mode}]');
-    webSocketClient.setSessionActive(true);
     emit(MatchmakingQueueState(
       mode: event.mode,
       commune: event.commune,

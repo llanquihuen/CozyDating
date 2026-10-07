@@ -173,6 +173,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+        logger.error("[SOCKET TRANSPORT ERROR] Session {}: {}", session.getId(), exception.getMessage(), exception);
+    }
+
     private void handleUserOnline(WebSocketSession session, Map<String, Object> data) throws IOException {
         String token = (String) data.get("token");
         String requestedUserId = (String) data.get("userId");
