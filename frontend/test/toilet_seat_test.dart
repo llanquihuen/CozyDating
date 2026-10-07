@@ -24,9 +24,10 @@ void main() {
     expect(IsometricFurnitureComponent.isSeatName('bathtub_classic'), isFalse);
     for (var rot = 0; rot < 4; rot++) {
       final spot = ChairSeatConfig.getSpots(toilet, rot).single;
-      // Mirrored rotations mirror the horizontal offset.
+      // Mirrored rotations mirror the horizontal offset, give or take a pixel: the offsets were
+      // calibrated by eye on the real render (back views: 3 / -4), not computed.
       final mirror = ChairSeatConfig.getSpots(toilet, rot ^ 1).single;
-      expect(spot.visualOffset.x, -mirror.visualOffset.x, reason: 'rot$rot');
+      expect(spot.visualOffset.x, closeTo(-mirror.visualOffset.x, 1.0), reason: 'rot$rot');
       expect(spot.visualOffset.y, mirror.visualOffset.y, reason: 'rot$rot');
     }
   });

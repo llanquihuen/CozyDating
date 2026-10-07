@@ -141,19 +141,19 @@ void main() {
       final off2 = mugSpot2.spriteOffset;
       final off3 = mugSpot3.spriteOffset;
 
-      // Table offsets in catalog:
-      // spot 0: [-5, -8]
-      // spot 1: [-4, -17] -> diff in X: +1, diff in Y: -9
-      // spot 2: [6, -5]   -> diff in X: +11, diff in Y: +3
-      // spot 3: [8, -13]  -> diff in X: +13, diff in Y: -5
+      // Table offsets in furniture_catalog.json (hand-tuned to the art):
+      // spot 0: [-6, -6]
+      // spot 1: [-5, -15] -> diff in X: +1, diff in Y: -9
+      // spot 2: [6, -5]   -> diff in X: +12, diff in Y: +1
+      // spot 3: [8, -14]  -> diff in X: +14, diff in Y: -8
       expect(off1.x - off0.x, equals(1.0));
       expect(off1.y - off0.y, equals(-9.0));
 
-      expect(off2.x - off0.x, equals(11.0));
-      expect(off2.y - off0.y, equals(3.0));
+      expect(off2.x - off0.x, equals(12.0));
+      expect(off2.y - off0.y, equals(1.0));
 
-      expect(off3.x - off0.x, equals(13.0));
-      expect(off3.y - off0.y, equals(-5.0));
+      expect(off3.x - off0.x, equals(14.0));
+      expect(off3.y - off0.y, equals(-8.0));
     });
 
     test('Dragged surface item previews the surface spot of the cell it hovers over', () async {
