@@ -10,6 +10,7 @@ import '../card/card_parts.dart';
 import '../card/card_scene.dart';
 import '../card/card_themes.dart';
 import 'card_sections.dart';
+import 'pixel_motion.dart';
 
 /// The character face at full screen: the avatar on its stage, the phrase in a speech bubble and
 /// the featured tastes on pixel plaques; scrolling down shows all the tastes. Nothing here reveals
@@ -142,6 +143,13 @@ class _Stage extends StatelessWidget {
             Positioned.fill(
               child: CardSceneView(themeId: theme.id, scale: scale, feetY: feetY, fallback: _panel),
             ),
+            Positioned.fill(
+              child: SceneParticles(
+                kind: SceneParticles.kindFor(theme.id),
+                color: SceneParticles.kindFor(theme.id) == ParticleKind.hearts ? accent : const Color(0xFFFFE9A8),
+                scale: scale,
+              ),
+            ),
             // Shades the top and bottom edges so the name and the plaques read over any scene.
             Positioned.fill(
               child: IgnorePointer(
@@ -178,7 +186,11 @@ class _Stage extends StatelessWidget {
             Positioned(
               left: avatarLeft,
               top: avatarTop,
-              child: avatarHeroTag == null ? avatar : Hero(tag: avatarHeroTag!, child: avatar),
+              child: StepBob(
+                step: scale.toDouble(),
+                period: const Duration(milliseconds: 900),
+                child: avatarHeroTag == null ? avatar : Hero(tag: avatarHeroTag!, child: avatar),
+              ),
             ),
             Positioned(
               left: 18,
@@ -192,7 +204,15 @@ class _Stage extends StatelessWidget {
                 left: math.min(w / 2 + avatarW * 0.12, w - 190),
                 right: 16,
                 bottom: h - avatarTop - avatarH * 0.08,
-                child: Align(alignment: Alignment.bottomLeft, child: _SpeechBubble(text: style.phrase)),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: StepBob(
+                    step: scale.toDouble(),
+                    period: const Duration(milliseconds: 1300),
+                    delay: const Duration(milliseconds: 400),
+                    child: _SpeechBubble(text: style.phrase),
+                  ),
+                ),
               ),
             if (style.featuredTastes.isNotEmpty)
               Positioned(
@@ -203,7 +223,15 @@ class _Stage extends StatelessWidget {
                   alignment: WrapAlignment.center,
                   spacing: 8,
                   runSpacing: 8,
-                  children: [for (final t in style.featuredTastes) _Plaque(tasteId: t, theme: theme, accent: accent)],
+                  children: [
+                    for (final (i, t) in style.featuredTastes.indexed)
+                      StepBob(
+                        step: scale.toDouble(),
+                        period: const Duration(milliseconds: 1500),
+                        delay: Duration(milliseconds: 500 * i),
+                        child: _Plaque(tasteId: t, theme: theme, accent: accent),
+                      ),
+                  ],
                 ),
               ),
             if (hint != null)

@@ -7,7 +7,9 @@ import '../../../core/services/avatar_storage_service.dart';
 import '../../../core/widgets/fullscreen_photo_viewer.dart';
 import '../../chat/screens/private_chat_screen.dart';
 import '../../mailbox/models/mailbox_models.dart';
+import '../../profile/card/card_entrance.dart';
 import '../../profile/card/card_themes.dart';
+import '../../profile/card/pixel_swap.dart';
 import '../../profile/card/profile_card.dart';
 import '../../profile/view/card_face_switch.dart';
 import '../../profile/view/profile_card_view.dart';
@@ -34,8 +36,9 @@ class MatchRevealCelebrationView extends StatefulWidget {
     this.onReturnHome,
   });
 
-  /// How long the character face shows before the card flips to the real face (the reveal).
-  static const Duration revealDelay = Duration(milliseconds: 1100);
+  /// How long the character face shows before it dissolves into the real face (the reveal): the
+  /// card is dealt in and shines first.
+  static const Duration revealDelay = Duration(milliseconds: 1900);
 
   @override
   State<MatchRevealCelebrationView> createState() => _MatchRevealCelebrationViewState();
@@ -311,7 +314,19 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: _openFullCard,
-                          child: ProfileCard(profile: _partnerCard, showReal: _showReal, avatarHeroTag: _heroTag),
+                          // Dealt in, then the reveal: the character dissolves into the person.
+                          child: CardEntrance(
+                            shineColor: _cardAccent,
+                            child: PixelSwap(
+                              swapKey: _showReal,
+                              child: ProfileCard(
+                                profile: _partnerCard,
+                                showReal: _showReal,
+                                avatarHeroTag: _heroTag,
+                                flipDuration: Duration.zero,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),

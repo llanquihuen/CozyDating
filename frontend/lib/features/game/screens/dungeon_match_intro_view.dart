@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/room_config.dart';
+import '../../profile/card/card_entrance.dart';
 import '../../profile/card/profile_card.dart';
 import '../../profile/view/profile_card_view.dart';
 import '../../../core/models/user_profile.dart';
@@ -740,9 +741,11 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
                         mode: ProfileViewMode.beforeReveal,
                         avatarHeroTag: _cardHeroTag,
                       ),
-                      child: ProfileCard(
-                        profile: _partnerCardProfile(name, avatarConfig, tastes),
-                        avatarHeroTag: _cardHeroTag,
+                      child: CardEntrance(
+                        child: ProfileCard(
+                          profile: _partnerCardProfile(name, avatarConfig, tastes),
+                          avatarHeroTag: _cardHeroTag,
+                        ),
                       ),
                     ),
                   ),

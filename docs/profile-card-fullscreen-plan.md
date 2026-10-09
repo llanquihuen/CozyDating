@@ -60,6 +60,13 @@ sola capa por tema** (las luciérnagas, la lluvia, etc. vienen pintadas en la im
 no hay parallax ni partículas animadas; quedan para la fase 4. La escala es la menor entera con la que
 el escenario cubre la pantalla, y el avatar usa la misma.
 
+Fase 4 hecha: `CardEntrance` (llegada desde el mazo con brillo) en la presentación de la partida y
+en la revelación; `PixelSwap` (disolución pixelada con `toImageSync`) en la revelación, que ahora
+espera 1,9 s para que la tarjeta termine de llegar; `StepBob` (avatar, globo y placas, 1 píxel por
+paso) y `SceneParticles` (luciérnagas, chispas, corazones, hojas o polvo según el tema) en la vista
+completa. Todo se apaga con movimiento reducido y cuando la ruta no está visible. Sin parallax: con
+una sola capa por escenario no aporta.
+
 Cada fase deja la app funcionando y con `flutter test` y `flutter analyze` sin errores nuevos.
 
 ### Fase 1 — Vista completa y cara personaje
