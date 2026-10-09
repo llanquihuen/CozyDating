@@ -10,6 +10,7 @@ import 'package:frontend/core/models/avatar_config.dart';
 import 'package:frontend/core/models/lifestyle_badges.dart';
 import 'package:frontend/core/models/profile_card_style.dart';
 import 'package:frontend/core/models/user_profile.dart';
+import 'package:frontend/features/profile/card/card_scene.dart';
 import 'package:frontend/features/profile/card/card_themes.dart';
 import 'package:frontend/features/profile/view/card_sections.dart';
 import 'package:frontend/features/profile/view/character_face_view.dart';
@@ -143,6 +144,15 @@ void main() {
     }
   });
 
+  test('every theme has its stage, at the scene size', () {
+    for (final theme in cardThemes) {
+      final file = File(CardScene.assetFor(theme.id));
+      expect(file.existsSync(), isTrue, reason: theme.id);
+      final header = ByteData.sublistView(file.readAsBytesSync().sublist(16, 24)); // PNG IHDR width, height
+      expect(Size(header.getUint32(0).toDouble(), header.getUint32(4).toDouble()), CardScene.size, reason: theme.id);
+    }
+  });
+
   testWidgets('both faces fit a small phone with large text in every theme', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 1.6;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -174,7 +184,7 @@ void main() {
     });
     const phone = Size(390, 780);
     final shots = [
-      for (final theme in ['forest', 'retro90s', 'matcha'])
+      for (final theme in ['forest', 'cafe', 'retro90s'])
         for (final real in [false, true]) (theme, real),
     ];
     tester.view.physicalSize = Size(phone.width * shots.length + 10 * (shots.length + 2), phone.height + 20);

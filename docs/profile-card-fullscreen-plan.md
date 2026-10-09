@@ -54,6 +54,12 @@ planeado: el `Hero` vuela solo el avatar (no la tarjeta entera); en la revelaci�
 no lleva botón principal (los botones siguen en el diálogo de la revelación) y "Ver fotos" se
 mantiene ahí; el selector de cara también está bajo la tarjeta compacta de la revelación.
 
+Fase 3 hecha el mismo día con PixelLab (`generate-image-v2`, el sprite del avatar como referencia de
+estilo, ~10 generaciones por escenario): `CreateSprites/card_scenes/make_scenes.py`. Diferencias: **una
+sola capa por tema** (las luciérnagas, la lluvia, etc. vienen pintadas en la imagen), así que todavía
+no hay parallax ni partículas animadas; quedan para la fase 4. La escala es la menor entera con la que
+el escenario cubre la pantalla, y el avatar usa la misma.
+
 Cada fase deja la app funcionando y con `flutter test` y `flutter analyze` sin errores nuevos.
 
 ### Fase 1 — Vista completa y cara personaje

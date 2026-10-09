@@ -7,6 +7,7 @@ import '../../../core/models/user_profile.dart';
 import '../../avatar/widgets/avatar_still_image.dart';
 import '../card/card_frame_painter.dart';
 import '../card/card_parts.dart';
+import '../card/card_scene.dart';
 import '../card/card_themes.dart';
 import 'card_sections.dart';
 
@@ -118,9 +119,16 @@ class _Stage extends StatelessWidget {
         final w = c.maxWidth, h = c.maxHeight;
         // Whole pixels only: the sprite is drawn at an integer scale so pixel art stays crisp.
         const crop = CharacterFaceView.avatarCrop;
-        final scale = math.max(1, math.min((w * 0.62) / crop.width, (h * 0.46) / crop.height).floor());
+        // The smallest whole scale at which the scene covers the stage; the avatar shares it.
+        final scale = math.max(
+          1,
+          math.max((w / CardScene.size.width).ceil(), (h / CardScene.size.height).ceil()),
+        );
         final avatarW = crop.width * scale, avatarH = crop.height * scale;
-        final feetY = h * 0.70;
+        // Feet near 72% of the height, kept where the scene still reaches the top and bottom edges.
+        final feetY = (h * 0.72)
+            .clamp(h - (CardScene.size.height - CardScene.floorY) * scale, CardScene.floorY * scale)
+            .roundToDouble();
         final avatarTop = feetY - avatarH;
         final avatarLeft = (w - avatarW) / 2;
         final avatar = SizedBox(
@@ -132,18 +140,24 @@ class _Stage extends StatelessWidget {
           clipBehavior: Clip.hardEdge,
           children: [
             Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0, 0.70, 0.70, 1],
-                    colors: [
-                      Color.lerp(_panel, Colors.black, 0.25)!,
-                      _panel,
-                      Color.lerp(_panel, Colors.black, 0.35)!,
-                      theme.base
-                    ],
+              child: CardSceneView(themeId: theme.id, scale: scale, feetY: feetY, fallback: _panel),
+            ),
+            // Shades the top and bottom edges so the name and the plaques read over any scene.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0, 0.16, 0.74, 1],
+                      colors: [
+                        Colors.black.withValues(alpha: 0.35),
+                        Colors.black.withValues(alpha: 0),
+                        theme.base.withValues(alpha: 0),
+                        theme.base,
+                      ],
+                    ),
                   ),
                 ),
               ),

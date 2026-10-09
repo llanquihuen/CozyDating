@@ -27,6 +27,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/dungeon/
+    - assets/images/card_scenes/
     - assets/images/furniture/established_furniture/
     - assets/images/furniture/
     - assets/images/wallpaper/
