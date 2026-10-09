@@ -9,7 +9,6 @@ import '../../chat/screens/private_chat_screen.dart';
 import '../../mailbox/models/mailbox_models.dart';
 import '../../profile/card/card_entrance.dart';
 import '../../profile/card/card_themes.dart';
-import '../../profile/card/pixel_swap.dart';
 import '../../profile/card/profile_card.dart';
 import '../../profile/view/card_face_switch.dart';
 import '../../profile/view/profile_card_view.dart';
@@ -36,8 +35,8 @@ class MatchRevealCelebrationView extends StatefulWidget {
     this.onReturnHome,
   });
 
-  /// How long the character face shows before it dissolves into the real face (the reveal): the
-  /// card is dealt in and shines first.
+  /// How long the character face shows before the card turns over to the real face (the reveal):
+  /// it is dealt in and shines first.
   static const Duration revealDelay = Duration(milliseconds: 1900);
 
   @override
@@ -224,19 +223,6 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
           : 'CITA EN LA FOGATA';
     }
 
-    String subtitleText;
-    if (widget.isPreview) {
-      subtitleText = 'Así te verán tus citas al terminar la Fogata';
-    } else if (widget.isCelebration) {
-      subtitleText = isFriendship
-          ? 'Coincidieron en ser compañeros de aventuras'
-          : 'Ambos han sentido esa química especial';
-    } else {
-      subtitleText = widget.isMutualMatch
-          ? (isFriendship ? 'Amistad • ${widget.partnerName}' : 'Conexión Romántica • ${widget.partnerName}')
-          : 'Decisión pendiente • ${widget.partnerName}';
-    }
-
     return Dialog(
       backgroundColor: const Color(0xFF0F172A),
       shape: RoundedRectangleBorder(
@@ -246,59 +232,45 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
           width: 2,
         ),
       ),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 720),
+        constraints: const BoxConstraints(maxWidth: 460, maxHeight: 880),
         child: Column(
           children: [
-            // Top Header
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            // A slim header: what this is, in one line. The card says who.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradientColors),
+                  borderRadius: BorderRadius.circular(99),
                 ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-              ),
-              child: Row(
-                children: [
-                  ScaleTransition(
-                    scale: Tween<double>(begin: 0.9, end: 1.15).animate(
-                      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ScaleTransition(
+                      scale: Tween<double>(begin: 0.9, end: 1.1).animate(
+                        CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+                      ),
+                      child: Text(iconEmoji, style: const TextStyle(fontSize: 14)),
                     ),
-                    child: Text(
-                      iconEmoji,
-                      style: const TextStyle(fontSize: 22),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          titleText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            letterSpacing: 1.2,
-                          ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        titleText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12.5,
+                          letterSpacing: 0.8,
                         ),
-                        Text(
-                          subtitleText,
-                          style: const TextStyle(
-                            color: Color(0xFFFDE68A),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -306,7 +278,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
             // one (the reveal). The switch turns it over again; a tap opens it at full screen.
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                 child: Column(
                   children: [
                     Expanded(
@@ -314,18 +286,10 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: _openFullCard,
-                          // Dealt in, then the reveal: the character dissolves into the person.
+                          // Dealt in, then the reveal: the card turns over to the person.
                           child: CardEntrance(
                             shineColor: _cardAccent,
-                            child: PixelSwap(
-                              swapKey: _showReal,
-                              child: ProfileCard(
-                                profile: _partnerCard,
-                                showReal: _showReal,
-                                avatarHeroTag: _heroTag,
-                                flipDuration: Duration.zero,
-                              ),
-                            ),
+                            child: ProfileCard(profile: _partnerCard, showReal: _showReal, avatarHeroTag: _heroTag),
                           ),
                         ),
                       ),
@@ -340,31 +304,21 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                       accent: _cardAccent,
                       onAccent: _cardTheme.onAccent(_cardAccent),
                     ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          'Toca la tarjeta para verla completa',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
+                    if (_photos.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: () => FullScreenPhotoViewer.open(
+                          context,
+                          photos: _photos,
+                          initialIndex: 0,
+                          title: widget.partnerName,
                         ),
-                        if (_photos.isNotEmpty) ...[
-                          const SizedBox(width: 6, height: 1),
-                          TextButton.icon(
-                            onPressed: () => FullScreenPhotoViewer.open(
-                              context,
-                              photos: _photos,
-                              initialIndex: 0,
-                              title: widget.partnerName,
-                            ),
-                            icon: const Icon(Icons.photo_library_outlined, size: 16),
-                            label: const Text('Ver fotos'),
-                            style: TextButton.styleFrom(foregroundColor: const Color(0xFFFDE68A)),
-                          ),
-                        ],
-                      ],
-                    ),
+                        icon: const Icon(Icons.photo_library_outlined, size: 16),
+                        label: const Text('Ver fotos'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFFFDE68A),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
                   ],
                 ),
               ),

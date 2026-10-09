@@ -75,6 +75,13 @@ completa) y el botón "Ver la revelación"; el estilo (tema, acento, frase, dest
 hoja con "Guardar"; un guardado que el servidor rechaza **no se revierte**: queda en el teléfono
 con un aviso y "Reintentar" (revertir habría borrado lo escrito sin conexión).
 
+Ajustes tras probarlo (2026-10-09): **sin disolución pixelada** (se prefirió el giro de la tarjeta;
+`PixelSwap` se borró); sin barra de "perfil al X%"; en "Tu tarjeta" la vista previa es más alta (caben
+los 5 destacados) y tiene el selector Personaje / Real; el bloque de fotos usa los colores del tema;
+la tarjeta compacta también lleva el escenario del tema (revelación, presentación, hoja de estilo); la
+revelación tiene un encabezado de una línea, sin subtítulos ni "Toca la tarjeta…", y la tarjeta ocupa
+más espacio.
+
 Cada fase deja la app funcionando y con `flutter test` y `flutter analyze` sin errores nuevos.
 
 ### Fase 1 — Vista completa y cara personaje

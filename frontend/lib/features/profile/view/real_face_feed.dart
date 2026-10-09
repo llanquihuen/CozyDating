@@ -94,7 +94,7 @@ class RealFaceFeed extends StatelessWidget {
           SliverToBoxAdapter(
             child: SizedBox(
               height: math.max(constraints.maxHeight * (rest.isEmpty ? 1 : 0.86), 440),
-              child: _MainPhoto(
+              child: RealFaceCover(
                 profile: profile,
                 style: style,
                 theme: theme,
@@ -115,8 +115,10 @@ class RealFaceFeed extends StatelessWidget {
   }
 }
 
-class _MainPhoto extends StatelessWidget {
-  const _MainPhoto({
+/// The real face's first screen: the main photo with name, age, place and featured tastes.
+class RealFaceCover extends StatelessWidget {
+  const RealFaceCover({
+    super.key,
     required this.profile,
     required this.style,
     required this.theme,

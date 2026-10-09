@@ -83,7 +83,6 @@ void main() {
       );
 
       expect(find.text('¡HUBO CHISPA MUTUA!'), findsOneWidget);
-      expect(find.text('Ambos han sentido esa química especial'), findsOneWidget);
       // The card opens on the character face, then flips to the real one: the reveal.
       expect(find.text('Bob'), findsWidgets);
       expect(find.text('Bob, 26'), findsNothing);
@@ -126,7 +125,6 @@ void main() {
       );
 
       expect(find.text('¡NUEVA AMISTAD MUTUA!'), findsOneWidget);
-      expect(find.text('Coincidieron en ser compañeros de aventuras'), findsOneWidget);
     });
 
     testWidgets('MatchRevealCelebrationView in full profile mode renders chat and close buttons', (tester) async {
@@ -165,7 +163,6 @@ void main() {
       );
 
       expect(find.text('CHISPA MUTUA'), findsOneWidget);
-      expect(find.text('Conexión Romántica • Bob'), findsOneWidget);
       expect(find.text('Escribir a Bob'), findsOneWidget);
       expect(find.text('Cerrar perfil'), findsOneWidget);
 

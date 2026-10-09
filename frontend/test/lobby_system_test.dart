@@ -240,7 +240,10 @@ void main() {
       expect(find.byType(MyCardScreen), findsOneWidget);
       expect(find.text('Tu tarjeta'), findsOneWidget);
 
-      await tester.tap(find.text('Vestir a mi personaje'));
+      final dress = find.text('Vestir a mi personaje');
+      await tester.scrollUntilVisible(dress, 200,
+          scrollable: find.descendant(of: find.byType(MyCardScreen), matching: find.byType(Scrollable)).first);
+      await tester.tap(dress);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       expect(find.byType(AvatarEditorScreen), findsOneWidget);

@@ -12,9 +12,11 @@ import '../../../core/services/profile_save_queue.dart';
 import '../../avatar/widgets/lifestyle_badges_sheet.dart';
 import '../../revelation/screens/match_reveal_celebration_view.dart';
 import '../card/card_themes.dart';
+import '../view/card_face_switch.dart';
 import '../view/card_sections.dart';
 import '../view/character_face_view.dart';
 import '../view/profile_card_view.dart';
+import '../view/real_face_feed.dart';
 import '../widgets/card_style_sheet.dart';
 import '../widgets/profile_photos_editor.dart';
 import '../widgets/search_prefs_editor.dart';
@@ -93,6 +95,9 @@ class _MyCardScreenState extends State<MyCardScreen> {
 
   final TextEditingController _bio = TextEditingController();
   bool _savedToast = false;
+
+  /// Which face the preview at the top shows.
+  bool _previewReal = false;
   Timer? _toastTimer;
 
   UserProfile get _profile => _patches.values.fold(widget.profileOf(), (p, patch) => patch(p));
@@ -256,6 +261,29 @@ class _MyCardScreenState extends State<MyCardScreen> {
     );
   }
 
+  /// The photo blocks in the card theme's colours, legible on its surface.
+  PhotosPalette _photosPalette(ProfileCardTheme theme, Color accent) {
+    final surface = CardSection.surfaceOf(theme);
+    final text = ProfileCardTheme.textOn(surface);
+    final lightText = text.computeLuminance() > 0.5;
+    double contrast(Color a, Color b) {
+      final la = a.computeLuminance(), lb = b.computeLuminance();
+      return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+    }
+
+    final button = TastesByCategory.readableFill(accent);
+    return PhotosPalette(
+      surface: surface,
+      inner: Color.lerp(surface, lightText ? Colors.black : Colors.white, lightText ? 0.22 : 0.3)!,
+      border: text.withValues(alpha: 0.16),
+      accent: contrast(accent, surface) >= 3 ? accent : text,
+      button: button,
+      onButton: ProfileCardTheme.textOn(button),
+      text: text,
+      muted: text.withValues(alpha: 0.72),
+    );
+  }
+
   void _previewReveal() {
     final profile = _profile;
     showDialog<void>(
@@ -270,19 +298,6 @@ class _MyCardScreenState extends State<MyCardScreen> {
         onReturnHome: () => Navigator.of(ctx).pop(),
       ),
     );
-  }
-
-  void _onTip(_Tip tip) {
-    switch (tip) {
-      case _Tip.bio:
-        _editBio();
-      case _Tip.lifestyle:
-        _editLifestyle();
-      case _Tip.style:
-        _editStyle();
-      case _Tip.photos:
-        break; // the photos are right there on the page
-    }
   }
 
   @override
@@ -332,30 +347,64 @@ class _MyCardScreenState extends State<MyCardScreen> {
           ListView(
             padding: const EdgeInsets.only(bottom: 40),
             children: [
-              _ProgressCard(progress: _Progress.of(profile, style), theme: theme, accent: accent, onTip: _onTip),
-              sideTitle('👾 Tu personaje', 'lo ven antes de la fogata'),
+              // The card as a date sees it, either face.
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 10),
+                child: Center(
+                  child: CardFaceSwitch(
+                    real: _previewReal,
+                    onChanged: (real) => setState(() => _previewReal = real),
+                    accent: accent,
+                    onAccent: theme.onAccent(accent),
+                  ),
+                ),
+              ),
               Center(
                 child: GestureDetector(
-                  onTap: _editAvatar,
+                  onTap: _previewReal
+                      ? () => ProfileCardView.open(context, profile: profile, mode: ProfileViewMode.own, initiallyReal: true)
+                      : _editAvatar,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(18),
                     child: SizedBox(
-                      width: math.min(MediaQuery.sizeOf(context).width - 28, 320),
-                      height: 380,
-                      child: CharacterStage(profile: profile, style: style, theme: theme, accent: accent, fixedScale: 2),
+                      width: math.min(MediaQuery.sizeOf(context).width - 28, 340),
+                      height: 540,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: _previewReal
+                            ? RealFaceCover(
+                                key: const ValueKey('real'),
+                                profile: profile,
+                                style: style,
+                                theme: theme,
+                                accent: accent,
+                                topInset: 0,
+                                showHint: false,
+                              )
+                            : CharacterStage(
+                                key: const ValueKey('character'),
+                                profile: profile,
+                                style: style,
+                                theme: theme,
+                                accent: accent,
+                                fixedScale: 2,
+                                feetAt: 0.6,
+                              ),
+                      ),
                     ),
                   ),
                 ),
               ),
+              sideTitle('👾 Tu personaje', 'lo ven antes de la fogata'),
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
                 child: FilledButton.icon(
                   onPressed: _editAvatar,
                   icon: const Icon(Icons.checkroom, size: 19),
                   label: const Text('Vestir a mi personaje'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: accent,
-                    foregroundColor: theme.onAccent(accent),
+                    backgroundColor: TastesByCategory.readableFill(accent),
+                    foregroundColor: ProfileCardTheme.textOn(TastesByCategory.readableFill(accent)),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
                 ),
@@ -395,6 +444,7 @@ class _MyCardScreenState extends State<MyCardScreen> {
                     verificationSelfie: profile.verificationSelfie,
                   ),
                   onChanged: _photosChanged,
+                  palette: _photosPalette(theme, accent),
                 ),
               ),
               _EditableSection(
@@ -586,93 +636,6 @@ class _BioField extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-enum _Tip { photos, bio, lifestyle, style }
-
-/// How complete the card is, and the first thing missing.
-class _Progress {
-  const _Progress(this.done, this.total, this.tip, this.tipText);
-
-  final int done;
-  final int total;
-  final _Tip? tip;
-  final String? tipText;
-
-  static _Progress of(UserProfile p, ProfileCardStyle style) {
-    final checks = <(_Tip, String, bool)>[
-      (_Tip.photos, 'Agrega tu foto principal', (p.profilePhoto ?? '').isNotEmpty),
-      (_Tip.photos, 'Certifica tu foto con una selfie', p.isVerified),
-      (_Tip.photos, 'Sube al menos 3 fotos', p.allPhotos.length >= 3),
-      (_Tip.bio, 'Escribe algo sobre ti', p.bio.trim().isNotEmpty),
-      (_Tip.lifestyle, 'Cuenta tu estilo de vida', p.lifestyle.activeBadges.length >= 3),
-      (_Tip.style, 'Ponle una frase a tu personaje', style.phrase.isNotEmpty),
-    ];
-    final missing = checks.where((c) => !c.$3).toList();
-    return _Progress(
-      checks.length - missing.length,
-      checks.length,
-      missing.isEmpty ? null : missing.first.$1,
-      missing.isEmpty ? null : missing.first.$2,
-    );
-  }
-}
-
-class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({required this.progress, required this.theme, required this.accent, required this.onTip});
-
-  final _Progress progress;
-  final ProfileCardTheme theme;
-  final Color accent;
-  final ValueChanged<_Tip> onTip;
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = (progress.done * 100 / progress.total).round();
-    final surface = CardSection.surfaceOf(theme);
-    final text = ProfileCardTheme.textOn(surface);
-    return Container(
-      margin: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  progress.tip == null ? 'Tu tarjeta está completa' : 'Tu tarjeta está al $percent%',
-                  style: TextStyle(color: text, fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-              ),
-              if (progress.tip != null)
-                Flexible(
-                  child: GestureDetector(
-                    onTap: () => onTip(progress.tip!),
-                    child: Text(
-                      '${progress.tipText} →',
-                      textAlign: TextAlign.end,
-                      style: TextStyle(color: text, fontSize: 12.5, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: progress.done / progress.total,
-              minHeight: 6,
-              color: accent,
-              backgroundColor: text.withValues(alpha: 0.12),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

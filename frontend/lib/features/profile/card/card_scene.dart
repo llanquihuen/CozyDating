@@ -14,7 +14,8 @@ class CardScene {
   static String assetFor(String themeId) => 'assets/images/card_scenes/$themeId.png';
 }
 
-/// [CardScene] for [themeId] drawn at an integer [scale] so its pixels match the avatar's, placed
+/// [CardScene] for [themeId] drawn at [scale] (a whole number at full screen, so its pixels match
+/// the avatar's), placed
 /// so its floor row lands on [feetY] and centred horizontally. Where it does not reach (a very
 /// tall or wide screen) the [fallback] colour shows; without the asset, only the fallback.
 class CardSceneView extends StatelessWidget {
@@ -27,7 +28,7 @@ class CardSceneView extends StatelessWidget {
   });
 
   final String themeId;
-  final int scale;
+  final double scale;
   final double feetY;
   final Color fallback;
 

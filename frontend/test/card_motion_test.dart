@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/profile/card/card_entrance.dart';
-import 'package:frontend/features/profile/card/pixel_swap.dart';
 import 'package:frontend/features/profile/view/pixel_motion.dart';
-
-final _pixelated =
-    find.byWidgetPredicate((w) => w is CustomPaint && w.painter.runtimeType.toString() == '_PixelatedPainter');
 
 Widget _face(bool real) => SizedBox(
       width: 120,
@@ -21,25 +17,6 @@ Widget _host(Widget child, {bool reduceMotion = false}) => MaterialApp(
     );
 
 void main() {
-  testWidgets('the reveal dissolves the character into the real face through big pixels', (tester) async {
-    await tester.pumpWidget(_host(PixelSwap(swapKey: false, child: _face(false))));
-    expect(_pixelated, findsNothing);
-
-    await tester.pumpWidget(_host(PixelSwap(swapKey: true, child: _face(true))));
-    expect(find.text('real'), findsOneWidget, reason: 'the new face is there at once, under the pixels');
-    expect(_pixelated, findsOneWidget);
-
-    await tester.pump(PixelSwap.duration + const Duration(milliseconds: 200));
-    expect(_pixelated, findsNothing, reason: 'sharp again at the end');
-  });
-
-  testWidgets('with reduced motion the swap is immediate', (tester) async {
-    await tester.pumpWidget(_host(PixelSwap(swapKey: false, child: _face(false)), reduceMotion: true));
-    await tester.pumpWidget(_host(PixelSwap(swapKey: true, child: _face(true)), reduceMotion: true));
-    expect(_pixelated, findsNothing);
-    expect(find.text('real'), findsOneWidget);
-  });
-
   testWidgets('a new card is dealt in and settles; reduced motion shows it still', (tester) async {
     await tester.pumpWidget(_host(CardEntrance(child: _face(false))));
     final start =

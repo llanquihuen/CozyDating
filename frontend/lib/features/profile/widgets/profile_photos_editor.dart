@@ -20,11 +20,50 @@ class ProfilePhotos {
   final String? verificationSelfie;
 }
 
+/// Colours of the photo sections, so they can wear the card theme's.
+class PhotosPalette {
+  const PhotosPalette({
+    required this.surface,
+    required this.inner,
+    required this.border,
+    required this.accent,
+    required this.button,
+    required this.onButton,
+    required this.text,
+    required this.muted,
+  });
+
+  /// Background of each block, and of the photo slots inside it.
+  final Color surface;
+  final Color inner;
+  final Color border;
+
+  /// Icons and links on [surface]; [button] fills buttons, with [onButton] on top.
+  final Color accent;
+  final Color button;
+  final Color onButton;
+  final Color text;
+  final Color muted;
+
+  /// The app's dark slate look.
+  static const PhotosPalette slate = PhotosPalette(
+    surface: Color(0xFF1E293B),
+    inner: Color(0xFF0F172A),
+    border: Color(0xFF334155),
+    accent: Color(0xFF38BDF8),
+    button: Color(0xFF0284C7),
+    onButton: Colors.white,
+    text: Colors.white,
+    muted: Color(0xFF94A3B8),
+  );
+}
+
 class ProfilePhotosEditor extends StatefulWidget {
-  const ProfilePhotosEditor({super.key, required this.initial, this.onChanged});
+  const ProfilePhotosEditor({super.key, required this.initial, this.onChanged, this.palette = PhotosPalette.slate});
 
   final ProfilePhotos initial;
   final ValueChanged<ProfilePhotos>? onChanged;
+  final PhotosPalette palette;
 
   @override
   State<ProfilePhotosEditor> createState() => _ProfilePhotosEditorState();
@@ -74,6 +113,8 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
     ));
   }
 
+  PhotosPalette get _p => widget.palette;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -120,12 +161,12 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
     final hasPhoto = _currentPhoto != null && _currentPhoto!.isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: _p.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _isVerified ? const Color(0xFF10B981).withOpacity(0.5) : const Color(0xFF334155),
+          color: _isVerified ? Color(0xFF10B981).withOpacity(0.5) : _p.border,
           width: _isVerified ? 1.5 : 1.0,
         ),
       ),
@@ -135,10 +176,10 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                   child: Row(
                 children: [
-                  Icon(Icons.badge_outlined, color: Color(0xFF38BDF8), size: 20),
+                  Icon(Icons.badge_outlined, color: _p.accent, size: 20),
                   SizedBox(width: 8),
                   Flexible(
                       child: Text(
@@ -146,19 +187,19 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: _p.text,
                     ),
                   )),
                 ],
               )),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color:
-                      _isVerified ? const Color(0xFF059669).withOpacity(0.2) : const Color(0xFFD97706).withOpacity(0.2),
+                      _isVerified ? Color(0xFF059669).withOpacity(0.2) : Color(0xFFD97706).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _isVerified ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                    color: _isVerified ? Color(0xFF10B981) : Color(0xFFF59E0B),
                   ),
                 ),
                 child: Row(
@@ -167,15 +208,15 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                     Icon(
                       _isVerified ? Icons.verified : Icons.warning_amber_rounded,
                       size: 14,
-                      color: _isVerified ? const Color(0xFF34D399) : const Color(0xFFFBBF24),
+                      color: _isVerified ? Color(0xFF34D399) : Color(0xFFFBBF24),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4),
                     Text(
                       _isVerified ? 'Certificado 🛡️' : 'Sin Certificar ⚠️',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: _isVerified ? const Color(0xFF34D399) : const Color(0xFFFBBF24),
+                        color: _isVerified ? Color(0xFF34D399) : Color(0xFFFBBF24),
                       ),
                     ),
                   ],
@@ -183,12 +224,12 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          const Text(
+          SizedBox(height: 6),
+          Text(
             'Tu foto principal visible en citas. Requiere certificación facial con selfie para comprobar tu identidad.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+            style: TextStyle(fontSize: 12, color: _p.muted),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
 
           // Main Photo Card
           Row(
@@ -201,16 +242,16 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                   width: 125,
                   height: 155,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
+                    color: _p.inner,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: _isVerified ? const Color(0xFF10B981) : const Color(0xFF475569),
+                      color: _isVerified ? Color(0xFF10B981) : _p.border,
                       width: 2,
                     ),
                     boxShadow: [
                       if (_isVerified)
                         BoxShadow(
-                          color: const Color(0xFF10B981).withOpacity(0.25),
+                          color: Color(0xFF10B981).withOpacity(0.25),
                           blurRadius: 10,
                           spreadRadius: 1,
                         ),
@@ -224,8 +265,8 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                             Image.network(
                               AppConfig.resolveMediaUrl(_currentPhoto!),
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Center(
-                                child: Icon(Icons.broken_image, color: Colors.white38),
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Icon(Icons.broken_image, color: _p.muted),
                               ),
                             ),
                             Positioned(
@@ -234,30 +275,30 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                               right: 0,
                               child: Container(
                                 color: Colors.black.withOpacity(0.65),
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: const Row(
+                                padding: EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.edit, color: Colors.white70, size: 12),
+                                    Icon(Icons.edit, color: _p.muted, size: 12),
                                     SizedBox(width: 4),
-                                    Text('Cambiar', style: TextStyle(color: Colors.white, fontSize: 10)),
+                                    Text('Cambiar', style: TextStyle(color: _p.text, fontSize: 10)),
                                   ],
                                 ),
                               ),
                             ),
                           ],
                         )
-                      : const Column(
+                      : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_a_photo, color: Color(0xFF38BDF8), size: 28),
+                            Icon(Icons.add_a_photo, color: _p.accent, size: 28),
                             SizedBox(height: 6),
-                            Text('Elegir Foto', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+                            Text('Elegir Foto', style: TextStyle(color: _p.muted, fontSize: 11)),
                           ],
                         ),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
 
               // Actions & Verification Status Details
               Expanded(
@@ -266,13 +307,13 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                   children: [
                     if (_isVerified) ...[
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF064E3B).withOpacity(0.6),
+                          color: Color(0xFF064E3B).withOpacity(0.6),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF059669)),
+                          border: Border.all(color: Color(0xFF059669)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(Icons.check_circle, color: Color(0xFF34D399), size: 18),
                             SizedBox(width: 8),
@@ -285,27 +326,27 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF94A3B8),
-                          side: const BorderSide(color: Color(0xFF475569)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          foregroundColor: _p.muted,
+                          side: BorderSide(color: _p.border),
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        icon: const Icon(Icons.refresh, size: 14),
-                        label: const Text('Re-certificar con selfie', style: TextStyle(fontSize: 11)),
+                        icon: Icon(Icons.refresh, size: 14),
+                        label: Text('Re-certificar con selfie', style: TextStyle(fontSize: 11)),
                         onPressed: _startSelfieVerification,
                       ),
                     ] else ...[
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF78350F).withOpacity(0.5),
+                          color: Color(0xFF78350F).withOpacity(0.5),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFD97706)),
+                          border: Border.all(color: Color(0xFFD97706)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(Icons.info_outline, color: Color(0xFFFBBF24), size: 18),
                             SizedBox(width: 8),
@@ -318,32 +359,32 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0284C7),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          backgroundColor: _p.button,
+                          foregroundColor: _p.onButton,
+                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           elevation: 3,
                         ),
-                        icon: const Icon(Icons.camera_front, size: 18),
-                        label: const Text(
+                        icon: Icon(Icons.camera_front, size: 18),
+                        label: Text(
                           '🤳 Certificar con Selfie Rápida',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                         onPressed: _startSelfieVerification,
                       ),
                     ],
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     TextButton.icon(
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF38BDF8),
+                        foregroundColor: _p.accent,
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
                       ),
-                      icon: const Icon(Icons.image, size: 14),
-                      label: const Text('Cambiar Foto de Perfil', style: TextStyle(fontSize: 11.5)),
+                      icon: Icon(Icons.image, size: 14),
+                      label: Text('Cambiar Foto de Perfil', style: TextStyle(fontSize: 11.5)),
                       onPressed: _showChangeProfilePhotoDialog,
                     ),
                   ],
@@ -358,11 +399,11 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
 
   Widget _buildHobbyGallerySection() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: _p.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF334155)),
+        border: Border.all(color: _p.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,7 +411,7 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Expanded(
                   child: Row(
                 children: [
                   Icon(Icons.photo_library, color: Color(0xFFFB7185), size: 20),
@@ -381,39 +422,39 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: _p.text,
                     ),
                   )),
                 ],
               )),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
+                  color: _p.inner,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF475569)),
+                  border: Border.all(color: _p.border),
                 ),
                 child: Text(
                   '${_userPhotos.length} / 5 fotos',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF38BDF8),
+                    color: _p.accent,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          const Text(
+          SizedBox(height: 6),
+          Text(
             'Comparte fotos de tus hobbies, viajes, mascotas o lugares. No requieren certificación y se revelarán tras match mutuo.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+            style: TextStyle(fontSize: 12, color: _p.muted),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           GridView.builder(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            physics: NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 5,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
@@ -433,8 +474,8 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                         fit: BoxFit.cover,
                         errorBuilder: (ctx, error, stackTrace) {
                           return Container(
-                            color: const Color(0xFF334155),
-                            child: const Icon(Icons.broken_image, color: Colors.white38, size: 20),
+                            color: _p.border,
+                            child: Icon(Icons.broken_image, color: _p.muted, size: 20),
                           );
                         },
                       ),
@@ -450,12 +491,12 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                           AuthService.updateProfilePhotos(_userPhotos);
                         },
                         child: Container(
-                          padding: const EdgeInsets.all(3),
+                          padding: EdgeInsets.all(3),
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.75),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, color: Colors.white, size: 12),
+                          child: Icon(Icons.close, color: _p.text, size: 12),
                         ),
                       ),
                     ),
@@ -466,19 +507,19 @@ class _ProfilePhotosEditorState extends State<ProfilePhotosEditor> {
                   onTap: _showAddHobbyPhotoDialog,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
+                      color: _p.inner,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: const Color(0xFF475569),
+                        color: _p.border,
                         width: 1.2,
                       ),
                     ),
-                    child: const Column(
+                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_photo_alternate, color: Color(0xFF38BDF8), size: 22),
+                        Icon(Icons.add_photo_alternate, color: _p.accent, size: 22),
                         SizedBox(height: 4),
-                        Text('Añadir', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 10)),
+                        Text('Añadir', style: TextStyle(color: _p.muted, fontSize: 10)),
                       ],
                     ),
                   ),

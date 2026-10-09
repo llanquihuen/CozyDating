@@ -100,6 +100,7 @@ class CharacterStage extends StatelessWidget {
     this.avatarHeroTag,
     this.hint,
     this.fixedScale,
+    this.feetAt = 0.72,
   });
 
   final UserProfile profile;
@@ -111,12 +112,9 @@ class CharacterStage extends StatelessWidget {
   final String? hint;
   final int? fixedScale;
 
-  /// The panel behind the avatar stands out from the base even when the theme's panel colour is
-  /// close to it (as on the compact card).
-  Color get _panel {
-    final diff = (theme.panel.computeLuminance() - theme.base.computeLuminance()).abs();
-    return diff > 0.03 ? theme.panel : Color.lerp(theme.base, accent, 0.18)!;
-  }
+  /// Where the feet stand, as a share of the height. With [fixedScale] it is kept as is (a short
+  /// preview leaves the scene's bottom edge to the shade); otherwise it moves so the scene covers.
+  final double feetAt;
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +129,7 @@ class CharacterStage extends StatelessWidget {
         final avatarW = crop.width * scale, avatarH = crop.height * scale;
         // Feet near 72% of the height, kept where the scene still reaches the top and bottom edges.
         final low = h - (CardScene.size.height - CardScene.floorY) * scale, high = CardScene.floorY * scale;
-        final feetY = (low <= high ? (h * 0.72).clamp(low, high) : h * 0.72).roundToDouble();
+        final feetY = (fixedScale == null && low <= high ? (h * feetAt).clamp(low, high) : h * feetAt).roundToDouble();
         final avatarTop = feetY - avatarH;
         final roomAboveHead = avatarTop - topInset > 110;
         final avatarLeft = (w - avatarW) / 2;
@@ -144,7 +142,7 @@ class CharacterStage extends StatelessWidget {
           clipBehavior: Clip.hardEdge,
           children: [
             Positioned.fill(
-              child: CardSceneView(themeId: theme.id, scale: scale, feetY: feetY, fallback: _panel),
+              child: CardSceneView(themeId: theme.id, scale: scale.toDouble(), feetY: feetY, fallback: theme.base),
             ),
             Positioned.fill(
               child: SceneParticles(

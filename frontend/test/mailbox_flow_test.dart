@@ -144,9 +144,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // Header should show Cita en la Fogata / Decisión pendiente, NOT Conexión Mutua
+      // Header should show Cita en la Fogata, NOT Conexión Mutua
       expect(find.text('CITA EN LA FOGATA'), findsOneWidget);
-      expect(find.text('Decisión pendiente • Sofia'), findsOneWidget);
       expect(find.textContaining('Conexión Mutua'), findsNothing);
 
       // Actions should show 'Volver a tomar decisión', NOT 'Escribir a Sofia'
@@ -214,7 +213,6 @@ void main() {
 
       // Full profile modal should be displayed
       expect(find.text('CHISPA MUTUA'), findsOneWidget);
-      expect(find.text('Conexión Romántica • Claire'), findsOneWidget);
       // The card flips from her character face to the real one
       await tester.pump(MatchRevealCelebrationView.revealDelay);
       await tester.pump(const Duration(milliseconds: 700));
@@ -365,7 +363,6 @@ void main() {
 
       // Modal is open, showing full profile with all 3 photos combined
       expect(find.text('CITA EN LA FOGATA'), findsOneWidget);
-      expect(find.text('Decisión pendiente • Camila'), findsOneWidget);
       // The reveal card gets the profile photo and the additional ones combined
       expect(tester.widget<ProfileCard>(find.byType(ProfileCard)).profile.allPhotos, hasLength(3));
       expect(find.text('Ver fotos'), findsOneWidget);

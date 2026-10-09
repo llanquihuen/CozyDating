@@ -7,6 +7,7 @@ import '../../../core/models/user_profile.dart';
 import '../../avatar/widgets/avatar_still_image.dart';
 import 'card_frame_painter.dart';
 import 'card_parts.dart';
+import 'card_scene.dart';
 import 'card_themes.dart';
 
 /// A player's two-sided profile card. The character face (avatar, phrase, featured tastes; a game
@@ -121,32 +122,40 @@ class _CharacterFace extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: Container(
-                  decoration: BoxDecoration(color: _panelColor, borderRadius: BorderRadius.circular(14)),
-                  child: Stack(
-                    alignment: Alignment.bottomCenter,
-                    children: [
-                      Positioned(
-                        bottom: 10,
-                        child: Container(
-                          width: 120,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.22),
-                            borderRadius: const BorderRadius.all(Radius.elliptical(60, 7)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: LayoutBuilder(
+                    builder: (context, c) {
+                      // The avatar contained in the padded panel; the theme's scene behind it at the
+                      // same scale, its floor under the avatar's feet.
+                      final a = math.min((c.maxWidth - 16) / _crop.width, (c.maxHeight - 24) / _crop.height);
+                      final feetY = 10 + (c.maxHeight - 24 + _crop.height * a) / 2;
+                      return Stack(
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          Positioned.fill(
+                            child: CardSceneView(themeId: theme.id, scale: a, feetY: feetY, fallback: _panelColor),
                           ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(8, 10, 8, 14),
-                          child: _hero(AvatarStillImage(
-                            config: profile.avatarConfig,
-                            crop: const Rect.fromLTRB(4, 6, 60, 124),
-                          )),
-                        ),
-                      ),
-                    ],
+                          Positioned(
+                            top: feetY - 7,
+                            child: Container(
+                              width: _crop.width * a * 0.7,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.28),
+                                borderRadius: BorderRadius.all(Radius.elliptical(_crop.width * a * 0.35, 6)),
+                              ),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 10, 8, 14),
+                              child: _hero(AvatarStillImage(config: profile.avatarConfig, crop: _crop)),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -176,6 +185,8 @@ class _CharacterFace extends StatelessWidget {
       ),
     );
   }
+
+  static const Rect _crop = Rect.fromLTRB(4, 6, 60, 124);
 
   Widget _hero(Widget child) => avatarHeroTag == null ? child : Hero(tag: avatarHeroTag!, child: child);
 
