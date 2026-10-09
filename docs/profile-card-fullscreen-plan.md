@@ -49,6 +49,11 @@ transiciones y la sección "Editar tu tarjeta" responde a toques.
 
 ## 2. Fases
 
+**Estado (2026-10-08):** fases 1 y 2 hechas, en `features/profile/view/`. Diferencias con lo
+planeado: el `Hero` vuela solo el avatar (no la tarjeta entera); en la revelación la vista completa
+no lleva botón principal (los botones siguen en el diálogo de la revelación) y "Ver fotos" se
+mantiene ahí; el selector de cara también está bajo la tarjeta compacta de la revelación.
+
 Cada fase deja la app funcionando y con `flutter test` y `flutter analyze` sin errores nuevos.
 
 ### Fase 1 — Vista completa y cara personaje

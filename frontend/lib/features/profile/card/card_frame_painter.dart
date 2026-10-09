@@ -6,15 +6,28 @@ import 'card_themes.dart';
 
 /// The character face's frame: an accent border plus the theme's ornaments.
 class CardFramePainter extends CustomPainter {
-  const CardFramePainter({required this.frame, required this.accent, required this.second, this.radius = 18});
+  const CardFramePainter({
+    required this.frame,
+    required this.accent,
+    required this.second,
+    this.radius = 18,
+    this.cornersOnly = false,
+  });
 
   final CardFrame frame;
   final Color accent;
   final Color second;
   final double radius;
 
+  /// Fullscreen: only four corner brackets in the accent, so the frame leaves the scene free.
+  final bool cornersOnly;
+
   @override
   void paint(Canvas canvas, Size size) {
+    if (cornersOnly) {
+      _corners(canvas, size);
+      return;
+    }
     final rect = Offset.zero & size;
     final border = Paint()
       ..style = PaintingStyle.stroke
@@ -111,6 +124,28 @@ class CardFramePainter extends CustomPainter {
     }
   }
 
+  void _corners(Canvas canvas, Size size) {
+    const inset = 10.0, arm = 18.0, dot = 4.0;
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.square
+      ..color = accent;
+    final fill = Paint()..color = second;
+    for (final (sx, sy) in const [(1.0, 1.0), (-1.0, 1.0), (1.0, -1.0), (-1.0, -1.0)]) {
+      final x = sx > 0 ? inset : size.width - inset;
+      final y = sy > 0 ? inset : size.height - inset;
+      canvas.drawPath(
+        Path()
+          ..moveTo(x, y + sy * arm)
+          ..lineTo(x, y)
+          ..lineTo(x + sx * arm, y),
+        line,
+      );
+      canvas.drawRect(Rect.fromLTWH(x + sx * 4.5 - (sx < 0 ? dot : 0), y + sy * 4.5 - (sy < 0 ? dot : 0), dot, dot), fill);
+    }
+  }
+
   static void _bow(Canvas canvas, Offset c, Color wings, Color knot) {
     final p = Paint()..color = wings;
     canvas.drawPath(
@@ -145,5 +180,9 @@ class CardFramePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CardFramePainter old) =>
-      old.frame != frame || old.accent != accent || old.second != second || old.radius != radius;
+      old.frame != frame ||
+      old.accent != accent ||
+      old.second != second ||
+      old.radius != radius ||
+      old.cornersOnly != cornersOnly;
 }

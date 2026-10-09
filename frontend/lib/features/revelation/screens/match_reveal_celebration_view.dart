@@ -7,7 +7,10 @@ import '../../../core/services/avatar_storage_service.dart';
 import '../../../core/widgets/fullscreen_photo_viewer.dart';
 import '../../chat/screens/private_chat_screen.dart';
 import '../../mailbox/models/mailbox_models.dart';
+import '../../profile/card/card_themes.dart';
 import '../../profile/card/profile_card.dart';
+import '../../profile/view/card_face_switch.dart';
+import '../../profile/view/profile_card_view.dart';
 
 class MatchRevealCelebrationView extends StatefulWidget {
   final UserProfile localUser;
@@ -62,6 +65,21 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
         commune: _commune,
         lifestyle: _lifestyle,
       );
+
+  late final Object _heroTag = Object();
+
+  ProfileCardTheme get _cardTheme => cardThemeOf(_partnerCard.effectiveCardStyle.normalizedFor(_partnerCard.tastes).themeId);
+  Color get _cardAccent => _cardTheme.accentOf(_partnerCard.effectiveCardStyle);
+
+  void _openFullCard() {
+    _revealTimer?.cancel();
+    ProfileCardView.open(
+      context,
+      profile: _partnerCard,
+      initiallyReal: _showReal,
+      avatarHeroTag: _showReal ? null : _heroTag,
+    );
+  }
 
   @override
   void initState() {
@@ -282,7 +300,7 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
             ),
 
             // The partner's two-sided card: it shows their character face, then flips to the real
-            // one (the reveal). Tap to turn it over again.
+            // one (the reveal). The switch turns it over again; a tap opens it at full screen.
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
@@ -292,18 +310,28 @@ class _MatchRevealCelebrationViewState extends State<MatchRevealCelebrationView>
                       child: Center(
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => setState(() => _showReal = !_showReal),
-                          child: ProfileCard(profile: _partnerCard, showReal: _showReal),
+                          onTap: _openFullCard,
+                          child: ProfileCard(profile: _partnerCard, showReal: _showReal, avatarHeroTag: _heroTag),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
+                    CardFaceSwitch(
+                      real: _showReal,
+                      onChanged: (real) {
+                        _revealTimer?.cancel();
+                        setState(() => _showReal = real);
+                      },
+                      accent: _cardAccent,
+                      onAccent: _cardTheme.onAccent(_cardAccent),
+                    ),
+                    const SizedBox(height: 4),
                     Wrap(
                       alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(
-                          'Toca la tarjeta para voltearla',
+                          'Toca la tarjeta para verla completa',
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 12),
                         ),
                         if (_photos.isNotEmpty) ...[

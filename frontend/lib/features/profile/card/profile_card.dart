@@ -2,12 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../core/config/app_config.dart';
-import '../../../core/models/preference_tags.dart';
 import '../../../core/models/profile_card_style.dart';
 import '../../../core/models/user_profile.dart';
 import '../../avatar/widgets/avatar_still_image.dart';
 import 'card_frame_painter.dart';
+import 'card_parts.dart';
 import 'card_themes.dart';
 
 /// A player's two-sided profile card. The character face (avatar, phrase, featured tastes; a game
@@ -24,6 +23,7 @@ class ProfileCard extends StatelessWidget {
     this.showReal = false,
     this.distanceKm,
     this.flipDuration = const Duration(milliseconds: 650),
+    this.avatarHeroTag,
   });
 
   final UserProfile profile;
@@ -35,6 +35,10 @@ class ProfileCard extends StatelessWidget {
   /// Shown next to the commune on the real face when known.
   final double? distanceKm;
   final Duration flipDuration;
+
+  /// When set, the character face's avatar is a [Hero] with this tag, so it can fly into the
+  /// fullscreen card (`ProfileCardView`). Leave null wherever the same card shows more than once.
+  final Object? avatarHeroTag;
 
   static const Size designSize = Size(300, 454);
   static const double aspectRatio = 300 / 454;
@@ -68,7 +72,7 @@ class ProfileCard extends StatelessWidget {
                           transform: Matrix4.rotationY(math.pi),
                           child: _RealFace(profile: profile, style: cardStyle, theme: theme, distanceKm: distanceKm),
                         )
-                      : _CharacterFace(profile: profile, style: cardStyle, theme: theme),
+                      : _CharacterFace(profile: profile, style: cardStyle, theme: theme, avatarHeroTag: avatarHeroTag),
                 );
               },
             ),
@@ -79,64 +83,13 @@ class ProfileCard extends StatelessWidget {
   }
 }
 
-/// A taste chip: emoji and short title.
-class _TasteChip extends StatelessWidget {
-  const _TasteChip({required this.tasteId, required this.fill, required this.textColor, this.border});
-
-  final String tasteId;
-  final Color fill;
-  final Color textColor;
-  final Color? border;
-
-  @override
-  Widget build(BuildContext context) {
-    final item = PreferenceCatalog.getItem(tasteId);
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(14),
-        border: border == null ? null : Border.all(color: border!, width: 1.2),
-      ),
-      child: Text(
-        '${item?.emoji ?? '✨'} ${PreferenceCatalog.shortTitle(tasteId)}',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w500),
-      ),
-    );
-  }
-}
-
-/// The verified-identity seal: a tick in a filled circle.
-class _VerifiedBadge extends StatelessWidget {
-  const _VerifiedBadge({required this.color, required this.tick, this.size = 20});
-
-  final Color color;
-  final Color tick;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Identidad certificada',
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Icon(Icons.check, size: size * 0.72, color: tick),
-      ),
-    );
-  }
-}
-
 class _CharacterFace extends StatelessWidget {
-  const _CharacterFace({required this.profile, required this.style, required this.theme});
+  const _CharacterFace({required this.profile, required this.style, required this.theme, this.avatarHeroTag});
 
   final UserProfile profile;
   final ProfileCardStyle style;
   final ProfileCardTheme theme;
+  final Object? avatarHeroTag;
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +115,7 @@ class _CharacterFace extends StatelessWidget {
                   ),
                   if (profile.isVerified) ...[
                     const SizedBox(width: 8),
-                    _VerifiedBadge(color: accent, tick: theme.onAccent(accent)),
+                    VerifiedBadge(color: accent, tick: theme.onAccent(accent)),
                   ],
                 ],
               ),
@@ -187,10 +140,10 @@ class _CharacterFace extends StatelessWidget {
                       Positioned.fill(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(8, 10, 8, 14),
-                          child: AvatarStillImage(
+                          child: _hero(AvatarStillImage(
                             config: profile.avatarConfig,
                             crop: const Rect.fromLTRB(4, 6, 60, 124),
-                          ),
+                          )),
                         ),
                       ),
                     ],
@@ -213,7 +166,7 @@ class _CharacterFace extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     for (final t in style.featuredTastes)
-                      _TasteChip(tasteId: t, fill: theme.chipFill(accent), textColor: theme.chipText(accent)),
+                      TasteChip(tasteId: t, fill: theme.chipFill(accent), textColor: theme.chipText(accent)),
                   ],
                 ),
               ],
@@ -223,6 +176,8 @@ class _CharacterFace extends StatelessWidget {
       ),
     );
   }
+
+  Widget _hero(Widget child) => avatarHeroTag == null ? child : Hero(tag: avatarHeroTag!, child: child);
 
   /// The avatar panel stands out from the base even when the theme's panel colour is close to it.
   Color get _panelColor {
@@ -279,9 +234,9 @@ class _RealFaceState extends State<_RealFace> {
         fit: StackFit.expand,
         children: [
           if (photos.isEmpty)
-            _NoPhoto(theme: theme)
+            NoPhoto(theme: theme)
           else
-            _ProfilePhoto(url: photos[index], key: ValueKey(photos[index])),
+            ProfilePhoto(url: photos[index], key: ValueKey(photos[index])),
           // The theme's base colour rises behind the text, like a dating app's photo shade.
           DecoratedBox(
             decoration: BoxDecoration(
@@ -360,7 +315,7 @@ class _RealFaceState extends State<_RealFace> {
                       ),
                       if (p.isVerified) ...[
                         const SizedBox(width: 8),
-                        const _VerifiedBadge(color: Color(0xFF3B82F6), tick: white, size: 22),
+                        const VerifiedBadge(color: Color(0xFF3B82F6), tick: white, size: 22),
                       ],
                     ],
                   ),
@@ -406,7 +361,7 @@ class _RealFaceState extends State<_RealFace> {
                       runSpacing: 6,
                       children: [
                         for (final t in widget.style.featuredTastes.take(3))
-                          _TasteChip(
+                          TasteChip(
                             tasteId: t,
                             fill: white.withValues(alpha: 0.14),
                             textColor: white,
@@ -422,49 +377,5 @@ class _RealFaceState extends State<_RealFace> {
         ],
       ),
     );
-  }
-}
-
-class _NoPhoto extends StatelessWidget {
-  const _NoPhoto({required this.theme});
-
-  final ProfileCardTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color.lerp(theme.base, Colors.white, 0.25)!, theme.base],
-        ),
-      ),
-      child: Align(
-        alignment: const Alignment(0, -0.6),
-        child: Icon(Icons.person_rounded, size: 96, color: Colors.white.withValues(alpha: 0.22)),
-      ),
-    );
-  }
-}
-
-/// A profile photo from the server (or a bundled asset), covering its box.
-class _ProfilePhoto extends StatelessWidget {
-  const _ProfilePhoto({super.key, required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    final resolved = AppConfig.resolveMediaUrl(url);
-    Widget fallback(BuildContext _, Object __, StackTrace? ___) =>
-        const ColoredBox(color: Color(0xFF1E293B), child: Center(child: Icon(Icons.person_outline, size: 60, color: Colors.white30)));
-    if (resolved.startsWith('assets/')) {
-      return Image.asset(resolved, fit: BoxFit.cover, errorBuilder: fallback);
-    }
-    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
-      return Image.network(resolved, fit: BoxFit.cover, errorBuilder: fallback);
-    }
-    return fallback(context, '', null);
   }
 }

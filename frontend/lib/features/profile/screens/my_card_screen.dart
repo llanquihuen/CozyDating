@@ -6,6 +6,7 @@ import '../../../core/services/auth_service.dart';
 import '../../revelation/screens/match_reveal_celebration_view.dart';
 import '../card/card_themes.dart';
 import '../card/profile_card.dart';
+import '../view/profile_card_view.dart';
 import '../widgets/card_style_sheet.dart';
 
 /// "Tu tarjeta", opened from the room: the player's two-sided card, a Personaje / Real switch that
@@ -37,6 +38,7 @@ class MyCardScreen extends StatefulWidget {
 
 class _MyCardScreenState extends State<MyCardScreen> {
   late bool _real = widget.initiallyReal;
+  final Object _heroTag = Object();
 
   /// A style saved here but not (yet) reflected by [MyCardScreen.profileOf] (offline, or no session).
   ProfileCardStyle? _localStyle;
@@ -110,14 +112,17 @@ class _MyCardScreenState extends State<MyCardScreen> {
               Expanded(
                 child: Center(
                   child: GestureDetector(
-                    // Anywhere on the card, text included (it ignores pointers).
+                    // Anywhere on the card, text included (it ignores pointers): open it at full
+                    // screen, as others see it.
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => setState(() => _real = !_real),
-                    // Swipe sideways to flip too, like turning a card over.
-                    onHorizontalDragEnd: (d) {
-                      if ((d.primaryVelocity ?? 0).abs() > 200) setState(() => _real = !_real);
-                    },
-                    child: ProfileCard(profile: profile, showReal: _real),
+                    onTap: () => ProfileCardView.open(
+                      context,
+                      profile: profile,
+                      mode: ProfileViewMode.own,
+                      initiallyReal: _real,
+                      avatarHeroTag: _real ? null : _heroTag,
+                    ),
+                    child: ProfileCard(profile: profile, showReal: _real, avatarHeroTag: _heroTag),
                   ),
                 ),
               ),

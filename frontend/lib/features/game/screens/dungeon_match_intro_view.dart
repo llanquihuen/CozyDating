@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/avatar_config.dart';
 import '../../../core/models/room_config.dart';
 import '../../profile/card/profile_card.dart';
+import '../../profile/view/profile_card_view.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
@@ -621,6 +622,9 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
 
   /// The partner as their card's character face shows them: name, avatar, featured tastes, the
   /// card style they chose and their verified seal.
+  /// The partner's avatar flies from the card here into the fullscreen card.
+  final Object _cardHeroTag = Object();
+
   UserProfile _partnerCardProfile(String name, AvatarConfig avatarConfig, List<String> tastes) => UserProfile(
         id: _partnerUserId,
         username: name,
@@ -729,7 +733,18 @@ class _DungeonMatchIntroViewState extends State<DungeonMatchIntroView>
                 Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 260),
-                    child: ProfileCard(profile: _partnerCardProfile(name, avatarConfig, tastes)),
+                    child: GestureDetector(
+                      onTap: () => ProfileCardView.open(
+                        context,
+                        profile: _partnerCardProfile(name, avatarConfig, tastes),
+                        mode: ProfileViewMode.beforeReveal,
+                        avatarHeroTag: _cardHeroTag,
+                      ),
+                      child: ProfileCard(
+                        profile: _partnerCardProfile(name, avatarConfig, tastes),
+                        avatarHeroTag: _cardHeroTag,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/core/models/profile_card_style.dart';
 import 'package:frontend/core/models/user_profile.dart';
 import 'package:frontend/features/profile/card/profile_card.dart';
+import 'package:frontend/features/profile/view/profile_card_view.dart';
 import 'package:frontend/features/profile/screens/my_card_screen.dart';
 import 'package:frontend/features/revelation/screens/match_reveal_celebration_view.dart';
 
@@ -72,10 +73,23 @@ void main() {
     await tester.pump();
     expect(calls.profile, 1);
 
-    await tester.tap(find.byType(ProfileCard)); // tapping the card flips it back
+    await tester.tap(find.text('Personaje'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('Editar avatar'), findsOneWidget);
+  });
+
+  testWidgets('tapping the card opens it at full screen, as others see it', (tester) async {
+    await _open(tester);
+    await tester.tap(find.byType(ProfileCard));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(ProfileCardView), findsOneWidget);
+    expect(tester.widget<ProfileCardView>(find.byType(ProfileCardView)).mode, ProfileViewMode.own);
+    await tester.tap(find.byTooltip('Cerrar'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(ProfileCardView), findsNothing);
   });
 
   testWidgets('the style sheet saves the theme, phrase and featured tastes', (tester) async {
