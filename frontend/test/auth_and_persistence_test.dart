@@ -122,5 +122,46 @@ void main() {
 
       expect(find.text('Complexión'), findsOneWidget, reason: 'non-binary players pick their body');
     });
+
+    testWidgets('Step 3 tastes and vibes are not preselected and gaming platform shows optional single choice', (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(MaterialApp(home: FunRegistrationWizardScreen(onRegistrationSuccess: () {})));
+      await tester.pump(const Duration(milliseconds: 100));
+      await fillStep1AndContinue(tester);
+
+      // Skip avatar step
+      final skip = find.textContaining('Saltar por ahora');
+      expect(skip, findsOneWidget);
+      await tester.tap(skip);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('3. Gustos & Vibes'), findsOneWidget);
+
+      // Verify header banner
+      expect(find.textContaining('Ecosistema Gamer'), findsAtLeastNWidgets(1));
+
+      // Scroll down the tastes list to reveal more categories
+      await tester.drag(find.byKey(const ValueKey('step_2')), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      // Verify that the gaming platform category is displayed
+      expect(find.text('Tu Ecosistema Gamer'), findsOneWidget);
+
+      // Verify badge "Opcional • Elige solo 1" for non-obligatory single select categories
+      expect(find.text('Opcional • Elige solo 1'), findsWidgets);
+
+      // Verify that no FilterChip is selected by default
+      final filterChips = tester.widgetList<FilterChip>(find.byType(FilterChip));
+      for (final chip in filterChips) {
+        expect(chip.selected, isFalse, reason: 'No taste or vibe should be preselected initially');
+      }
+    });
   });
 }

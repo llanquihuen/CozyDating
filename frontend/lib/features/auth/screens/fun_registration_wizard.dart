@@ -47,19 +47,8 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
   final AvatarThumbnailService _avatarThumbnails = AvatarThumbnailService();
   AvatarConfig get _avatarConfig => _avatarEditor.config;
 
-  // Step 3: Tastes Data
-  final Set<String> _selectedTastes = {
-    'intent_slow',     // 1. Intención: Slow Dating
-    'vibe_introvert',   // 2. Batería Social: Introvertido
-    'vibe_night_owl',   // 3. Ritmo: Criatura Nocturna
-    'vibe_homebody',    // 4. Fin de semana: Casa & Mantita
-    'plat_pc',          // Dilema Gamer: PC
-    'fuel_coffee',      // Dilema Combustible: Café
-    'pet_cat',          // Dilema Mascotas: Gatos
-    'vacation_cabin',   // Dilema Vacaciones: Cabaña
-    'game_cozy',        // Gustos libres
-    'music_lofi',
-  };
+  // Step 3: Tastes Data (vacío por defecto para que el nuevo usuario elija sus propios gustos y vibes)
+  final Set<String> _selectedTastes = {};
 
   // Step 4: Room & Theme Data
   String _selectedRoomTheme = 'rustic'; // 'rustic', 'modern', 'mystic'
@@ -635,104 +624,140 @@ class _FunRegistrationWizardScreenState extends State<FunRegistrationWizardScree
   // STEP 3: TASTES & INTENTIONS (CATEGORIZED SELECTOR)
   // -------------------------------------------------------------
   Widget _buildStep3Tastes() {
-    return ListView.builder(
+    return ListView(
       key: const ValueKey('step_2'),
       padding: const EdgeInsets.all(16.0),
-      itemCount: PreferenceCatalog.categories.length,
-      itemBuilder: (context, catIndex) {
-        final cat = PreferenceCatalog.categories[catIndex];
-        return Card(
+      children: [
+        Container(
           margin: const EdgeInsets.only(bottom: 16),
-          color: const Color(0xFF1E1C27),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: cat.id == 'dating_intentions' ? const Color(0xFFFFB300) : Colors.white12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1C27),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFFB300).withOpacity(0.3)),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(cat.emoji, style: const TextStyle(fontSize: 20)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        cat.title,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                    ),
-                    if (cat.isRequired)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text('Obligatorio', style: TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                      )
-                    else if (cat.isSingleSelect)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF38BDF8).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text('1 Favorito', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 10, fontWeight: FontWeight.bold)),
-                      ),
-                  ],
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFFFFB300), size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Los primeros 4 ejes son obligatorios para conectar en sintonía. Los demás son opcionales (en categorías como Ecosistema Gamer puedes elegir solo 1).',
+                  style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.3),
                 ),
-                const SizedBox(height: 4),
-                Text(cat.description, style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: cat.items.map((item) {
-                    final isSelected = _selectedTastes.contains(item.id);
-                    return FilterChip(
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(item.emoji, style: const TextStyle(fontSize: 14)),
-                          const SizedBox(width: 6),
-                          Text(item.title, style: TextStyle(fontSize: 12, color: isSelected ? Colors.black : Colors.white)),
-                        ],
-                      ),
-                      selected: isSelected,
-                      selectedColor: const Color(0xFFFFB300),
-                      backgroundColor: const Color(0xFF282538),
-                      checkmarkColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(color: isSelected ? const Color(0xFFFFB300) : Colors.white24),
-                      ),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (cat.isSingleSelect) {
-                            // Remove other items in this category
-                            for (final other in cat.items) {
-                              _selectedTastes.remove(other.id);
-                            }
-                            if (selected) _selectedTastes.add(item.id);
-                          } else {
-                            if (selected) {
-                              _selectedTastes.add(item.id);
-                            } else {
-                              _selectedTastes.remove(item.id);
-                            }
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ],
+              ),
+            ],
+          ),
+        ),
+        ...PreferenceCatalog.categories.map((cat) {
+          return Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            color: const Color(0xFF1E1C27),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: cat.id == 'dating_intentions' ? const Color(0xFFFFB300) : Colors.white12),
             ),
-          ),
-        );
-      },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(cat.emoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          cat.title,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (cat.isRequired)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('Obligatorio', style: TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                        )
+                      else if (cat.isSingleSelect)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF38BDF8).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('Opcional • Elige solo 1', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 10, fontWeight: FontWeight.bold)),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text('Opcional', style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    cat.isSingleSelect && !cat.isRequired
+                        ? '${cat.description} (Opcional - solo se puede elegir 1)'
+                        : cat.description,
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: cat.items.map((item) {
+                      final isSelected = _selectedTastes.contains(item.id);
+                      return FilterChip(
+                        label: Text(
+                          '${item.emoji}  ${item.title}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isSelected ? Colors.black : Colors.white,
+                          ),
+                        ),
+                        selected: isSelected,
+                        selectedColor: const Color(0xFFFFB300),
+                        backgroundColor: const Color(0xFF282538),
+                        checkmarkColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(color: isSelected ? const Color(0xFFFFB300) : Colors.white24),
+                        ),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (cat.isSingleSelect) {
+                              // Remove other items in this category
+                              for (final other in cat.items) {
+                                _selectedTastes.remove(other.id);
+                              }
+                              if (selected) _selectedTastes.add(item.id);
+                            } else {
+                              if (selected) {
+                                _selectedTastes.add(item.id);
+                              } else {
+                                _selectedTastes.remove(item.id);
+                              }
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 

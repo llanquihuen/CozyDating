@@ -1738,9 +1738,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
-                            'Elige 1 favorito',
+                            'Opcional • Elige solo 1',
                             style: TextStyle(
                               color: Color(0xFF38BDF8),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Opcional',
+                            style: TextStyle(
+                              color: Color(0xFF94A3B8),
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1749,7 +1765,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Text(cat.description, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+                  Text(
+                    cat.isSingleSelect && !cat.isRequired
+                        ? '${cat.description} (Opcional - solo se puede elegir 1)'
+                        : cat.description,
+                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                  ),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
