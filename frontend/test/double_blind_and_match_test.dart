@@ -164,9 +164,9 @@ void main() {
 
       expect(find.text('CHISPA MUTUA'), findsOneWidget);
       expect(find.text('Escribir a Bob'), findsOneWidget);
-      expect(find.text('Cerrar perfil'), findsOneWidget);
+      expect(find.byTooltip('Cerrar perfil'), findsOneWidget);
 
-      await tester.tap(find.text('Cerrar perfil'));
+      await tester.tap(find.byTooltip('Cerrar perfil'));
       await tester.pump();
       expect(closed, isTrue);
     });

@@ -220,10 +220,10 @@ void main() {
       expect(find.text('Las Condes'), findsOneWidget);
       expect(find.text('Amante de la astronomía y el buen café.'), findsOneWidget);
       expect(find.text('Escribir a Claire'), findsOneWidget);
-      expect(find.text('Cerrar perfil'), findsOneWidget);
+      expect(find.byTooltip('Cerrar perfil'), findsOneWidget);
 
       // Close modal
-      await tester.tap(find.text('Cerrar perfil'));
+      await tester.tap(find.byTooltip('Cerrar perfil'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -365,6 +365,9 @@ void main() {
       expect(find.text('CITA EN LA FOGATA'), findsOneWidget);
       // The reveal card gets the profile photo and the additional ones combined
       expect(tester.widget<ProfileCard>(find.byType(ProfileCard)).profile.allPhotos, hasLength(3));
+      // The photos chip sits on the real face, after the reveal.
+      await tester.pump(MatchRevealCelebrationView.revealDelay);
+      await tester.pump(const Duration(milliseconds: 700));
       expect(find.text('Ver fotos'), findsOneWidget);
     });
 
