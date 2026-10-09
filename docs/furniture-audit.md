@@ -94,3 +94,31 @@ la cortina baja hasta el suelo).
    3. El resto: `bbq_grill`, `stone_fountain`, `cat_tree_tower`, `home_theater_tv`,
       `acoustic_guitar_stand`, `espresso_machine`, `polaroid_camera_table`, `boardgame_box_set`,
       `wall_clock`, `wall_world_map`, `hanging_shelf_wall`, `curtained_window`.
+
+## Tanda 1: cuarto inicial (2026-10-09) ✓
+
+`CreateSprites/furniture_gen/make_furniture.py`:
+
+1. **Maqueta** dibujada en Python sobre el lienzo del catálogo: cajas isométricas que llenan la
+   huella exacta (misma geometría y offset que el juego), con lo principal marcado (puertas,
+   lavaplatos, quemadores, tablones). Vista frontal (rot0) y trasera (rot2).
+2. **PixelLab `edit-images-v2` con `edit_with_reference`**: las maquetas toman el aspecto de un
+   sprite terminado (el propio mueble si su arte es bueno, o uno con la textura buscada) y conservan
+   su forma. Las dos vistas van en la misma llamada, así son el mismo objeto. Con `edit_with_text`
+   (sin referencia) el resultado quedaba casi igual a la maqueta, sin detalle.
+3. `--build`: contorno selectivo, rot1 y rot3 en espejo, y escribe en `established_furniture/` y en
+   `new_added/` (si no, el próximo sync volvería a copiar el arte viejo).
+
+| Mueble | Referencia | Resultado |
+|---|---|---|
+| `kitchen_sink` | su propio rot0 | llena el 1×1, mismo escurridor, llave y detergente; vista trasera con panel liso |
+| `kitchen_stove` | su propio rot0 | llena el 1×1; vista trasera con los paneles de atrás |
+| `dining_table_2x2` | `closet_rot0` (vetas) | roble con tablones sobre 4 patas, llena el 2×2; simétrica (rot2 = rot0); `surface_height` 18 → 22, la altura del tablero nuevo |
+
+Costo: ~10 generaciones por mueble con dos vistas, ~5 por uno simétrico; la tanda completa con las
+pruebas, ~60.
+
+Pendiente de tu revisión: en la vista trasera del fregadero la llave queda en el mismo borde que en
+la frontal (al girarlo 180° debería quedar del lado cercano).
+
+![Cocina del cuarto inicial con el fregadero y la cocina nuevos, y la mesa 2×2](furniture-batch1.png)

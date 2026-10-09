@@ -2761,7 +2761,7 @@
     "name": "Mesa de Comedor Roble (2x2) (Alto)",
     "zone": "living",
     "footprint": "2x2",
-    "surface_height": 18,
+    "surface_height": 22,
     "supports_surface": true,
     "surface_offset": [
       0,
@@ -2790,7 +2790,7 @@
           -64,
           -44
         ],
-        "surface_height": 18,
+        "surface_height": 22,
         "supports_surface": true,
         "surface_offset": [
           0,
@@ -2811,7 +2811,7 @@
           -64,
           -44
         ],
-        "surface_height": 18,
+        "surface_height": 22,
         "supports_surface": true,
         "surface_offset": [
           0,
@@ -2832,7 +2832,7 @@
           -64,
           -44
         ],
-        "surface_height": 18,
+        "surface_height": 22,
         "supports_surface": true,
         "surface_offset": [
           0,
@@ -2853,7 +2853,7 @@
           -64,
           -44
         ],
-        "surface_height": 18,
+        "surface_height": 22,
         "supports_surface": true,
         "surface_offset": [
           0,
