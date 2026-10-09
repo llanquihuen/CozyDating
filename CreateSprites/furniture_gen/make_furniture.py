@@ -73,6 +73,22 @@ PIECES = {
         "back": "",
         "features": [],
     },
+    # batch 3: the look comes from a chosen --genimg candidate ("gen:<name>"), the shape from here
+    "home_theater_tv": {
+        "footprint": "1x1",
+        "kind": "boxes",
+        "reference": "gen:home_theater_tv_g3_0",
+        "boxes": [  # x0, y0, x1, y1, z0, z1, colour, front feature
+            (0.06, 0.22, 0.94, 0.78, 0, 12, (140, 95, 55), "shelves"),
+            (0.04, 0.42, 0.96, 0.50, 12, 34, (45, 45, 55), "screen"),
+        ],
+    },
+    "stone_fountain": {
+        "footprint": "2x2",
+        "kind": "fountain",
+        "symmetric": True,
+        "reference": "gen:stone_fountain_g3_0",
+    },
 }
 
 # Small pieces with no footprint to fill (tabletop objects, plants, floor cushions): generated new
@@ -103,6 +119,71 @@ IMG_PIECES = {
         "size": (80, 56), "style": "simple_sofa_rot0.png", "canvas": (128, 128), "anchor": (64, 116),
         "desc": "teal yoga mat unrolled flat on the floor with one end rolled up, a small pink water "
                 "bottle beside it, isometric view from above at a 30 degree angle",
+    },
+    # batch 3
+    "bbq_grill": {
+        "size": (72, 80), "style": "kitchen_stove_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "round black kettle barbecue grill with a domed lid, a handle and three legs with "
+                "wheels, isometric view",
+    },
+    "cat_tree_tower": {
+        "size": (72, 112), "style": "plush_armchair_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "tall cat tree tower with beige carpeted platforms, sisal rope scratching posts, a small "
+                "cat house cube and a hanging toy ball, isometric view",
+    },
+    "acoustic_guitar_stand": {
+        "size": (40, 84), "style": "table_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "acoustic guitar standing upright on a small black guitar stand on the floor, "
+                "warm honey wood body, isometric view",
+    },
+    "espresso_machine": {
+        "size": (48, 48), "style": "coffee_mug_rot0.png", "canvas": (128, 128), "anchor": (62, 87),
+        "desc": "small stainless steel espresso coffee machine with a portafilter and a little coffee "
+                "cup under the spout, isometric view from above at a 30 degree angle",
+    },
+    "polaroid_camera_table": {
+        "size": (40, 40), "style": "coffee_mug_rot0.png", "canvas": (128, 128), "anchor": (62, 89),
+        "desc": "white vintage instant polaroid camera with a rainbow stripe and two printed photos "
+                "beside it, isometric view from above at a 30 degree angle",
+    },
+    "boardgame_box_set": {
+        "size": (48, 40), "style": "coffee_mug_rot0.png", "canvas": (128, 128), "anchor": (68, 89),
+        "desc": "stack of two board game boxes with a red twenty sided die and a few game pieces "
+                "beside them, isometric view from above at a 30 degree angle",
+    },
+    "home_theater_tv": {
+        "size": (112, 112), "style": "gaming_pc_desk_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "flat screen television on a low wooden media console with two open shelves, isometric "
+                "view, the screen faces the lower left",
+    },
+    "stone_fountain": {
+        "size": (200, 150), "style": "fireplace_rot0.png", "canvas": (256, 192), "anchor": (128, 170),
+        "desc": "round stone garden fountain: a wide circular stone basin full of clear blue water, a "
+                "central stone pedestal with a small top bowl and a water spout, isometric view",
+    },
+    # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
+    # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
+    "wall_clock": {
+        "wall": True, "size": (40, 72), "style": "closet_rot0.png", "canvas": (128, 128), "center_y": 50,
+        "desc": "wooden pendulum wall clock seen straight from the front, a round white face with black "
+                "hands, a brass pendulum in a glass case below, flat front view, no perspective",
+    },
+    "wall_world_map": {
+        "wall": True, "size": (56, 48), "style": "closet_rot0.png", "canvas": (128, 128), "center_y": 52,
+        "desc": "framed world map poster with red pins and a few small travel photos pinned to it, seen "
+                "straight from the front, flat front view, no perspective",
+    },
+    "hanging_shelf_wall": {
+        "wall": True, "size": (60, 40), "style": "closet_rot0.png", "canvas": (128, 128), "center_y": 81,
+        "desc": "small wooden wall shelf on two brackets holding a few books, a little potted plant and "
+                "a candle, seen straight from the front, flat front view, no perspective",
+    },
+    "curtained_window": {
+        "wall": True, "size": (72, 96), "style": "closet_rot0.png", "canvas": (128, 160), "center_y": 71,
+        # taller canvas: slanted, the window is 132 px high (same centre as the old 128 sprite at 55)
+        "desc": "window with a white wooden frame and four glass panes showing a blue sky, red curtains "
+                "tied to both sides on a curtain rod, seen straight from the front, flat front view, "
+                "no perspective",
     },
 }
 
@@ -160,6 +241,10 @@ def blockout(pid, view):
     p = PIECES[pid]
     if p.get("kind") == "table":
         return blockout_table(pid)
+    if p.get("kind") == "boxes":
+        return blockout_boxes(pid, view)
+    if p.get("kind") == "fountain":
+        return blockout_fountain(pid)
     geo = GEOMETRY[p["footprint"]]
     w, h = geo["tiles"]
     z = p["height"]
@@ -242,6 +327,68 @@ def blockout_table(pid, inset=0.06, thick=4, leg=0.12):
     return im
 
 
+def blockout_boxes(pid, view):
+    """Stacked boxes (x0, y0, x1, y1, z0, z1, colour, front_feature) in tile units. The front is the
+    y1 face (the viewer's lower left in rot0). view 2 turns the piece 180 degrees: the boxes are
+    mirrored through the footprint centre and the front features face away (not drawn)."""
+    p = PIECES[pid]
+    geo = GEOMETRY[p["footprint"]]
+    w, h = geo["tiles"]
+    im = Image.new("RGBA", geo["canvas"], (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    boxes = p["boxes"]
+    if view == 2:
+        boxes = [(w - x1, h - y1, w - x0, h - y0, z0, z1, c, None) for x0, y0, x1, y1, z0, z1, c, _ in boxes]
+    for x0, y0, x1, y1, z0, z1, col, feat in sorted(boxes, key=lambda b: (b[4], b[0] + b[1])):
+        t = [to_px(geo, x, y, z1) for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))]
+        b = [to_px(geo, x, y, z0) for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))]
+        left = [t[3], t[2], b[2], b[3]]
+        d.polygon(left, fill=col + (255,))
+        d.polygon([t[2], t[1], b[1], b[2]], fill=tuple(int(c * 0.78) for c in col) + (255,))
+        d.polygon(t, fill=tuple(min(255, int(c * 1.15)) for c in col) + (255,))
+        if feat == "screen":
+            d.polygon(quad(*left, 0.06, 0.94, 0.08, 0.9), fill=(30, 60, 110, 255))
+        elif feat == "shelves":
+            d.polygon(quad(*left, 0.08, 0.46, 0.2, 0.8), fill=(60, 40, 25, 255))
+            d.polygon(quad(*left, 0.54, 0.92, 0.2, 0.8), fill=(60, 40, 25, 255))
+    return im
+
+
+def circle(geo, cx, cy, r, z, n=48, start=0.0, end=6.2832):
+    import math
+    return [to_px(geo, cx + r * math.cos(a), cy + r * math.sin(a), z)
+            for a in (start + (end - start) * k / n for k in range(n + 1))]
+
+
+def blockout_fountain(pid):
+    """Round basin with a central pedestal and top bowl, centred on the footprint."""
+    import math
+    p = PIECES[pid]
+    geo = GEOMETRY[p["footprint"]]
+    w, h = geo["tiles"]
+    cx, cy = w / 2, h / 2
+    im = Image.new("RGBA", geo["canvas"], (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    stone, stone_d, stone_l, water = (150, 150, 145), (110, 110, 108), (185, 183, 175), (80, 150, 210)
+
+    def cylinder(r, z0, z1, side, top):
+        # front half of the side (angles 0..pi face the viewer: +x/+y), then the top disc
+        d.polygon(circle(geo, cx, cy, r, z1, start=-math.pi / 4, end=3 * math.pi / 4)
+                  + circle(geo, cx, cy, r, z0, start=-math.pi / 4, end=3 * math.pi / 4)[::-1],
+                  fill=side + (255,))
+        d.polygon(circle(geo, cx, cy, r, z1), fill=top + (255,))
+
+    R = 0.95 * min(w, h) / 2
+    cylinder(R, 0, 10, stone_d, stone_l)
+    d.polygon(circle(geo, cx, cy, R * 0.85, 10), fill=water + (255,))
+    cylinder(0.12 * min(w, h), 6, 26, stone_d, stone)
+    cylinder(0.25 * min(w, h), 26, 30, stone_d, stone_l)
+    d.polygon(circle(geo, cx, cy, 0.25 * min(w, h) * 0.75, 30), fill=water + (255,))
+    sx, sy = to_px(geo, cx, cy, 30)
+    d.line((sx, sy, sx, sy - 12), fill=(200, 230, 255, 255), width=2)
+    return im
+
+
 def blockout_back(pid, _unused):
     p = PIECES[pid]
     geo = GEOMETRY[p["footprint"]]
@@ -293,7 +440,11 @@ def generate_ref(pid, seed=None, ref=None):
     symmetric = PIECES[pid].get("symmetric")
     frames = [blockout(pid, 0)] if symmetric else [blockout(pid, 0), blockout(pid, 2)]
     ref = ref or PIECES[pid].get("reference") or f"{pid}_rot0.png"
-    refim = Image.open(os.path.join(EST, ref)).convert("RGBA")
+    if ref.startswith("gen:"):  # a chosen --genimg candidate, cropped to the object
+        refim = Image.open(os.path.join(GEN, ref[4:] + ".png")).convert("RGBA")
+        refim = refim.crop(refim.getchannel("A").getbbox())
+    else:
+        refim = Image.open(os.path.join(EST, ref)).convert("RGBA")
     w, h = geo["canvas"]
     headers = {"Authorization": f"Bearer {_key()}", "Content-Type": "application/json"}
     payload = {
@@ -403,7 +554,9 @@ def preview_blockout(pid):
 
 
 def sheet():
-    names = sorted({f.rsplit("_r", 1)[0] for f in os.listdir(GEN) if not f.startswith("_") and f.endswith(".png")})
+    names = sorted({f.rsplit("_r", 1)[0] for f in os.listdir(GEN)
+                    if not f.startswith("_") and f.endswith(("_r0.png", "_r2.png"))
+                    and any(f.startswith(p + "_") for p in PIECES)})
     rows = []
     for n in names:
         pid = next(p for p in sorted(PIECES, key=len, reverse=True) if n.startswith(p + "_"))
@@ -443,6 +596,11 @@ def write_views(pid, views):
     would copy the old art back. Returns how many new_added/ files were replaced."""
     files = {f"{pid}_rot{r}.png": im for r, im in views.items()}
     files[f"{pid}.png"] = views[0]
+    return write_files(files)
+
+
+def write_files(files):
+    """file name -> image, into established_furniture/ and over any copy in new_added/."""
     sources = {}
     for root, _, names in os.walk(NEW_ADDED):
         for n in names:
@@ -480,11 +638,55 @@ def generate_img(pid, seed=None):
     print(pid, tag, "got", len(images), "candidates")
 
 
+def drop_specks(art, keep=0.04):
+    """Clears opaque blobs not connected to the object (generations sometimes add a stray piece
+    below it): every 8-connected blob smaller than `keep` of the largest one is removed."""
+    a = art.getchannel("A").load()
+    w, h = art.size
+    seen, blobs = set(), []
+    for y in range(h):
+        for x in range(w):
+            if a[x, y] > 40 and (x, y) not in seen:
+                stack, blob = [(x, y)], []
+                seen.add((x, y))
+                while stack:
+                    px, py = stack.pop()
+                    blob.append((px, py))
+                    for dx in (-1, 0, 1):
+                        for dy in (-1, 0, 1):
+                            q = (px + dx, py + dy)
+                            if 0 <= q[0] < w and 0 <= q[1] < h and q not in seen and a[q] > 40:
+                                seen.add(q)
+                                stack.append(q)
+                blobs.append(blob)
+    if len(blobs) < 2:
+        return art
+    big = max(len(b) for b in blobs)
+    out = art.copy()
+    px = out.load()
+    for b in blobs:
+        if len(b) < keep * big:
+            for p in b:
+                px[p] = (0, 0, 0, 0)
+    return out
+
+
 def place(pid, art):
     """Art cropped to its opaque bbox, its bottom centre on the piece's anchor."""
     spec = IMG_PIECES[pid]
+    art = drop_specks(art)
     art = art.crop(art.getchannel("A").point(lambda a: 255 if a > 40 else 0).getbbox())
     canvas = Image.new("RGBA", spec["canvas"], (0, 0, 0, 0))
+    if spec.get("wall"):
+        # north wall: slanted like the wall panels (column c drops c // 2 rows, whole pixels, no
+        # resampling), centred on the wall panel (x = 64 of the sprite) at the old art's height
+        slanted = Image.new("RGBA", (art.width, art.height + art.width // 2), (0, 0, 0, 0))
+        for c in range(art.width):
+            slanted.paste(art.crop((c, 0, c + 1, art.height)), (c, c // 2))
+        x = round(canvas.width / 2 - art.width / 2)
+        x -= x % 2  # keep the slant steps on the wall's own 2-pixel grid
+        canvas.alpha_composite(slanted, (x, round(spec["center_y"] - slanted.height / 2)))
+        return canvas
     ax, ay = spec["anchor"]
     canvas.alpha_composite(art, (round(ax - art.width / 2), ay - art.height))
     return canvas
@@ -493,7 +695,7 @@ def place(pid, art):
 def candidates_sheet(pid):
     files = sorted(f for f in os.listdir(GEN) if f.startswith(pid + "_g") and f.endswith(".png"))
     spec = IMG_PIECES[pid]
-    cur = Image.open(os.path.join(EST, f"{pid}_rot0.png")).convert("RGBA")
+    cur = Image.open(os.path.join(EST, f"{pid}_n.png" if spec.get("wall") else f"{pid}_rot0.png")).convert("RGBA")
     if cur.size != spec["canvas"]:
         c = Image.new("RGBA", spec["canvas"], (0, 0, 0, 0))
         c.alpha_composite(cur, ((c.width - cur.width) // 2, c.height - cur.height))
@@ -520,7 +722,10 @@ def build_placed(pid, name):
     from convert_selout import convert_colour
     im = convert_colour(place(pid, Image.open(os.path.join(GEN, name + ".png")).convert("RGBA")))
     m = im.transpose(Image.FLIP_LEFT_RIGHT)
-    n = write_views(pid, {0: im, 1: m, 2: im, 3: m})
+    if IMG_PIECES[pid].get("wall"):
+        n = write_files({f"{pid}_n.png": im, f"{pid}_w.png": m, f"{pid}.png": im})
+    else:
+        n = write_views(pid, {0: im, 1: m, 2: im, 3: m})
     print("built", pid, "from", name, f"(+{n} in new_added)")
 
 

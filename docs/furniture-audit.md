@@ -148,3 +148,35 @@ terminado.
 Costo: ~130 generaciones según el saldo (6 llamadas de candidatas, ~15–20 cada una, más 2 de la prueba descartada).
 
 ![Antes y después de cada pieza (rot0)](furniture-batch2.png)
+
+## Tanda 3: el resto (2026-10-09) ✓
+
+Tres caminos según la pieza (`make_furniture.py`):
+
+- **Chicas** (`bbq_grill`, `cat_tree_tower`, `acoustic_guitar_stand`, `espresso_machine`,
+  `polaroid_camera_table`, `boardgame_box_set`): `--genimg` + `--place`, como en la tanda 2. `place`
+  ahora borra manchas sueltas que no tocan el objeto (varias guitarras traían un trozo debajo). La
+  guitarra pasa al lienzo de las plantas (128 × 176).
+- **TV y fuente**: `--genimg` para elegir el aspecto, y esa candidata (`reference: "gen:<nombre>"`) es la
+  referencia de `--genref` sobre una maqueta con la huella exacta: la TV como cajas apiladas (mueble y
+  pantalla, con vista trasera girada 180°), la fuente como cilindros (pileta, pedestal y tazón) que
+  llenan el 2×2.
+- **De pared** (`wall_clock`, `wall_world_map`, `hanging_shelf_wall`, `curtained_window`): se generan
+  planos, de frente, y `place` los inclina corriendo columnas enteras (la columna c baja c // 2
+  filas), igual que los paneles de pared; `_w` es el espejo. La ventana inclinada mide 132 px, así que
+  usa un lienzo de 128 × 160 con el mismo centro (los sprites de pared se centran por su tamaño).
+
+Elegidas: parrilla de tapa redonda con ruedas, árbol para gatos de sisal con cubo, guitarra acústica en
+atril, cafetera espresso con taza, Polaroid blanca con franja arcoíris, dos cajas de juegos con un D20,
+TV sobre mueble de roble con consolas, fuente de piedra de dos niveles, reloj de péndulo, mapa en papel
+pergamino, repisa con libros y plantas, ventana blanca con cortinas rojas.
+
+Notas: con `no_background` el quitafondos borró el papel en casi todos los mapas (quedaban solo los
+continentes); se eligió el único completo. A 40 × 40 `generate-image-v2` da 64 candidatas por llamada
+(la Polaroid): para piezas tan chicas basta pedir 48 × 48.
+
+Costo: 160 generaciones según el saldo (13 llamadas; una de la ventana repetida por error).
+
+![Antes y después (rot0 y la vista trasera de la TV)](furniture-batch3.png)
+
+![TV (frontal y trasera) y fuente sobre su huella](furniture-batch3-tv-fountain.png)
