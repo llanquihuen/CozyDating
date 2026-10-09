@@ -397,7 +397,7 @@ class PreferenceCatalog {
     if (tastes.contains('anime_romance') || tastes.contains('anime_shonen') || tastes.contains('anime_classics') || tastes.contains('anime_isekai')) {
       furnitureList.add(const PlacedFurnitureConfig(
         id: 'starter_manga',
-        typeName: 'manga_shelf',
+        typeName: 'tall_mangashelf',
         gridX: 3,
         gridY: 0,
         gridWidth: 1,

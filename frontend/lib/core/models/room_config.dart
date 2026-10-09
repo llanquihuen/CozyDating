@@ -94,16 +94,31 @@ class PlacedFurnitureConfig extends Equatable {
     };
   }
 
+  /// Furniture taken out of the catalog (docs/furniture-audit.md) -> the piece that replaces it and
+  /// that piece's footprint at rotation 0. Saved rooms are migrated when read.
+  static const Map<String, (String, double, double)> retiredTypes = {
+    'single_bed': ('single_high_bed', 1, 2),
+    'bathtub_regular_1x2': ('bathtub_classic', 1, 2),
+    'bathtub_2x2': ('bathtub_classic', 1, 2),
+    'manga_shelf': ('tall_mangashelf', 1, 1),
+  };
+
   factory PlacedFurnitureConfig.fromMap(Map<String, dynamic> map) {
+    final String typeName = map['typeName'] ?? 'table';
+    final rotation = (map['rotation'] as num?)?.toInt() ?? 0;
+    final retired = retiredTypes[typeName];
+    final (double w, double h) = retired == null
+        ? ((map['gridWidth'] as num?)?.toDouble() ?? 1.0, (map['gridHeight'] as num?)?.toDouble() ?? 1.0)
+        : (rotation.isOdd ? (retired.$3, retired.$2) : (retired.$2, retired.$3));
     return PlacedFurnitureConfig(
       id: map['id'] ?? '',
-      typeName: map['typeName'] ?? 'table',
+      typeName: retired?.$1 ?? typeName,
       gridX: (map['gridX'] as num?)?.toDouble() ?? 0.0,
       gridY: (map['gridY'] as num?)?.toDouble() ?? 0.0,
-      gridWidth: (map['gridWidth'] as num?)?.toDouble() ?? 1.0,
-      gridHeight: (map['gridHeight'] as num?)?.toDouble() ?? 1.0,
-      rotation: (map['rotation'] as num?)?.toInt() ?? 0,
-      assetPath: map['assetPath'],
+      gridWidth: w,
+      gridHeight: h,
+      rotation: rotation,
+      assetPath: retired == null ? map['assetPath'] : null,
       parentId: map['parentId'] ?? map['parent_id'],
       wallHeightLevel: map['wallHeightLevel'] ?? map['wall_height_level'] ?? 'high',
       nudgeX: (map['nudgeX'] ?? map['nudge_x'] as num?)?.toDouble() ?? 0.0,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../models/furniture_item.dart';
+import '../models/room_config.dart';
 
 class FurnitureCatalogService {
   static final Map<String, FurnitureCatalogItem> _catalog = {};
@@ -25,6 +26,7 @@ class FurnitureCatalogService {
         }
       });
       _mergeFallbackCatalog();
+      _dropRetired();
       _isLoaded = true;
     } catch (e) {
       if (_catalog.isEmpty) {
@@ -33,6 +35,10 @@ class FurnitureCatalogService {
       _isLoaded = true;
     }
   }
+
+  /// Retired pieces leave the catalog (the decorator never offers them); their ids still resolve to
+  /// the replacement through [getItem].
+  static void _dropRetired() => _catalog.removeWhere((id, _) => PlacedFurnitureConfig.retiredTypes.containsKey(id));
 
   static Future<void> reload() async {
     _isLoaded = false;
@@ -45,6 +51,8 @@ class FurnitureCatalogService {
       _loadFallbackCatalog();
     }
     if (_catalog.containsKey(id)) return _catalog[id];
+    final retired = PlacedFurnitureConfig.retiredTypes[id];
+    if (retired != null) return _catalog[retired.$1];
     if (id == 'side_table' && _catalog.containsKey('side_table_sm')) return _catalog['side_table_sm'];
     if (id == 'wooden_chair' && _catalog.containsKey('simple_chair_sm')) return _catalog['simple_chair_sm'];
     if ((id == 'gamer_chair' || id == 'gaming_chair') && _catalog.containsKey('gamer_chair_sm')) return _catalog['gamer_chair_sm'];
@@ -66,9 +74,9 @@ class FurnitureCatalogService {
       case 'living':
         return _catalog.values.where((i) => (i.zone == 'living' || i.id == 'table' || i.id == 'bookshelf' || i.id == 'tall_bookshelf' || i.id == 'dining_table_2x2' || i.id == 'side_table_sm' || i.id == 'plush_armchair' || i.id == 'simple_chair_sm' || i.id == 'floor_plant_sm') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'bedroom':
-        return _catalog.values.where((i) => (i.zone == 'bedroom' || i.id == 'single_bed' || i.id == 'single_high_bed' || i.id == 'closet' || i.id == 'king_bed') && !i.isSurfaceItem && !i.isWallItem).toList();
+        return _catalog.values.where((i) => (i.zone == 'bedroom' || i.id == 'single_high_bed' || i.id == 'closet' || i.id == 'king_bed') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'kitchen_bath':
-        return _catalog.values.where((i) => (i.zone == 'kitchen_bath' || i.zone == 'kitchen' || i.zone == 'bathroom' || i.id == 'kitchen_fridge_sm' || i.id == 'kitchen_stove' || i.id == 'kitchen_sink' || i.id == 'bathtub_classic' || i.id == 'bathtub_regular_1x2' || i.id == 'bathtub_2x2' || i.id == 'bathroom_toilet') && !i.isSurfaceItem && !i.isWallItem).toList();
+        return _catalog.values.where((i) => (i.zone == 'kitchen_bath' || i.zone == 'kitchen' || i.zone == 'bathroom' || i.id == 'kitchen_fridge_sm' || i.id == 'kitchen_stove' || i.id == 'kitchen_sink' || i.id == 'bathtub_classic' || i.id == 'bathroom_toilet') && !i.isSurfaceItem && !i.isWallItem).toList();
       case 'surface':
         return _catalog.values.where((i) => i.isSurfaceItem).toList();
       case 'walls':
@@ -92,7 +100,6 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'table', name: 'Mesa Rústica', zone: 'living', footprint: '1x1', surfaceHeight: 18, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'bookshelf', name: 'Estantería de Libros', zone: 'living', footprint: '1x1', surfaceHeight: 14, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'tall_bookshelf', name: 'Estantería Alta', zone: 'living', footprint: '1x1', surfaceHeight: 14, spriteOffset: [-32, -73]),
-      const FurnitureCatalogItem(id: 'single_bed', name: 'Cama Individual (1x2)', zone: 'bedroom', footprint: '1x2', surfaceHeight: 14, spriteOffset: [-64, -36]),
       const FurnitureCatalogItem(id: 'single_high_bed', name: 'Cama Alta (1x2)', zone: 'bedroom', footprint: '1x2', surfaceHeight: 16, spriteOffset: [-64, -36]),
       const FurnitureCatalogItem(id: 'closet', name: 'Armario Ropero Alto', zone: 'bedroom', footprint: '1x1', spriteOffset: [-32, -73]),
 
@@ -125,7 +132,6 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'floor_lamp_sm', name: 'Lámpara de Pie (0.5x0.5)', zone: 'living', footprint: '0.5x0.5', canvasSize: [128, 176], spriteOffset: [-32, -44]),
       const FurnitureCatalogItem(id: 'vinyl_record_player', name: 'Tocadiscos Vinilo Retro', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'acoustic_guitar_stand', name: 'Guitarra Acústica', zone: 'living', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
-      const FurnitureCatalogItem(id: 'manga_shelf', name: 'Estantería Manga & Figuras', zone: 'living', footprint: '1x1', surfaceHeight: 14, spriteOffset: [-32, -73]),
       const FurnitureCatalogItem(id: 'espresso_machine', name: 'Cafetera Espresso Barista', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'lava_lamp', name: 'Lámpara de Lava', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'tea_set_table', name: 'Juego de Té y Matcha', zone: 'decor', footprint: 'surface', spriteOffset: [-32, -48]),
@@ -147,8 +153,6 @@ class FurnitureCatalogService {
       const FurnitureCatalogItem(id: 'kitchen_sink', name: 'Fregadero Inox', zone: 'kitchen_bath', footprint: '1x1', surfaceHeight: 20, spriteOffset: [-32, -48]),
       const FurnitureCatalogItem(id: 'kitchen_fridge_sm', name: 'Refrigerador Inox (0.5x0.5)', zone: 'kitchen_bath', footprint: '0.5x0.5', spriteOffset: [-32, -44]),
       const FurnitureCatalogItem(id: 'bathtub_classic', name: 'Bathtub Classic', zone: 'kitchen_bath', footprint: '1x2', spriteOffset: [-64, -36]),
-      const FurnitureCatalogItem(id: 'bathtub_regular_1x2', name: 'Bañera Regular (1x2)', zone: 'kitchen_bath', footprint: '1x2', spriteOffset: [-64, -36]),
-      const FurnitureCatalogItem(id: 'bathtub_2x2', name: 'Bañera Jacuzzi (2x2)', zone: 'kitchen_bath', footprint: '2x2', spriteOffset: [-64, -44]),
       const FurnitureCatalogItem(id: 'bathroom_toilet', name: 'Inodoro Cerámica', zone: 'kitchen_bath', footprint: '1x1', spriteOffset: [-32, -48]),
 
       // Walls (Unified single entry per wall item)
@@ -170,5 +174,6 @@ class FurnitureCatalogService {
         _catalog[item.id] = item;
       }
     }
+    _dropRetired();
   }
 }

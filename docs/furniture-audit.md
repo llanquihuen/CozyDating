@@ -50,10 +50,10 @@ la cortina baja hasta el suelo).
 
 ### D. Técnico
 
-- **Contorno negro puro** (el resto usa contorno selectivo): `single_bed` (10 %), `gamer_chair_sm`
-  (23 %), `vinyl_record_player` (11 %), `bookshelf`, `tall_bookshelf`, `tall_mangashelf`,
-  `gaming_pc_desk`, `wall_poster_anime(2)`, `wall_poster_cinema` (39 %). Se arregla gratis con
-  `convert_selout.py --scenery`.
+- **Negro puro** en `single_bed`, `gamer_chair_sm`, `vinyl_record_player`, estanterías,
+  `gaming_pc_desk` y pósters: revisado, **no son contornos** sino materiales oscuros (marco negro,
+  cuero, la silueta del castillo). El contorno selectivo ya está aplicado a todo
+  (`convert_selout.py --scenery --dry`: 0 de 618 sprites cambiarían).
 - **Píxel al doble** (dibujado con píxeles de 2×2, mitad de densidad): `tall_mangashelf`,
   `tall_mangashelf_white` y los cubos guía (estos no importan, son herramientas).
 - **Sin vista trasera** (rot2 = rot0): casi todos los muebles salvo camas, sillas, sillones,
@@ -77,11 +77,20 @@ la cortina baja hasta el suelo).
 | `manga_shelf` / `tall_mangashelf` / `tall_mangashelf_white` | La baja flota; las altas están a media densidad. |
 | `bookshelf` / `tall_bookshelf` | Distintas alturas, las dos sirven (solo contorno). |
 
-## Decisiones pendientes
+## Decisiones (2026-10-09)
 
-1. Qué hacer con cada duplicado: arreglar, o retirar y que su id apunte al bueno (los cuartos
-   guardados que lo usen siguen funcionando).
-2. Vista trasera: hacerla solo para muebles con frente (cocina, fregadero, TV, chimenea, escritorio)
-   al rehacerlos, o para todos.
-3. Orden de las tandas: cuarto inicial (fregadero, cocina, camas, bañeras) → piezas de estilo (té,
-   tocadiscos, estantería manga, monstera, cama de perro, yoga) → el resto.
+1. **Duplicados: se retiran y su id apunta al bueno.** `single_bed` → `single_high_bed`,
+   `bathtub_regular_1x2` y `bathtub_2x2` → `bathtub_classic`, `manga_shelf` → `tall_mangashelf`
+   (`PlacedFurnitureConfig.retiredTypes`). Los cuartos guardados se migran al leerse (con la huella
+   del reemplazo según la rotación), el decorador ya no los ofrece y `getItem` los resuelve al
+   reemplazo. El cuarto inicial por gustos usa `tall_mangashelf`. Hecho.
+2. **Vista trasera solo para muebles con frente** (cocina, fregadero, TV, chimenea, escritorio,
+   estanterías) al rehacerlos. Los simétricos quedan como están.
+3. **Orden de las tandas:**
+   1. Cuarto inicial: `kitchen_sink`, `kitchen_stove` (llenar el 1×1 y vista trasera),
+      `dining_table_2x2`.
+   2. Piezas de estilo: `tea_set_table`, `vinyl_record_player`, `tall_mangashelf` (a densidad
+      completa), `monstera_plant_pot`, `pet_dog_bed`, `yoga_mat_floor`.
+   3. El resto: `bbq_grill`, `stone_fountain`, `cat_tree_tower`, `home_theater_tv`,
+      `acoustic_guitar_stand`, `espresso_machine`, `polaroid_camera_table`, `boardgame_box_set`,
+      `wall_clock`, `wall_world_map`, `hanging_shelf_wall`, `curtained_window`.
