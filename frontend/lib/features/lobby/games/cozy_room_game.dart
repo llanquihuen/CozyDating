@@ -3724,10 +3724,13 @@ class _IsometricRoomBackgroundComponent extends Component {
     final ids = <String>{roomConfig.floor, ...roomConfig.floorOverrides.values};
     if (ids.any((id) => _floorTiles[FloorTiles.tileKey(id)] == null)) return false;
 
-    final paints = <String, Paint?>{};
-    Paint? paintFor(String id) => paints.putIfAbsent(id, () {
+    final paints = <String, Paint>{};
+    Paint paintFor(String id) => paints.putIfAbsent(id, () {
+          // No anti-aliasing: at fractional zoom it leaves half-transparent tile edges.
+          final paint = Paint()..isAntiAlias = false;
           final color = RoomThemes.getFloorOption(id).color;
-          return color == null ? null : (Paint()..colorFilter = ColorFilter.mode(color, BlendMode.modulate));
+          if (color != null) paint.colorFilter = ColorFilter.mode(color, BlendMode.modulate);
+          return paint;
         });
 
     const w = IsometricCoords.tileWidth;
@@ -3887,7 +3890,7 @@ class _IsometricRoomBackgroundComponent extends Component {
     final paints = <String, Paint?>{};
     Paint? paintFor(String id) => paints.putIfAbsent(id, () {
           final color = RoomThemes.getWallpaperOption(id).color;
-          return color == null ? null : (Paint()..colorFilter = ColorFilter.mode(color, BlendMode.modulate));
+          return color == null ? null : WallPanels.tint(color);
         });
     void drawPanel(String side, int i, {required double left, required double baseTop}) {
       final id = roomConfig.wallOverrides['$side,$i'] ?? roomConfig.wallpaper;

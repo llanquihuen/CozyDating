@@ -399,8 +399,7 @@ class IsometricInteriorWallComponent extends Component {
     }
   }
 
-  static final Paint _westShade = Paint()
-    ..colorFilter = const ColorFilter.mode(Color(0xFFE2E2E2), BlendMode.modulate);
+  static final Paint _westShade = WallPanels.tint(const Color(0xFFE2E2E2));
 
   /// Paints the face with its pixel-density panel, clipped to the wall's current height (so the
   /// cut-away low wall shows the panel's bottom). Returns false when the style has no panels.
@@ -463,7 +462,7 @@ class IsometricInteriorWallComponent extends Component {
 
     // Wall Face (North side is brightly lit, West side has subtle ambient shading)
     final faceColor = isNorth ? color : (Color.lerp(color, Colors.black, 0.08) ?? color);
-    final facePaint = Paint()..colorFilter = ColorFilter.mode(faceColor, BlendMode.modulate);
+    final facePaint = WallPanels.tint(faceColor);
     if (_renderPanelFace(canvas, quad, bX1, bY1, bX2, bY2, isNorth, paint: facePaint)) return;
     final isTiles = style.contains('tiles');
     final sprite = isTiles ? (tilesSprite ?? plasterSprite) : (plasterSprite ?? tilesSprite);

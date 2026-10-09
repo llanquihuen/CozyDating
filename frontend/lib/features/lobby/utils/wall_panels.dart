@@ -17,6 +17,15 @@ class WallPanels {
   static const double wallHeight = 70.0;
   static const double slant = 16.0;
 
+  /// Panels are drawn without anti-aliasing: an anti-aliased sprite edge is half transparent at
+  /// fractional zoom, which shows a line wherever two panels meet.
+  static final Paint _crisp = Paint()..isAntiAlias = false;
+
+  /// A tint for the gray bases (`modulate`), crisp like [draw] needs.
+  static Paint tint(Color color) => Paint()
+    ..isAntiAlias = false
+    ..colorFilter = ColorFilter.mode(color, BlendMode.modulate);
+
   static String assetPath(String key, int n) => 'wallpaper/panels/${key}_p$n.png';
 
   static Map<String, int> parseManifest(String json) =>
@@ -54,6 +63,8 @@ class WallPanels {
   static void draw(Canvas canvas, Sprite sprite,
       {required double left, required double top, required bool mirrored, Paint? paint}) {
     final size = Vector2(width, wallHeight + slant);
+    paint ??= _crisp;
+    assert(!paint.isAntiAlias, 'panels must be drawn without anti-aliasing (see _crisp)');
     if (!mirrored) {
       sprite.render(canvas, position: Vector2(left, top), size: size, overridePaint: paint);
       return;
