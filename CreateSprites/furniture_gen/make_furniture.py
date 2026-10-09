@@ -39,6 +39,8 @@ API = "https://api.pixellab.ai/v2"
 GEOMETRY = {
     "1x1": {"canvas": (128, 128), "offset": (-32, -48), "tiles": (1, 1)},
     "2x2": {"canvas": (256, 192), "offset": (-64, -44), "tiles": (2, 2)},
+    # a 1x2 piece taller than the 192x144 canvas (canopy bed): 96 px more on top, offset 48 higher
+    "1x2_tall": {"canvas": (192, 240), "offset": (-64, -84), "tiles": (1, 2)},
 }
 
 STYLE_ANCHOR = "kitchen_fridge_sm_rot0.png"  # a finished piece: palette, outline and shading to match
@@ -81,6 +83,25 @@ PIECES = {
         "boxes": [  # x0, y0, x1, y1, z0, z1, colour, front feature
             (0.06, 0.22, 0.94, 0.78, 0, 12, (140, 95, 55), "shelves"),
             (0.04, 0.42, 0.96, 0.50, 12, 34, (45, 45, 55), "screen"),
+        ],
+    },
+    # style pilot (room-art-plan phase 3)
+    "canopy_bed": {
+        "footprint": "1x2_tall",
+        "kind": "canopy",
+        "reference": "gen:canopy_bed_g3_3",
+        # decoration for now: rot2 = rot0. Asked for the head end, PixelLab kept drawing the foot end
+        # (canopy_bed_back candidates); the real back view comes with the lying art, made per view.
+        "symmetric": True,
+    },
+    "crt_tv_console": {
+        "footprint": "1x1",
+        "kind": "boxes",
+        "reference": "gen:crt_tv_console_g3_1",
+        "reference_back": "gen:crt_tv_console_back_g3_0",
+        "boxes": [
+            (0.06, 0.12, 0.94, 0.88, 0, 12, (120, 80, 150), "shelves"),
+            (0.16, 0.24, 0.84, 0.80, 12, 36, (200, 195, 180), "crt"),
         ],
     },
     "stone_fountain": {
@@ -160,6 +181,31 @@ IMG_PIECES = {
         "size": (200, 150), "style": "fireplace_rot0.png", "canvas": (256, 192), "anchor": (128, 170),
         "desc": "round stone garden fountain: a wide circular stone basin full of clear blue water, a "
                 "central stone pedestal with a small top bowl and a water spout, isometric view",
+    },
+    "canopy_bed": {
+        "size": (160, 160), "style": "single_high_bed_rot0.png", "canvas": (192, 240), "anchor": (96, 230),
+        "desc": "coquette style single canopy bed: white wooden four poster frame, sheer pastel pink "
+                "canopy drapes tied with pink bows, pink quilted bedspread, white frilly pillows, "
+                "isometric view, the bed's length runs from the upper right to the lower left",
+    },
+    "crt_tv_console": {
+        "size": (112, 112), "style": "home_theater_tv_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "1990s chunky beige CRT television on a small purple TV stand with a retro game console "
+                "and controller on the shelf below, memphis style, isometric view, the screen faces "
+                "the lower left",
+    },
+    # back views of asymmetric pieces: the chosen front candidate is the style image (same palette)
+    "canopy_bed_back": {
+        "size": (160, 160), "style": "gen:canopy_bed_g3_3", "canvas": (192, 240), "anchor": (96, 230),
+        "desc": "the same pink coquette canopy bed seen from the head end: the white padded headboard "
+                "with a pink bow in the foreground, the pillows right behind it, the bed running away "
+                "to the upper right, isometric view",
+    },
+    "crt_tv_console_back": {
+        "size": (112, 112), "style": "gen:crt_tv_console_g3_1", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "the same 1990s beige CRT television on its purple memphis TV stand seen from behind: "
+                "the rounded back of the tube with vent slots and cables, the plain back panel of the "
+                "stand, no screen visible, isometric view",
     },
     # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
     # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
@@ -245,6 +291,8 @@ def blockout(pid, view):
         return blockout_boxes(pid, view)
     if p.get("kind") == "fountain":
         return blockout_fountain(pid)
+    if p.get("kind") == "canopy":
+        return blockout_canopy(pid, view)
     geo = GEOMETRY[p["footprint"]]
     w, h = geo["tiles"]
     z = p["height"]
@@ -348,9 +396,55 @@ def blockout_boxes(pid, view):
         d.polygon(t, fill=tuple(min(255, int(c * 1.15)) for c in col) + (255,))
         if feat == "screen":
             d.polygon(quad(*left, 0.06, 0.94, 0.08, 0.9), fill=(30, 60, 110, 255))
+        elif feat == "crt":
+            d.polygon(quad(*left, 0.12, 0.88, 0.12, 0.82), fill=(35, 45, 60, 255))
+            d.polygon(quad(*left, 0.2, 0.5, 0.2, 0.35), fill=(90, 120, 150, 255))
         elif feat == "shelves":
             d.polygon(quad(*left, 0.08, 0.46, 0.2, 0.8), fill=(60, 40, 25, 255))
             d.polygon(quad(*left, 0.54, 0.92, 0.2, 0.8), fill=(60, 40, 25, 255))
+    return im
+
+
+def blockout_canopy(pid, view):
+    """Bed (frame, mattress, pillows at the head, y = 0 end) with four corner posts and a canopy
+    frame on top. view 2 turns it 180 degrees (head at the near end)."""
+    p = PIECES[pid]
+    geo = GEOMETRY[p["footprint"]]
+    w, h = geo["tiles"]
+    im = Image.new("RGBA", geo["canvas"], (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+
+    def box(x0, y0, x1, y1, z0, z1, col):
+        if view == 2:
+            x0, y0, x1, y1 = w - x1, h - y1, w - x0, h - y0
+        t = [to_px(geo, x, y, z1) for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))]
+        b = [to_px(geo, x, y, z0) for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))]
+        d.polygon([t[3], t[2], b[2], b[3]], fill=col + (255,))
+        d.polygon([t[2], t[1], b[1], b[2]], fill=tuple(int(c * 0.8) for c in col) + (255,))
+        d.polygon(t, fill=tuple(min(255, int(c * 1.12)) for c in col) + (255,))
+
+    frame, sheet, pillow, post, drape = (235, 215, 220), (245, 180, 200), (255, 245, 248), (240, 225, 228), (250, 205, 220)
+    i, pw, top = 0.05, 0.08, 64
+    parts = [
+        (i, i, w - i, h - i, 0, 8, frame),               # bed frame
+        (i + 0.03, i + 0.03, w - i - 0.03, h - i - 0.03, 8, 15, sheet),  # mattress and covers
+        (i + 0.12, i + 0.08, w - i - 0.12, i + 0.32, 15, 19, pillow),     # pillows at the head
+        (i, i, w - i, i + 0.07, 0, 30, frame),           # headboard
+    ]
+    posts = [(i, i), (w - i - pw, i), (i, h - i - pw), (w - i - pw, h - i - pw)]
+    # far posts first, then the bed, then the near posts, then the canopy
+    far = [q for q in posts if (q[0] + q[1]) < (w + h) / 2]
+    near = [q for q in posts if q not in far]
+    for x, y in far:
+        box(x, y, x + pw, y + pw, 0, top, post)
+    for part in parts:
+        box(*part)
+    for x, y in near:
+        box(x, y, x + pw, y + pw, 0, top, post)
+    # canopy: four rails joining the post tops (the drapes come from the reference)
+    r = 0.05
+    for rail in ((i, i, w - i, i + r), (i, h - i - r, w - i, h - i), (i, i, i + r, h - i), (w - i - r, i, w - i, h - i)):
+        box(*rail, top - 3, top + 1, drape)
     return im
 
 
@@ -440,17 +534,26 @@ def generate_ref(pid, seed=None, ref=None):
     symmetric = PIECES[pid].get("symmetric")
     frames = [blockout(pid, 0)] if symmetric else [blockout(pid, 0), blockout(pid, 2)]
     ref = ref or PIECES[pid].get("reference") or f"{pid}_rot0.png"
-    if ref.startswith("gen:"):  # a chosen --genimg candidate, cropped to the object
-        refim = Image.open(os.path.join(GEN, ref[4:] + ".png")).convert("RGBA")
-        refim = refim.crop(refim.getchannel("A").getbbox())
-    else:
-        refim = Image.open(os.path.join(EST, ref)).convert("RGBA")
+    refim = _ref_image(ref)
+    if PIECES[pid].get("reference_back") and not symmetric:
+        # each view with its own reference (a single shared one gets copied into the back view)
+        return _generate_ref_views(pid, seed, frames, refim, _ref_image(PIECES[pid]["reference_back"]))
     w, h = geo["canvas"]
+    # Over 128 px edit-images-v2 takes ONE frame per call: put both views side by side in a single
+    # image (up to 512 wide) so they are still edited together, then split the result.
+    packed = len(frames) > 1 and max(w, h) > 128 and w * len(frames) <= 512
+    if packed:
+        sheet_im = Image.new("RGBA", (w * len(frames), h), (0, 0, 0, 0))
+        for i, f in enumerate(frames):
+            sheet_im.alpha_composite(f, (i * w, 0))
+        frames, (fw, fh) = [sheet_im], sheet_im.size
+    else:
+        fw, fh = w, h
     headers = {"Authorization": f"Bearer {_key()}", "Content-Type": "application/json"}
     payload = {
         "method": "edit_with_reference",
-        "edit_images": [{"image": _b64(f), "width": w, "height": h} for f in frames],
-        "image_size": {"width": w, "height": h},
+        "edit_images": [{"image": _b64(f), "width": fw, "height": fh} for f in frames],
+        "image_size": {"width": fw, "height": fh},
         "reference_image": {"image": _b64(refim), "width": refim.width, "height": refim.height},
         "no_background": True,
     }
@@ -458,12 +561,48 @@ def generate_ref(pid, seed=None, ref=None):
         payload["seed"] = seed
     data = _run(headers, "edit-images-v2", payload, pid)
     images = data.get("images") or []
+    if packed and images:
+        whole = _decode(images[0])
+        images = []
+        for i in range(whole.width // w):
+            buf = io.BytesIO()
+            whole.crop((i * w, 0, (i + 1) * w, h)).save(buf, "PNG")
+            images.append(base64.b64encode(buf.getvalue()).decode())
     tag = "rs" + (str(seed) if seed is not None else time.strftime("%H%M%S"))
     for i, s in enumerate(images[:2]):
         _decode(s).save(os.path.join(GEN, f"{pid}_{tag}_r{2 * i}.png"))
     if symmetric and images:
         _decode(images[0]).save(os.path.join(GEN, f"{pid}_{tag}_r2.png"))
     print(pid, tag, "got", len(images), "images")
+
+
+def _ref_image(ref):
+    """A catalog sprite by file name, or a chosen --genimg candidate as "gen:<name>", cropped."""
+    if ref.startswith("gen:"):
+        im = Image.open(os.path.join(GEN, ref[4:] + ".png")).convert("RGBA")
+    else:
+        im = Image.open(os.path.join(EST, ref)).convert("RGBA")
+    return im.crop(im.getchannel("A").getbbox())
+
+
+def _generate_ref_views(pid, seed, frames, ref_front, ref_back):
+    geo = GEOMETRY[PIECES[pid]["footprint"]]
+    w, h = geo["canvas"]
+    headers = {"Authorization": f"Bearer {_key()}", "Content-Type": "application/json"}
+    tag = "rv" + (str(seed) if seed is not None else time.strftime("%H%M%S"))
+    for r, frame, refim in ((0, frames[0], ref_front), (2, frames[1], ref_back)):
+        payload = {
+            "method": "edit_with_reference",
+            "edit_images": [{"image": _b64(frame), "width": w, "height": h}],
+            "image_size": {"width": w, "height": h},
+            "reference_image": {"image": _b64(refim), "width": refim.width, "height": refim.height},
+            "no_background": True,
+        }
+        if seed is not None:
+            payload["seed"] = seed
+        data = _run(headers, "edit-images-v2", payload, pid)
+        _decode((data.get("images") or [])[0]).save(os.path.join(GEN, f"{pid}_{tag}_r{r}.png"))
+    print(pid, tag, "views generated with separate references")
 
 
 def _run(headers, endpoint, payload, label):
@@ -617,8 +756,7 @@ def write_files(files):
 def generate_img(pid, seed=None):
     spec = IMG_PIECES[pid]
     os.makedirs(GEN, exist_ok=True)
-    style = Image.open(os.path.join(EST, spec["style"])).convert("RGBA")
-    style = style.crop(style.getchannel("A").getbbox())
+    style = _ref_image(spec["style"])
     headers = {"Authorization": f"Bearer {_key()}", "Content-Type": "application/json"}
     payload = {
         "description": f"{spec['desc']}. Single object, pixel art game furniture sprite, selective "
@@ -695,7 +833,13 @@ def place(pid, art):
 def candidates_sheet(pid):
     files = sorted(f for f in os.listdir(GEN) if f.startswith(pid + "_g") and f.endswith(".png"))
     spec = IMG_PIECES[pid]
-    cur = Image.open(os.path.join(EST, f"{pid}_n.png" if spec.get("wall") else f"{pid}_rot0.png")).convert("RGBA")
+    cur_path = os.path.join(EST, f"{pid}_n.png" if spec.get("wall") else f"{pid}_rot0.png")
+    if os.path.exists(cur_path):
+        cur = Image.open(cur_path).convert("RGBA")
+    elif pid.endswith("_back") and pid[:-5] in PIECES:  # back view candidates: the back blockout
+        cur = blockout(pid[:-5], 2)
+    else:  # a new piece: show its blockout instead
+        cur = blockout(pid, 0)
     if cur.size != spec["canvas"]:
         c = Image.new("RGBA", spec["canvas"], (0, 0, 0, 0))
         c.alpha_composite(cur, ((c.width - cur.width) // 2, c.height - cur.height))

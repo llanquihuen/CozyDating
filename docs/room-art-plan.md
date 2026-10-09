@@ -119,18 +119,40 @@ Cada fase deja el cuarto funcionando, con `flutter test` y `flutter analyze` sin
 
 ### Fase 3 — Piloto de muebles con PixelLab (Coquette y Retro 90s)
 
-- Son los dos estilos con menos piezas y con identidad más clara.
-- `CreateSprites/furniture_gen/make_furniture.py`: PixelLab genera las 4 rotaciones isométricas con
-  un mueble existente como referencia de estilo, en el lienzo del catálogo. Las imágenes crudas
-  quedan en `gen/`, así se pueden reconstruir sin gastar créditos (como `make_scenes.py`).
-- Antes de generar en serie, probar 2 muebles (cama con dosel, tele de tubo) y revisarlos junto a
-  muebles existentes en una captura del cuarto. Se miden: costo por mueble, que las 4 rotaciones
-  sean el mismo objeto, que el tamaño calce con la casilla y el contorno.
-- Contorno selectivo, sync al catálogo (zona, huella, `surface_spots` si aplica, capas de silla si
-  es asiento) y `pubspec.yaml`.
+**Antes del piloto (2026-10-09):** auditoría de los 62 muebles existentes y tres tandas de arreglos
+(`docs/furniture-audit.md`), por decisión del usuario: mejor arreglar la base antes de sumar estilos,
+porque los muebles nuevos toman a los existentes como referencia.
 
-**Listo cuando** los 2 estilos tienen sus ~8 muebles y un cuarto completo de cada uno se ve
-coherente.
+**Piloto: 2 piezas ✓ (2026-10-09)** con `CreateSprites/furniture_gen/make_furniture.py`:
+
+1. `--genimg`: candidatas del mueble nuevo (`generate-image-v2`, un mueble del catálogo como imagen de
+   estilo para que el píxel calce). Se elige una: da el **aspecto**.
+2. Maqueta en Python con la **huella exacta** (cajas, cilindros o la cama con dosel) en el lienzo del
+   catálogo, en vista frontal y trasera.
+3. `--genref`: `edit-images-v2` (`edit_with_reference`) pinta la maqueta con el aspecto elegido.
+   Para muebles asimétricos cada vista lleva **su propia referencia** (una candidata frontal y otra
+   vista desde atrás, generada con la frontal como estilo); con una sola referencia, PixelLab la copia
+   también en la vista trasera. Lienzos de más de 128 px admiten una imagen por llamada; si las dos
+   vistas comparten referencia, van lado a lado en una sola imagen.
+4. `--build`: contorno selectivo, rot1/rot3 en espejo, `established_furniture/` y `new_added/`, y la
+   entrada del catálogo (`furniture_catalog.json`).
+
+| Pieza | Estilo | Resultado |
+|---|---|---|
+| `canopy_bed` (Cama con Dosel, 1×2) | Coquette | cama blanca de cuatro postes con cortinas rosadas, moños y volados. Lienzo de 192 × 240 (offset −64, −84) para el dosel. **Solo decoración** (no se puede acostar: `BedSleepConfig` no la conoce) y rot2 = rot0: pedida desde la cabecera, PixelLab siguió dibujando la vista desde los pies; la vista trasera real se hace con el arte para acostarse, que es por vista. |
+| `crt_tv_console` (Tele de Tubo con Consola, 1×1) | Retro 90s | tele beige con antena sobre un mueble morado con zigzag Memphis, consolas y controles; vista trasera con el tubo, rejillas y cables. |
+
+Costo: 95 generaciones las dos (incluido el intento fallido de la vista trasera de la cama). Para
+producir en serie: ~15–20 por las candidatas frontales, ~15–20 por las traseras (solo asimétricos) y
+~5–10 por la pintura de la maqueta, o sea **~30–50 por mueble**: los ~55 muebles de la matriz caben en
+un mes del plan (7.833).
+
+Pendiente: las entradas nuevas del catálogo se agregaron a mano. `sync_furniture_assets.py` agregaría
+como muebles las capas `_seated` del inodoro (no las reconoce como capas), así que no se corrió.
+
+![El cuarto con la cama con dosel y la tele de tubo, y el dormitorio de cerca](furniture-pilot.png)
+
+![Tele de tubo: frente y vista trasera](furniture-pilot-tv.png)
 
 ### Fase 4 — Los otros 8 estilos
 
