@@ -37,6 +37,7 @@ class CardSection extends StatelessWidget {
     final surface = surfaceOf(theme);
     final text = ProfileCardTheme.textOn(surface);
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.fromLTRB(14, 6, 14, 6),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(18)),

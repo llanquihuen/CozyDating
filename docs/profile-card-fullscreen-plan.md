@@ -67,6 +67,14 @@ paso) y `SceneParticles` (luciérnagas, chispas, corazones, hojas o polvo según
 completa. Todo se apaga con movimiento reducido y cuando la ruta no está visible. Sin parallax: con
 una sola capa por escenario no aporta.
 
+Fases 5 y 6 hechas juntas: "Tu tarjeta" (`MyCardScreen`) es el editor. Las secciones de
+`EditProfileScreen` pasaron sin cambios de comportamiento a widgets (`ProfilePhotosEditor`,
+`TastesEditor`, `SearchPrefsEditor`) y la pantalla se borró; "Certificar ahora" abre "Tu tarjeta".
+Diferencias: no hay pestaña "Vista previa" sino el ojo de la barra ("Ver cómo me ven", la vista
+completa) y el botón "Ver la revelación"; el estilo (tema, acento, frase, destacados) sigue en su
+hoja con "Guardar"; un guardado que el servidor rechaza **no se revierte**: queda en el teléfono
+con un aviso y "Reintentar" (revertir habría borrado lo escrito sin conexión).
+
 Cada fase deja la app funcionando y con `flutter test` y `flutter analyze` sin errores nuevos.
 
 ### Fase 1 — Vista completa y cara personaje

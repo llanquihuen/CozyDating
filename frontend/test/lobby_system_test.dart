@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/features/avatar/screens/avatar_editor_screen.dart';
-import 'package:frontend/features/profile/screens/edit_profile_screen.dart';
 import 'package:frontend/features/profile/screens/my_card_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/models/avatar_config.dart';
@@ -241,22 +240,16 @@ void main() {
       expect(find.byType(MyCardScreen), findsOneWidget);
       expect(find.text('Tu tarjeta'), findsOneWidget);
 
-      await tester.tap(find.text('Editar avatar'));
+      await tester.tap(find.text('Vestir a mi personaje'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       expect(find.byType(AvatarEditorScreen), findsOneWidget);
 
-      // Back on the card, the real face edits the dating profile.
+      // Back on the card, where the dating profile is edited too.
       await tester.pageBack();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
-      await tester.tap(find.text('Real'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 700));
-      await tester.tap(find.text('Editar perfil'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
-      expect(find.byType(EditProfileScreen), findsOneWidget);
+      expect(find.byType(MyCardScreen), findsOneWidget);
     });
 
     testWidgets('Tapping Decorar button enters decorate mode with Muebles & Decoracion bottom bar', (tester) async {

@@ -52,7 +52,7 @@ class CharacterFaceView extends StatelessWidget {
             SliverToBoxAdapter(
               child: SizedBox(
                 height: stageHeight,
-                child: _Stage(
+                child: CharacterStage(
                   profile: profile,
                   style: style,
                   theme: theme,
@@ -87,15 +87,19 @@ class CharacterFaceView extends StatelessWidget {
   }
 }
 
-class _Stage extends StatelessWidget {
-  const _Stage({
+/// The character on its theme's scene: name plate, speech bubble, plaques and corner ornaments.
+/// Fills the screen on the fullscreen card; [fixedScale] draws a smaller preview (the editor).
+class CharacterStage extends StatelessWidget {
+  const CharacterStage({
+    super.key,
     required this.profile,
     required this.style,
     required this.theme,
     required this.accent,
-    required this.topInset,
+    this.topInset = 0,
     this.avatarHeroTag,
     this.hint,
+    this.fixedScale,
   });
 
   final UserProfile profile;
@@ -105,6 +109,7 @@ class _Stage extends StatelessWidget {
   final double topInset;
   final Object? avatarHeroTag;
   final String? hint;
+  final int? fixedScale;
 
   /// The panel behind the avatar stands out from the base even when the theme's panel colour is
   /// close to it (as on the compact card).
@@ -121,16 +126,14 @@ class _Stage extends StatelessWidget {
         // Whole pixels only: the sprite is drawn at an integer scale so pixel art stays crisp.
         const crop = CharacterFaceView.avatarCrop;
         // The smallest whole scale at which the scene covers the stage; the avatar shares it.
-        final scale = math.max(
-          1,
-          math.max((w / CardScene.size.width).ceil(), (h / CardScene.size.height).ceil()),
-        );
+        final scale = fixedScale ??
+            math.max(1, math.max((w / CardScene.size.width).ceil(), (h / CardScene.size.height).ceil()));
         final avatarW = crop.width * scale, avatarH = crop.height * scale;
         // Feet near 72% of the height, kept where the scene still reaches the top and bottom edges.
-        final feetY = (h * 0.72)
-            .clamp(h - (CardScene.size.height - CardScene.floorY) * scale, CardScene.floorY * scale)
-            .roundToDouble();
+        final low = h - (CardScene.size.height - CardScene.floorY) * scale, high = CardScene.floorY * scale;
+        final feetY = (low <= high ? (h * 0.72).clamp(low, high) : h * 0.72).roundToDouble();
         final avatarTop = feetY - avatarH;
+        final roomAboveHead = avatarTop - topInset > 110;
         final avatarLeft = (w - avatarW) / 2;
         final avatar = SizedBox(
           width: avatarW,
@@ -201,9 +204,10 @@ class _Stage extends StatelessWidget {
             ),
             if (style.phrase.isNotEmpty)
               Positioned(
-                left: math.min(w / 2 + avatarW * 0.12, w - 190),
-                right: 16,
-                bottom: h - avatarTop - avatarH * 0.08,
+                // Above the head when there is room under the name plate; beside the face if not.
+                left: roomAboveHead ? math.min(w / 2 + avatarW * 0.12, w - 190) : math.min(w / 2 + avatarW * 0.26, w - 140),
+                right: 12,
+                bottom: roomAboveHead ? h - avatarTop - avatarH * 0.08 : h - avatarTop - avatarH * 0.24,
                 child: Align(
                   alignment: Alignment.bottomLeft,
                   child: StepBob(

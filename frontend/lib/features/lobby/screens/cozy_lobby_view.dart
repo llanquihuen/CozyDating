@@ -12,7 +12,6 @@ import '../../../core/network/websocket_client.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/avatar_storage_service.dart';
 import '../../avatar/screens/avatar_editor_screen.dart';
-import '../../profile/screens/edit_profile_screen.dart';
 import '../../profile/screens/my_card_screen.dart';
 import '../../game/bloc/game_bloc.dart';
 import '../../campfire/widgets/post_campfire_decision_dialog.dart';
@@ -218,7 +217,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
         builder: (context) => MyCardScreen(
           profileOf: _cardProfile,
           onEditAvatar: _openAvatarEditor,
-          onEditProfile: _openDatingProfile,
+          onGenderChanged: _refitAvatar,
         ),
       ),
     ).then((_) {
@@ -259,29 +258,14 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
     });
   }
 
-  /// "Editar perfil" over the card's real face (from "Tu tarjeta" and "Certificar ahora").
-  Future<void> _openDatingProfile() {
-    return Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => EditProfileScreen(
-          avatarConfig: _currentAvatarConfig,
-          onSaved: (fittedAvatar) {
-            // A new gender can refit the avatar.
-            if (fittedAvatar != _currentAvatarConfig) {
-              AvatarStorageService.saveUserConfig(widget.activeUserId, fittedAvatar);
-              AuthService.saveAvatarConfig(fittedAvatar);
-              _roomGame.updateAvatarConfig(fittedAvatar);
-            }
-            setState(() {
-              _currentAvatarConfig = fittedAvatar;
-            });
-            _showTopNotification('✨ Perfil actualizado');
-          },
-        ),
-      ),
-    ).then((_) {
-      if (mounted) setState(() {});
-    });
+  /// A new gender can refit the avatar (some styles fit only some bodies).
+  void _refitAvatar(String gender) {
+    final fitted = _currentAvatarConfig.restrictedTo(gender);
+    if (fitted == _currentAvatarConfig) return;
+    AvatarStorageService.saveUserConfig(widget.activeUserId, fitted);
+    AuthService.saveAvatarConfig(fitted);
+    _roomGame.updateAvatarConfig(fitted);
+    setState(() => _currentAvatarConfig = fitted);
   }
 
   void _openMailbox() {
@@ -723,7 +707,7 @@ class _CozyLobbyViewState extends State<CozyLobbyView> with SingleTickerProvider
             label: const Text('Certificar Ahora'),
             onPressed: () {
               Navigator.pop(ctx);
-              _openDatingProfile();
+              _openWardrobe(); // the photos and the selfie are on "Tu tarjeta"
             },
           ),
         ],
