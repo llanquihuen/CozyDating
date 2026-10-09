@@ -68,16 +68,31 @@ class CardFramePainter extends CustomPainter {
         ]) {
           canvas.drawPath(_star(c, 6), fill);
         }
-      case CardFrame.stripes:
-        for (final (i, c) in [accent, second].indexed) {
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(rect.deflate(6.0 + i * 5), Radius.circular(radius - 5 - i * 5)),
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2.5
-              ..color = c,
-          );
+      case CardFrame.memphis:
+        // A 90s Memphis zigzag along the top and bottom edges, with a triangle and a dot as confetti.
+        final zig = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..color = second;
+        for (final y in [7.0, size.height - 7]) {
+          final path = Path()..moveTo(radius, y);
+          var up = true;
+          for (var x = radius + 5; x <= size.width - radius; x += 5) {
+            path.lineTo(x, y + (up ? -2.5 : 2.5));
+            up = !up;
+          }
+          canvas.drawPath(path, zig);
         }
+        fill.color = second;
+        canvas.drawPath(
+          Path()
+            ..moveTo(size.width - 16, 9)
+            ..lineTo(size.width - 8, 9)
+            ..lineTo(size.width - 12, 16)
+            ..close(),
+          fill,
+        );
+        canvas.drawCircle(Offset(12, size.height - 12), 3, fill..color = accent);
       case CardFrame.thin:
         thin.color = second;
         canvas.drawRRect(RRect.fromRectAndRadius(rect.deflate(6), Radius.circular(radius - 5)), thin);

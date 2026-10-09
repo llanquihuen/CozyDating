@@ -24,6 +24,13 @@ void main() {
       expect(ProfileCardStyle.defaultFor(['pet_cat']).themeId, ProfileCardStyle.defaultTheme, reason: 'no hint matched');
     });
 
+    test('a style saved with a retired theme reads as the theme that replaced it', () {
+      expect(ProfileCardStyle.fromMap({'themeId': 'retro70s'}).themeId, 'retro90s');
+      for (final replacement in ProfileCardStyle.renamedThemes.values) {
+        expect(ProfileCardStyle.themeIds, contains(replacement));
+      }
+    });
+
     test('normalizing keeps only owned, featurable tastes (1-5), a known theme and a short phrase', () {
       const tastes = ['intent_slow', 'pet_cat', 'fuel_tea', 'life_plants', 'game_cozy', 'music_lofi']; // matcha 2, cafe 1
       final style = const ProfileCardStyle(

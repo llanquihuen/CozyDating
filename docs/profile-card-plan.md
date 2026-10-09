@@ -34,7 +34,7 @@ el perfil de `character_creator_screen.dart` y borrar ese archivo.
 | Arcade / Cyberpunk | azul noche abisal | cyan neón, magenta | gamer, tech, retro |
 | Místico / Brujita | azul medianoche aterciopelado | dorado lunar, lavanda | tarot, constelaciones |
 | Matcha / Zen | verde té savia | pistacho claro, amarillo suave | plantas, calma, bienestar |
-| Retro 70s / Vinyl | terracota tostado | mostaza, naranja quemado | vintage, análogo, atardecer |
+| Retro 90s | índigo profundo | turquesa, amarillo | Memphis, VHS, nostalgia noventera |
 | Monocromo Elegante | negro azabache | gris platino, blanco puro | sobrio, moderno, formal |
 | Costa / Marino | azul petróleo profundo | azul cielo, amarillo faro | mar, brisa, salitre |
 
@@ -110,7 +110,7 @@ Cada fase deja la app funcionando y va en su propio commit.
   avatar, acentos sugeridos, marco) y una paleta común de acentos. El color de texto se elige por
   contraste (oscuro o claro, el que se lea mejor) y el relleno de los chips toma menos acento si
   hace falta. Matcha y Retro 70s quedaron un poco más oscuros que en el boceto para que el texto
-  llegue a 4,5:1.
+  llegue a 4,5:1. (Retro 70s se reemplazó después por Retro 90s.)
 - `card_frame_painter.dart`: los adornos de cada marco (tachas, madera, moños, neón, estrellas,
   franjas, línea fina, cuerda).
 - `profile_card.dart`: `ProfileCard(profile, style?, showReal, distanceKm?)`. Se dibuja a un

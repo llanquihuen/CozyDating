@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/models/profile_card_style.dart';
 
 /// Ornaments drawn on the character face's frame (the real face only gets a thin accent rim).
-enum CardFrame { studs, wood, bows, plain, neon, stars, stripes, thin, rope }
+enum CardFrame { studs, wood, bows, plain, neon, stars, memphis, thin, rope }
 
 /// A profile card theme: the colours both faces share and the character face's frame.
 class ProfileCardTheme {
@@ -30,7 +30,7 @@ class ProfileCardTheme {
   final List<Color> accents;
   final CardFrame frame;
 
-  /// Second ornament colour (studs, stripes...); defaults to the second accent.
+  /// Second ornament colour (studs, zigzags...); defaults to the second accent.
   final Color? secondFrameColor;
 
   static const Color _dark = Color(0xFF231914);
@@ -132,12 +132,12 @@ const List<ProfileCardTheme> cardThemes = [
     frame: CardFrame.plain,
   ),
   ProfileCardTheme(
-    id: 'retro70s',
-    name: 'Retro 70s / Vinyl',
-    base: Color(0xFF8E4428),
-    panel: Color(0xFFD9A520),
-    accents: [Color(0xFFD9A520), Color(0xFFCC5500)],
-    frame: CardFrame.stripes,
+    id: 'retro90s',
+    name: 'Retro 90s',
+    base: Color(0xFF241B4B),
+    panel: Color(0xFF3A2D7A),
+    accents: [Color(0xFF2EC4B6), Color(0xFFFFD23F)],
+    frame: CardFrame.memphis,
   ),
   ProfileCardTheme(
     id: 'mono',

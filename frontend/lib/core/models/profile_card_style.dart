@@ -20,8 +20,11 @@ class ProfileCardStyle extends Equatable {
   /// Theme ids, in display order (their colours and frames come with the card widgets).
   static const String defaultTheme = 'cafe';
   static const List<String> themeIds = [
-    'metal', 'forest', 'coquette', 'cafe', 'arcade', 'mystic', 'matcha', 'retro70s', 'mono', 'coast',
+    'metal', 'forest', 'coquette', 'cafe', 'arcade', 'mystic', 'matcha', 'retro90s', 'mono', 'coast',
   ];
+
+  /// Retired theme ids and the theme that replaced them, for styles saved before the change.
+  static const Map<String, String> renamedThemes = {'retro70s': 'retro90s'};
 
   /// Tastes that suggest each theme, to pick a fitting default before the player chooses one.
   static const Map<String, List<String>> themeHints = {
@@ -32,7 +35,7 @@ class ProfileCardStyle extends Equatable {
     'arcade': ['plat_pc', 'plat_playstation', 'plat_xbox', 'plat_nintendo', 'game_mmo', 'game_roguelike', 'music_synthwave', 'fuel_energy'],
     'mystic': ['cinema_fantasy', 'anime_isekai', 'game_rpg', 'game_tabletop'],
     'matcha': ['fuel_tea', 'pet_plants', 'life_plants', 'life_fitness', 'vibe_early_bird'],
-    'retro70s': ['music_indie', 'music_instruments', 'cinema_cult', 'life_travel'],
+    'retro90s': ['anime_classics', 'cinema_cult', 'music_indie', 'music_instruments'],
     'mono': ['vibe_urban_walks', 'vacation_city', 'intent_serious'],
     'coast': ['vacation_beach', 'fuel_water', 'pet_exotic'],
   };
@@ -130,8 +133,9 @@ class ProfileCardStyle extends Equatable {
       if (value != null && hex.length == 6) accent = Color(0xFF000000 | value);
     }
     final rawTastes = map['featuredTastes'];
+    final rawTheme = map['themeId'] is String ? map['themeId'] as String : defaultTheme;
     return ProfileCardStyle(
-      themeId: map['themeId'] is String ? map['themeId'] as String : defaultTheme,
+      themeId: renamedThemes[rawTheme] ?? rawTheme,
       accent: accent,
       phrase: map['phrase'] is String ? _clip(map['phrase'] as String) : '',
       featuredTastes: rawTastes is List ? [for (final t in rawTastes) if (t is String) t] : const [],
