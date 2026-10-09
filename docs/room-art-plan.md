@@ -88,15 +88,34 @@ Cada fase deja el cuarto funcionando, con `flutter test` y `flutter analyze` sin
 
 ![Damero, alfombra rosa (base gris teñida), tatami y terracota en el cuarto](room-floor-tiles.png)
 
-### Fase 2 — Paredes a la densidad de los muebles
+### Fase 2 — Paredes a la densidad de los muebles ✓ (2026-10-09)
 
-- `make_walls.py`: cada papel mural es una función del espacio de la pared, dibujada en el
-  paralelogramo del panel (64 × 140 px más la inclinación). Genera la pared norte, su espejo para la
-  oeste y la versión de pared interior. Rehacer los 7 papeles más los lisos.
-- `_renderWalls` y `isometric_interior_wall_component.dart`: un panel por columna (ya se pintan por
-  columna para los reemplazos `n,x`, ver la memoria "wall panels are 32px wide"). Se mantienen el
-  orden de dibujo de los muebles de pared y la luz.
-- Tests: como en la fase 1, más los reemplazos por panel.
+- `CreateSprites/room_tiles/make_walls.py`: cada papel se genera **plano** (de frente) con
+  `generate-image-v2`, con el armario (`closet_rot0.png`) como imagen de estilo para que el píxel
+  calce. Dos tipos: `strip`, una tira de 512 × 140 que son los 8 paneles de una pared, continua entre
+  paneles (1 imagen por llamada), y `panel`, un panel de 64 × 140 que se repite (shoji, panel blanco;
+  4 por llamada). El script corta los paneles y los **inclina corriendo columnas enteras** (la
+  columna c baja c // 2 filas): sin reescalar, las líneas horizontales quedan como líneas isométricas
+  2:1 de pixel art. Salida: `wallpaper/panels/<id>_p<n>.png` (64 × 172) y `panels.json`.
+- La pared oeste dibuja el mismo panel en espejo, así la esquina calza siempre (el panel 0 toca la
+  esquina en las dos paredes).
+- Las bases grises (`solid_plaster`, `solid_tiles`) se aplanan (se quitan las manchas grandes y queda
+  la textura fina) y se llevan al promedio de las texturas viejas, para que los colores se tiñan
+  parejo y como antes.
+- Generados con semilla 5, todos al primer intento: los 5 papeles, las 2 bases y 4 estilos de muro
+  interior (listones, ladrillo, shoji, panel blanco). Costo: 11 llamadas, ~145 generaciones.
+- `WallPanels` (`lobby/utils/wall_panels.dart`): manifiesto, `wallpaperKey`, `interiorKey` (vidrio y
+  marco de puerta no tienen cara: siguen en vectores) y `draw` (con espejo). `_renderWalls` dibuja
+  panel por panel con los reemplazos `n,x` / `w,y`; la luz de las paredes sigue encima, igual que antes.
+  Los muros interiores pintan la cara con el panel de su columna, recortada al contorno del muro, así
+  la altura de 68 y el modo zócalo (14) muestran la parte de abajo del panel; la tapa superior y los
+  marcos de puerta siguen siendo vectores. El mapa de paneles vive en `CozyRoomGame.wallPanels`.
+- Si un papel en uso no tiene paneles, se usa la textura estirada de antes (paredes) o los vectores
+  (muros interiores).
+- Tests: `wall_panels_test.dart` (cada papel y estilo interior tiene sus paneles de 64 × 172, tantos
+  como dice el manifiesto; claves de colores lisos, vidrio y puertas).
+
+![Floral, muros interiores variados, rayas y modo zócalo](room-wall-panels.png)
 
 ### Fase 3 — Piloto de muebles con PixelLab (Coquette y Retro 90s)
 

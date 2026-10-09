@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:vector_math/vector_math_64.dart' as vmath;
 import '../../../core/models/room_config.dart';
 import '../utils/isometric_coords.dart';
+import '../utils/wall_panels.dart';
 import 'isometric_avatar_component.dart';
 
 class IsometricInteriorWallComponent extends Component {
@@ -17,6 +18,9 @@ class IsometricInteriorWallComponent extends Component {
   bool isSelected;
   Sprite? plasterSprite;
   Sprite? tilesSprite;
+
+  /// Pixel-density face sprites by key ([WallPanels.interiorKey]); the room's shared map.
+  Map<String, List<Sprite>> wallPanels;
   bool _isBeingDragged = false;
   bool get isBeingDragged => _isBeingDragged;
   set isBeingDragged(bool value) {
@@ -84,6 +88,7 @@ class IsometricInteriorWallComponent extends Component {
     this.isSelected = false,
     this.plasterSprite,
     this.tilesSprite,
+    this.wallPanels = const {},
     this.wallsCut = false,
     bool isBeingDragged = false,
   }) : _isBeingDragged = isBeingDragged {
@@ -394,6 +399,28 @@ class IsometricInteriorWallComponent extends Component {
     }
   }
 
+  static final Paint _westShade = Paint()
+    ..colorFilter = const ColorFilter.mode(Color(0xFFE2E2E2), BlendMode.modulate);
+
+  /// Paints the face with its pixel-density panel, clipped to the wall's current height (so the
+  /// cut-away low wall shows the panel's bottom). Returns false when the style has no panels.
+  bool _renderPanelFace(Canvas canvas, Path quad, double bX1, double bY1, double bX2, double bY2, bool isNorth,
+      {Paint? paint}) {
+    final key = WallPanels.interiorKey(style);
+    final panels = key == null ? null : wallPanels[key];
+    if (panels == null || panels.isEmpty) return false;
+    final index = (isNorth ? gridX : gridY).abs();
+    canvas.save();
+    canvas.clipPath(quad, doAntiAlias: false);
+    WallPanels.draw(canvas, panels[index % panels.length],
+        left: min(bX1, bX2),
+        top: min(bY1, bY2) - WallPanels.wallHeight,
+        mirrored: !isNorth,
+        paint: paint ?? (isNorth ? null : _westShade));
+    canvas.restore();
+    return true;
+  }
+
   void _renderPlasterColorWall(
     Canvas canvas,
     double bX1,
@@ -436,6 +463,8 @@ class IsometricInteriorWallComponent extends Component {
 
     // Wall Face (North side is brightly lit, West side has subtle ambient shading)
     final faceColor = isNorth ? color : (Color.lerp(color, Colors.black, 0.08) ?? color);
+    final facePaint = Paint()..colorFilter = ColorFilter.mode(faceColor, BlendMode.modulate);
+    if (_renderPanelFace(canvas, quad, bX1, bY1, bX2, bY2, isNorth, paint: facePaint)) return;
     final isTiles = style.contains('tiles');
     final sprite = isTiles ? (tilesSprite ?? plasterSprite) : (plasterSprite ?? tilesSprite);
     if (sprite != null) {
@@ -511,6 +540,7 @@ class IsometricInteriorWallComponent extends Component {
       ..close();
     canvas.drawPath(topCap, Paint()..color = const Color(0xFF8D6E63));
     canvas.drawPath(topCap, Paint()..color = const Color(0xFF271711)..style = PaintingStyle.stroke..strokeWidth = 1.0);
+    if (_renderPanelFace(canvas, quad, bX1, bY1, bX2, bY2, isNorth)) return;
 
     // Front Wall Face
     final baseColor = isNorth ? const Color(0xFF6D4C41) : const Color(0xFF5D4037);
@@ -651,6 +681,7 @@ class IsometricInteriorWallComponent extends Component {
       ..close();
     canvas.drawPath(topCap, Paint()..color = const Color(0xFFECEFF1));
     canvas.drawPath(topCap, Paint()..color = const Color(0xFF37474F)..style = PaintingStyle.stroke..strokeWidth = 1.0);
+    if (_renderPanelFace(canvas, quad, bX1, bY1, bX2, bY2, isNorth)) return;
 
     final baseColor = isNorth ? const Color(0xFFB74B38) : const Color(0xFFA03F2E);
     canvas.drawPath(quad, Paint()..color = baseColor);
@@ -706,6 +737,7 @@ class IsometricInteriorWallComponent extends Component {
       ..close();
     canvas.drawPath(topCap, Paint()..color = Colors.white);
     canvas.drawPath(topCap, Paint()..color = const Color(0xFF90A4AE)..style = PaintingStyle.stroke..strokeWidth = 1.0);
+    if (_renderPanelFace(canvas, quad, bX1, bY1, bX2, bY2, isNorth)) return;
 
     final baseColor = isNorth ? const Color(0xFFECEFF1) : const Color(0xFFCFD8DC);
     canvas.drawPath(quad, Paint()..color = baseColor);
@@ -771,6 +803,7 @@ class IsometricInteriorWallComponent extends Component {
       ..lineTo(tX1 + capDx, tY1 + capDy)
       ..close();
     canvas.drawPath(topCap, Paint()..color = const Color(0xFF4E342E));
+    if (_renderPanelFace(canvas, quad, bX1, bY1, bX2, bY2, isNorth)) return;
 
     // Rice paper fill
     canvas.drawPath(quad, Paint()..color = const Color(0xFFFFF9E6));

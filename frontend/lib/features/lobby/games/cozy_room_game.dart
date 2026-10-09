@@ -22,6 +22,7 @@ import '../lighting/room_lighting_system.dart';
 import '../utils/floor_tiles.dart';
 import '../utils/isometric_coords.dart';
 import '../utils/isometric_pathfinder.dart';
+import '../utils/wall_panels.dart';
 import '../utils/sprite_alpha_cache.dart';
 import 'package:collection/collection.dart';
 import '../../game/components/floating_emote_component.dart';
@@ -133,6 +134,10 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
   final RoomLightingSystem lighting = RoomLightingSystem();
   late final RoomLightingFloorPainter lightingFloorPainter = RoomLightingFloorPainter(lighting);
   late final RoomLightingWallPainter lightingWallPainter = RoomLightingWallPainter(lighting);
+
+  /// Wall panel sprites by key (see [WallPanels]), shared by the perimeter walls and the interior
+  /// walls. Filled by the background before any wall is created.
+  final Map<String, List<Sprite>> wallPanels = {};
   final Float32List _tintSample = Float32List(3);
   final Float32List _tintSample2 = Float32List(3);
   bool _tintsApplied = false;
@@ -418,6 +423,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         wallsCut: config.wallsCut,
         plasterSprite: _backgroundComponent?._wallpaperSprites['solid_plaster'],
         tilesSprite: _backgroundComponent?._wallpaperSprites['solid_tiles'],
+        wallPanels: wallPanels,
       ));
     }
 
@@ -1161,6 +1167,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       wallsCut: wallsCut,
       plasterSprite: _backgroundComponent?._wallpaperSprites['solid_plaster'],
       tilesSprite: _backgroundComponent?._wallpaperSprites['solid_tiles'],
+      wallPanels: wallPanels,
     );
     world.add(comp);
     selectInteriorWall(comp);
@@ -3663,6 +3670,22 @@ class _IsometricRoomBackgroundComponent extends Component {
       }
     }
 
+    Map<String, int> panelCounts = const {};
+    try {
+      panelCounts = WallPanels.parseManifest(await rootBundle.loadString(WallPanels.manifestAsset));
+    } catch (e) {
+      print('No wall panels manifest: $e');
+    }
+    for (final entry in panelCounts.entries) {
+      try {
+        game.wallPanels[entry.key] = [
+          for (var n = 0; n < entry.value; n++) await game.loadSprite(WallPanels.assetPath(entry.key, n)),
+        ];
+      } catch (e) {
+        print('Error loading wall panels for ${entry.key}: $e');
+      }
+    }
+
     const wallpaperKeys = [
       'rustic_wood',
       'brick_stone',
@@ -3855,7 +3878,38 @@ class _IsometricRoomBackgroundComponent extends Component {
     canvas.restore();
   }
 
+  /// Draws the perimeter walls panel by panel at the furniture's pixel density. Returns false,
+  /// drawing nothing, if a wallpaper in use has no panels yet.
+  bool _renderWallPanels(Canvas canvas) {
+    final ids = <String>{roomConfig.wallpaper, ...roomConfig.wallOverrides.values};
+    if (ids.any((id) => game.wallPanels[WallPanels.wallpaperKey(id)] == null)) return false;
+
+    final paints = <String, Paint?>{};
+    Paint? paintFor(String id) => paints.putIfAbsent(id, () {
+          final color = RoomThemes.getWallpaperOption(id).color;
+          return color == null ? null : (Paint()..colorFilter = ColorFilter.mode(color, BlendMode.modulate));
+        });
+    void drawPanel(String side, int i, {required double left, required double baseTop}) {
+      final id = roomConfig.wallOverrides['$side,$i'] ?? roomConfig.wallpaper;
+      final panels = game.wallPanels[WallPanels.wallpaperKey(id)]!;
+      WallPanels.draw(canvas, panels[i % panels.length],
+          left: left, top: baseTop - WallPanels.wallHeight, mirrored: side == 'w', paint: paintFor(id));
+    }
+
+    const halfTileH = IsometricCoords.tileHeight / 2;
+    for (var i = 0; i < gridSize; i++) {
+      // North panel i: base from the top vertex of tile (i, 0), dropping to the right.
+      final n = IsometricCoords.gridToScreen(i.toDouble(), 0);
+      drawPanel('n', i, left: n.x, baseTop: n.y - halfTileH);
+      // West panel i: base from the top vertex of tile (0, i), dropping to the left.
+      final w = IsometricCoords.gridToScreen(0, i.toDouble());
+      drawPanel('w', i, left: w.x - WallPanels.width, baseTop: w.y - halfTileH);
+    }
+    return true;
+  }
+
   void _renderWalls(Canvas canvas) {
+    final drewPanels = _renderWallPanels(canvas);
     final wallHeight = 70.0;
     final totalWallWidth = gridSize * 32.0;
     const segWidth = 32.0;
@@ -3881,7 +3935,7 @@ class _IsometricRoomBackgroundComponent extends Component {
 
     canvas.transform(matrixNorth.storage);
 
-    if (wpSprite != null) {
+    if (wpSprite != null && !drewPanels) {
       wpSprite.render(
         canvas,
         position: Vector2.zero(),
@@ -3891,7 +3945,7 @@ class _IsometricRoomBackgroundComponent extends Component {
     }
 
     // Render North Wall Overrides ('n,0', 'n,1' ... 'n,7')
-    for (int x = 0; x < gridSize; x++) {
+    for (int x = 0; x < gridSize && !drewPanels; x++) {
       final key = 'n,$x';
       final segWpId = roomConfig.wallOverrides[key];
       if (segWpId != null) {
@@ -3932,7 +3986,7 @@ class _IsometricRoomBackgroundComponent extends Component {
 
     canvas.transform(matrixWest.storage);
 
-    if (wpSprite != null) {
+    if (wpSprite != null && !drewPanels) {
       wpSprite.render(
         canvas,
         position: Vector2.zero(),
@@ -3942,7 +3996,7 @@ class _IsometricRoomBackgroundComponent extends Component {
     }
 
     // Render West Wall Overrides ('w,0', 'w,1' ... 'w,7')
-    for (int y = 0; y < gridSize; y++) {
+    for (int y = 0; y < gridSize && !drewPanels; y++) {
       final key = 'w,$y';
       final segWpId = roomConfig.wallOverrides[key];
       if (segWpId != null) {
