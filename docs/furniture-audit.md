@@ -145,6 +145,6 @@ espejo.
 estantería: ese modo sirve para dar aspecto a una maqueta, no para cambiar el estilo de un mueble
 terminado.
 
-Costo: ~45 generaciones (6 llamadas, más 2 de la prueba descartada).
+Costo: ~130 generaciones según el saldo (6 llamadas de candidatas, ~15–20 cada una, más 2 de la prueba descartada).
 
 ![Antes y después de cada pieza (rot0)](furniture-batch2.png)
