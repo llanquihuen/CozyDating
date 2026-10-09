@@ -32,6 +32,7 @@ flutter:
     - assets/images/furniture/
     - assets/images/wallpaper/
     - assets/images/floors/
+    - assets/images/floors/tiles/
     - assets/images/OCTOPLAYER/Avatar/body/
     - assets/images/OCTOPLAYER/Avatar/head/
     - assets/images/OCTOPLAYER/Avatar/eyes/

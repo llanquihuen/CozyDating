@@ -19,6 +19,7 @@ import '../data/bed_sleep_config.dart';
 import '../data/chair_seat_config.dart';
 import '../lighting/room_lighting_renderer.dart';
 import '../lighting/room_lighting_system.dart';
+import '../utils/floor_tiles.dart';
 import '../utils/isometric_coords.dart';
 import '../utils/isometric_pathfinder.dart';
 import '../utils/sprite_alpha_cache.dart';
@@ -3616,6 +3617,7 @@ class _IsometricRoomBackgroundComponent extends Component {
   final CozyRoomGame game;
 
   final Map<String, Sprite> _floorSprites = {};
+  final Map<String, List<Sprite>> _floorTiles = {};
   final Map<String, Sprite> _wallpaperSprites = {};
 
   _IsometricRoomBackgroundComponent({
@@ -3641,6 +3643,23 @@ class _IsometricRoomBackgroundComponent extends Component {
         _floorSprites[key] = await game.loadSprite('floors/floor_$key.png');
       } catch (e) {
         print('Error loading floor sprite floors/floor_$key.png: $e');
+      }
+    }
+
+    // Pixel-density tiles; a floor without them keeps the stretched texture.
+    Map<String, int> tileCounts = const {};
+    try {
+      tileCounts = FloorTiles.parseManifest(await rootBundle.loadString(FloorTiles.manifestAsset));
+    } catch (e) {
+      print('No floor tiles manifest: $e');
+    }
+    for (final entry in tileCounts.entries) {
+      try {
+        _floorTiles[entry.key] = [
+          for (var n = 0; n < entry.value; n++) await game.loadSprite(FloorTiles.assetPath(entry.key, n)),
+        ];
+      } catch (e) {
+        print('Error loading floor tiles for ${entry.key}: $e');
       }
     }
 
@@ -3671,6 +3690,43 @@ class _IsometricRoomBackgroundComponent extends Component {
   }
 
   void _renderFloor(Canvas canvas) {
+    if (!_renderFloorTiles(canvas)) _renderFloorTexture(canvas);
+  }
+
+  /// Draws the floor tile by tile at the furniture's pixel density (128x64 sprites at 0.5x),
+  /// a variant per tile by a fixed hash. Returns false, drawing nothing, if a floor in use has no
+  /// tiles yet.
+  bool _renderFloorTiles(Canvas canvas) {
+    String floorAt(int gx, int gy) => roomConfig.floorOverrides['$gx,$gy'] ?? roomConfig.floor;
+    final ids = <String>{roomConfig.floor, ...roomConfig.floorOverrides.values};
+    if (ids.any((id) => _floorTiles[FloorTiles.tileKey(id)] == null)) return false;
+
+    final paints = <String, Paint?>{};
+    Paint? paintFor(String id) => paints.putIfAbsent(id, () {
+          final color = RoomThemes.getFloorOption(id).color;
+          return color == null ? null : (Paint()..colorFilter = ColorFilter.mode(color, BlendMode.modulate));
+        });
+
+    const w = IsometricCoords.tileWidth;
+    const h = IsometricCoords.tileHeight;
+    final size = Vector2(w, h);
+    for (var gy = 0; gy < gridSize; gy++) {
+      for (var gx = 0; gx < gridSize; gx++) {
+        final id = floorAt(gx, gy);
+        final tiles = _floorTiles[FloorTiles.tileKey(id)]!;
+        final c = IsometricCoords.gridToScreen(gx.toDouble(), gy.toDouble());
+        tiles[FloorTiles.variant(gx, gy, tiles.length)].render(
+          canvas,
+          position: Vector2(c.x - w / 2, c.y - h / 2),
+          size: size,
+          overridePaint: paintFor(id),
+        );
+      }
+    }
+    return true;
+  }
+
+  void _renderFloorTexture(Canvas canvas) {
     final floorOpt = RoomThemes.getFloorOption(roomConfig.floor);
 
     final totalGridSize = gridSize * 32.0;

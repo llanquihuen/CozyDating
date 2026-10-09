@@ -31,13 +31,13 @@ Algunos estilos tienen piezas (Arcade: escritorio gamer, silla gamer, TV, póste
 taza, libros; Matcha: set de té, tatami, mat de yoga). Coquette, Místico, Costa, Monocromo y Metal
 casi no tienen nada propio (ver la matriz en §2).
 
-## 1. Decisiones propuestas (por confirmar)
+## 1. Decisiones (confirmadas 2026-10-09: pisos y paredes primero, hechos con PixelLab)
 
 | Tema | Propuesta |
 |---|---|
 | Pisos | **Baldosas isométricas prerenderizadas**: un sprite de 128 × 64 px por casilla (la casilla de 64 × 32 a 0,5×), con 3 o 4 variantes por material, elegidas por casilla con un hash fijo para que no se note la repetición. Se dibujan casilla por casilla en vez de una textura estirada. |
 | Paredes | **Paneles prerenderizados por columna**: cada panel de pared mide 32 × 70 unidades, o sea 64 × 140 px, inclinado como paralelogramo isométrico (sube 1 px cada 2). Hay una versión para la pared norte y su espejo para la oeste, y lo mismo para las paredes interiores (`isometric_interior_wall_component.dart`). |
-| Cómo se hacen pisos y paredes | **Procedural en Python**: cada material es una función del espacio del piso o de la pared, evaluada píxel a píxel en la pantalla (como el prototipo). Es exacto, gratis, repetible y fácil de ajustar. PixelLab solo para lo orgánico (alfombras con dibujo, pasto, papel con motivo) si lo procedural no alcanza. |
+| Cómo se hacen pisos y paredes | **PixelLab** (decisión del usuario, en vez de procedural). Pisos con `create-tiles-pro` (`tile_type: isometric`, `tile_size: 128`, `tile_height: 64`, `tile_view_angle: 30`, `outline_mode: segmentation`): una llamada da 10 baldosas de 128 × 64 a la densidad exacta, por ~15 generaciones. Se eligen las variantes que calzan entre sí. |
 | Colores lisos | Se mantienen como hoy: una base en gris con matiz (`modulate`), ahora también por baldosa o panel. |
 | Muebles nuevos | **PixelLab con un mueble existente como referencia de estilo**, en las 4 rotaciones que usa el cuarto y con los tamaños de lienzo del catálogo (128 × 128 para 1 × 1, 192 × 144 para 1 × 2, etc.). Después, contorno selectivo (`convert_selout.py --scenery`), `sync_furniture_assets.py` y `pubspec.yaml`, como siempre. |
 | Paquetes por estilo | Cada estilo de tarjeta tiene un **paquete de cuarto**: piso, papel mural y unos 8 muebles. El cuarto inicial que se arma desde los gustos (`generateStarterRoomConfig`) usa el paquete del estilo sugerido. En "Decorar", un filtro por estilo. |
@@ -67,20 +67,26 @@ En total son unos 55 muebles nuevos, más 10 pisos y 10 papeles murales.
 
 Cada fase deja el cuarto funcionando, con `flutter test` y `flutter analyze` sin errores nuevos.
 
-### Fase 1 — Pisos a la densidad de los muebles
+### Fase 1 — Pisos a la densidad de los muebles ✓ (2026-10-09)
 
-- `CreateSprites/room_tiles/make_floors.py`: cada material es una función `(u, v) → color` en
-  unidades del piso, evaluada en una grilla de 0,5 unidades. Genera `floors/<id>_v<n>.png` (128 × 64,
-  3 o 4 variantes) y bases en gris para los colores lisos. Rehacer los 9 pisos actuales (parquet,
-  nogal, roble, damero, terracota, tatami, baldosas, alfombra).
-- En `cozy_room_game.dart`, `_renderFloor`: dibujar casilla por casilla con la variante
-  `hash(gx, gy) % n`. Si falta el sprite nuevo, se usa la textura vieja. La iluminación del cuarto
-  (`room_lighting`) sigue encima, sin cambios.
-- Tests: cada piso del catálogo tiene sus variantes en 128 × 64; un render del cuarto no lanza
-  errores; se respeta el orden de dibujo con los muebles.
+- `CreateSprites/room_tiles/make_floors.py`: `--gen <id>` llama a PixelLab y guarda las 10 baldosas
+  crudas en `gen/` (como `make_scenes.py`); `--sheet` arma una hoja de contacto con un piso de 4 × 4;
+  `--build id=gen[:i,j,...]` recorta cada baldosa al rombo de 128 × 64 y la copia a
+  `frontend/assets/images/floors/tiles/<id>_v<n>.png`, y reescribe `tiles.json` (cuántas variantes
+  tiene cada id). Las bases grises (`solid_tiles`, `solid_carpet`) se pasan a gris neutro con el
+  mismo promedio que las texturas viejas, así los colores lisos se tiñen igual que antes; la
+  alfombra pierde el borde que dibuja PixelLab (`drop_edge`) para que no se vea la grilla.
+- Elegidas: parquet, nogal y terracota con las 10 variantes; damero con 3 (las únicas con la misma
+  fase: arriba y abajo negro, a los lados blanco); tatami con 3 (un tatami entero con borde); baldosa
+  gris y alfombra gris con 4 cada una. Costo: 7 llamadas, ~105 generaciones (más 2 de prueba).
+- `FloorTiles` (`lobby/utils/floor_tiles.dart`): ruta, manifiesto, `tileKey` (un color liso usa la
+  base gris de su textura) y el hash de variante, igual al de Python. `_renderFloor` dibuja casilla
+  por casilla, incluidos los reemplazos por zona; si un piso en uso no tiene baldosas, se usa la
+  textura estirada de antes. La luz del cuarto sigue encima, sin cambios.
+- Tests: `floor_tiles_test.dart` (cada piso del catálogo tiene sus variantes en 128 × 64, tantas como
+  dice el manifiesto; colores lisos; hash estable).
 
-**Listo cuando** una captura del cuarto, como la de §0, muestra el piso y los muebles con el mismo
-tamaño de píxel.
+![Damero, alfombra rosa (base gris teñida), tatami y terracota en el cuarto](room-floor-tiles.png)
 
 ### Fase 2 — Paredes a la densidad de los muebles
 
