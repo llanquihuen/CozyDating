@@ -28,7 +28,8 @@ def load(name):
 
 
 def chunky(im):
-    """True if the art is drawn with 2x2 pixels (half the furniture density)."""
+    """Share of 2x2 blocks that are uniform, counted only on blocks touching a colour edge (flat
+    areas, like a plain back panel, are uniform at any density). High = drawn with 2x2 pixels."""
     px = im.load()
     w, h = im.size
     best = 0.0
@@ -40,6 +41,10 @@ def chunky(im):
                     a = px[x, y]
                     if a[3] < 128:
                         continue
+                    ring = [px[i, j] for i, j in ((x - 1, y), (x + 2, y), (x, y - 1), (x, y + 2))
+                            if 0 <= i < w and 0 <= j < h]
+                    if all(q == a for q in ring):
+                        continue  # flat area: says nothing about density
                     total += 1
                     if a == px[x + 1, y] == px[x, y + 1] == px[x + 1, y + 1]:
                         same += 1

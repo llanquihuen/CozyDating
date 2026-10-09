@@ -54,8 +54,9 @@ la cortina baja hasta el suelo).
   `gaming_pc_desk` y pósters: revisado, **no son contornos** sino materiales oscuros (marco negro,
   cuero, la silueta del castillo). El contorno selectivo ya está aplicado a todo
   (`convert_selout.py --scenery --dry`: 0 de 618 sprites cambiarían).
-- **Píxel al doble** (dibujado con píxeles de 2×2, mitad de densidad): `tall_mangashelf`,
-  `tall_mangashelf_white` y los cubos guía (estos no importan, son herramientas).
+- ~~**Píxel al doble**~~: falso positivo. El detector contaba como "píxeles de 2×2" las zonas de
+  color liso (la vista trasera de las estanterías, los cubos guía). Corregido en `audit_files.py`
+  (solo mira bloques en bordes de color): ningún mueble está a media densidad.
 - **Sin vista trasera** (rot2 = rot0): casi todos los muebles salvo camas, sillas, sillones,
   armario, estanterías, refrigerador, inodoro y sofá. En simétricos (mesa, lámpara, planta) da
   igual; en los que tienen frente (cocina, fregadero, TV, chimenea) al girarlos 180° siguen
@@ -89,8 +90,8 @@ la cortina baja hasta el suelo).
 3. **Orden de las tandas:**
    1. Cuarto inicial: `kitchen_sink`, `kitchen_stove` (llenar el 1×1 y vista trasera),
       `dining_table_2x2`.
-   2. Piezas de estilo: `tea_set_table`, `vinyl_record_player`, `tall_mangashelf` (a densidad
-      completa), `monstera_plant_pot`, `pet_dog_bed`, `yoga_mat_floor`.
+   2. Piezas de estilo: `tea_set_table`, `vinyl_record_player`, `monstera_plant_pot`,
+      `pet_dog_bed`, `yoga_mat_floor` (`tall_mangashelf` salió de la lista: estaba bien).
    3. El resto: `bbq_grill`, `stone_fountain`, `cat_tree_tower`, `home_theater_tv`,
       `acoustic_guitar_stand`, `espresso_machine`, `polaroid_camera_table`, `boardgame_box_set`,
       `wall_clock`, `wall_world_map`, `hanging_shelf_wall`, `curtained_window`.
@@ -122,3 +123,28 @@ Pendiente de tu revisión: en la vista trasera del fregadero la llave queda en e
 la frontal (al girarlo 180° debería quedar del lado cercano).
 
 ![Cocina del cuarto inicial con el fregadero y la cocina nuevos, y la mesa 2×2](furniture-batch1.png)
+
+## Tanda 2: piezas de estilo (2026-10-09) ✓
+
+Piezas chicas, sin huella que llenar: `make_furniture.py --genimg` las genera nuevas con
+`generate-image-v2` (un sprite terminado como imagen de estilo, para que el píxel calce; a 48×48 o
+80×64 salen 16 candidatas por llamada, a 96×112 salen 4) y `--place` las asienta con la base donde
+estaba el arte anterior (o en el centro de su casilla). Son simétricas: rot2 = rot0, rot1/rot3 en
+espejo.
+
+| Mueble | Estilo de referencia | Elegida | Para |
+|---|---|---|---|
+| `tea_set_table` | `coffee_mug` | tetera verde con dos tazas y batidor en bandeja de bambú | Matcha |
+| `vinyl_record_player` | `coffee_mug` | tocadiscos en caja de madera con la tapa abierta | Retro 90s |
+| `monstera_plant_pot` | `floor_plant_sm` | monstera en maceta de terracota; ahora en el lienzo de la planta (128 × 176) | Rústico |
+| `pet_dog_bed` | `plush_armchair` | cama redonda a cuadros con un hueso | Rústico |
+| `yoga_mat_floor` | `simple_sofa` | colchoneta turquesa con un extremo enrollado y una botella | Matcha |
+
+`tall_mangashelf` no se tocó (ver la corrección de arriba). La prueba de pasarla por
+`edit_with_reference` con otra estantería como referencia la convirtió en una copia de esa
+estantería: ese modo sirve para dar aspecto a una maqueta, no para cambiar el estilo de un mueble
+terminado.
+
+Costo: ~45 generaciones (6 llamadas, más 2 de la prueba descartada).
+
+![Antes y después de cada pieza (rot0)](furniture-batch2.png)

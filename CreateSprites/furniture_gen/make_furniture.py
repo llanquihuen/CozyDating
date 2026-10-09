@@ -11,6 +11,8 @@ footprint stays exact. rot1 / rot3 are mirrors of rot0 / rot2, as for the existi
   python make_furniture.py --gen kitchen_sink [--seed 3]
   python make_furniture.py --sheet                      # every generation over its footprint
   python make_furniture.py --build kitchen_sink=kitchen_sink_s3
+  python make_furniture.py --genimg tea_set_table [--seed 3]    # small pieces: candidates + sheet
+  python make_furniture.py --place tea_set_table=tea_set_table_g3_5
 
 Raw generations stay in gen/ so --build never spends credits. --build writes
 frontend/assets/images/furniture/established_furniture/<id>_rot{0..3}.png (+ <id>.png = rot0).
@@ -73,6 +75,36 @@ PIECES = {
     },
 }
 
+# Small pieces with no footprint to fill (tabletop objects, plants, floor cushions): generated new
+# with generate-image-v2 (a finished sprite as the style image, so the pixel size matches; several
+# candidates per call) and placed with their base where the current art stands (anchor = bottom
+# centre of the opaque art, in canvas pixels). Symmetric enough that rot2 = rot0.
+IMG_PIECES = {
+    "tea_set_table": {
+        "size": (48, 48), "style": "coffee_mug_rot0.png", "canvas": (128, 128), "anchor": (64, 91),
+        "desc": "japanese matcha tea set on a small round bamboo tray: a green ceramic teapot, two small "
+                "tea cups and a bamboo whisk, isometric view from above at a 30 degree angle",
+    },
+    "vinyl_record_player": {
+        "size": (48, 48), "style": "coffee_mug_rot0.png", "canvas": (128, 128), "anchor": (64, 89),
+        "desc": "retro vinyl record player turntable in a wooden case with a black vinyl record and a "
+                "silver tone arm, open lid, isometric view from above at a 30 degree angle",
+    },
+    "monstera_plant_pot": {
+        "size": (96, 112), "style": "floor_plant_sm_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "monstera deliciosa house plant with big split leaves in a terracotta pot, isometric view",
+    },
+    "pet_dog_bed": {
+        "size": (80, 64), "style": "plush_armchair_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "round plush dog bed with a soft raised rim and a cushion, a small bone toy on it, "
+                "isometric view from above at a 30 degree angle, lying on the floor",
+    },
+    "yoga_mat_floor": {
+        "size": (80, 56), "style": "simple_sofa_rot0.png", "canvas": (128, 128), "anchor": (64, 116),
+        "desc": "teal yoga mat unrolled flat on the floor with one end rolled up, a small pink water "
+                "bottle beside it, isometric view from above at a 30 degree angle",
+    },
+}
 
 def _key():
     cwd = os.getcwd()
@@ -401,10 +433,16 @@ def build(pid, name):
     from convert_selout import convert_colour
     r0, r2 = convert_colour(r0), convert_colour(r2)
     views = {0: r0, 1: r0.transpose(Image.FLIP_LEFT_RIGHT), 2: r2, 3: r2.transpose(Image.FLIP_LEFT_RIGHT)}
+    n = write_views(pid, views)
+    print("built", pid, "from", name, f"(+{n} in new_added)")
+
+
+def write_views(pid, views):
+    """views: rot -> image. Writes established_furniture/<pid>_rot*.png (+ <pid>.png = rot0) and
+    replaces the copies in new_added/ (the sync's sources), or the next sync_furniture_assets.py
+    would copy the old art back. Returns how many new_added/ files were replaced."""
     files = {f"{pid}_rot{r}.png": im for r, im in views.items()}
-    files[f"{pid}.png"] = r0
-    # new_added/ holds the sync's sources: replace the old copies there too, or the next
-    # sync_furniture_assets.py would copy them back over the new art.
+    files[f"{pid}.png"] = views[0]
     sources = {}
     for root, _, names in os.walk(NEW_ADDED):
         for n in names:
@@ -414,7 +452,76 @@ def build(pid, name):
         im.save(os.path.join(EST, n))
         if n in sources:
             im.save(sources[n])
-    print("built", pid, "from", name, f"(+{len(sources)} in new_added)")
+    return len(sources)
+
+
+# ------------------------------------------------------------------ small pieces / restyle
+def generate_img(pid, seed=None):
+    spec = IMG_PIECES[pid]
+    os.makedirs(GEN, exist_ok=True)
+    style = Image.open(os.path.join(EST, spec["style"])).convert("RGBA")
+    style = style.crop(style.getchannel("A").getbbox())
+    headers = {"Authorization": f"Bearer {_key()}", "Content-Type": "application/json"}
+    payload = {
+        "description": f"{spec['desc']}. Single object, pixel art game furniture sprite, selective "
+                       "outline, detailed shading, no shadow on the ground, transparent background",
+        "image_size": {"width": spec["size"][0], "height": spec["size"][1]},
+        "no_background": True,
+        "style_image": {"image": _b64(style), "size": {"width": style.width, "height": style.height}},
+        "style_options": {"color_palette": False, "outline": True, "detail": True, "shading": True},
+    }
+    if seed is not None:
+        payload["seed"] = seed
+    data = _run(headers, "generate-image-v2", payload, pid)
+    images = data.get("images") or ([data["image"]] if data.get("image") else [])
+    tag = "g" + (str(seed) if seed is not None else time.strftime("%H%M%S"))
+    for i, im in enumerate(images):
+        _decode(im).save(os.path.join(GEN, f"{pid}_{tag}_{i}.png"))
+    print(pid, tag, "got", len(images), "candidates")
+
+
+def place(pid, art):
+    """Art cropped to its opaque bbox, its bottom centre on the piece's anchor."""
+    spec = IMG_PIECES[pid]
+    art = art.crop(art.getchannel("A").point(lambda a: 255 if a > 40 else 0).getbbox())
+    canvas = Image.new("RGBA", spec["canvas"], (0, 0, 0, 0))
+    ax, ay = spec["anchor"]
+    canvas.alpha_composite(art, (round(ax - art.width / 2), ay - art.height))
+    return canvas
+
+
+def candidates_sheet(pid):
+    files = sorted(f for f in os.listdir(GEN) if f.startswith(pid + "_g") and f.endswith(".png"))
+    spec = IMG_PIECES[pid]
+    cur = Image.open(os.path.join(EST, f"{pid}_rot0.png")).convert("RGBA")
+    if cur.size != spec["canvas"]:
+        c = Image.new("RGBA", spec["canvas"], (0, 0, 0, 0))
+        c.alpha_composite(cur, ((c.width - cur.width) // 2, c.height - cur.height))
+        cur = c
+    cells = [("actual", cur)] + [(f[len(pid) + 1:-4], place(pid, Image.open(os.path.join(GEN, f)).convert("RGBA")))
+                                 for f in files]
+    sc = 3
+    cw, ch = spec["canvas"][0] * sc, spec["canvas"][1] * sc
+    cols = 6
+    out = Image.new("RGBA", (cols * (cw + 4), ((len(cells) + cols - 1) // cols) * (ch + 16)), (12, 14, 21, 255))
+    d = ImageDraw.Draw(out)
+    for i, (name, im) in enumerate(cells):
+        bg = Image.new("RGBA", im.size, (40, 42, 55, 255))
+        bg.alpha_composite(im)
+        x, y = (i % cols) * (cw + 4), (i // cols) * (ch + 16)
+        out.alpha_composite(bg.resize((cw, ch), Image.NEAREST), (x, y + 16))
+        d.text((x + 2, y + 2), name, fill=(255, 230, 120, 255))
+    out.save(os.path.join(GEN, f"_cand_{pid}.png"))
+    print("saved", f"gen/_cand_{pid}.png", len(cells) - 1, "candidates")
+
+
+def build_placed(pid, name):
+    sys.path.insert(0, os.path.join(ROOT, "face_pipeline"))
+    from convert_selout import convert_colour
+    im = convert_colour(place(pid, Image.open(os.path.join(GEN, name + ".png")).convert("RGBA")))
+    m = im.transpose(Image.FLIP_LEFT_RIGHT)
+    n = write_views(pid, {0: im, 1: m, 2: im, 3: m})
+    print("built", pid, "from", name, f"(+{n} in new_added)")
 
 
 if __name__ == "__main__":
@@ -422,6 +529,18 @@ if __name__ == "__main__":
     if "--blockout" in args:
         for pid in args[args.index("--blockout") + 1].split(","):
             preview_blockout(pid)
+    elif "--genimg" in args:
+        seed = int(args[args.index("--seed") + 1]) if "--seed" in args else None
+        for pid in args[args.index("--genimg") + 1].split(","):
+            generate_img(pid, seed)
+            candidates_sheet(pid)
+    elif "--cands" in args:
+        for pid in args[args.index("--cands") + 1].split(","):
+            candidates_sheet(pid)
+    elif "--place" in args:
+        for pair in args[args.index("--place") + 1:]:
+            pid, name = pair.split("=")
+            build_placed(pid, name)
     elif "--genref" in args:
         seed = int(args[args.index("--seed") + 1]) if "--seed" in args else None
         for pid in args[args.index("--genref") + 1].split(","):
