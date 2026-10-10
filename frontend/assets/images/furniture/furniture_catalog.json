@@ -6854,5 +6854,451 @@
         "asset_path": "furniture/established_furniture/wall_plush_deer_head_w.png"
       }
     }
+  },
+  "coffee_bar_counter": {
+    "name": "Barra de Café",
+    "zone": "kitchen_bath",
+    "footprint": "1x1",
+    "surface_height": 20,
+    "supports_surface": true,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "coffee_bar_counter_rot0",
+        "name": "Barra de Café Rot 0",
+        "footprint": "1x1",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 20,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/coffee_bar_counter_rot0.png"
+      },
+      "1": {
+        "id": "coffee_bar_counter_rot1",
+        "name": "Barra de Café Rot 1",
+        "footprint": "1x1",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 20,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/coffee_bar_counter_rot1.png"
+      },
+      "2": {
+        "id": "coffee_bar_counter_rot2",
+        "name": "Barra de Café Rot 2",
+        "footprint": "1x1",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 20,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/coffee_bar_counter_rot2.png"
+      },
+      "3": {
+        "id": "coffee_bar_counter_rot3",
+        "name": "Barra de Café Rot 3",
+        "footprint": "1x1",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 20,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/coffee_bar_counter_rot3.png"
+      }
+    }
+  },
+  "bistro_table_sm": {
+    "name": "Mesa Bistró (0.5x0.5)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 18,
+    "supports_surface": true,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "bistro_table_sm_rot0",
+        "name": "Mesa Bistró (0.5x0.5) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/bistro_table_sm_rot0.png"
+      },
+      "1": {
+        "id": "bistro_table_sm_rot1",
+        "name": "Mesa Bistró (0.5x0.5) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/bistro_table_sm_rot1.png"
+      },
+      "2": {
+        "id": "bistro_table_sm_rot2",
+        "name": "Mesa Bistró (0.5x0.5) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/bistro_table_sm_rot2.png"
+      },
+      "3": {
+        "id": "bistro_table_sm_rot3",
+        "name": "Mesa Bistró (0.5x0.5) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/bistro_table_sm_rot3.png"
+      }
+    }
+  },
+  "coffee_sacks_sm": {
+    "name": "Sacos de Café (0.5x0.5)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "coffee_sacks_sm_rot0",
+        "name": "Sacos de Café (0.5x0.5) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/coffee_sacks_sm_rot0.png"
+      },
+      "1": {
+        "id": "coffee_sacks_sm_rot1",
+        "name": "Sacos de Café (0.5x0.5) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/coffee_sacks_sm_rot1.png"
+      },
+      "2": {
+        "id": "coffee_sacks_sm_rot2",
+        "name": "Sacos de Café (0.5x0.5) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/coffee_sacks_sm_rot2.png"
+      },
+      "3": {
+        "id": "coffee_sacks_sm_rot3",
+        "name": "Sacos de Café (0.5x0.5) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/coffee_sacks_sm_rot3.png"
+      }
+    }
+  },
+  "wall_pendant_lamp": {
+    "name": "Lámpara Colgante de Pared",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_pendant_lamp_n",
+        "name": "Lámpara Colgante de Pared (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_pendant_lamp_n.png"
+      },
+      "1": {
+        "id": "wall_pendant_lamp_w",
+        "name": "Lámpara Colgante de Pared (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_pendant_lamp_w.png"
+      }
+    }
+  },
+  "wall_chalkboard_menu": {
+    "name": "Pizarra con Menú",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_chalkboard_menu_n",
+        "name": "Pizarra con Menú (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_chalkboard_menu_n.png"
+      },
+      "1": {
+        "id": "wall_chalkboard_menu_w",
+        "name": "Pizarra con Menú (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_chalkboard_menu_w.png"
+      }
+    }
   }
 }

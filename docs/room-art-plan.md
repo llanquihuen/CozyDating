@@ -217,6 +217,17 @@ Costo: ~70 generaciones.
 
 ![Cuarto rústico](style-rustic.png)
 
+**Café ✓ (2026-10-10):** `coffee_bar_counter` (Barra de Café 1×1, superficie a 20: vitrina con
+croissants al frente y el lado del barista con la máquina espresso y repisas como vista trasera),
+`bistro_table_sm` (Mesa Bistró, superficie a 18), `coffee_sacks_sm` (Sacos de Café),
+`wall_pendant_lamp` (Lámpara Colgante de Pared, emite luz: las luces de techo del juego son
+marcadores sin sprite, así que va como aplique) y `wall_chalkboard_menu` (Pizarra con Menú, dibujos
+sin texto, opaca). Con la cafetera, la taza y la estantería que ya había.
+
+Costo: ~80 generaciones.
+
+![Cuarto café, y la barra de frente y desde el lado del barista](style-cafe.png)
+
 ### Fase 5 — Paquetes de cuarto por estilo
 
 - `RoomStylePack` (piso, pared, muebles y una disposición sugerida) para cada id de tema de tarjeta.

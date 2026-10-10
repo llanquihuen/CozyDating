@@ -154,6 +154,16 @@ PIECES = {
         "symmetric": True,  # decoration, like the canopy beds
         "reference": "gen:log_bed_g3_0",
     },
+    # phase 4: Café
+    "coffee_bar_counter": {
+        "footprint": "1x1",
+        "kind": "boxes",
+        "reference": "gen:coffee_bar_counter_g3_0",
+        "reference_back": "gen:coffee_bar_counter_back_g3_0",
+        "boxes": [
+            (0.04, 0.10, 0.96, 0.90, 0, 20, (120, 80, 50), "drawers"),
+        ],
+    },
     "stone_fountain": {
         "footprint": "2x2",
         "kind": "fountain",
@@ -386,6 +396,41 @@ IMG_PIECES = {
         "wall": True, "size": (64, 64), "style": "closet_rot0.png", "canvas": (128, 128), "center_y": 48,
         "desc": "cute plush toy deer head with soft felt antlers mounted on a round wooden plaque, seen "
                 "straight from the front, flat front view, no perspective",
+    },
+    # phase 4: Café (the espresso machine and the bookshelf give the palette)
+    "coffee_bar_counter": {
+        "size": (112, 112), "style": "kitchen_sink_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "cafe coffee bar counter: dark walnut wooden cabinet with a light wooden counter top, "
+                "a glass pastry display with croissants on the front, a stack of paper cups at the back, "
+                "isometric view, the front faces the lower left",
+    },
+    "coffee_bar_counter_back": {
+        "size": (112, 112), "style": "gen:coffee_bar_counter_g3_0", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "the same cafe coffee bar counter seen from the barista side: open wooden shelves with "
+                "cups, saucers and coffee bags, the light wooden counter top, isometric view",
+    },
+    "bistro_table_sm": {
+        "size": (56, 72), "style": "table_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "small round cafe bistro table with a white marble top and a black wrought iron pedestal "
+                "base, isometric view",
+    },
+    "coffee_sacks_sm": {
+        "size": (56, 56), "style": "fireplace_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "two stacked burlap jute coffee bean sacks, one open with roasted coffee beans and a "
+                "small wooden scoop, isometric view",
+    },
+    "wall_pendant_lamp": {
+        "wall": True, "size": (40, 64), "style": "table_lamp_rot0.png", "canvas": (128, 128), "center_y": 40,
+        "desc": "industrial wall lamp: a black iron bracket arm with a hanging dome shaped black metal "
+                "pendant shade and a warm glowing edison bulb, seen straight from the front, flat front "
+                "view, no perspective",
+    },
+    "wall_chalkboard_menu": {
+        "wall": True, "opaque": True, "size": (48, 56), "style": "art_painting_n.png", "canvas": (128, 128),
+        "center_y": 50,
+        "desc": "cafe chalkboard menu filling the whole image edge to edge: a black chalkboard with a thin "
+                "wooden frame, white chalk drawings of a coffee cup, a croissant and steam swirls, no "
+                "letters, no text, flat front view, no perspective",
     },
     # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
     # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
@@ -971,6 +1016,11 @@ NEW_CATALOG = {
     "firewood_stack_sm": ("Leña Apilada (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
     "plaid_rug": ("Alfombra Escocesa", "living", "2x2", [256, 192], [-64, -44], 0),
     "wall_plush_deer_head": ("Ciervo de Peluche", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "coffee_bar_counter": ("Barra de Café", "kitchen_bath", "1x1", [128, 128], [-32, -48], 20),
+    "bistro_table_sm": ("Mesa Bistró (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 18),
+    "coffee_sacks_sm": ("Sacos de Café (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
+    "wall_pendant_lamp": ("Lámpara Colgante de Pared", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "wall_chalkboard_menu": ("Pizarra con Menú", "decor", "wall_n", [128, 128], [-32, -48], 0),
 }
 CATALOG = os.path.join(REPO, "frontend", "assets", "images", "furniture", "furniture_catalog.json")
 
