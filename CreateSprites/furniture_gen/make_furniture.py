@@ -42,6 +42,8 @@ GEOMETRY = {
     # a 1x2 piece taller than the 192x144 canvas (canopy bed): 96 px more on top, offset 48 higher
     "1x2_tall": {"canvas": (192, 240), "offset": (-64, -84), "tiles": (1, 2)},
     "1x2": {"canvas": (192, 144), "offset": (-64, -36), "tiles": (1, 2)},
+    # tall 1x1 pieces (closet, tall shelves): 50 px more on top
+    "1x1_tall": {"canvas": (128, 178), "offset": (-32, -73), "tiles": (1, 1)},
 }
 
 STYLE_ANCHOR = "kitchen_fridge_sm_rot0.png"  # a finished piece: palette, outline and shading to match
@@ -163,6 +165,41 @@ PIECES = {
         "boxes": [
             (0.04, 0.10, 0.96, 0.90, 0, 20, (120, 80, 50), "drawers"),
         ],
+    },
+    # phase 4: Arcade
+    "arcade_machine": {
+        "footprint": "1x1_tall",
+        "kind": "boxes",
+        "reference": "gen:arcade_machine_g3_0",
+        "reference_back": "gen:arcade_machine_back_g3_0",
+        "boxes": [
+            (0.18, 0.22, 0.82, 0.78, 0, 30, (40, 30, 70), None),
+            (0.18, 0.30, 0.82, 0.70, 30, 66, (40, 30, 70), "screen"),
+        ],
+    },
+    "bean_bag_chair": {
+        "footprint": "1x1",
+        "kind": "shape",
+        "shape": "plush_armchair",
+        "seat": True,
+        "reference": "gen:bean_bag_chair_g3_1",
+        "reference_back": "gen:bean_bag_chair_back_g3_0",
+    },
+    "console_shelf": {
+        "footprint": "1x1",
+        "kind": "boxes",
+        "reference": "gen:console_shelf_g3_3",
+        "reference_back": "gen:console_shelf_back_g3_0",
+        "boxes": [
+            (0.04, 0.22, 0.96, 0.78, 0, 16, (45, 45, 60), "shelves"),
+        ],
+    },
+    "led_bed": {
+        "footprint": "1x2",
+        "kind": "shape",
+        "shape": "single_high_bed",
+        "symmetric": True,  # decoration, like the other new beds
+        "reference": "gen:led_bed_g3_0",
     },
     "stone_fountain": {
         "footprint": "2x2",
@@ -431,6 +468,50 @@ IMG_PIECES = {
         "desc": "cafe chalkboard menu filling the whole image edge to edge: a black chalkboard with a thin "
                 "wooden frame, white chalk drawings of a coffee cup, a croissant and steam swirls, no "
                 "letters, no text, flat front view, no perspective",
+    },
+    # phase 4: Arcade (the gamer desk and chair give the palette)
+    "arcade_machine": {
+        "size": (96, 144), "style": "gaming_pc_desk_rot0.png", "canvas": (128, 178), "anchor": (64, 168),
+        "desc": "retro upright arcade cabinet machine: purple and black cabinet with neon cyan and "
+                "magenta side art, a glowing screen with a pixel space game, joystick and buttons on "
+                "the control panel, a lit marquee on top, isometric view, the screen faces the lower left",
+    },
+    "arcade_machine_back": {
+        "size": (96, 144), "style": "gen:arcade_machine_g3_0", "canvas": (128, 178), "anchor": (64, 168),
+        "desc": "the same retro purple and black arcade cabinet seen from behind: the plain back panel "
+                "with vent slots and a power cable, the neon side art on the side, isometric view",
+    },
+    "bean_bag_chair": {
+        "size": (112, 112), "style": "gamer_chair_sm_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "big soft gamer bean bag chair in black and neon cyan fabric with a raised back, "
+                "isometric view, the seat faces the lower left",
+    },
+    "bean_bag_chair_back": {
+        "size": (112, 112), "style": "gen:bean_bag_chair_g3_1", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "the same black and neon cyan gamer bean bag chair seen from behind: the rounded raised "
+                "back in front, isometric view",
+    },
+    "console_shelf": {
+        "size": (112, 96), "style": "gaming_pc_desk_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "low black media shelf with neon cyan led strip holding retro and modern game consoles, "
+                "controllers and a row of game cases, isometric view, the open front faces the lower left",
+    },
+    "console_shelf_back": {
+        "size": (112, 96), "style": "gen:console_shelf_g3_3", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "the same low black media shelf with game consoles seen from behind: the plain black "
+                "back panel with cables coming out, the consoles on top, isometric view",
+    },
+    "led_bed": {
+        "size": (160, 120), "style": "gaming_pc_desk_rot0.png", "canvas": (192, 144), "anchor": (96, 138),
+        "desc": "modern gamer single bed with a black frame and a glowing neon cyan and magenta led strip "
+                "under it, dark blue bedding with a pixel controller pattern, isometric view, the bed's "
+                "length runs from the upper right to the lower left",
+    },
+    "wall_neon_sign": {
+        "wall": True, "size": (64, 40), "style": "gaming_pc_desk_rot0.png", "canvas": (128, 128), "center_y": 40,
+        "desc": "glowing neon sign of a game controller in bright magenta and cyan neon tubes on a thin "
+                "black backing board, no text, seen straight from the front, flat front view, no "
+                "perspective",
     },
     # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
     # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
@@ -1021,6 +1102,11 @@ NEW_CATALOG = {
     "coffee_sacks_sm": ("Sacos de Café (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
     "wall_pendant_lamp": ("Lámpara Colgante de Pared", "decor", "wall_n", [128, 128], [-32, -48], 0),
     "wall_chalkboard_menu": ("Pizarra con Menú", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "arcade_machine": ("Máquina Arcade", "living", "1x1", [128, 178], [-32, -73], 0),
+    "bean_bag_chair": ("Sillón Gamer", "living", "1x1", [128, 128], [-32, -48], 0),
+    "console_shelf": ("Repisa de Consolas", "living", "1x1", [128, 128], [-32, -48], 16),
+    "led_bed": ("Cama con Luces LED", "bedroom", "1x2", [192, 144], [-64, -36], 0),
+    "wall_neon_sign": ("Letrero de Neón", "decor", "wall_n", [128, 128], [-32, -48], 0),
 }
 CATALOG = os.path.join(REPO, "frontend", "assets", "images", "furniture", "furniture_catalog.json")
 

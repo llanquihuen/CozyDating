@@ -228,6 +228,18 @@ Costo: ~80 generaciones.
 
 ![Cuarto café, y la barra de frente y desde el lado del barista](style-cafe.png)
 
+**Arcade ✓ (2026-10-10):** `arcade_machine` (Máquina Arcade, 1×1 alto como el armario, emite luz RGB,
+vista trasera con rejilla y cable), `bean_bag_chair` (Sillón Gamer: pedido como puf, pero la silueta
+del sillón que lo hace asiento le dio forma de sillón acolchado; se renombró), `console_shelf`
+(Repisa de Consolas, superficie a 16, vista trasera con cables), `led_bed` (Cama con Luces LED,
+decoración; la luz cian está apagada por defecto) y `wall_neon_sign` (Letrero de Neón con un control,
+pulsa en magenta). Con el escritorio y la silla gamer y los pósters que ya había. Un puf blando de
+verdad necesitaría su propia silueta de asiento.
+
+Costo: ~155 generaciones.
+
+![Cuarto arcade y el sillón gamer con el avatar sentado (rot 0 y 1)](style-arcade.png)
+
 ### Fase 5 — Paquetes de cuarto por estilo
 
 - `RoomStylePack` (piso, pared, muebles y una disposición sugerida) para cada id de tema de tarjeta.

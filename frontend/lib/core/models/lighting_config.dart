@@ -316,6 +316,12 @@ class EmitterLightSpec extends Equatable {
         color: LightColor.custom(0xFFFFB25C), radius: 1.8, intensity: 0.7, height: 22, anim: LightAnim.flicker, selfLit: 0.4),
     'wall_pendant_lamp': EmitterLightSpec(
         color: LightColor.custom(0xFFFFC27A), radius: 2.2, intensity: 0.75, height: 48),
+    'arcade_machine': EmitterLightSpec(
+        color: LightColor.custom(0xFFB388FF), radius: 2.0, intensity: 0.7, height: 50, anim: LightAnim.rgb, selfLit: 0.4),
+    'wall_neon_sign': EmitterLightSpec(
+        color: LightColor.custom(0xFFFF4FD8), radius: 2.2, intensity: 0.75, height: 46, anim: LightAnim.pulse, selfLit: 0.5),
+    'led_bed': EmitterLightSpec(
+        color: LightColor.custom(0xFF4FE3FF), radius: 2.0, intensity: 0.6, height: 6, anim: LightAnim.rgb, defaultOn: false),
     'candelabra': EmitterLightSpec(
         color: LightColor.custom(0xFFFFB25C), radius: 2.2, intensity: 0.8, height: 56, anim: LightAnim.flicker, selfLit: 0.4),
     'stained_glass_window': EmitterLightSpec(
