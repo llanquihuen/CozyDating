@@ -104,6 +104,23 @@ PIECES = {
             (0.16, 0.24, 0.84, 0.80, 12, 36, (200, 195, 180), "crt"),
         ],
     },
+    # phase 4: Coquette
+    "vanity_table": {
+        "footprint": "1x1",
+        "kind": "boxes",
+        "reference": "gen:vanity_table_g3_0",
+        "reference_back": "gen:vanity_table_back_g3_0",
+        "boxes": [
+            (0.08, 0.30, 0.92, 0.80, 0, 18, (235, 220, 225), "drawers"),
+            (0.18, 0.30, 0.82, 0.38, 18, 38, (240, 228, 232), "mirror"),
+        ],
+    },
+    "heart_rug": {
+        "footprint": "2x2",
+        "kind": "heart",
+        "symmetric": True,  # a rug: the heart stays upright to the camera in every rotation
+        "reference": "gen:heart_rug_g3_0",
+    },
     "stone_fountain": {
         "footprint": "2x2",
         "kind": "fountain",
@@ -207,6 +224,38 @@ IMG_PIECES = {
                 "the rounded back of the tube with vent slots and cables, the plain back panel of the "
                 "stand, no screen visible, isometric view",
     },
+    # phase 4: Coquette (the canopy bed is the style image so the set shares its palette)
+    "vanity_table": {
+        "size": (112, 112), "style": "canopy_bed_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "coquette white wooden vanity dressing table with an oval mirror framed by pink bows, "
+                "two small drawers, perfume bottles and a lipstick on top, isometric view, the mirror "
+                "faces the lower left",
+    },
+    "vanity_table_back": {
+        "size": (112, 112), "style": "gen:vanity_table_g3_0", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "the same white coquette vanity table seen from behind: the plain white back of the oval "
+                "mirror frame with a pink bow on top, the plain back panel of the table, isometric view",
+    },
+    "heart_rug": {
+        "size": (160, 112), "style": "canopy_bed_rot0.png", "canvas": (256, 192), "anchor": (128, 170),
+        "desc": "fluffy pastel pink heart shaped shag rug with a white ruffled edge lying flat on the "
+                "floor, isometric view from above",
+    },
+    "flower_vase_pink": {
+        "size": (48, 48), "style": "coffee_mug_rot0.png", "canvas": (64, 64), "anchor": (34, 60),
+        "desc": "small white ceramic vase with pink roses and white baby breath flowers and a pink "
+                "ribbon bow, isometric view",
+    },
+    "plush_teddy": {
+        "size": (48, 48), "style": "coffee_mug_rot0.png", "canvas": (64, 64), "anchor": (34, 60),
+        "desc": "small soft pastel pink teddy bear plush toy sitting, with a white bow around its neck, "
+                "isometric view",
+    },
+    "wall_bow_garland": {
+        "wall": True, "size": (60, 40), "style": "canopy_bed_rot0.png", "canvas": (128, 128), "center_y": 40,
+        "desc": "garland of small pink satin bows and white pearls hanging in a gentle curve, seen "
+                "straight from the front, flat front view, no perspective",
+    },
     # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
     # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
     "wall_clock": {
@@ -293,6 +342,8 @@ def blockout(pid, view):
         return blockout_fountain(pid)
     if p.get("kind") == "canopy":
         return blockout_canopy(pid, view)
+    if p.get("kind") == "heart":
+        return blockout_heart(pid, view)
     geo = GEOMETRY[p["footprint"]]
     w, h = geo["tiles"]
     z = p["height"]
@@ -396,6 +447,11 @@ def blockout_boxes(pid, view):
         d.polygon(t, fill=tuple(min(255, int(c * 1.15)) for c in col) + (255,))
         if feat == "screen":
             d.polygon(quad(*left, 0.06, 0.94, 0.08, 0.9), fill=(30, 60, 110, 255))
+        elif feat == "mirror":
+            d.polygon(quad(*left, 0.14, 0.86, 0.1, 0.9), fill=(170, 200, 220, 255))
+        elif feat == "drawers":
+            for u0, u1 in ((0.06, 0.3), (0.7, 0.94)):
+                d.polygon(quad(*left, u0, u1, 0.2, 0.75), outline=(150, 120, 130, 255))
         elif feat == "crt":
             d.polygon(quad(*left, 0.12, 0.88, 0.12, 0.82), fill=(35, 45, 60, 255))
             d.polygon(quad(*left, 0.2, 0.5, 0.2, 0.35), fill=(90, 120, 150, 255))
@@ -445,6 +501,32 @@ def blockout_canopy(pid, view):
     r = 0.05
     for rail in ((i, i, w - i, i + r), (i, h - i - r, w - i, h - i), (i, i, i + r, h - i), (w - i - r, i, w - i, h - i)):
         box(*rail, top - 3, top + 1, drape)
+    return im
+
+
+def blockout_heart(pid, view):
+    """A flat heart lying on the floor, centred on the footprint, upright to the camera: the tip
+    points at the viewer in rot0 and away in rot2."""
+    import math
+    p = PIECES[pid]
+    geo = GEOMETRY[p["footprint"]]
+    w, h = geo["tiles"]
+    im = Image.new("RGBA", geo["canvas"], (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    sign = 1 if view == 0 else -1
+    k = 1.15 * min(w, h) / 2 / 24.0
+    r2 = math.sqrt(0.5)
+    pts = []
+    for n in range(120):
+        t = 2 * math.pi * n / 120
+        hx = 16 * math.sin(t) ** 3
+        hy = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+        # upright to the camera: the heart's right is the screen's right (grid (1, -1)) and its tip
+        # points at the viewer (grid (1, 1)) in rot0, away from it in rot2
+        a, b = sign * hx * k, -sign * (hy + 3) * k
+        pts.append((w / 2 + (a + b) * r2, h / 2 + (b - a) * r2))
+    d.polygon([to_px(geo, x, y, 0) for x, y in pts], fill=(220, 150, 175, 255))
+    d.polygon([to_px(geo, x, y, 2) for x, y in pts], fill=(245, 185, 205, 255), outline=(255, 245, 250, 255))
     return im
 
 
@@ -729,6 +811,41 @@ def build(pid, name):
     print("built", pid, "from", name, f"(+{n} in new_added)")
 
 
+# New pieces' catalog entries (name, zone, footprint, canvas, sprite offset, surface height).
+NEW_CATALOG = {
+    "canopy_bed": ("Cama con Dosel", "bedroom", "1x2", [192, 240], [-64, -84], 0),
+    "crt_tv_console": ("Tele de Tubo con Consola", "living", "1x1", [128, 128], [-32, -48], 0),
+    "vanity_table": ("Tocador con Espejo", "bedroom", "1x1", [128, 128], [-32, -48], 18),
+    "heart_rug": ("Alfombra Corazón", "living", "2x2", [256, 192], [-64, -44], 0),
+    "flower_vase_pink": ("Florero de Rosas", "decor", "surface", [64, 64], [-32, -48], 0),
+    "plush_teddy": ("Osito de Peluche", "decor", "surface", [64, 64], [-32, -48], 0),
+    "wall_bow_garland": ("Guirnalda de Moños", "decor", "wall_n", [128, 128], [-32, -48], 0),
+}
+CATALOG = os.path.join(REPO, "frontend", "assets", "images", "furniture", "furniture_catalog.json")
+
+
+def add_catalog(pid):
+    """Writes the piece's entry in furniture_catalog.json, in the sync's format (2-space indent, no
+    trailing newline), without touching the other entries."""
+    name, zone, fp, canvas, offset, surf = NEW_CATALOG[pid]
+    data = json.load(open(CATALOG, encoding="utf-8"))
+    if fp == "wall_n":
+        views = [(0, f"{pid}_n", f"{name} (Norte)", "wall_n"), (1, f"{pid}_w", f"{name} (Oeste)", "wall_w")]
+    else:
+        views = [(r, f"{pid}_rot{r}", f"{name} Rot {r}", fp) for r in range(4)]
+    rots = {}
+    for r, rid, rname, rfp in views:
+        rots[str(r)] = {"id": rid, "name": rname, "footprint": rfp, "rot": r, "canvas_size": canvas,
+                        "sprite_offset": offset, "surface_height": surf, "supports_surface": surf > 0,
+                        "surface_offset": [0, 0], "asset_path": f"furniture/established_furniture/{rid}.png"}
+    data[pid] = {"name": name, "zone": zone, "footprint": fp, "surface_height": surf,
+                 "supports_surface": surf > 0, "surface_offset": [0, 0], "canvas_size": canvas,
+                 "sprite_offset": offset, "has_table_magnet": False, "rotations": rots}
+    with open(CATALOG, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(data, indent=2, ensure_ascii=False))
+    print("catalog:", pid)
+
+
 def write_views(pid, views):
     """views: rot -> image. Writes established_furniture/<pid>_rot*.png (+ <pid>.png = rot0) and
     replaces the copies in new_added/ (the sync's sources), or the next sync_furniture_assets.py
@@ -838,8 +955,10 @@ def candidates_sheet(pid):
         cur = Image.open(cur_path).convert("RGBA")
     elif pid.endswith("_back") and pid[:-5] in PIECES:  # back view candidates: the back blockout
         cur = blockout(pid[:-5], 2)
-    else:  # a new piece: show its blockout instead
+    elif pid in PIECES:  # a new piece: show its blockout instead
         cur = blockout(pid, 0)
+    else:  # a new small piece: nothing to compare with
+        cur = Image.new("RGBA", spec["canvas"], (0, 0, 0, 0))
     if cur.size != spec["canvas"]:
         c = Image.new("RGBA", spec["canvas"], (0, 0, 0, 0))
         c.alpha_composite(cur, ((c.width - cur.width) // 2, c.height - cur.height))
@@ -883,6 +1002,9 @@ if __name__ == "__main__":
         for pid in args[args.index("--genimg") + 1].split(","):
             generate_img(pid, seed)
             candidates_sheet(pid)
+    elif "--catalog" in args:
+        for pid in args[args.index("--catalog") + 1].split(","):
+            add_catalog(pid)
     elif "--cands" in args:
         for pid in args[args.index("--cands") + 1].split(","):
             candidates_sheet(pid)

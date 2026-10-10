@@ -154,11 +154,22 @@ como muebles las capas `_seated` del inodoro (no las reconoce como capas), así 
 
 ![Tele de tubo: frente y vista trasera](furniture-pilot-tv.png)
 
-### Fase 4 — Los otros 8 estilos
+### Fase 4 — Los otros estilos
 
 - Mismo proceso, un estilo por tanda, revisando cada uno contigo antes de sincronizarlo.
-- Presupuesto: con el piloto se sabrá cuántas generaciones cuesta cada mueble. Si es parecido a la
-  ropa (~20 por objeto con sus rotaciones), unos 55 muebles caben en un mes del plan Tier 3.
+  `make_furniture.py --catalog <ids>` escribe las entradas nuevas del catálogo (formato del sync).
+- Ids que contienen `rug` son alfombras (`CozyRoomGame.furnitureTypeFor`): se camina encima y quedan
+  bajo los muebles. El juego ya sabía tratarlas, pero nada les asignaba ese tipo.
+
+**Coquette ✓ (2026-10-10):** `vanity_table` (Tocador con Espejo, vista trasera propia),
+`heart_rug` (Alfombra Corazón 2×2, simétrica: el corazón queda derecho en toda rotación; la maqueta se
+desbordaba con `edit_with_reference`, así que se usa la candidata centrada), `flower_vase_pink` y
+`plush_teddy` (superficie), `wall_bow_garland` (pared), más `canopy_bed` del piloto. Todo con la
+cama con dosel como imagen de estilo. Pendiente: el **sillón rosado**: los asientos necesitan capas
+`_front` por rotación (el avatar se sienta entre la base y el frente), que este proceso aún no genera.
+Costo: ~110 generaciones.
+
+![Dormitorio Coquette (con la luz nocturna del cuarto)](style-coquette.png)
 
 ### Fase 5 — Paquetes de cuarto por estilo
 

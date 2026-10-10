@@ -467,7 +467,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
         parentId: item.parentId,
         wallHeightLevel: item.wallHeightLevel.isNotEmpty ? item.wallHeightLevel : 'high',
         resolution: config.resolution,
-        type: targetTypeName.contains('wardrobe') ? FurnitureType.wardrobe : (targetTypeName.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
+        type: furnitureTypeFor(targetTypeName),
         sprite: isWall ? (isNorth ? rotSprites[0] : (rotSprites[1] ?? rotSprites[0])) : (rotSprites[item.rotation] ?? rotSprites[0]),
         rotationSprites: rotSprites,
         chairBaseSprites: chairLayers.base,
@@ -492,6 +492,14 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
     // Second pass: Link parent surface heights and furthest depth priority for surface items
     recalculateSurfacePriorities(created.values.toList());
     _updateFurnitureActivationStates();
+  }
+
+  /// Component type from a furniture id: rugs lie under everything and can be walked over.
+  static FurnitureType furnitureTypeFor(String id) {
+    if (id.contains('wardrobe')) return FurnitureType.wardrobe;
+    if (id.contains('rug')) return FurnitureType.carpet;
+    if (id.contains('bed')) return FurnitureType.bed;
+    return FurnitureType.custom;
   }
 
   void _recalculateSurfacePriorities([List<IsometricFurnitureComponent>? customList]) => recalculateSurfacePriorities(customList);
@@ -1004,7 +1012,7 @@ class CozyRoomGame extends FlameGame with DragCallbacks {
       parentSurfaceHeight: surfaceH,
       wallHeightLevel: 'high',
       resolution: roomConfig.resolution,
-      type: catalogItem.id.contains('wardrobe') ? FurnitureType.wardrobe : (catalogItem.id.contains('bed') ? FurnitureType.bed : FurnitureType.custom),
+      type: furnitureTypeFor(catalogItem.id),
       sprite: rotSprites[0],
       rotationSprites: rotSprites,
       chairBaseSprites: chairLayers.base,

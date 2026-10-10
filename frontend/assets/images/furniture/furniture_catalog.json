@@ -4838,5 +4838,493 @@
         "asset_path": "furniture/established_furniture/crt_tv_console_rot3.png"
       }
     }
+  },
+  "vanity_table": {
+    "name": "Tocador con Espejo",
+    "zone": "bedroom",
+    "footprint": "1x1",
+    "surface_height": 18,
+    "supports_surface": true,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "vanity_table_rot0",
+        "name": "Tocador con Espejo Rot 0",
+        "footprint": "1x1",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/vanity_table_rot0.png"
+      },
+      "1": {
+        "id": "vanity_table_rot1",
+        "name": "Tocador con Espejo Rot 1",
+        "footprint": "1x1",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/vanity_table_rot1.png"
+      },
+      "2": {
+        "id": "vanity_table_rot2",
+        "name": "Tocador con Espejo Rot 2",
+        "footprint": "1x1",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/vanity_table_rot2.png"
+      },
+      "3": {
+        "id": "vanity_table_rot3",
+        "name": "Tocador con Espejo Rot 3",
+        "footprint": "1x1",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 18,
+        "supports_surface": true,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/vanity_table_rot3.png"
+      }
+    }
+  },
+  "heart_rug": {
+    "name": "Alfombra Corazón",
+    "zone": "living",
+    "footprint": "2x2",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      256,
+      192
+    ],
+    "sprite_offset": [
+      -64,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "heart_rug_rot0",
+        "name": "Alfombra Corazón Rot 0",
+        "footprint": "2x2",
+        "rot": 0,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/heart_rug_rot0.png"
+      },
+      "1": {
+        "id": "heart_rug_rot1",
+        "name": "Alfombra Corazón Rot 1",
+        "footprint": "2x2",
+        "rot": 1,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/heart_rug_rot1.png"
+      },
+      "2": {
+        "id": "heart_rug_rot2",
+        "name": "Alfombra Corazón Rot 2",
+        "footprint": "2x2",
+        "rot": 2,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/heart_rug_rot2.png"
+      },
+      "3": {
+        "id": "heart_rug_rot3",
+        "name": "Alfombra Corazón Rot 3",
+        "footprint": "2x2",
+        "rot": 3,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/heart_rug_rot3.png"
+      }
+    }
+  },
+  "flower_vase_pink": {
+    "name": "Florero de Rosas",
+    "zone": "decor",
+    "footprint": "surface",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      64,
+      64
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "flower_vase_pink_rot0",
+        "name": "Florero de Rosas Rot 0",
+        "footprint": "surface",
+        "rot": 0,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/flower_vase_pink_rot0.png"
+      },
+      "1": {
+        "id": "flower_vase_pink_rot1",
+        "name": "Florero de Rosas Rot 1",
+        "footprint": "surface",
+        "rot": 1,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/flower_vase_pink_rot1.png"
+      },
+      "2": {
+        "id": "flower_vase_pink_rot2",
+        "name": "Florero de Rosas Rot 2",
+        "footprint": "surface",
+        "rot": 2,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/flower_vase_pink_rot2.png"
+      },
+      "3": {
+        "id": "flower_vase_pink_rot3",
+        "name": "Florero de Rosas Rot 3",
+        "footprint": "surface",
+        "rot": 3,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/flower_vase_pink_rot3.png"
+      }
+    }
+  },
+  "plush_teddy": {
+    "name": "Osito de Peluche",
+    "zone": "decor",
+    "footprint": "surface",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      64,
+      64
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "plush_teddy_rot0",
+        "name": "Osito de Peluche Rot 0",
+        "footprint": "surface",
+        "rot": 0,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/plush_teddy_rot0.png"
+      },
+      "1": {
+        "id": "plush_teddy_rot1",
+        "name": "Osito de Peluche Rot 1",
+        "footprint": "surface",
+        "rot": 1,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/plush_teddy_rot1.png"
+      },
+      "2": {
+        "id": "plush_teddy_rot2",
+        "name": "Osito de Peluche Rot 2",
+        "footprint": "surface",
+        "rot": 2,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/plush_teddy_rot2.png"
+      },
+      "3": {
+        "id": "plush_teddy_rot3",
+        "name": "Osito de Peluche Rot 3",
+        "footprint": "surface",
+        "rot": 3,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/plush_teddy_rot3.png"
+      }
+    }
+  },
+  "wall_bow_garland": {
+    "name": "Guirnalda de Moños",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_bow_garland_n",
+        "name": "Guirnalda de Moños (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_bow_garland_n.png"
+      },
+      "1": {
+        "id": "wall_bow_garland_w",
+        "name": "Guirnalda de Moños (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_bow_garland_w.png"
+      }
+    }
   }
 }
