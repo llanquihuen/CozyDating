@@ -187,7 +187,7 @@ que ya existía. Todo con la tele de tubo como imagen de estilo.
 - Las alfombras salen más chicas que su 2×2 (la de corazón también): son caminables, así que solo
   afecta dónde se pueden soltar. Se puede regenerar más grandes si molesta.
 
-Costo: ~120 generaciones.
+Costo: ~80 generaciones según el saldo.
 
 ![Cuarto Retro 90s y el sillón inflable con el avatar sentado (rot 0 y 1)](style-retro90s.png)
 
