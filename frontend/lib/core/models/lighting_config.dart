@@ -322,6 +322,12 @@ class EmitterLightSpec extends Equatable {
         color: LightColor.custom(0xFFFF4FD8), radius: 2.2, intensity: 0.75, height: 46, anim: LightAnim.pulse, selfLit: 0.5),
     'led_bed': EmitterLightSpec(
         color: LightColor.custom(0xFF4FE3FF), radius: 2.0, intensity: 0.6, height: 6, anim: LightAnim.rgb, defaultOn: false),
+    'crystal_ball': EmitterLightSpec(
+        color: LightColor.custom(0xFFB388FF), radius: 1.8, intensity: 0.65, height: 36, anim: LightAnim.pulse, selfLit: 0.4),
+    'cauldron': EmitterLightSpec(
+        color: LightColor.custom(0xFF7CFF8A), radius: 1.8, intensity: 0.6, height: 18, anim: LightAnim.flicker, selfLit: 0.35),
+    'candles_floor': EmitterLightSpec(
+        color: LightColor.custom(0xFFFFB25C), radius: 2.0, intensity: 0.75, height: 26, anim: LightAnim.flicker, selfLit: 0.4),
     'candelabra': EmitterLightSpec(
         color: LightColor.custom(0xFFFFB25C), radius: 2.2, intensity: 0.8, height: 56, anim: LightAnim.flicker, selfLit: 0.4),
     'stained_glass_window': EmitterLightSpec(

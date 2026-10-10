@@ -7788,5 +7788,515 @@
         "asset_path": "furniture/established_furniture/wall_neon_sign_w.png"
       }
     }
+  },
+  "crystal_ball_table_sm": {
+    "name": "Mesa con Bola de Cristal (0.5x0.5)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "crystal_ball_table_sm_rot0",
+        "name": "Mesa con Bola de Cristal (0.5x0.5) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/crystal_ball_table_sm_rot0.png"
+      },
+      "1": {
+        "id": "crystal_ball_table_sm_rot1",
+        "name": "Mesa con Bola de Cristal (0.5x0.5) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/crystal_ball_table_sm_rot1.png"
+      },
+      "2": {
+        "id": "crystal_ball_table_sm_rot2",
+        "name": "Mesa con Bola de Cristal (0.5x0.5) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/crystal_ball_table_sm_rot2.png"
+      },
+      "3": {
+        "id": "crystal_ball_table_sm_rot3",
+        "name": "Mesa con Bola de Cristal (0.5x0.5) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/crystal_ball_table_sm_rot3.png"
+      }
+    }
+  },
+  "cauldron_sm": {
+    "name": "Caldero (0.5x0.5)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "cauldron_sm_rot0",
+        "name": "Caldero (0.5x0.5) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/cauldron_sm_rot0.png"
+      },
+      "1": {
+        "id": "cauldron_sm_rot1",
+        "name": "Caldero (0.5x0.5) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/cauldron_sm_rot1.png"
+      },
+      "2": {
+        "id": "cauldron_sm_rot2",
+        "name": "Caldero (0.5x0.5) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/cauldron_sm_rot2.png"
+      },
+      "3": {
+        "id": "cauldron_sm_rot3",
+        "name": "Caldero (0.5x0.5) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/cauldron_sm_rot3.png"
+      }
+    }
+  },
+  "candles_floor_sm": {
+    "name": "Velas de Pie (0.5x0.5)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "candles_floor_sm_rot0",
+        "name": "Velas de Pie (0.5x0.5) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/candles_floor_sm_rot0.png"
+      },
+      "1": {
+        "id": "candles_floor_sm_rot1",
+        "name": "Velas de Pie (0.5x0.5) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/candles_floor_sm_rot1.png"
+      },
+      "2": {
+        "id": "candles_floor_sm_rot2",
+        "name": "Velas de Pie (0.5x0.5) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/candles_floor_sm_rot2.png"
+      },
+      "3": {
+        "id": "candles_floor_sm_rot3",
+        "name": "Velas de Pie (0.5x0.5) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/candles_floor_sm_rot3.png"
+      }
+    }
+  },
+  "wall_potion_shelf": {
+    "name": "Estante de Pociones",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_potion_shelf_n",
+        "name": "Estante de Pociones (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_potion_shelf_n.png"
+      },
+      "1": {
+        "id": "wall_potion_shelf_w",
+        "name": "Estante de Pociones (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_potion_shelf_w.png"
+      }
+    }
+  },
+  "wall_moon_tapestry": {
+    "name": "Tapiz de Luna",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_moon_tapestry_n",
+        "name": "Tapiz de Luna (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_moon_tapestry_n.png"
+      },
+      "1": {
+        "id": "wall_moon_tapestry_w",
+        "name": "Tapiz de Luna (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_moon_tapestry_w.png"
+      }
+    }
+  },
+  "wall_hanging_herbs": {
+    "name": "Hierbas Colgadas",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_hanging_herbs_n",
+        "name": "Hierbas Colgadas (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_hanging_herbs_n.png"
+      },
+      "1": {
+        "id": "wall_hanging_herbs_w",
+        "name": "Hierbas Colgadas (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_hanging_herbs_w.png"
+      }
+    }
   }
 }

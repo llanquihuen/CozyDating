@@ -513,6 +513,39 @@ IMG_PIECES = {
                 "black backing board, no text, seen straight from the front, flat front view, no "
                 "perspective",
     },
+    # phase 4: Místico (the lava lamp and the bookshelf give the palette)
+    "crystal_ball_table_sm": {
+        "size": (56, 80), "style": "side_table_sm_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "small round witch table with a dark purple velvet tablecloth with golden stars and fringe, "
+                "a glowing violet crystal ball on a golden stand on top, isometric view",
+    },
+    "cauldron_sm": {
+        "size": (56, 56), "style": "fireplace_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "round black iron witch cauldron on three short legs bubbling with glowing green potion "
+                "and a little green smoke, isometric view",
+    },
+    "candles_floor_sm": {
+        "size": (48, 64), "style": "candelabra_floor_sm_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "cluster of tall and short lit white and purple pillar candles of different heights with "
+                "dripping wax standing on the floor, isometric view",
+    },
+    "wall_potion_shelf": {
+        "wall": True, "size": (60, 48), "style": "bookshelf_rot0.png", "canvas": (128, 128), "center_y": 54,
+        "desc": "small dark wooden wall shelf with two rows of colorful glowing potion bottles, a skull "
+                "candle and dried herbs, seen straight from the front, flat front view, no perspective",
+    },
+    "wall_moon_tapestry": {
+        "wall": True, "opaque": True, "size": (48, 64), "style": "art_painting_n.png", "canvas": (128, 128),
+        "center_y": 50,
+        "desc": "hanging tapestry filling the whole image edge to edge: deep navy blue fabric with a big "
+                "golden crescent moon, moon phases and small stars, golden fringe at the bottom, flat "
+                "front view, no perspective",
+    },
+    "wall_hanging_herbs": {
+        "wall": True, "size": (60, 40), "style": "bookshelf_rot0.png", "canvas": (128, 128), "center_y": 36,
+        "desc": "bundles of dried herbs, lavender and flowers hanging upside down from a wooden stick on "
+                "twine, seen straight from the front, flat front view, no perspective",
+    },
     # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
     # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
     "wall_clock": {
@@ -1107,6 +1140,12 @@ NEW_CATALOG = {
     "console_shelf": ("Repisa de Consolas", "living", "1x1", [128, 128], [-32, -48], 16),
     "led_bed": ("Cama con Luces LED", "bedroom", "1x2", [192, 144], [-64, -36], 0),
     "wall_neon_sign": ("Letrero de Neón", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "crystal_ball_table_sm": ("Mesa con Bola de Cristal (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
+    "cauldron_sm": ("Caldero (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
+    "candles_floor_sm": ("Velas de Pie (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
+    "wall_potion_shelf": ("Estante de Pociones", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "wall_moon_tapestry": ("Tapiz de Luna", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "wall_hanging_herbs": ("Hierbas Colgadas", "decor", "wall_n", [128, 128], [-32, -48], 0),
 }
 CATALOG = os.path.join(REPO, "frontend", "assets", "images", "furniture", "furniture_catalog.json")
 
@@ -1207,6 +1246,30 @@ def generate_img(pid, seed=None):
     print(pid, tag, "got", len(images), "candidates")
 
 
+def clear_border_white(art, tol=40):
+    """Opaque generations come with white margins: near-white pixels connected to the image border
+    become transparent (flood fill from the edges)."""
+    out = art.copy()
+    px = out.load()
+    w, h = out.size
+
+    def whiteish(p):
+        return p[3] > 0 and min(p[:3]) > 255 - tol
+
+    stack = [(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)]
+    seen = set()
+    while stack:
+        x, y = stack.pop()
+        if (x, y) in seen or not (0 <= x < w and 0 <= y < h):
+            continue
+        seen.add((x, y))
+        if not whiteish(px[x, y]):
+            continue
+        px[x, y] = (0, 0, 0, 0)
+        stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    return out
+
+
 def drop_specks(art, keep=0.04):
     """Clears opaque blobs not connected to the object (generations sometimes add a stray piece
     below it): every 8-connected blob smaller than `keep` of the largest one is removed."""
@@ -1243,6 +1306,8 @@ def drop_specks(art, keep=0.04):
 def place(pid, art):
     """Art cropped to its opaque bbox, its bottom centre on the piece's anchor."""
     spec = IMG_PIECES[pid]
+    if spec.get("opaque"):
+        art = clear_border_white(art)
     art = drop_specks(art)
     art = art.crop(art.getchannel("A").point(lambda a: 255 if a > 40 else 0).getbbox())
     canvas = Image.new("RGBA", spec["canvas"], (0, 0, 0, 0))

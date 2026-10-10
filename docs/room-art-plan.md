@@ -240,6 +240,18 @@ Costo: ~155 generaciones.
 
 ![Cuarto arcade y el sillón gamer con el avatar sentado (rot 0 y 1)](style-arcade.png)
 
+**Místico ✓ (2026-10-10):** `crystal_ball_table_sm` (Mesa con Bola de Cristal, luz violeta que
+pulsa), `cauldron_sm` (Caldero, luz verde que titila), `candles_floor_sm` (Velas de Pie, luz cálida),
+`wall_potion_shelf` (Estante de Pociones), `wall_moon_tapestry` (Tapiz de Luna) y
+`wall_hanging_herbs` (Hierbas Colgadas). Todas simétricas, sin maqueta (solo candidatas y ubicación),
+lo más barato hasta ahora. Las piezas opacas traen márgenes blancos: `place` ahora vuelve
+transparente el blanco que toca los bordes (`clear_border_white`). Con el papel estrellado que ya
+había.
+
+Costo: ~75 generaciones.
+
+![Cuarto místico](style-mystic.png)
+
 ### Fase 5 — Paquetes de cuarto por estilo
 
 - `RoomStylePack` (piso, pared, muebles y una disposición sugerida) para cada id de tema de tarjeta.
