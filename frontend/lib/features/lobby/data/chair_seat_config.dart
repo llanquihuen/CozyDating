@@ -68,6 +68,14 @@ class ChairSeatConfig {
       2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 14.0), tapOffset: Vector2(0, -20))],
       3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(0.0, 14.0), tapOffset: Vector2(0, -20))],
     },
+    // Sillón inflable (Retro 90s): pintado sobre la silueta del sillón acolchado.
+    'inflatable_chair': {
+      // Asiento algo más a la derecha que el del sillón (rot 0/1).
+      0: [SeatSpot(slotIndex: 0, subCell: const Point(0, 1), visualOffset: Vector2(15.0, 6.0), tapOffset: Vector2(0, -20))],
+      1: [SeatSpot(slotIndex: 0, subCell: const Point(1, 0), visualOffset: Vector2(-15.0, 6.0), tapOffset: Vector2(0, -20))],
+      2: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(5.0, 14.0), tapOffset: Vector2(0, -20))],
+      3: [SeatSpot(slotIndex: 0, subCell: const Point(0, 0), visualOffset: Vector2(0.0, 14.0), tapOffset: Vector2(0, -20))],
+    },
     // Taza de baño (1x1) - 1 asiento. Rot 2/3 se ven desde atrás: el estanque y la tapa levantada
     // (bathroom_toilet_rot{2,3}_seated_front.png) quedan delante del avatar.
     'bathroom_toilet': {

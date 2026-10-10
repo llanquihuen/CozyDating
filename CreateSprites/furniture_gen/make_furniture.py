@@ -121,6 +121,15 @@ PIECES = {
         "symmetric": True,  # a rug: the heart stays upright to the camera in every rotation
         "reference": "gen:heart_rug_g3_0",
     },
+    # phase 4: Retro 90s
+    "inflatable_chair": {
+        "footprint": "1x1",
+        "kind": "shape",              # the blockout is an existing sprite's silhouette
+        "shape": "plush_armchair",    # same seat spots and front-layer mask as the armchair
+        "seat": True,
+        "reference": "gen:inflatable_chair_g3_0",
+        "reference_back": "gen:inflatable_chair_back_g3_0",
+    },
     "stone_fountain": {
         "footprint": "2x2",
         "kind": "fountain",
@@ -256,6 +265,40 @@ IMG_PIECES = {
         "desc": "garland of small pink satin bows and white pearls hanging in a gentle curve, seen "
                 "straight from the front, flat front view, no perspective",
     },
+    # phase 4: Retro 90s (the CRT TV is the style image so the set shares its palette)
+    "inflatable_chair": {
+        "size": (112, 112), "style": "crt_tv_console_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "1990s inflatable armchair made of glossy translucent purple and teal vinyl tubes, puffy "
+                "round armrests and backrest, isometric view, the seat faces the lower left",
+    },
+    "inflatable_chair_back": {
+        "size": (112, 112), "style": "gen:inflatable_chair_g3_0", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "the same 1990s inflatable vinyl armchair seen from behind: the puffy round backrest "
+                "tube in front, the armrests on both sides, isometric view",
+    },
+    "boombox_radio": {
+        "size": (48, 48), "style": "crt_tv_console_rot0.png", "canvas": (64, 64), "anchor": (34, 60),
+        "desc": "1990s silver boombox stereo cassette player with two round speakers, a handle on top "
+                "and colorful buttons, isometric view",
+    },
+    "memphis_rug": {
+        "size": (160, 112), "style": "crt_tv_console_rot0.png", "canvas": (256, 192), "anchor": (128, 170),
+        "desc": "rectangular 1990s memphis pattern rug with teal squiggles, yellow triangles, pink dots "
+                "and black confetti on a white background lying flat on the floor, isometric view from "
+                "above",
+    },
+    "wall_cassette_rack": {
+        "wall": True, "size": (56, 56), "style": "crt_tv_console_rot0.png", "canvas": (128, 128), "center_y": 52,
+        "desc": "small purple wall rack full of colorful 1990s audio cassette tapes in three rows, seen "
+                "straight from the front, flat front view, no perspective",
+    },
+    "wall_poster_90s": {
+        "wall": True, "size": (48, 64), "style": "crt_tv_console_rot0.png", "canvas": (128, 128), "center_y": 50,
+        "opaque": True,  # the poster fills the image; background removal would erase the paper
+        "desc": "1990s retro poster filling the whole image edge to edge: a neon pink and teal memphis "
+                "pattern background with a cassette tape and a yellow smiley face, a thin white border, "
+                "no text, flat front view, no perspective",
+    },
     # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
     # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
     "wall_clock": {
@@ -344,6 +387,8 @@ def blockout(pid, view):
         return blockout_canopy(pid, view)
     if p.get("kind") == "heart":
         return blockout_heart(pid, view)
+    if p.get("kind") == "shape":
+        return Image.open(os.path.join(EST, f"{p['shape']}_rot{view}.png")).convert("RGBA")
     geo = GEOMETRY[p["footprint"]]
     w, h = geo["tiles"]
     z = p["height"]
@@ -808,6 +853,8 @@ def build(pid, name):
     r0, r2 = convert_colour(r0), convert_colour(r2)
     views = {0: r0, 1: r0.transpose(Image.FLIP_LEFT_RIGHT), 2: r2, 3: r2.transpose(Image.FLIP_LEFT_RIGHT)}
     n = write_views(pid, views)
+    if PIECES[pid].get("seat"):
+        write_files(seat_fronts(pid, views))
     print("built", pid, "from", name, f"(+{n} in new_added)")
 
 
@@ -820,6 +867,11 @@ NEW_CATALOG = {
     "flower_vase_pink": ("Florero de Rosas", "decor", "surface", [64, 64], [-32, -48], 0),
     "plush_teddy": ("Osito de Peluche", "decor", "surface", [64, 64], [-32, -48], 0),
     "wall_bow_garland": ("Guirnalda de Moños", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "inflatable_chair": ("Sillón Inflable", "living", "1x1", [128, 128], [-32, -48], 0),
+    "boombox_radio": ("Radiocasete", "decor", "surface", [64, 64], [-32, -48], 0),
+    "memphis_rug": ("Alfombra Memphis", "living", "2x2", [256, 192], [-64, -44], 0),
+    "wall_cassette_rack": ("Repisa de Casetes", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "wall_poster_90s": ("Póster Noventero", "decor", "wall_n", [128, 128], [-32, -48], 0),
 }
 CATALOG = os.path.join(REPO, "frontend", "assets", "images", "furniture", "furniture_catalog.json")
 
@@ -844,6 +896,33 @@ def add_catalog(pid):
     with open(CATALOG, "w", encoding="utf-8") as fh:
         fh.write(json.dumps(data, indent=2, ensure_ascii=False))
     print("catalog:", pid)
+
+
+def seat_fronts(pid, views):
+    """Front layers of a seat (drawn over the sitter): for the front views, the pixels of the new
+    sprite under the shape piece's own front layer (grown by 2 px); seen from behind (rot2/3) the
+    backrest covers the sitter, so the whole sprite."""
+    from PIL import ImageFilter
+    shape = PIECES[pid]["shape"]
+    out = {}
+    for r, im in views.items():
+        if r in (2, 3):
+            out[f"{pid}_rot{r}_front.png"] = im
+            continue
+        mask = Image.open(os.path.join(EST, f"{shape}_rot{r}_front.png")).getchannel("A")
+        mask = mask.point(lambda a: 255 if a > 40 else 0).filter(ImageFilter.MaxFilter(5))
+        # down to the bottom in the arm's columns: under the near arm the chair is in front of the
+        # sitter too (the new piece's arm may sit lower than the shape piece's)
+        px = mask.load()
+        for x in range(mask.width):
+            top = next((y for y in range(mask.height) if px[x, y]), None)
+            if top is not None:
+                for y in range(top, mask.height):
+                    px[x, y] = 255
+        front = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        front.paste(im, (0, 0), mask)
+        out[f"{pid}_rot{r}_front.png"] = front
+    return out
 
 
 def write_views(pid, views):
@@ -879,7 +958,7 @@ def generate_img(pid, seed=None):
         "description": f"{spec['desc']}. Single object, pixel art game furniture sprite, selective "
                        "outline, detailed shading, no shadow on the ground, transparent background",
         "image_size": {"width": spec["size"][0], "height": spec["size"][1]},
-        "no_background": True,
+        "no_background": not spec.get("opaque"),
         "style_image": {"image": _b64(style), "size": {"width": style.width, "height": style.height}},
         "style_options": {"color_palette": False, "outline": True, "detail": True, "shading": True},
     }

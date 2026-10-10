@@ -171,6 +171,26 @@ Costo: ~110 generaciones.
 
 ![Dormitorio Coquette (con la luz nocturna del cuarto)](style-coquette.png)
 
+**Retro 90s ✓ (2026-10-10):** `inflatable_chair` (Sillón Inflable, asiento), `boombox_radio`
+(Radiocasete, superficie), `memphis_rug` (Alfombra Memphis 2×2), `wall_cassette_rack` (Repisa de
+Casetes) y `wall_poster_90s` (Póster Noventero), más `crt_tv_console` del piloto y la lámpara de lava
+que ya existía. Todo con la tele de tubo como imagen de estilo.
+
+- **Asientos:** `kind: "shape"` usa como maqueta la silueta de un asiento existente (aquí
+  `plush_armchair`), así que sirven sus puntos de asiento (registrados en `chair_seat_config.dart`, con
+  el inflable 4 unidades más a la derecha en rot 0/1) y su capa `_front`: en rot 0/1 son los píxeles
+  nuevos bajo el apoyabrazos del original (extendidos hacia abajo en esas columnas); en rot 2/3, el
+  sprite completo (el respaldo tapa al avatar). Para que el juego lo trate como asiento, el id debe
+  contener `chair`, `sofa`, `couch` o `toilet`.
+- **Pósters:** con el quitafondos el papel desaparecía (como el mapa de la tanda 3). Las piezas con
+  `"opaque": True` se generan sin quitar el fondo, con el póster llenando la imagen.
+- Las alfombras salen más chicas que su 2×2 (la de corazón también): son caminables, así que solo
+  afecta dónde se pueden soltar. Se puede regenerar más grandes si molesta.
+
+Costo: ~120 generaciones.
+
+![Cuarto Retro 90s y el sillón inflable con el avatar sentado (rot 0 y 1)](style-retro90s.png)
+
 ### Fase 5 — Paquetes de cuarto por estilo
 
 - `RoomStylePack` (piso, pared, muebles y una disposición sugerida) para cada id de tema de tarjeta.

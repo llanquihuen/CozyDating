@@ -5326,5 +5326,451 @@
         "asset_path": "furniture/established_furniture/wall_bow_garland_w.png"
       }
     }
+  },
+  "inflatable_chair": {
+    "name": "Sillón Inflable",
+    "zone": "living",
+    "footprint": "1x1",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "inflatable_chair_rot0",
+        "name": "Sillón Inflable Rot 0",
+        "footprint": "1x1",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/inflatable_chair_rot0.png"
+      },
+      "1": {
+        "id": "inflatable_chair_rot1",
+        "name": "Sillón Inflable Rot 1",
+        "footprint": "1x1",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/inflatable_chair_rot1.png"
+      },
+      "2": {
+        "id": "inflatable_chair_rot2",
+        "name": "Sillón Inflable Rot 2",
+        "footprint": "1x1",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/inflatable_chair_rot2.png"
+      },
+      "3": {
+        "id": "inflatable_chair_rot3",
+        "name": "Sillón Inflable Rot 3",
+        "footprint": "1x1",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/inflatable_chair_rot3.png"
+      }
+    }
+  },
+  "boombox_radio": {
+    "name": "Radiocasete",
+    "zone": "decor",
+    "footprint": "surface",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      64,
+      64
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "boombox_radio_rot0",
+        "name": "Radiocasete Rot 0",
+        "footprint": "surface",
+        "rot": 0,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/boombox_radio_rot0.png"
+      },
+      "1": {
+        "id": "boombox_radio_rot1",
+        "name": "Radiocasete Rot 1",
+        "footprint": "surface",
+        "rot": 1,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/boombox_radio_rot1.png"
+      },
+      "2": {
+        "id": "boombox_radio_rot2",
+        "name": "Radiocasete Rot 2",
+        "footprint": "surface",
+        "rot": 2,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/boombox_radio_rot2.png"
+      },
+      "3": {
+        "id": "boombox_radio_rot3",
+        "name": "Radiocasete Rot 3",
+        "footprint": "surface",
+        "rot": 3,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/boombox_radio_rot3.png"
+      }
+    }
+  },
+  "memphis_rug": {
+    "name": "Alfombra Memphis",
+    "zone": "living",
+    "footprint": "2x2",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      256,
+      192
+    ],
+    "sprite_offset": [
+      -64,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "memphis_rug_rot0",
+        "name": "Alfombra Memphis Rot 0",
+        "footprint": "2x2",
+        "rot": 0,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/memphis_rug_rot0.png"
+      },
+      "1": {
+        "id": "memphis_rug_rot1",
+        "name": "Alfombra Memphis Rot 1",
+        "footprint": "2x2",
+        "rot": 1,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/memphis_rug_rot1.png"
+      },
+      "2": {
+        "id": "memphis_rug_rot2",
+        "name": "Alfombra Memphis Rot 2",
+        "footprint": "2x2",
+        "rot": 2,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/memphis_rug_rot2.png"
+      },
+      "3": {
+        "id": "memphis_rug_rot3",
+        "name": "Alfombra Memphis Rot 3",
+        "footprint": "2x2",
+        "rot": 3,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/memphis_rug_rot3.png"
+      }
+    }
+  },
+  "wall_cassette_rack": {
+    "name": "Repisa de Casetes",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_cassette_rack_n",
+        "name": "Repisa de Casetes (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_cassette_rack_n.png"
+      },
+      "1": {
+        "id": "wall_cassette_rack_w",
+        "name": "Repisa de Casetes (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_cassette_rack_w.png"
+      }
+    }
+  },
+  "wall_poster_90s": {
+    "name": "Póster Noventero",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_poster_90s_n",
+        "name": "Póster Noventero (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_90s_n.png"
+      },
+      "1": {
+        "id": "wall_poster_90s_w",
+        "name": "Póster Noventero (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_poster_90s_w.png"
+      }
+    }
   }
 }
