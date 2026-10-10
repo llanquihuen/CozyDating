@@ -207,6 +207,16 @@ Costo: ~110 generaciones.
 
 ![Cuarto gótico y el sillón de terciopelo con el avatar sentado (rot 0 y 1)](style-metal.png)
 
+**Rústico ✓ (2026-10-10):** `log_bed` (Cama de Troncos, decoración pintada sobre la silueta de
+`single_high_bed`, llena su 1×2), `lantern_table` (Farol de Aceite, superficie, emite luz cálida que
+titila: prefijo `lantern`), `firewood_stack_sm` (Leña Apilada), `plaid_rug` (Alfombra Escocesa) y
+`wall_plush_deer_head` (Ciervo de Peluche), más la chimenea, el sillón, la mesa, la monstera y la cama
+de perro que ya había. Con la madera de pared y piso existentes ya se ve rústico.
+
+Costo: ~70 generaciones.
+
+![Cuarto rústico](style-rustic.png)
+
 ### Fase 5 — Paquetes de cuarto por estilo
 
 - `RoomStylePack` (piso, pared, muebles y una disposición sugerida) para cada id de tema de tarjeta.

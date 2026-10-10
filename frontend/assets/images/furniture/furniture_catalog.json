@@ -6366,5 +6366,493 @@
         "asset_path": "furniture/established_furniture/stained_glass_window_w.png"
       }
     }
+  },
+  "log_bed": {
+    "name": "Cama de Troncos",
+    "zone": "bedroom",
+    "footprint": "1x2",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      192,
+      144
+    ],
+    "sprite_offset": [
+      -64,
+      -36
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "log_bed_rot0",
+        "name": "Cama de Troncos Rot 0",
+        "footprint": "1x2",
+        "rot": 0,
+        "canvas_size": [
+          192,
+          144
+        ],
+        "sprite_offset": [
+          -64,
+          -36
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/log_bed_rot0.png"
+      },
+      "1": {
+        "id": "log_bed_rot1",
+        "name": "Cama de Troncos Rot 1",
+        "footprint": "1x2",
+        "rot": 1,
+        "canvas_size": [
+          192,
+          144
+        ],
+        "sprite_offset": [
+          -64,
+          -36
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/log_bed_rot1.png"
+      },
+      "2": {
+        "id": "log_bed_rot2",
+        "name": "Cama de Troncos Rot 2",
+        "footprint": "1x2",
+        "rot": 2,
+        "canvas_size": [
+          192,
+          144
+        ],
+        "sprite_offset": [
+          -64,
+          -36
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/log_bed_rot2.png"
+      },
+      "3": {
+        "id": "log_bed_rot3",
+        "name": "Cama de Troncos Rot 3",
+        "footprint": "1x2",
+        "rot": 3,
+        "canvas_size": [
+          192,
+          144
+        ],
+        "sprite_offset": [
+          -64,
+          -36
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/log_bed_rot3.png"
+      }
+    }
+  },
+  "lantern_table": {
+    "name": "Farol de Aceite",
+    "zone": "decor",
+    "footprint": "surface",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      64,
+      64
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "lantern_table_rot0",
+        "name": "Farol de Aceite Rot 0",
+        "footprint": "surface",
+        "rot": 0,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/lantern_table_rot0.png"
+      },
+      "1": {
+        "id": "lantern_table_rot1",
+        "name": "Farol de Aceite Rot 1",
+        "footprint": "surface",
+        "rot": 1,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/lantern_table_rot1.png"
+      },
+      "2": {
+        "id": "lantern_table_rot2",
+        "name": "Farol de Aceite Rot 2",
+        "footprint": "surface",
+        "rot": 2,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/lantern_table_rot2.png"
+      },
+      "3": {
+        "id": "lantern_table_rot3",
+        "name": "Farol de Aceite Rot 3",
+        "footprint": "surface",
+        "rot": 3,
+        "canvas_size": [
+          64,
+          64
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/lantern_table_rot3.png"
+      }
+    }
+  },
+  "firewood_stack_sm": {
+    "name": "Leña Apilada (0.5x0.5)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "firewood_stack_sm_rot0",
+        "name": "Leña Apilada (0.5x0.5) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/firewood_stack_sm_rot0.png"
+      },
+      "1": {
+        "id": "firewood_stack_sm_rot1",
+        "name": "Leña Apilada (0.5x0.5) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/firewood_stack_sm_rot1.png"
+      },
+      "2": {
+        "id": "firewood_stack_sm_rot2",
+        "name": "Leña Apilada (0.5x0.5) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/firewood_stack_sm_rot2.png"
+      },
+      "3": {
+        "id": "firewood_stack_sm_rot3",
+        "name": "Leña Apilada (0.5x0.5) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/firewood_stack_sm_rot3.png"
+      }
+    }
+  },
+  "plaid_rug": {
+    "name": "Alfombra Escocesa",
+    "zone": "living",
+    "footprint": "2x2",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      256,
+      192
+    ],
+    "sprite_offset": [
+      -64,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "plaid_rug_rot0",
+        "name": "Alfombra Escocesa Rot 0",
+        "footprint": "2x2",
+        "rot": 0,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/plaid_rug_rot0.png"
+      },
+      "1": {
+        "id": "plaid_rug_rot1",
+        "name": "Alfombra Escocesa Rot 1",
+        "footprint": "2x2",
+        "rot": 1,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/plaid_rug_rot1.png"
+      },
+      "2": {
+        "id": "plaid_rug_rot2",
+        "name": "Alfombra Escocesa Rot 2",
+        "footprint": "2x2",
+        "rot": 2,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/plaid_rug_rot2.png"
+      },
+      "3": {
+        "id": "plaid_rug_rot3",
+        "name": "Alfombra Escocesa Rot 3",
+        "footprint": "2x2",
+        "rot": 3,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/plaid_rug_rot3.png"
+      }
+    }
+  },
+  "wall_plush_deer_head": {
+    "name": "Ciervo de Peluche",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "wall_plush_deer_head_n",
+        "name": "Ciervo de Peluche (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_plush_deer_head_n.png"
+      },
+      "1": {
+        "id": "wall_plush_deer_head_w",
+        "name": "Ciervo de Peluche (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/wall_plush_deer_head_w.png"
+      }
+    }
   }
 }

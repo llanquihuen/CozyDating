@@ -41,6 +41,7 @@ GEOMETRY = {
     "2x2": {"canvas": (256, 192), "offset": (-64, -44), "tiles": (2, 2)},
     # a 1x2 piece taller than the 192x144 canvas (canopy bed): 96 px more on top, offset 48 higher
     "1x2_tall": {"canvas": (192, 240), "offset": (-64, -84), "tiles": (1, 2)},
+    "1x2": {"canvas": (192, 144), "offset": (-64, -36), "tiles": (1, 2)},
 }
 
 STYLE_ANCHOR = "kitchen_fridge_sm_rot0.png"  # a finished piece: palette, outline and shading to match
@@ -144,6 +145,14 @@ PIECES = {
         "kind": "canopy",
         "symmetric": True,  # decoration, like the Coquette canopy bed
         "reference": "gen:gothic_canopy_bed_g3_1",
+    },
+    # phase 4: Rústico
+    "log_bed": {
+        "footprint": "1x2",
+        "kind": "shape",
+        "shape": "single_high_bed",
+        "symmetric": True,  # decoration, like the canopy beds
+        "reference": "gen:log_bed_g3_0",
     },
     "stone_fountain": {
         "footprint": "2x2",
@@ -351,6 +360,32 @@ IMG_PIECES = {
         "desc": "tall gothic arched stained glass window with a deep purple, crimson and blue rose "
                 "pattern in a black stone frame, seen straight from the front, flat front view, no "
                 "perspective",
+    },
+    # phase 4: Rústico (wood from the closet, fabric from the armchair)
+    "log_bed": {
+        "size": (160, 120), "style": "closet_rot0.png", "canvas": (192, 144), "anchor": (96, 138),
+        "desc": "rustic single bed made of thick round pine logs with a log headboard, a red and green "
+                "plaid wool blanket, white pillows and a knitted throw, isometric view, the bed's length "
+                "runs from the upper right to the lower left",
+    },
+    "lantern_table": {
+        "size": (40, 48), "style": "coffee_mug_rot0.png", "canvas": (64, 64), "anchor": (34, 60),
+        "desc": "old black iron camping oil lantern with a glowing warm flame behind the glass and a "
+                "wire handle, isometric view",
+    },
+    "firewood_stack_sm": {
+        "size": (56, 56), "style": "fireplace_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "neat stack of split firewood logs in a small black iron log holder, isometric view",
+    },
+    "plaid_rug": {
+        "size": (168, 112), "style": "plush_armchair_rot0.png", "canvas": (256, 192), "anchor": (128, 172),
+        "desc": "rectangular red and dark green tartan plaid wool rug with fringed ends lying flat on "
+                "the floor, isometric view from above",
+    },
+    "wall_plush_deer_head": {
+        "wall": True, "size": (64, 64), "style": "closet_rot0.png", "canvas": (128, 128), "center_y": 48,
+        "desc": "cute plush toy deer head with soft felt antlers mounted on a round wooden plaque, seen "
+                "straight from the front, flat front view, no perspective",
     },
     # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
     # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
@@ -931,6 +966,11 @@ NEW_CATALOG = {
     "electric_guitar_stand_sm": ("Guitarra Eléctrica (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
     "red_velvet_rug": ("Alfombra Roja", "living", "2x2", [256, 192], [-64, -44], 0),
     "stained_glass_window": ("Vitral Gótico", "decor", "wall_n", [128, 160], [-32, -48], 0),
+    "log_bed": ("Cama de Troncos", "bedroom", "1x2", [192, 144], [-64, -36], 0),
+    "lantern_table": ("Farol de Aceite", "decor", "surface", [64, 64], [-32, -48], 0),
+    "firewood_stack_sm": ("Leña Apilada (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
+    "plaid_rug": ("Alfombra Escocesa", "living", "2x2", [256, 192], [-64, -44], 0),
+    "wall_plush_deer_head": ("Ciervo de Peluche", "decor", "wall_n", [128, 128], [-32, -48], 0),
 }
 CATALOG = os.path.join(REPO, "frontend", "assets", "images", "furniture", "furniture_catalog.json")
 
