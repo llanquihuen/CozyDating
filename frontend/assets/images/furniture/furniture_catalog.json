@@ -5772,5 +5772,599 @@
         "asset_path": "furniture/established_furniture/wall_poster_90s_w.png"
       }
     }
+  },
+  "velvet_armchair": {
+    "name": "Sillón de Terciopelo",
+    "zone": "living",
+    "footprint": "1x1",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      128
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "velvet_armchair_rot0",
+        "name": "Sillón de Terciopelo Rot 0",
+        "footprint": "1x1",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/velvet_armchair_rot0.png"
+      },
+      "1": {
+        "id": "velvet_armchair_rot1",
+        "name": "Sillón de Terciopelo Rot 1",
+        "footprint": "1x1",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/velvet_armchair_rot1.png"
+      },
+      "2": {
+        "id": "velvet_armchair_rot2",
+        "name": "Sillón de Terciopelo Rot 2",
+        "footprint": "1x1",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/velvet_armchair_rot2.png"
+      },
+      "3": {
+        "id": "velvet_armchair_rot3",
+        "name": "Sillón de Terciopelo Rot 3",
+        "footprint": "1x1",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          128
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/velvet_armchair_rot3.png"
+      }
+    }
+  },
+  "gothic_canopy_bed": {
+    "name": "Cama con Dosel Gótica",
+    "zone": "bedroom",
+    "footprint": "1x2",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      192,
+      240
+    ],
+    "sprite_offset": [
+      -64,
+      -84
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "gothic_canopy_bed_rot0",
+        "name": "Cama con Dosel Gótica Rot 0",
+        "footprint": "1x2",
+        "rot": 0,
+        "canvas_size": [
+          192,
+          240
+        ],
+        "sprite_offset": [
+          -64,
+          -84
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gothic_canopy_bed_rot0.png"
+      },
+      "1": {
+        "id": "gothic_canopy_bed_rot1",
+        "name": "Cama con Dosel Gótica Rot 1",
+        "footprint": "1x2",
+        "rot": 1,
+        "canvas_size": [
+          192,
+          240
+        ],
+        "sprite_offset": [
+          -64,
+          -84
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gothic_canopy_bed_rot1.png"
+      },
+      "2": {
+        "id": "gothic_canopy_bed_rot2",
+        "name": "Cama con Dosel Gótica Rot 2",
+        "footprint": "1x2",
+        "rot": 2,
+        "canvas_size": [
+          192,
+          240
+        ],
+        "sprite_offset": [
+          -64,
+          -84
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gothic_canopy_bed_rot2.png"
+      },
+      "3": {
+        "id": "gothic_canopy_bed_rot3",
+        "name": "Cama con Dosel Gótica Rot 3",
+        "footprint": "1x2",
+        "rot": 3,
+        "canvas_size": [
+          192,
+          240
+        ],
+        "sprite_offset": [
+          -64,
+          -84
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/gothic_canopy_bed_rot3.png"
+      }
+    }
+  },
+  "candelabra_floor_sm": {
+    "name": "Candelabro de Pie (0.5x0.5)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "candelabra_floor_sm_rot0",
+        "name": "Candelabro de Pie (0.5x0.5) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/candelabra_floor_sm_rot0.png"
+      },
+      "1": {
+        "id": "candelabra_floor_sm_rot1",
+        "name": "Candelabro de Pie (0.5x0.5) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/candelabra_floor_sm_rot1.png"
+      },
+      "2": {
+        "id": "candelabra_floor_sm_rot2",
+        "name": "Candelabro de Pie (0.5x0.5) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/candelabra_floor_sm_rot2.png"
+      },
+      "3": {
+        "id": "candelabra_floor_sm_rot3",
+        "name": "Candelabro de Pie (0.5x0.5) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/candelabra_floor_sm_rot3.png"
+      }
+    }
+  },
+  "electric_guitar_stand_sm": {
+    "name": "Guitarra Eléctrica (0.5x0.5)",
+    "zone": "living",
+    "footprint": "0.5x0.5",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      176
+    ],
+    "sprite_offset": [
+      -32,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "electric_guitar_stand_sm_rot0",
+        "name": "Guitarra Eléctrica (0.5x0.5) Rot 0",
+        "footprint": "0.5x0.5",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/electric_guitar_stand_sm_rot0.png"
+      },
+      "1": {
+        "id": "electric_guitar_stand_sm_rot1",
+        "name": "Guitarra Eléctrica (0.5x0.5) Rot 1",
+        "footprint": "0.5x0.5",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/electric_guitar_stand_sm_rot1.png"
+      },
+      "2": {
+        "id": "electric_guitar_stand_sm_rot2",
+        "name": "Guitarra Eléctrica (0.5x0.5) Rot 2",
+        "footprint": "0.5x0.5",
+        "rot": 2,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/electric_guitar_stand_sm_rot2.png"
+      },
+      "3": {
+        "id": "electric_guitar_stand_sm_rot3",
+        "name": "Guitarra Eléctrica (0.5x0.5) Rot 3",
+        "footprint": "0.5x0.5",
+        "rot": 3,
+        "canvas_size": [
+          128,
+          176
+        ],
+        "sprite_offset": [
+          -32,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/electric_guitar_stand_sm_rot3.png"
+      }
+    }
+  },
+  "red_velvet_rug": {
+    "name": "Alfombra Roja",
+    "zone": "living",
+    "footprint": "2x2",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      256,
+      192
+    ],
+    "sprite_offset": [
+      -64,
+      -44
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "red_velvet_rug_rot0",
+        "name": "Alfombra Roja Rot 0",
+        "footprint": "2x2",
+        "rot": 0,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/red_velvet_rug_rot0.png"
+      },
+      "1": {
+        "id": "red_velvet_rug_rot1",
+        "name": "Alfombra Roja Rot 1",
+        "footprint": "2x2",
+        "rot": 1,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/red_velvet_rug_rot1.png"
+      },
+      "2": {
+        "id": "red_velvet_rug_rot2",
+        "name": "Alfombra Roja Rot 2",
+        "footprint": "2x2",
+        "rot": 2,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/red_velvet_rug_rot2.png"
+      },
+      "3": {
+        "id": "red_velvet_rug_rot3",
+        "name": "Alfombra Roja Rot 3",
+        "footprint": "2x2",
+        "rot": 3,
+        "canvas_size": [
+          256,
+          192
+        ],
+        "sprite_offset": [
+          -64,
+          -44
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/red_velvet_rug_rot3.png"
+      }
+    }
+  },
+  "stained_glass_window": {
+    "name": "Vitral Gótico",
+    "zone": "decor",
+    "footprint": "wall_n",
+    "surface_height": 0,
+    "supports_surface": false,
+    "surface_offset": [
+      0,
+      0
+    ],
+    "canvas_size": [
+      128,
+      160
+    ],
+    "sprite_offset": [
+      -32,
+      -48
+    ],
+    "has_table_magnet": false,
+    "rotations": {
+      "0": {
+        "id": "stained_glass_window_n",
+        "name": "Vitral Gótico (Norte)",
+        "footprint": "wall_n",
+        "rot": 0,
+        "canvas_size": [
+          128,
+          160
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/stained_glass_window_n.png"
+      },
+      "1": {
+        "id": "stained_glass_window_w",
+        "name": "Vitral Gótico (Oeste)",
+        "footprint": "wall_w",
+        "rot": 1,
+        "canvas_size": [
+          128,
+          160
+        ],
+        "sprite_offset": [
+          -32,
+          -48
+        ],
+        "surface_height": 0,
+        "supports_surface": false,
+        "surface_offset": [
+          0,
+          0
+        ],
+        "asset_path": "furniture/established_furniture/stained_glass_window_w.png"
+      }
+    }
   }
 }

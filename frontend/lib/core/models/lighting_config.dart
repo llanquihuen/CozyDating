@@ -310,6 +310,12 @@ class EmitterLightSpec extends Equatable {
         color: LightColor.cold, radius: 3.0, intensity: 0.8, height: 40, anim: LightAnim.daylight, toggleable: false),
     'curtained_window': EmitterLightSpec(
         color: LightColor.cold, radius: 3.0, intensity: 0.7, height: 40, anim: LightAnim.daylight, toggleable: false),
+    'crt_tv_console': EmitterLightSpec(
+        color: LightColor.custom(0xFF9EC9FF), radius: 1.8, intensity: 0.55, height: 24, anim: LightAnim.tv, defaultOn: false),
+    'candelabra': EmitterLightSpec(
+        color: LightColor.custom(0xFFFFB25C), radius: 2.2, intensity: 0.8, height: 56, anim: LightAnim.flicker, selfLit: 0.4),
+    'stained_glass_window': EmitterLightSpec(
+        color: LightColor.custom(0xFFB9A2FF), radius: 3.0, intensity: 0.6, height: 44, anim: LightAnim.daylight, toggleable: false),
   };
 
   @override

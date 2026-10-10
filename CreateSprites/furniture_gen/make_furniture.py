@@ -130,6 +130,21 @@ PIECES = {
         "reference": "gen:inflatable_chair_g3_0",
         "reference_back": "gen:inflatable_chair_back_g3_0",
     },
+    # phase 4: Metal / Goth
+    "velvet_armchair": {
+        "footprint": "1x1",
+        "kind": "shape",
+        "shape": "plush_armchair",
+        "seat": True,
+        "reference": "gen:velvet_armchair_g3_0",
+        "reference_back": "gen:velvet_armchair_back_g3_0",
+    },
+    "gothic_canopy_bed": {
+        "footprint": "1x2_tall",
+        "kind": "canopy",
+        "symmetric": True,  # decoration, like the Coquette canopy bed
+        "reference": "gen:gothic_canopy_bed_g3_1",
+    },
     "stone_fountain": {
         "footprint": "2x2",
         "kind": "fountain",
@@ -298,6 +313,44 @@ IMG_PIECES = {
         "desc": "1990s retro poster filling the whole image edge to edge: a neon pink and teal memphis "
                 "pattern background with a cassette tape and a yellow smiley face, a thin white border, "
                 "no text, flat front view, no perspective",
+    },
+    # phase 4: Metal / Goth
+    "velvet_armchair": {
+        "size": (112, 112), "style": "plush_armchair_rot0.png", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "gothic wingback armchair upholstered in deep crimson velvet with black carved wooden "
+                "legs and tufted buttons, isometric view, the seat faces the lower left",
+    },
+    "velvet_armchair_back": {
+        "size": (112, 112), "style": "gen:velvet_armchair_g3_0", "canvas": (128, 128), "anchor": (64, 118),
+        "desc": "the same gothic crimson velvet wingback armchair seen from behind: the tall tufted "
+                "backrest in front, black carved wooden frame, isometric view",
+    },
+    "gothic_canopy_bed": {
+        "size": (160, 160), "style": "canopy_bed_rot0.png", "canvas": (192, 240), "anchor": (96, 230),
+        "desc": "gothic single canopy bed: black carved wooden four poster frame with spires, deep red "
+                "velvet drapes tied with black ropes, black and crimson bedspread, dark purple pillows, "
+                "isometric view, the bed's length runs from the upper right to the lower left",
+    },
+    "candelabra_floor_sm": {
+        "size": (40, 96), "style": "floor_lamp_sm_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "tall black wrought iron gothic floor candelabra with five lit white candles and "
+                "dripping wax, isometric view",
+    },
+    "electric_guitar_stand_sm": {
+        "size": (40, 84), "style": "acoustic_guitar_stand_rot0.png", "canvas": (128, 176), "anchor": (62, 168),
+        "desc": "black flying v electric guitar with red details standing upright on a small black "
+                "guitar stand on the floor, isometric view",
+    },
+    "red_velvet_rug": {
+        "size": (168, 112), "style": "plush_armchair_rot0.png", "canvas": (256, 192), "anchor": (128, 172),
+        "desc": "rectangular deep red persian rug with an ornate black and gold gothic pattern and "
+                "fringed ends lying flat on the floor, isometric view from above",
+    },
+    "stained_glass_window": {
+        "wall": True, "size": (56, 96), "style": "curtained_window_n.png", "canvas": (128, 160), "center_y": 71,
+        "desc": "tall gothic arched stained glass window with a deep purple, crimson and blue rose "
+                "pattern in a black stone frame, seen straight from the front, flat front view, no "
+                "perspective",
     },
     # wall pieces: generated flat (front view), slanted here like the wall panels; _w is the mirror.
     # "center_y": vertical centre of the art in the 128x128 wall sprite (where the old art was).
@@ -872,6 +925,12 @@ NEW_CATALOG = {
     "memphis_rug": ("Alfombra Memphis", "living", "2x2", [256, 192], [-64, -44], 0),
     "wall_cassette_rack": ("Repisa de Casetes", "decor", "wall_n", [128, 128], [-32, -48], 0),
     "wall_poster_90s": ("Póster Noventero", "decor", "wall_n", [128, 128], [-32, -48], 0),
+    "velvet_armchair": ("Sillón de Terciopelo", "living", "1x1", [128, 128], [-32, -48], 0),
+    "gothic_canopy_bed": ("Cama con Dosel Gótica", "bedroom", "1x2", [192, 240], [-64, -84], 0),
+    "candelabra_floor_sm": ("Candelabro de Pie (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
+    "electric_guitar_stand_sm": ("Guitarra Eléctrica (0.5x0.5)", "living", "0.5x0.5", [128, 176], [-32, -44], 0),
+    "red_velvet_rug": ("Alfombra Roja", "living", "2x2", [256, 192], [-64, -44], 0),
+    "stained_glass_window": ("Vitral Gótico", "decor", "wall_n", [128, 160], [-32, -48], 0),
 }
 CATALOG = os.path.join(REPO, "frontend", "assets", "images", "furniture", "furniture_catalog.json")
 

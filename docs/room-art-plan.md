@@ -191,6 +191,22 @@ Costo: ~80 generaciones según el saldo.
 
 ![Cuarto Retro 90s y el sillón inflable con el avatar sentado (rot 0 y 1)](style-retro90s.png)
 
+**Metal / Goth ✓ (2026-10-10):** `velvet_armchair` (Sillón de Terciopelo, asiento sobre la silueta
+del sillón, mismos puntos de asiento), `gothic_canopy_bed` (Cama con Dosel Gótica, decoración como la
+Coquette), `candelabra_floor_sm` (Candelabro de Pie, emite luz cálida que titila),
+`electric_guitar_stand_sm` (Guitarra Eléctrica), `red_velvet_rug` (Alfombra Roja) y
+`stained_glass_window` (Vitral Gótico, deja entrar luz de día violácea), más la chimenea y las
+estanterías que ya había. Luces nuevas en `EmitterLightSpec` (por prefijo de id): `candelabra`,
+`stained_glass_window` y, de paso, `crt_tv_console` (como la otra TV, apagada por defecto).
+
+Falta para que el cuarto se vea gótico: un papel mural oscuro (ladrillo oscuro o damasco) y un piso de
+piedra oscura; van con los paquetes de estilo (fase 5), junto con los pisos y papeles que la matriz
+pide para los demás estilos.
+
+Costo: ~110 generaciones.
+
+![Cuarto gótico y el sillón de terciopelo con el avatar sentado (rot 0 y 1)](style-metal.png)
+
 ### Fase 5 — Paquetes de cuarto por estilo
 
 - `RoomStylePack` (piso, pared, muebles y una disposición sugerida) para cada id de tema de tarjeta.
